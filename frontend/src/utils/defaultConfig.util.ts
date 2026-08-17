@@ -33,6 +33,18 @@ export function getDefaultConfig(): Config[] {
       type: "boolean",
     },
     {
+      key: "share.enableUserRecipients",
+      value: "false",
+      defaultValue: "false",
+      type: "boolean",
+    },
+    {
+      key: "email.enableShareEmailRecipients",
+      value: "false",
+      defaultValue: "false",
+      type: "boolean",
+    },
+    {
       key: "smtp.enabled",
       value: "false",
       defaultValue: "false",
