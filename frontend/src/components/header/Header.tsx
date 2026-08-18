@@ -24,7 +24,7 @@ import Logo from "../Logo";
 import ActionAvatar from "./ActionAvatar";
 import NavbarShareMenu from "./NavbarShareMenu";
 
-const HEADER_HEIGHT = 60;
+export const HEADER_HEIGHT = 60;
 
 type NavLink = {
   link?: string;
@@ -35,108 +35,124 @@ type NavLink = {
 
 type MobileMenuView = "root" | "shares" | "profile";
 
-const useStyles = createStyles((theme) => ({
-  root: {
-    zIndex: 1,
-  },
+const useStyles = createStyles((theme) => {
+  const dark = theme.colorScheme === "dark";
 
-  mobilePanel: {
-    marginBottom: theme.spacing.md,
-    borderTopRightRadius: 0,
-    borderTopLeftRadius: 0,
-    overflow: "hidden",
-    width: "100%",
-
-    [theme.fn.largerThan("sm")]: {
-      display: "none",
-    },
-  },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    height: "100%",
-  },
-
-  links: {
-    [theme.fn.smallerThan("sm")]: {
-      display: "none",
-    },
-  },
-
-  burger: {
-    [theme.fn.largerThan("sm")]: {
-      display: "none",
-    },
-  },
-
-  link: {
-    display: "block",
-    lineHeight: 1,
-    padding: "8px 12px",
-    borderRadius: theme.radius.sm,
-    textDecoration: "none",
-    color:
-      theme.colorScheme === "dark"
-        ? theme.colors.dark[0]
-        : theme.colors.gray[7],
-    fontSize: theme.fontSizes.sm,
-    fontWeight: 500,
-
-    "&:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[6]
-          : theme.colors.gray[0],
+  return {
+    root: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 100,
+      background: dark
+        ? "linear-gradient(160deg, rgba(255, 255, 255, 0.1) 0%, rgba(18, 18, 18, 0.45) 55%, rgba(255, 255, 255, 0.04) 100%)"
+        : "linear-gradient(160deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.28) 55%, rgba(255, 255, 255, 0.4) 100%)",
+      backdropFilter: "blur(18px) saturate(160%)",
+      WebkitBackdropFilter: "blur(18px) saturate(160%)",
+      borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
     },
 
-    [theme.fn.smallerThan("sm")]: {
-      borderRadius: 0,
-      padding: theme.spacing.md,
+    mobilePanel: {
+      marginBottom: theme.spacing.md,
+      borderTopRightRadius: 0,
+      borderTopLeftRadius: 0,
+      overflow: "hidden",
+      width: "100%",
+
+      [theme.fn.largerThan("sm")]: {
+        display: "none",
+      },
     },
-  },
 
-  mobileMenuButton: {
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: theme.spacing.md,
-    color:
-      theme.colorScheme === "dark"
-        ? theme.colors.dark[0]
-        : theme.colors.gray[7],
-
-    "&:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[6]
-          : theme.colors.gray[0],
+    header: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      height: "100%",
     },
-  },
 
-  mobileMenuButtonContent: {
-    display: "flex",
-    alignItems: "center",
-  },
+    links: {
+      [theme.fn.smallerThan("sm")]: {
+        display: "none",
+      },
+    },
 
-  mobileMenuLabel: {
-    fontSize: theme.fontSizes.sm,
-    fontWeight: 500,
-  },
+    burger: {
+      [theme.fn.largerThan("sm")]: {
+        display: "none",
+      },
+    },
 
-  linkActive: {
-    "&, &:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.fn.rgba(theme.colors[theme.primaryColor][9], 0.25)
-          : theme.colors[theme.primaryColor][0],
+    link: {
+      display: "block",
+      lineHeight: 1,
+      padding: "8px 12px",
+      borderRadius: theme.radius.sm,
+      textDecoration: "none",
       color:
-        theme.colors[theme.primaryColor][theme.colorScheme === "dark" ? 3 : 7],
+        theme.colorScheme === "dark"
+          ? theme.colors.dark[0]
+          : theme.colors.gray[7],
+      fontSize: theme.fontSizes.sm,
+      fontWeight: 500,
+
+      "&:hover": {
+        backgroundColor:
+          theme.colorScheme === "dark"
+            ? theme.colors.dark[6]
+            : theme.colors.gray[0],
+      },
+
+      [theme.fn.smallerThan("sm")]: {
+        borderRadius: 0,
+        padding: theme.spacing.md,
+      },
     },
-  },
-}));
+
+    mobileMenuButton: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: theme.spacing.md,
+      color:
+        theme.colorScheme === "dark"
+          ? theme.colors.dark[0]
+          : theme.colors.gray[7],
+
+      "&:hover": {
+        backgroundColor:
+          theme.colorScheme === "dark"
+            ? theme.colors.dark[6]
+            : theme.colors.gray[0],
+      },
+    },
+
+    mobileMenuButtonContent: {
+      display: "flex",
+      alignItems: "center",
+    },
+
+    mobileMenuLabel: {
+      fontSize: theme.fontSizes.sm,
+      fontWeight: 500,
+    },
+
+    linkActive: {
+      "&, &:hover": {
+        backgroundColor:
+          theme.colorScheme === "dark"
+            ? theme.fn.rgba(theme.colors[theme.primaryColor][9], 0.25)
+            : theme.colors[theme.primaryColor][0],
+        color:
+          theme.colors[theme.primaryColor][
+            theme.colorScheme === "dark" ? 3 : 7
+          ],
+      },
+    },
+  };
+});
 
 const Header = () => {
   const { user } = useUser();

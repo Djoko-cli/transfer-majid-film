@@ -2,18 +2,16 @@ import { createStyles, useMantineTheme } from "@mantine/core";
 
 const useStyles = createStyles(() => ({
   dash: {
-    animation: "glintTravel 6.5s linear infinite",
-  },
-
-  "@keyframes glintTravel": {
-    to: { strokeDashoffset: -1000 },
+    animation: "glintTravel 5s linear infinite",
   },
 }));
 
-// A short, soft "comet" of light that continuously travels the card's
+// A short, bright "comet" of light that continuously travels the card's own
 // rounded outline — SVG stroke-dasharray/pathLength instead of a rotated
 // conic-gradient mask, so it traces the true perimeter of a non-square,
-// rounded rect without corner distortion.
+// rounded rect without corner distortion. Traced at a 1px inset with a 2px
+// stroke so it sits exactly ON the card's real border line — not a second,
+// smaller ring floating inside it.
 const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
   const { classes } = useStyles();
   const theme = useMantineTheme();
@@ -29,6 +27,7 @@ const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
         height: "100%",
         pointerEvents: "none",
         zIndex: 3,
+        overflow: "visible",
       }}
     >
       <defs>
@@ -39,17 +38,17 @@ const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
         </linearGradient>
       </defs>
       <rect
-        x="1%"
-        y="1%"
-        width="98%"
-        height="98%"
-        rx={radius}
-        ry={radius}
+        x={1}
+        y={1}
+        width="calc(100% - 2px)"
+        height="calc(100% - 2px)"
+        rx={radius - 1}
+        ry={radius - 1}
         fill="none"
         stroke="url(#transfer-glint)"
-        strokeWidth={2}
+        strokeWidth={2.5}
         pathLength={1000}
-        strokeDasharray="150 850"
+        strokeDasharray="160 840"
         className={classes.dash}
       />
     </svg>

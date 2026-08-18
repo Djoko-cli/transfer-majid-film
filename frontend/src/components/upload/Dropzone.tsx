@@ -128,12 +128,14 @@ const Dropzone = ({
   maxShareSize,
   currentFilesSize = 0,
   onFilesChanged,
+  glass = false,
 }: {
   title?: string;
   isUploading: boolean;
   maxShareSize: number;
   currentFilesSize?: number;
   onFilesChanged: (files: FileUpload[]) => void;
+  glass?: boolean;
 }) => {
   const t = useTranslate();
   const { classes } = useStyles();
@@ -216,6 +218,23 @@ const Dropzone = ({
         }}
         className={classes.dropzone}
         radius="md"
+        styles={
+          glass
+            ? (theme) => {
+                const dark = theme.colorScheme === "dark";
+                return {
+                  root: {
+                    backgroundColor: dark
+                      ? "rgba(255, 255, 255, 0.06)"
+                      : "rgba(255, 255, 255, 0.28)",
+                    borderColor: dark
+                      ? "rgba(255, 255, 255, 0.22)"
+                      : "rgba(255, 255, 255, 0.6)",
+                  },
+                };
+              }
+            : undefined
+        }
       >
         <div style={{ pointerEvents: "none" }}>
           <Group position="center">

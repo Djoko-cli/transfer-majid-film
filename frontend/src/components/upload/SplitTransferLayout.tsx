@@ -1,7 +1,9 @@
 import { Box, createStyles } from "@mantine/core";
 import { ReactNode } from "react";
+import { HEADER_HEIGHT } from "../header/Header";
 import BrandPanel from "./BrandPanel";
 import GlintBorder from "./GlintBorder";
+import LiquidGlassKeyframes from "./liquidGlassKeyframes";
 
 const CARD_RADIUS = 28;
 
@@ -16,10 +18,15 @@ const useStyles = createStyles((theme) => {
       marginLeft: "-50vw",
       marginRight: "-50vw",
       width: "100vw",
-      minHeight: "calc(100vh - 180px)",
+      // Pulls the panel back up underneath the fixed, translucent header
+      // (see _app.tsx's compensating paddingTop) so the image reaches the
+      // very top of the viewport instead of starting below the navbar.
+      marginTop: -HEADER_HEIGHT,
+      minHeight: "calc(100vh - 90px)",
       overflow: "hidden",
 
       [theme.fn.smallerThan("sm")]: {
+        marginTop: 0,
         minHeight: "auto",
         overflow: "visible",
       },
@@ -27,7 +34,7 @@ const useStyles = createStyles((theme) => {
 
     cardWrapper: {
       position: "absolute",
-      top: "clamp(24px, 5vh, 64px)",
+      top: `calc(${HEADER_HEIGHT}px + clamp(24px, 5vh, 64px))`,
       bottom: "clamp(24px, 5vh, 64px)",
       left: "clamp(20px, 4vw, 56px)",
       width: 440,
@@ -73,7 +80,14 @@ const useStyles = createStyles((theme) => {
       },
     },
 
+    // Sits exactly over .card's own box (same parent, same size) so the
+    // traced outline coincides with the card's real border instead of
+    // floating as a separate ring.
     glint: {
+      position: "absolute",
+      inset: 0,
+      borderRadius: CARD_RADIUS,
+
       [theme.fn.smallerThan("sm")]: {
         display: "none",
       },
@@ -86,6 +100,7 @@ const SplitTransferLayout = ({ children }: { children: ReactNode }) => {
 
   return (
     <Box className={classes.bleed}>
+      <LiquidGlassKeyframes />
       <BrandPanel />
       <Box className={classes.cardWrapper}>
         <Box className={classes.glint}>

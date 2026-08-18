@@ -6,6 +6,7 @@ import {
   Checkbox,
   Col,
   Grid,
+  MantineProvider,
   MultiSelect,
   NumberInput,
   PasswordInput,
@@ -16,6 +17,7 @@ import {
   Textarea,
   TextInput,
 } from "@mantine/core";
+import glassFormTheme from "./glassFormTheme";
 import { useForm, yupResolver } from "@mantine/form";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
@@ -198,7 +200,7 @@ const TransferCard = ({
   });
 
   return (
-    <Box>
+    <MantineProvider inherit theme={glassFormTheme}>
       {showNotSignedInAlert && !isUserSignedIn && (
         <Alert
           withCloseButton
@@ -231,6 +233,7 @@ const TransferCard = ({
             currentFilesSize={currentFilesSize}
             onFilesChanged={onFilesChanged}
             isUploading={isUploading}
+            glass
           />
           {files.length > 0 && (
             <FileList<FileUpload> files={files} setFiles={setFiles} />
@@ -453,7 +456,7 @@ const TransferCard = ({
           </Button>
         </Stack>
       </form>
-    </Box>
+    </MantineProvider>
   );
 };
 

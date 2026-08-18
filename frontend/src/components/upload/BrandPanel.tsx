@@ -173,7 +173,7 @@ const useStyles = createStyles((theme) => ({
   // move in sync during the orbit and the slide transition alike.
   slideImageWrap: {
     position: "absolute",
-    inset: "-6%",
+    inset: "-30%",
   },
 
   slideImage: {
@@ -191,11 +191,10 @@ const useStyles = createStyles((theme) => ({
     inset: 0,
     backgroundSize: "cover",
     backgroundPosition: "center",
-    filter: "blur(60px) saturate(135%)",
+    filter: "blur(16px) saturate(120%)",
     WebkitMaskImage:
-      "linear-gradient(to right, black 0%, black 34%, transparent 52%)",
-    maskImage:
-      "linear-gradient(to right, black 0%, black 34%, transparent 52%)",
+      "linear-gradient(to right, black 0%, black 6%, transparent 16%)",
+    maskImage: "linear-gradient(to right, black 0%, black 6%, transparent 16%)",
   },
 
   // Only the currently-settled slide gets this — a slow orbit-and-breathe
@@ -215,14 +214,6 @@ const useStyles = createStyles((theme) => ({
     padding: `${theme.spacing.xl} ${theme.spacing.lg} ${theme.spacing.md}`,
     background: "linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent)",
     zIndex: 1,
-  },
-
-  "@keyframes orbitFloat": {
-    "0%": { transform: "scale(1.05) translate(0%, 0%)" },
-    "25%": { transform: "scale(1.09) translate(2.6%, -1.6%)" },
-    "50%": { transform: "scale(1.14) translate(0%, -2.8%)" },
-    "75%": { transform: "scale(1.09) translate(-2.6%, -1.6%)" },
-    "100%": { transform: "scale(1.05) translate(0%, 0%)" },
   },
 }));
 
