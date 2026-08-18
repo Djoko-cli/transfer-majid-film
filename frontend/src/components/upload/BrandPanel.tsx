@@ -167,13 +167,13 @@ const useStyles = createStyles((theme) => ({
     transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`,
   },
 
-  // Sized larger than its wrapper so the living orbit/zoom below never
+  // Sized slightly larger than its wrapper so the gentle zoom below never
   // uncovers an edge — the slide's own overflow:hidden clips it back down.
   // Carries the sharp image and its blurred-left twin together, so both
-  // move in sync during the orbit and the slide transition alike.
+  // zoom in sync during the slide transition alike.
   slideImageWrap: {
     position: "absolute",
-    inset: "-30%",
+    inset: "-4%",
   },
 
   slideImage: {
@@ -197,13 +197,13 @@ const useStyles = createStyles((theme) => ({
     maskImage: "linear-gradient(to right, black 0%, black 6%, transparent 16%)",
   },
 
-  // Only the currently-settled slide gets this — a slow orbit-and-breathe
-  // loop. Sized to actually read as motion at a glance rather than needing
-  // to be stared at, while staying slow enough not to fight looking at the
-  // photo itself. Delayed by the slide transition so it only starts once
-  // the scroll has settled.
+  // Only the currently-settled slide gets this — a slow, linear 7% zoom
+  // across the full dwell time. Subtle on purpose: enough to read as "not a
+  // static photo" without fighting looking at the image itself. Delayed by
+  // the slide transition so it only starts once the scroll has settled, and
+  // holds its end state (fill: forwards) instead of snapping back.
   living: {
-    animation: `orbitFloat ${LIVING_DURATION_MS}ms ease-in-out ${TRANSITION_MS}ms infinite`,
+    animation: `gentleZoom ${LIVING_DURATION_MS}ms linear ${TRANSITION_MS}ms forwards`,
   },
 
   caption: {

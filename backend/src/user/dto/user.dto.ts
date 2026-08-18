@@ -1,5 +1,6 @@
 import { Expose, plainToClass } from "class-transformer";
 import {
+  IsBoolean,
   IsEmail,
   IsOptional,
   Length,
@@ -53,6 +54,11 @@ export class UserDTO {
     message: "storageQuotaLimit must be greater than 0",
   })
   storageQuotaLimit?: string;
+
+  @Expose()
+  @IsOptional()
+  @IsBoolean()
+  canCreatePermanentShares?: boolean;
 
   @Expose()
   totpVerified: boolean;

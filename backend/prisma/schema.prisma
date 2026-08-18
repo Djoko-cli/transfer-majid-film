@@ -12,19 +12,20 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  username String  @unique
-  email    String  @unique
-  password String?
-  isAdmin  Boolean @default(false)
-  ldapDN   String? @unique
-  shareSizeLimit String?
-  storageQuotaLimit String?
+  username                 String  @unique
+  email                    String  @unique
+  password                 String?
+  isAdmin                  Boolean @default(false)
+  ldapDN                   String? @unique
+  shareSizeLimit           String?
+  storageQuotaLimit        String?
+  canCreatePermanentShares Boolean @default(false)
 
-  shares              Share[]
-  refreshTokens       RefreshToken[]
-  loginTokens         LoginToken[]
-  reverseShares       ReverseShare[]
-  shareUserRecipients ShareUserRecipient[]
+  shares                Share[]
+  refreshTokens         RefreshToken[]
+  loginTokens           LoginToken[]
+  reverseShares         ReverseShare[]
+  shareUserRecipients   ShareUserRecipient[]
   adminNoticeDismissals AdminNoticeDismissal[]
 
   totpEnabled        Boolean             @default(false)
@@ -49,7 +50,7 @@ model RefreshToken {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  oauthIDToken  String? // prefixed with the ID of the issuing OAuth provider, separated by a colon
+  oauthIDToken String? // prefixed with the ID of the issuing OAuth provider, separated by a colon
 }
 
 model LoginToken {
@@ -83,8 +84,8 @@ model OAuthUser {
 }
 
 model Share {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 
   name          String?
@@ -101,11 +102,11 @@ model Share {
   reverseShareId String?
   reverseShare   ReverseShare? @relation(fields: [reverseShareId], references: [id], onDelete: Cascade)
 
-  security       ShareSecurity?
-  recipients     ShareRecipient[]
-  userRecipients ShareUserRecipient[]
-  files          File[]
-  storageProvider String @default("LOCAL")
+  security        ShareSecurity?
+  recipients      ShareRecipient[]
+  userRecipients  ShareUserRecipient[]
+  files           File[]
+  storageProvider String               @default("LOCAL")
 }
 
 model ReverseShare {
@@ -161,8 +162,8 @@ model ShareUserRecipient {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
 
-  userId  String
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   shareId String
   share   Share  @relation(fields: [shareId], references: [id], onDelete: Cascade)
@@ -187,13 +188,13 @@ model Config {
 }
 
 model AdminNoticeDismissal {
-  id                  String   @id @default(uuid())
-  createdAt           DateTime @default(now())
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
 
-  noticeId            String   @unique
+  noticeId            String  @unique
   dismissedByUserId   String?
   dismissedByUsername String?
-  dismissedByUser     User?    @relation(fields: [dismissedByUserId], references: [id], onDelete: SetNull)
+  dismissedByUser     User?   @relation(fields: [dismissedByUserId], references: [id], onDelete: SetNull)
 }
 
 model AnonymousShareVerification {
@@ -208,4 +209,3 @@ model AnonymousShareVerification {
 
   @@index([email])
 }
-

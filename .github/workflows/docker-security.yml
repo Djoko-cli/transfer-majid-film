@@ -18,7 +18,6 @@ concurrency:
 
 permissions:
   contents: read
-  security-events: write
 
 env:
   IMAGE_REF: pingvin-share-x:security-scan
@@ -45,27 +44,11 @@ jobs:
           tags: ${{ env.IMAGE_REF }}
           no-cache: true
 
-      - name: Trivy SARIF report
-        if: github.event_name != 'pull_request'
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: ${{ env.IMAGE_REF }}
-          format: sarif
-          output: trivy-pingvin-share-x.sarif
-          severity: CRITICAL,HIGH,MEDIUM
-          scanners: vuln,secret
-          vuln-type: os
-          ignore-unfixed: true
-          exit-code: "0"
-          limit-severities-for-sarif: true
-
-      - name: Upload Trivy results to GitHub Security
-        if: github.event_name != 'pull_request'
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-pingvin-share-x.sarif
-          category: container-pingvin-share-x
-
+      # SARIF upload to GitHub's Security tab (github/codeql-action/upload-sarif)
+      # requires GitHub Advanced Security, which isn't available on a private
+      # repo without a paid plan — it failed the whole job on every push here.
+      # The table summary below still runs the same scan and prints results
+      # straight into the job log, which is all this private fork needs.
       - name: Trivy medium, high, and critical summary
         uses: aquasecurity/trivy-action@v0.36.0
         with:

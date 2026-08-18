@@ -52,8 +52,8 @@ export function getDefaultConfig(): Config[] {
     },
     {
       key: "share.maxExpiration",
-      value: "0 days",
-      defaultValue: "0 days",
+      value: "30 days",
+      defaultValue: "30 days",
       type: "timespan",
     },
     {

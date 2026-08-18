@@ -90,7 +90,7 @@ export const configVariables = {
     },
     maxExpiration: {
       type: "timespan",
-      defaultValue: "0 days",
+      defaultValue: "30 days",
       secret: false,
     },
     defaultExpiration: {

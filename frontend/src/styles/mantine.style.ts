@@ -39,5 +39,29 @@ export default <MantineThemeOverride>{
         },
       }),
     },
+    // Mantine's built-in disabled-button colors (dark[4] bg / dark[6] text)
+    // assume its own default dark palette. This app's "dark" scale is
+    // redefined much closer to near-black for the branding, which collapses
+    // those two shades to near-identical grays — a disabled button read as
+    // indistinguishable from an enabled one. Restore clear contrast plus the
+    // conventional reduced-opacity "greyed out" cue.
+    Button: {
+      styles: (theme) => ({
+        root: {
+          "&:disabled, &[data-disabled]": {
+            opacity: 0.5,
+            backgroundColor:
+              theme.colorScheme === "dark"
+                ? theme.colors.dark[5]
+                : theme.colors.gray[2],
+            color:
+              theme.colorScheme === "dark"
+                ? theme.colors.dark[1]
+                : theme.colors.gray[6],
+            border: "none",
+          },
+        },
+      }),
+    },
   },
 };

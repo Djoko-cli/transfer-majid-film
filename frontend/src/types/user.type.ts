@@ -9,6 +9,7 @@ type User = {
   hasPassword: boolean;
   shareSizeLimit?: string;
   storageQuotaLimit?: string;
+  canCreatePermanentShares?: boolean;
 };
 
 export type CreateUser = {
@@ -18,6 +19,7 @@ export type CreateUser = {
   isAdmin?: boolean;
   shareSizeLimit?: string | null;
   storageQuotaLimit?: string | null;
+  canCreatePermanentShares?: boolean;
 };
 
 export type UpdateUser = {
@@ -28,6 +30,7 @@ export type UpdateUser = {
   isActivated?: boolean;
   shareSizeLimit?: string | null;
   storageQuotaLimit?: string | null;
+  canCreatePermanentShares?: boolean;
 };
 
 export type UpdateCurrentUser = {

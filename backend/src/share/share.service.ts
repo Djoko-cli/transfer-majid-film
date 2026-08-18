@@ -115,7 +115,7 @@ export class ShareService {
       expirationDate = reverseShare.shareExpiration;
     } else {
       expirationDate = this.parseExpiration(share.expiration);
-      if (!user?.isAdmin) {
+      if (!user?.isAdmin && !user?.canCreatePermanentShares) {
         this.validateExpiration(expirationDate);
       }
     }
@@ -399,7 +399,7 @@ export class ShareService {
     let expirationDate: Date | undefined;
     if (body.expiration !== undefined) {
       expirationDate = this.parseExpiration(body.expiration);
-      if (!user?.isAdmin) {
+      if (!user?.isAdmin && !user?.canCreatePermanentShares) {
         this.validateExpiration(expirationDate);
       }
     }

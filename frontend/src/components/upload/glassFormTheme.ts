@@ -34,6 +34,28 @@ const glassFieldStyles = (theme: any) => {
 
 const glassFormTheme: MantineThemeOverride = {
   components: {
+    // MantineProvider's `inherit` merge replaces the parent's whole
+    // `components` object rather than deep-merging it key by key, so the
+    // root theme's Button override (see styles/mantine.style.ts) never
+    // reaches this scoped provider unless it's repeated here too.
+    Button: {
+      styles: (theme: any) => ({
+        root: {
+          "&:disabled, &[data-disabled]": {
+            opacity: 0.5,
+            backgroundColor:
+              theme.colorScheme === "dark"
+                ? theme.colors.dark[5]
+                : theme.colors.gray[2],
+            color:
+              theme.colorScheme === "dark"
+                ? theme.colors.dark[1]
+                : theme.colors.gray[6],
+            border: "none",
+          },
+        },
+      }),
+    },
     TextInput: { styles: glassFieldStyles },
     NumberInput: { styles: glassFieldStyles },
     Select: { styles: glassFieldStyles },

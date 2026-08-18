@@ -34,27 +34,32 @@ const useStyles = createStyles((theme) => {
 
     cardWrapper: {
       position: "absolute",
+      // Auto height, sized to its content — anchored near the top instead
+      // of stretched to fill the panel, so short forms don't leave a huge
+      // empty lower half on tall viewports. maxHeight is only a safety net
+      // for very short viewports with a lot of expanded content.
       top: `calc(${HEADER_HEIGHT}px + clamp(24px, 5vh, 64px))`,
-      bottom: "clamp(24px, 5vh, 64px)",
       left: "clamp(20px, 4vw, 56px)",
       width: 440,
       maxWidth: "calc(100vw - 40px)",
+      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - clamp(48px, 10vh, 128px))`,
       zIndex: 2,
       borderRadius: CARD_RADIUS,
 
       [theme.fn.smallerThan("sm")]: {
         position: "relative",
         top: "auto",
-        bottom: "auto",
         left: "auto",
         width: "100%",
         maxWidth: "none",
+        maxHeight: "none",
       },
     },
 
     card: {
       position: "relative",
-      height: "100%",
+      height: "auto",
+      maxHeight: "100%",
       overflowY: "auto",
       padding: theme.spacing.xl,
       borderRadius: CARD_RADIUS,

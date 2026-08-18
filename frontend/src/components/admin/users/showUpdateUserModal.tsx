@@ -48,6 +48,7 @@ const Body = ({
       email: user.email,
       isAdmin: user.isAdmin,
       isActivated: user.isActivated,
+      canCreatePermanentShares: user.canCreatePermanentShares ?? false,
       hasCustomShareSizeLimit: !!user.shareSizeLimit,
       shareSizeLimit: user.shareSizeLimit
         ? parseInt(user.shareSizeLimit)
@@ -101,6 +102,7 @@ const Body = ({
               email: values.email,
               isAdmin: values.isAdmin,
               isActivated: values.isActivated,
+              canCreatePermanentShares: values.canCreatePermanentShares,
               shareSizeLimit: values.hasCustomShareSizeLimit
                 ? values.shareSizeLimit.toString()
                 : null,
@@ -136,6 +138,17 @@ const Body = ({
             label={t("admin.users.edit.update.email-verified")}
             {...accountForm.getInputProps("isActivated", { type: "checkbox" })}
             disabled={user.isActivated}
+          />
+          <Switch
+            mt="xs"
+            labelPosition="left"
+            label={t("admin.users.edit.update.permanent-shares")}
+            description={t(
+              "admin.users.edit.update.permanent-shares.description",
+            )}
+            {...accountForm.getInputProps("canCreatePermanentShares", {
+              type: "checkbox",
+            })}
           />
           <Switch
             styles={{

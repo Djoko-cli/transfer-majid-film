@@ -63,7 +63,7 @@ const Share = ({ shareId }: { shareId: string }) => {
         parseInt(config.get("share.maxSize")),
         config.get("general.appUrl"),
         config.get("general.appUrl", true),
-        user?.isAdmin
+        user?.isAdmin || user?.canCreatePermanentShares
           ? { value: 0, unit: "days" }
           : config.get("share.maxExpiration"),
         (updatedShare: MyShare) => {

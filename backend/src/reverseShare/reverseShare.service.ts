@@ -36,6 +36,7 @@ export class ReverseShareService {
     const maxExpiration = this.config.get("share.maxExpiration");
     if (
       !creator?.isAdmin &&
+      !creator?.canCreatePermanentShares &&
       maxExpiration.value !== 0 &&
       parsedExpiration >
         moment().add(maxExpiration.value, maxExpiration.unit).toDate()

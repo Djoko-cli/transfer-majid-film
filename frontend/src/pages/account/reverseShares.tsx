@@ -77,7 +77,7 @@ const MyShares = () => {
             showCreateReverseShareModal(
               modals,
               config.get("smtp.enabled"),
-              user?.isAdmin
+              user?.isAdmin || user?.canCreatePermanentShares
                 ? { value: 0, unit: "days" }
                 : config.get("share.maxExpiration"),
               config.get("share.defaultExpiration"),

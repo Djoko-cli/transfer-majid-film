@@ -70,6 +70,11 @@ const useStyles = createStyles((theme) => {
       justifyContent: "space-between",
       alignItems: "center",
       height: "100%",
+      // Fluid Container has no max-width of its own, so this padding is
+      // what actually pins the logo/nav to the bar's real edges instead of
+      // a centered, narrower content column with dead space on either side.
+      paddingLeft: "clamp(20px, 4vw, 56px)",
+      paddingRight: "clamp(20px, 4vw, 56px)",
     },
 
     links: {
@@ -348,7 +353,7 @@ const Header = () => {
   return (
     <>
       <MantineHeader height={HEADER_HEIGHT} mb={0} className={classes.root}>
-        <Container className={classes.header}>
+        <Container fluid className={classes.header}>
           <Link href="/" passHref>
             <Group>
               <Logo height={35} width={35} />
