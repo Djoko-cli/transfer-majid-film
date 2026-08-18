@@ -48,12 +48,12 @@ export const configVariables = {
     },
     themePrimaryColorOverride: {
       type: "string",
-      defaultValue: "#475569",
+      defaultValue: "#ff7a00",
       secret: false,
     },
     themeRadius: {
       type: "string",
-      defaultValue: "sm",
+      defaultValue: "md",
       secret: false,
     },
     themeColorScheme: {

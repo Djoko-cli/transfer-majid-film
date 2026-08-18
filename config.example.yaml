@@ -18,9 +18,9 @@ appearance:
   #Primary color used for buttons, links, and accents. Choose custom to use a color picker override.
   themePrimaryColor: custom
   #Hex color override used when theme primary color is set to custom.
-  themePrimaryColorOverride: "#475569"
+  themePrimaryColorOverride: "#ff7a00"
   #Default border radius used by Mantine components.
-  themeRadius: sm
+  themeRadius: md
   #Default light/dark mode for non-logged-in users. Logged-in users use their own account preference.
   themeColorScheme: system
   #Global CSS applied to the frontend. Use carefully, as invalid CSS may affect the UI.

@@ -148,9 +148,9 @@ function App({ Component, pageProps }: AppProps) {
   );
   const themePrimaryColorOverrideRaw = getStringConfigValue(
     "appearance.themePrimaryColorOverride",
-    "#475569",
+    "#ff7a00",
   );
-  const themeRadiusRaw = getStringConfigValue("appearance.themeRadius", "sm");
+  const themeRadiusRaw = getStringConfigValue("appearance.themeRadius", "md");
   const themeColorSchemeRaw = getStringConfigValue(
     "appearance.themeColorScheme",
     "system",

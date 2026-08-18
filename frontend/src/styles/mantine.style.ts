@@ -1,6 +1,8 @@
 import { MantineThemeOverride } from "@mantine/core";
+import rubik from "../fonts/rubik.font";
 
 export default <MantineThemeOverride>{
+  fontFamily: `${rubik.style.fontFamily}, -apple-system, BlinkMacSystemFont, system-ui, sans-serif`,
   colors: {
     victoria: [
       "#E2E1F1",
@@ -13,6 +15,18 @@ export default <MantineThemeOverride>{
       "#463FA8",
       "#47428E",
       "#464379",
+    ],
+    dark: [
+      "#C1C2C5",
+      "#A6A7AB",
+      "#909296",
+      "#5C5F66",
+      "#2E2E2E",
+      "#1F1F1F",
+      "#141414",
+      "#050505",
+      "#030303",
+      "#000000",
     ],
   },
   primaryColor: "victoria",
