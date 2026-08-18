@@ -29,6 +29,25 @@ const glassFieldStyles = (theme: any) => {
     label: {
       color: dark ? "rgba(255, 255, 255, 0.85)" : "rgba(0, 0, 0, 0.75)",
     },
+    // NumberInput's +/- controls: Mantine draws them with solid dividing
+    // borders (this app's near-black dark[4]) meant to read against an
+    // opaque field — against the translucent glass input those show up as
+    // stray black seams. Recolor to match the input's own translucent
+    // border instead of removing them outright, so the +/- pair still
+    // reads as visually separated from the field and from each other.
+    control: {
+      borderColor: dark
+        ? "rgba(255, 255, 255, 0.16)"
+        : "rgba(255, 255, 255, 0.6)",
+      color: dark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)",
+      backgroundColor: "transparent",
+
+      "&:hover": {
+        backgroundColor: dark
+          ? "rgba(255, 255, 255, 0.1)"
+          : "rgba(255, 255, 255, 0.35)",
+      },
+    },
   };
 };
 
@@ -98,6 +117,7 @@ const glassFormTheme: MantineThemeOverride = {
           item: { border: "none", backgroundColor: "transparent" },
           control: {
             backgroundColor: "transparent",
+            borderRadius: theme.radius.sm,
             "&:hover": {
               backgroundColor: dark
                 ? "rgba(255, 255, 255, 0.05)"

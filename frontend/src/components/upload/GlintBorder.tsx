@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 const useStyles = createStyles(() => ({
   dash: {
-    animation: "glintTravel 9s linear infinite",
+    animation: "glintTravel 24s linear infinite",
   },
 }));
 
@@ -84,13 +84,17 @@ const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
           // vertical ones, wherever the dash actually was. The glow comes
           // from the drop-shadow filter instead, which is position-agnostic.
           stroke="#ffffff"
-          strokeOpacity={0.85}
-          strokeWidth={1.25}
+          strokeOpacity={0.8}
+          strokeWidth={1.5}
           strokeLinecap="round"
           pathLength={1000}
-          strokeDasharray="35 965"
+          strokeDasharray="220 780"
           className={classes.dash}
-          style={{ filter: `drop-shadow(0 0 2px ${accent})` }}
+          // A long dash means the blur only softens its two tips into a
+          // fade — the middle stays well short of the blur radius from
+          // either edge, so it reads as a soft-ended light band rather
+          // than a hard bar or a uniformly hazy blob.
+          style={{ filter: `blur(3px) drop-shadow(0 0 3px ${accent})` }}
         />
       )}
     </svg>
