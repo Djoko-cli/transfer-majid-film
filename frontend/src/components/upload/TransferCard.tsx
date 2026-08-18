@@ -13,12 +13,14 @@ import {
   Text,
   Textarea,
   TextInput,
+  UnstyledButton,
+  useMantineTheme,
 } from "@mantine/core";
 import glassFormTheme from "./glassFormTheme";
 import { useForm, yupResolver } from "@mantine/form";
 import moment from "moment";
-import React, { useEffect, useRef, useState } from "react";
-import { TbAlertCircle } from "react-icons/tb";
+import React, { useEffect, useState } from "react";
+import { TbAlertCircle, TbChevronDown, TbChevronUp } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -68,11 +70,11 @@ const TransferCard = ({
   shareIdLength: number;
 }) => {
   const t = useTranslate();
+  const theme = useMantineTheme();
 
   const [mode, setMode] = useState<Mode>("link");
   const [emailSearch, setEmailSearch] = useState("");
   const [showNotSignedInAlert, setShowNotSignedInAlert] = useState(true);
-  const maxViewsInputRef = useRef<HTMLInputElement>(null);
 
   const validationSchema = yup.object().shape({
     link: yup
@@ -374,8 +376,8 @@ const TransferCard = ({
                     />
                   )}
                   <NumberInput
-                    ref={maxViewsInputRef}
-                    min={0}
+                    hideControls
+                    min={1}
                     type="number"
                     variant="filled"
                     placeholder={t(
@@ -383,31 +385,80 @@ const TransferCard = ({
                     )}
                     label={t("upload.modal.accordion.security.max-views.label")}
                     {...form.getInputProps("maxViews")}
-                    // min=1 blocked the down arrow from doing anything once
-                    // at 1 — there was no way back to "no limit" without
-                    // clearing the field by hand. min=0 fixes that (1 down
-                    // to 0), but it also means the up arrow from empty lands
-                    // on 0 first, one click short of 1 — Mantine's own
-                    // "increment from empty" logic starts from `min`. So 0
-                    // is ambiguous by itself; only the previous value says
-                    // whether it means "just cleared, treat as no limit" or
-                    // "was empty, this increment should really be 1".
-                    // Mantine also only re-syncs the field's displayed value
-                    // from a controlled `value` prop while it's NOT focused,
-                    // so either correction below needs an explicit blur —
-                    // otherwise the "0" Mantine computed internally stays
-                    // visible on screen despite being overridden underneath.
-                    onChange={(value: number | "") => {
-                      if (value !== 0) {
-                        form.setFieldValue("maxViews", value);
-                        return;
-                      }
-                      form.setFieldValue(
-                        "maxViews",
-                        form.values.maxViews === "" ? 1 : "",
-                      );
-                      setTimeout(() => maxViewsInputRef.current?.blur());
-                    }}
+                    // Mantine's own +/- controls compute their next value
+                    // internally and only tell us the result, so "0" from
+                    // decrementing 1 and "0" from incrementing empty (its
+                    // own floor-start logic) are indistinguishable — and
+                    // fixing that up afterward needs a blur to force a
+                    // resync (Mantine ignores external value changes while
+                    // focused), which is exactly the visible focus-ring
+                    // flash this replaces. Custom buttons compute the next
+                    // value directly from current form state instead, so
+                    // there's never an ambiguous intermediate value and
+                    // never a need to steal focus to correct one.
+                    rightSection={
+                      <Stack spacing={0} sx={{ alignSelf: "stretch" }}>
+                        <UnstyledButton
+                          sx={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "0 6px",
+                            color:
+                              theme.colorScheme === "dark"
+                                ? "rgba(255, 255, 255, 0.7)"
+                                : "rgba(0, 0, 0, 0.6)",
+                            "&:hover": {
+                              backgroundColor:
+                                theme.colorScheme === "dark"
+                                  ? "rgba(255, 255, 255, 0.1)"
+                                  : "rgba(255, 255, 255, 0.35)",
+                            },
+                          }}
+                          onClick={() =>
+                            form.setFieldValue(
+                              "maxViews",
+                              typeof form.values.maxViews === "number"
+                                ? form.values.maxViews + 1
+                                : 1,
+                            )
+                          }
+                        >
+                          <TbChevronUp size={12} />
+                        </UnstyledButton>
+                        <UnstyledButton
+                          sx={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "0 6px",
+                            color:
+                              theme.colorScheme === "dark"
+                                ? "rgba(255, 255, 255, 0.7)"
+                                : "rgba(0, 0, 0, 0.6)",
+                            "&:hover": {
+                              backgroundColor:
+                                theme.colorScheme === "dark"
+                                  ? "rgba(255, 255, 255, 0.1)"
+                                  : "rgba(255, 255, 255, 0.35)",
+                            },
+                          }}
+                          onClick={() =>
+                            form.setFieldValue(
+                              "maxViews",
+                              typeof form.values.maxViews === "number" &&
+                                form.values.maxViews > 1
+                                ? form.values.maxViews - 1
+                                : "",
+                            )
+                          }
+                        >
+                          <TbChevronDown size={12} />
+                        </UnstyledButton>
+                      </Stack>
+                    }
                   />
                 </Stack>
               </Accordion.Panel>
