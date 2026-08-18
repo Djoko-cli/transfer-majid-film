@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 const useStyles = createStyles(() => ({
   dash: {
-    animation: "glintTravel 24s linear infinite",
+    animation: "glintTravel 6.5s linear infinite",
   },
 }));
 
@@ -71,31 +71,43 @@ const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
       }}
     >
       {path && (
-        <path
-          d={path}
-          transform={`translate(${inset}, ${inset})`}
-          fill="none"
-          // A plain solid stroke rather than a gradient — a gradient here
-          // is mapped once across the whole shape's bounding box
-          // (objectBoundingBox), not along the path itself, so it doesn't
-          // move with the comet. In practice that pinned the bright color
-          // to wherever the box's horizontal midpoint fell — squarely on
-          // the top/bottom edges, and permanently transparent on the
-          // vertical ones, wherever the dash actually was. The glow comes
-          // from the drop-shadow filter instead, which is position-agnostic.
-          stroke="#ffffff"
-          strokeOpacity={0.65}
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          pathLength={1000}
-          strokeDasharray="260 740"
-          className={classes.dash}
-          // A wide blur relative to the dash's own width means there's no
-          // point along it where the edge is actually hard — it should
-          // read as a soft brightening of the card's existing border that
-          // fades in and out, not a distinct line with visible ends.
-          style={{ filter: `blur(8px) drop-shadow(0 0 2px ${accent})` }}
-        />
+        <>
+          {/* Wider, dimmer, accent-colored underlay — reconstructs the
+              original gradient's colored fringe around the bright core
+              without an actual gradient. A gradient stroke here is mapped
+              once across the whole shape's bounding box (objectBoundingBox),
+              not along the path itself, so it doesn't move with the comet —
+              in practice that pinned the bright color to wherever the box's
+              horizontal midpoint fell (squarely on the top/bottom edges) and
+              left the vertical edges permanently transparent, wherever the
+              dash actually was. Sharing the exact same d/pathLength/
+              dasharray/animation as the core keeps the two layers in
+              perfect lockstep — no risk of the halo drifting from the core. */}
+          <path
+            d={path}
+            transform={`translate(${inset}, ${inset})`}
+            fill="none"
+            stroke={accent}
+            strokeOpacity={0.55}
+            strokeWidth={6}
+            strokeLinecap="round"
+            pathLength={1000}
+            strokeDasharray="150 850"
+            className={classes.dash}
+            style={{ filter: "blur(3px)" }}
+          />
+          <path
+            d={path}
+            transform={`translate(${inset}, ${inset})`}
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth={2}
+            strokeLinecap="round"
+            pathLength={1000}
+            strokeDasharray="150 850"
+            className={classes.dash}
+          />
+        </>
       )}
     </svg>
   );
