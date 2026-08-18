@@ -148,16 +148,15 @@ const cyclicDelta = (from: number, to: number, length: number) => {
 
 const useStyles = createStyles((theme) => ({
   panel: {
-    flex: "1 1 auto",
-    position: "relative",
-    minHeight: 320,
+    position: "absolute",
+    inset: 0,
     overflow: "hidden",
     backgroundColor: theme.colors.dark[8],
 
     [theme.fn.smallerThan("sm")]: {
-      order: -1,
+      position: "relative",
+      inset: "auto",
       height: 240,
-      flex: "0 0 auto",
     },
   },
 
@@ -168,19 +167,42 @@ const useStyles = createStyles((theme) => ({
     transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`,
   },
 
-  // Sized larger than its wrapper so the orbit/zoom below never uncovers an
-  // edge — the wrapper's overflow:hidden clips it back down to the panel.
+  // Sized larger than its wrapper so the living orbit/zoom below never
+  // uncovers an edge — the slide's own overflow:hidden clips it back down.
+  // Carries the sharp image and its blurred-left twin together, so both
+  // move in sync during the orbit and the slide transition alike.
+  slideImageWrap: {
+    position: "absolute",
+    inset: "-6%",
+  },
+
   slideImage: {
     position: "absolute",
-    inset: "-4%",
+    inset: 0,
     backgroundSize: "cover",
     backgroundPosition: "center",
   },
 
-  // Only the currently-settled slide gets this — a slow, subtle orbit-and-
-  // breathe loop, small enough to read as "alive" rather than as motion
-  // fighting the viewer's ability to actually look at the photo. Delayed
-  // by the slide transition so it only starts once the scroll has settled.
+  // A softly-blurred twin of the same still, masked to fade out before the
+  // halfway mark — this is what reads as the glass card's edge melting into
+  // the photo instead of a hard seam where the two meet.
+  slideImageBlurLeft: {
+    position: "absolute",
+    inset: 0,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    filter: "blur(60px) saturate(135%)",
+    WebkitMaskImage:
+      "linear-gradient(to right, black 0%, black 34%, transparent 52%)",
+    maskImage:
+      "linear-gradient(to right, black 0%, black 34%, transparent 52%)",
+  },
+
+  // Only the currently-settled slide gets this — a slow orbit-and-breathe
+  // loop. Sized to actually read as motion at a glance rather than needing
+  // to be stared at, while staying slow enough not to fight looking at the
+  // photo itself. Delayed by the slide transition so it only starts once
+  // the scroll has settled.
   living: {
     animation: `orbitFloat ${LIVING_DURATION_MS}ms ease-in-out ${TRANSITION_MS}ms infinite`,
   },
@@ -192,14 +214,15 @@ const useStyles = createStyles((theme) => ({
     bottom: 0,
     padding: `${theme.spacing.xl} ${theme.spacing.lg} ${theme.spacing.md}`,
     background: "linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent)",
+    zIndex: 1,
   },
 
   "@keyframes orbitFloat": {
-    "0%": { transform: "scale(1.02) translate(0%, 0%)" },
-    "25%": { transform: "scale(1.035) translate(0.8%, -0.5%)" },
-    "50%": { transform: "scale(1.05) translate(0%, -0.9%)" },
-    "75%": { transform: "scale(1.035) translate(-0.8%, -0.5%)" },
-    "100%": { transform: "scale(1.02) translate(0%, 0%)" },
+    "0%": { transform: "scale(1.05) translate(0%, 0%)" },
+    "25%": { transform: "scale(1.09) translate(2.6%, -1.6%)" },
+    "50%": { transform: "scale(1.14) translate(0%, -2.8%)" },
+    "75%": { transform: "scale(1.09) translate(-2.6%, -1.6%)" },
+    "100%": { transform: "scale(1.05) translate(0%, 0%)" },
   },
 }));
 
@@ -249,11 +272,19 @@ const BrandPanel = () => {
               // Remounts the animation fresh each time this slide becomes
               // active again, instead of resuming mid-phase.
               key={isActive ? `${slide.slug}-active` : slide.slug}
-              className={cx(classes.slideImage, {
+              className={cx(classes.slideImageWrap, {
                 [classes.living]: isActive && !prefersReducedMotion,
               })}
-              style={{ backgroundImage: `url(${slide.src})` }}
-            />
+            >
+              <Box
+                className={classes.slideImage}
+                style={{ backgroundImage: `url(${slide.src})` }}
+              />
+              <Box
+                className={classes.slideImageBlurLeft}
+                style={{ backgroundImage: `url(${slide.src})` }}
+              />
+            </Box>
           </Box>
         );
       })}
