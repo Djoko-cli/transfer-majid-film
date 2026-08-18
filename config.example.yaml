@@ -3,7 +3,7 @@
 
 general:
   #Name of the application
-  appName: Pingvin Share X
+  appName: Transfer
   #On which URL Pingvin Share is available
   appUrl: http://localhost:3000
   #Whether to set the secure flag on cookies. If enabled, the site will not function when accessed over HTTP.
@@ -16,9 +16,9 @@ general:
   defaultLanguage: en-US
 appearance:
   #Primary color used for buttons, links, and accents. Choose custom to use a color picker override.
-  themePrimaryColor: victoria
+  themePrimaryColor: custom
   #Hex color override used when theme primary color is set to custom.
-  themePrimaryColorOverride: ""
+  themePrimaryColorOverride: "#475569"
   #Default border radius used by Mantine components.
   themeRadius: sm
   #Default light/dark mode for non-logged-in users. Logged-in users use their own account preference.
@@ -32,6 +32,8 @@ share:
   allowRegistration: "true"
   #Whether unauthenticated users can create shares
   allowUnauthenticatedShares: "false"
+  #Whether anonymous share creators must verify their email with a one-time code before uploading. Only applies when allowUnauthenticatedShares is enabled.
+  requireEmailVerificationForAnonymousShares: "true"
   #Maximum share expiration. Set to 0 to allow unlimited expiration.
   maxExpiration: 0 days
   #The default expiration time selected when creating a new share.
@@ -54,6 +56,18 @@ share:
   enableUserRecipients: "false"
   #How long files are kept after a share expires or gets deleted. Only useful if the 'Allow admin access to all shares' is also enabled. Set to -1 to keep files forever.
   fileRetentionPeriod: 0 days
+verification:
+  #Subject of the email that contains the one-time verification code.
+  codeSubject: Your verification code
+  #Message which gets sent with the verification code. {code} will be replaced with the actual code.
+  codeMessage: >-
+    Hey!
+
+
+    Here is your verification code: {code}
+
+
+    It expires in 10 minutes. Enter it to continue your upload.
 cache:
   #Normally Pingvin Share caches information in memory. If you run multiple instances of Pingvin Share, you need to enable Redis caching to share the cache between the instances.
   redis-enabled: "false"
@@ -89,9 +103,6 @@ email:
 
 
     Note: {desc}
-
-
-    Shared securely with Pingvin Share 🐧
   #Subject of the sent email when someone created a share with your reverse share link.
   reverseShareSubject: Reverse share link used
   #Message which gets sent when someone created a share with your reverse share link. {shareUrl} will be replaced with the creator's name and the share URL.
@@ -99,10 +110,8 @@ email:
     Hey!
 
     A share was just created with your reverse share link: {shareUrl}
-
-    Shared securely with Pingvin Share 🐧
   #Subject of the sent email when a user requests a password reset.
-  resetPasswordSubject: Pingvin Share password reset
+  resetPasswordSubject: Password reset
   #Message which gets sent when a user requests a password reset. {url} will be replaced with the reset password URL.
   resetPasswordMessage: >-
     Hey!
@@ -112,24 +121,18 @@ email:
     {url}
 
     The link expires in an hour.
-
-
-    Pingvin Share 🐧
   #Subject of the sent email when an admin invites a user.
-  inviteSubject: Pingvin Share invite
+  inviteSubject: You've been invited
   #Message which gets sent when an admin invites a user. {url} will be replaced with the invite URL, {email} with the email and {password} with the users password.
   inviteMessage: >-
     Hey!
 
 
-    You were invited to Pingvin Share. Click this link to accept the invite:
+    You were invited. Click this link to accept the invite:
     {url}
 
 
     You can use the email "{email}" and the password "{password}" to sign in.
-
-
-    Pingvin Share 🐧
   #Whether to send an email to the share creator when an email recipient downloads a file. This requires SMTP and email recipient sharing.
   enableShareDownloadNotifications: "false"
   #Whether to set the Reply-To header to the email address of the user who created the share.
@@ -144,25 +147,20 @@ email:
     Hey!
 
     {recipientEmail} downloaded {fileName} from your share: {shareUrl}
-
-    Pingvin Share 🐧
   #Whether to require users to verify their email address before being able to sign in. This can only be enabled if SMTP is activated.
   enableEmailVerification: "false"
   #Subject of the email which gets sent to the user when they sign up.
-  verificationSubject: Verify your Pingvin Share account
+  verificationSubject: Verify your account
   #Message which gets sent to the user when they sign up. {url} will be replaced with the verification URL.
   verificationMessage: >-
     Hey!
 
 
-    You just signed up for Pingvin Share. Click this link to verify your
+    You just signed up. Click this link to verify your
     account: {url}
 
 
     The link expires in 24 hours.
-
-
-    Pingvin Share 🐧
 smtp:
   #Whether SMTP is enabled. Only set this to true if you entered the host, port, email, user and password of your SMTP server.
   enabled: "false"

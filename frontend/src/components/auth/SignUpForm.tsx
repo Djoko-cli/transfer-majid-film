@@ -39,7 +39,7 @@ const SignUpForm = () => {
 
   const form = useForm({
     initialValues: {
-      email: "",
+      email: typeof router.query.email === "string" ? router.query.email : "",
       username: "",
       password: "",
     },
@@ -60,7 +60,7 @@ const SignUpForm = () => {
           if (user?.isAdmin) {
             router.replace("/admin/intro");
           } else {
-            router.replace("/upload");
+            router.replace("/");
           }
         }
       })

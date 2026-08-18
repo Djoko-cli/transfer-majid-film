@@ -2,27 +2,40 @@ import { ExecutionContext, Injectable } from "@nestjs/common";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
 import { ConfigService } from "src/config/config.service";
 import { ReverseShareService } from "src/reverseShare/reverseShare.service";
+import { VerificationService } from "src/verification/verification.service";
 
 @Injectable()
 export class CreateShareGuard extends JwtGuard {
   constructor(
-    configService: ConfigService,
+    private configService: ConfigService,
     private reverseShareService: ReverseShareService,
+    private verificationService: VerificationService,
   ) {
     super(configService);
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    if (await super.canActivate(context)) return true;
+    const request = context.switchToHttp().getRequest();
 
-    const reverseShareTokenId = context.switchToHttp().getRequest()
-      .cookies.reverse_share_token;
+    const passed = await super.canActivate(context);
+    if (passed && request.user) return true; // real authenticated user
 
-    if (!reverseShareTokenId) return false;
+    const reverseShareTokenId = request.cookies.reverse_share_token;
+    if (
+      reverseShareTokenId &&
+      (await this.reverseShareService.isValid(reverseShareTokenId))
+    )
+      return true;
 
-    const isReverseShareTokenValid =
-      await this.reverseShareService.isValid(reverseShareTokenId);
+    if (!passed) return false; // allowUnauthenticatedShares is off
 
-    return isReverseShareTokenValid;
+    if (
+      !this.configService.get(
+        "share.requireEmailVerificationForAnonymousShares",
+      )
+    )
+      return true;
+
+    return this.verificationService.isRequestVerified(request);
   }
 }

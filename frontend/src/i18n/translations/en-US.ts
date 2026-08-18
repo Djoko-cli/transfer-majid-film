@@ -20,7 +20,7 @@ export default {
   "home.description":
     "Do you really want to give your personal files in the hand of third parties like WeTransfer?",
   "home.bullet.a.name": "Self-Hosted",
-  "home.bullet.a.description": "Host Pingvin Share on your own machine.",
+  "home.bullet.a.description": "Host it on your own machine.",
   "home.bullet.b.name": "Privacy",
   "home.bullet.b.description":
     "Your files are yours and will never be accessed by third parties.",
@@ -349,6 +349,20 @@ export default {
   "upload.reverse-share.error.invalid.description":
     "This link has no remaining uses or is invalid.",
 
+  // showEmailVerificationModal.tsx
+  "upload.verification.title": "Verify your email",
+  "upload.verification.email.description":
+    "Enter your email to receive a one-time code before sharing.",
+  "upload.verification.email.label": "Email",
+  "upload.verification.email.button": "Send code",
+  "upload.verification.code.description":
+    "Enter the 6-digit code we sent to {email}.",
+  "upload.verification.code.button": "Verify",
+  "upload.verification.code.resend": "Resend code",
+  "upload.verification.code.resend.cooldown": "Resend code ({seconds}s)",
+  "upload.verification.code.change-email": "Use a different email",
+  "upload.verification.notify.code-sent": "Code sent to {email}.",
+
   // Dropzone.tsx
   "upload.dropzone.title": "Upload files",
   "upload.dropzone.description":
@@ -418,6 +432,8 @@ export default {
   "upload.modal.completed.never-expires": "This share will never expire.",
   "upload.modal.completed.expires-on":
     "This share will expire on {expiration}.",
+  "upload.modal.completed.create-account":
+    "Create an account to keep track of your links",
   "upload.modal.completed.share-ready": "Share ready",
   "upload.modal.completed.notified-reverse-share-creator":
     "We have notified the creator of the reverse share. You can also manually share this link with them through other means.",
@@ -489,7 +505,7 @@ export default {
   // /admin/config
   "admin.config.config-file-warning.title": "Configuration file present",
   "admin.config.config-file-warning.description":
-    "As you have a configured Pingvin Share with a configuration file, you can't change the configuration through the UI.",
+    "As you have a configuration file present, you can't change the configuration through the UI.",
   "admin.config.title": "Configuration",
   "admin.config.category.general": "General",
   "admin.config.category.appearance": "Appearance",
@@ -530,7 +546,7 @@ export default {
   "admin.config.appearance.upload-progress-style.percentage-time": "Percentage and time remaining",
   "admin.config.general.app-url": "App URL",
   "admin.config.general.app-url.description":
-    "On which URL Pingvin Share is available",
+    "On which URL the app is available",
   "admin.config.general.secure-cookies": "Secure cookies",
   "admin.config.general.secure-cookies.description":
     "Whether to set the secure flag on cookies. If enabled, the site will not function when accessed over HTTP.",
@@ -555,7 +571,7 @@ export default {
     "Maximum number of items inside the cache.",
   "admin.config.cache.redis-enabled": "Redis enabled",
   "admin.config.cache.redis-enabled.description":
-    "Normally Pingvin Share caches information in memory. If you run multiple instances of Pingvin Share, you need to enable Redis caching to share the cache between the instances.",
+    "Normally the app caches information in memory. If you run multiple instances, you need to enable Redis caching to share the cache between the instances.",
   "admin.config.cache.redis-url": "Redis URL",
   "admin.config.cache.redis-url.description":
     "Url to connect to the Redis instance used for caching.",
@@ -905,6 +921,7 @@ export default {
   "common.button.submit": "Submit",
   "common.button.delete": "Delete",
   "common.button.cancel": "Cancel",
+  "common.button.close": "Close",
   "common.button.confirm": "Confirm",
   "common.button.disable": "Disable",
   "common.button.share": "Share",

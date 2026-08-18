@@ -156,7 +156,7 @@ const Header = () => {
 
   const authenticatedLinks: NavLink[] = [
     {
-      link: "/upload",
+      link: "/",
       label: t("navbar.upload"),
     },
     {
@@ -174,13 +174,6 @@ const Header = () => {
     },
   ];
 
-  if (config.get("share.allowUnauthenticatedShares")) {
-    unauthenticatedLinks.unshift({
-      link: "/upload",
-      label: t("navbar.upload"),
-    });
-  }
-
   if (config.get("general.showHomePage"))
     unauthenticatedLinks.unshift({
       link: "/",
@@ -196,7 +189,7 @@ const Header = () => {
   const mobileRootLinks: NavLink[] = user
     ? [
         {
-          link: "/upload",
+          link: "/",
           label: t("navbar.upload"),
         },
         {

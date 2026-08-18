@@ -27,13 +27,9 @@ const Footer = () => {
     <MFooter height="auto" py={6} px="xl" zIndex={100}>
       {!config.get("legal.enabled") && (
         <Text size="xs" color="dimmed" align="center">
-          Powered by{" "}
-          <Anchor
-            size="xs"
-            href="https://github.com/smp46/pingvin-share-x"
-            target="_blank"
-          >
-            Pingvin Share X
+          {config.get("general.appName")} ·{" "}
+          <Anchor size="xs" href="https://majid.film" target="_blank">
+            majid.film
           </Anchor>
         </Text>
       )}
@@ -41,13 +37,9 @@ const Footer = () => {
         <SimpleGrid cols={isMobile ? 2 : 3} m={0}>
           {!isMobile && <div></div>}
           <Text size="xs" color="dimmed" align={isMobile ? "left" : "center"}>
-            Powered by{" "}
-            <Anchor
-              size="xs"
-              href="https://github.com/smp46/pingvin-share-x"
-              target="_blank"
-            >
-              Pingvin Share X
+            {config.get("general.appName")} ·{" "}
+            <Anchor size="xs" href="https://majid.film" target="_blank">
+              majid.film
             </Anchor>
           </Text>
           <div>

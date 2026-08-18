@@ -1,9 +1,19 @@
-import { Button, Stack, Text, Collapse } from "@mantine/core";
+import {
+  ActionIcon,
+  Anchor,
+  Button,
+  Group,
+  Stack,
+  Text,
+  Collapse,
+} from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
 import { useState } from "react";
 import moment from "moment";
+import Link from "next/link";
 import { useRouter } from "next/router";
+import { TbX } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import useTranslate, {
   translateOutsideContext,
@@ -17,6 +27,7 @@ const showCompletedUploadModal = (
   share: CompletedShare,
   appUrl: string,
   defaultAppUrl: string,
+  anonymousEmail?: string,
 ) => {
   const t = translateOutsideContext();
   return modals.openModal({
@@ -25,7 +36,12 @@ const showCompletedUploadModal = (
     closeOnEscape: false,
     title: t("upload.modal.completed.share-ready"),
     children: (
-      <Body share={share} appUrl={appUrl} defaultAppUrl={defaultAppUrl} />
+      <Body
+        share={share}
+        appUrl={appUrl}
+        defaultAppUrl={defaultAppUrl}
+        anonymousEmail={anonymousEmail}
+      />
     ),
   });
 };
@@ -34,16 +50,19 @@ const Body = ({
   share,
   appUrl,
   defaultAppUrl,
+  anonymousEmail,
 }: {
   share: CompletedShare;
   appUrl: string;
   defaultAppUrl: string;
+  anonymousEmail?: string;
 }) => {
   const modals = useModals();
   const router = useRouter();
   const t = useTranslate();
 
   const [showQR, setShowQR] = useState(false);
+  const [showAccountPrompt, setShowAccountPrompt] = useState(!!anonymousEmail);
 
   const handleToggleQR = () => {
     setShowQR(!showQR);
@@ -86,13 +105,44 @@ const Body = ({
             })}
       </Text>
 
+      {showAccountPrompt && anonymousEmail && (
+        <Group
+          position="apart"
+          noWrap
+          sx={(theme) => ({
+            padding: theme.spacing.xs,
+            borderRadius: theme.radius.sm,
+            backgroundColor:
+              theme.colorScheme === "dark"
+                ? theme.colors.dark[6]
+                : theme.colors.gray[0],
+          })}
+        >
+          <Text size="xs">
+            <Anchor
+              component={Link}
+              href={`/auth/signUp?email=${encodeURIComponent(anonymousEmail)}`}
+            >
+              <FormattedMessage id="upload.modal.completed.create-account" />
+            </Anchor>
+          </Text>
+          <ActionIcon
+            size="sm"
+            onClick={() => setShowAccountPrompt(false)}
+            aria-label={t("common.button.close")}
+          >
+            <TbX size={14} />
+          </ActionIcon>
+        </Group>
+      )}
+
       <Button
         onClick={() => {
           modals.closeAll();
           if (isReverseShare) {
             router.reload();
           } else {
-            router.push("/upload");
+            router.push("/");
           }
         }}
       >

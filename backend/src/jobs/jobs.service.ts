@@ -147,8 +147,16 @@ export class JobsService {
         where: { expiresAt: { lt: new Date() } },
       });
 
+    const { count: anonymousShareVerificationCount } =
+      await this.prisma.anonymousShareVerification.deleteMany({
+        where: { OR: [{ expiresAt: { lt: new Date() } }, { consumed: true }] },
+      });
+
     const deletedTokensCount =
-      refreshTokenCount + loginTokenCount + resetPasswordTokenCount;
+      refreshTokenCount +
+      loginTokenCount +
+      resetPasswordTokenCount +
+      anonymousShareVerificationCount;
 
     if (deletedTokensCount > 0) {
       this.logger.log(`Deleted ${deletedTokensCount} expired refresh tokens`);

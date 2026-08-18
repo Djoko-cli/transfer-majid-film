@@ -193,6 +193,17 @@ export class EmailService {
     );
   }
 
+  async sendVerificationCode(recipientEmail: string, code: string) {
+    await this.sendMail(
+      recipientEmail,
+      this.config.get("verification.codeSubject"),
+      this.config
+        .get("verification.codeMessage")
+        .replaceAll("\\n", "\n")
+        .replaceAll("{code}", code),
+    );
+  }
+
   async sendTestMail(recipientEmail: string) {
     const subject = this.i18n.t("email.testSubject");
     const text = this.i18n.t("email.testText");

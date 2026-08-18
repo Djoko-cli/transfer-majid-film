@@ -12,7 +12,7 @@ export const configVariables = {
   general: {
     appName: {
       type: "string",
-      defaultValue: "Pingvin Share X",
+      defaultValue: "Transfer",
       secret: false,
     },
     appUrl: {
@@ -43,12 +43,12 @@ export const configVariables = {
   appearance: {
     themePrimaryColor: {
       type: "string",
-      defaultValue: "victoria",
+      defaultValue: "custom",
       secret: false,
     },
     themePrimaryColorOverride: {
       type: "string",
-      defaultValue: "",
+      defaultValue: "#475569",
       secret: false,
     },
     themeRadius: {
@@ -81,6 +81,11 @@ export const configVariables = {
     allowUnauthenticatedShares: {
       type: "boolean",
       defaultValue: "false",
+      secret: false,
+    },
+    requireEmailVerificationForAnonymousShares: {
+      type: "boolean",
+      defaultValue: "true",
       secret: false,
     },
     maxExpiration: {
@@ -138,6 +143,19 @@ export const configVariables = {
       secret: false,
     },
   },
+  verification: {
+    codeSubject: {
+      type: "string",
+      defaultValue: "Your verification code",
+      secret: false,
+    },
+    codeMessage: {
+      type: "text",
+      defaultValue:
+        "Hey!\n\nHere is your verification code: {code}\n\nIt expires in 10 minutes. Enter it to continue your upload.",
+      secret: false,
+    },
+  },
   cache: {
     "redis-enabled": {
       type: "boolean",
@@ -174,7 +192,7 @@ export const configVariables = {
     shareRecipientsMessage: {
       type: "text",
       defaultValue:
-        "Hey!\n\n{creator} ({creatorEmail}) shared some files with you. You can view or download the files with this link: {shareUrl}\n\nThe share will expire {expires}.\n\nNote: {desc}\n\nShared securely with Pingvin Share 🐧",
+        "Hey!\n\n{creator} ({creatorEmail}) shared some files with you. You can view or download the files with this link: {shareUrl}\n\nThe share will expire {expires}.\n\nNote: {desc}",
     },
     reverseShareSubject: {
       type: "string",
@@ -183,25 +201,25 @@ export const configVariables = {
     reverseShareMessage: {
       type: "text",
       defaultValue:
-        "Hey!\n\nA share was just created with your reverse share link: {shareUrl}\n\nShared securely with Pingvin Share 🐧",
+        "Hey!\n\nA share was just created with your reverse share link: {shareUrl}",
     },
     resetPasswordSubject: {
       type: "string",
-      defaultValue: "Pingvin Share password reset",
+      defaultValue: "Password reset",
     },
     resetPasswordMessage: {
       type: "text",
       defaultValue:
-        "Hey!\n\nYou requested a password reset. Click this link to reset your password: {url}\nThe link expires in an hour.\n\nPingvin Share 🐧",
+        "Hey!\n\nYou requested a password reset. Click this link to reset your password: {url}\nThe link expires in an hour.",
     },
     inviteSubject: {
       type: "string",
-      defaultValue: "Pingvin Share invite",
+      defaultValue: "You've been invited",
     },
     inviteMessage: {
       type: "text",
       defaultValue:
-        'Hey!\n\nYou were invited to Pingvin Share. Click this link to accept the invite: {url}\n\nYou can use the email "{email}" and the password "{password}" to sign in.\n\nPingvin Share 🐧',
+        'Hey!\n\nYou were invited. Click this link to accept the invite: {url}\n\nYou can use the email "{email}" and the password "{password}" to sign in.',
     },
     enableShareDownloadNotifications: {
       type: "boolean",
@@ -220,7 +238,7 @@ export const configVariables = {
     shareDownloadNotificationMessage: {
       type: "text",
       defaultValue:
-        "Hey!\n\n{recipientEmail} downloaded {fileName} from your share: {shareUrl}\n\nPingvin Share 🐧",
+        "Hey!\n\n{recipientEmail} downloaded {fileName} from your share: {shareUrl}",
     },
     enableEmailVerification: {
       type: "boolean",
@@ -229,12 +247,12 @@ export const configVariables = {
     },
     verificationSubject: {
       type: "string",
-      defaultValue: "Verify your Pingvin Share account",
+      defaultValue: "Verify your account",
     },
     verificationMessage: {
       type: "text",
       defaultValue:
-        "Hey!\n\nYou just signed up for Pingvin Share. Click this link to verify your account: {url}\n\nThe link expires in 24 hours.\n\nPingvin Share 🐧",
+        "Hey!\n\nYou just signed up. Click this link to verify your account: {url}\n\nThe link expires in 24 hours.",
     },
   },
   smtp: {
@@ -570,7 +588,7 @@ async function migrateConfigVariables() {
   for (const existingConfigVariable of existingConfigVariables) {
     const configVariable =
       configVariables[existingConfigVariable.category]?.[
-      existingConfigVariable.name
+        existingConfigVariable.name
       ];
 
     // Delete the config variable if it doesn't exist in the seed

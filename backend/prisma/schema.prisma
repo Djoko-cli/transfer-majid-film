@@ -196,3 +196,16 @@ model AdminNoticeDismissal {
   dismissedByUser     User?    @relation(fields: [dismissedByUserId], references: [id], onDelete: SetNull)
 }
 
+model AnonymousShareVerification {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  consumed  Boolean  @default(false)
+
+  @@index([email])
+}
+

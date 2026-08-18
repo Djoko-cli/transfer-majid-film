@@ -144,10 +144,11 @@ function App({ Component, pageProps }: AppProps) {
   const customCss = getStringConfigValue("appearance.customCss");
   const themePrimaryColorRaw = getStringConfigValue(
     "appearance.themePrimaryColor",
-    "victoria",
+    "custom",
   );
   const themePrimaryColorOverrideRaw = getStringConfigValue(
     "appearance.themePrimaryColorOverride",
+    "#475569",
   );
   const themeRadiusRaw = getStringConfigValue("appearance.themeRadius", "sm");
   const themeColorSchemeRaw = getStringConfigValue(
@@ -170,7 +171,7 @@ function App({ Component, pageProps }: AppProps) {
           themePrimaryColorRaw,
         )
       ? themePrimaryColorRaw
-      : "victoria";
+      : "gray";
 
   const themeRadius = (availableMantineRadii as readonly string[]).includes(
     themeRadiusRaw,

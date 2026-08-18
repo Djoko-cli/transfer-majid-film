@@ -32,7 +32,7 @@ async function fetchConfig(apiUrl: string): Promise<any> {
 
 export async function middleware(request: NextRequest) {
   const routes = {
-    unauthenticated: new Routes(["/auth/*", "/"]),
+    unauthenticated: new Routes(["/auth/*"]),
     public: new Routes([
       "/share/*",
       "/s/*",
@@ -75,6 +75,8 @@ export async function middleware(request: NextRequest) {
 
   if (getConfig("share.allowUnauthenticatedShares")) {
     routes.public.routes = ["*"];
+  } else if (getConfig("general.showHomePage")) {
+    routes.public.routes.push("/");
   }
 
   if (!getConfig("smtp.enabled")) {
@@ -105,7 +107,7 @@ export async function middleware(request: NextRequest) {
      // Authenticated state
      {
       condition: user && routes.unauthenticated.contains(route) && !getConfig("share.allowUnauthenticatedShares"),
-      path: "/upload",
+      path: "/",
     },
     // Unauthenticated state
     {
@@ -114,17 +116,12 @@ export async function middleware(request: NextRequest) {
     },
     {
       condition: !user && routes.account.contains(route),
-      path: "/upload",
+      path: "/",
     },
     // Admin privileges
     {
       condition: routes.admin.contains(route) && !user?.isAdmin,
-      path: "/upload",
-    },
-    // Home page
-    {
-      condition: (!getConfig("general.showHomePage") || user) && route == "/",
-      path: "/upload",
+      path: "/",
     },
     // Imprint redirect
     {

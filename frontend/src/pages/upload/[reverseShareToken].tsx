@@ -2,7 +2,7 @@ import { LoadingOverlay } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { GetServerSidePropsContext } from "next";
 import { useEffect, useState } from "react";
-import Upload from ".";
+import Upload from "../../components/upload/UploadPage";
 import showErrorModal from "../../components/share/showErrorModal";
 import shareService from "../../services/share.service";
 import useTranslate from "../../hooks/useTranslate.hook";

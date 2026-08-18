@@ -10,7 +10,7 @@ const Totp = () => {
   return (
     <>
       <Meta title={t("totp.title")} />
-      <TotpForm redirectPath={(router.query.redirect as string) || "/upload"} />
+      <TotpForm redirectPath={(router.query.redirect as string) || "/"} />
     </>
   );
 };

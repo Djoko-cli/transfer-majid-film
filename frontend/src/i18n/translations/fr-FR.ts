@@ -16,7 +16,7 @@ export default {
   "home.title": "Une plateforme de partage de fichiers <h>autohébergée</h>.",
   "home.description": "Voulez-vous vraiment remettre vos fichiers personnels dans les mains de tiers comme WeTransfer ?",
   "home.bullet.a.name": "Auto-hébergé",
-  "home.bullet.a.description": "Hébergez Pingvin Share sur votre propre machine.",
+  "home.bullet.a.description": "Hébergez-le sur votre propre machine.",
   "home.bullet.b.name": "Confidentialité",
   "home.bullet.b.description": "Vos fichiers sont les vôtres et ne seront jamais consultés par des tiers.",
   "home.bullet.c.name": "Aucune rébarbative limite de taille",
@@ -272,6 +272,21 @@ export default {
   "upload.notify.duplicate-skipped": "Fichier dupliqué ignoré : {name}",
   "upload.reverse-share.error.invalid.title": "Lien de partage inversé invalide",
   "upload.reverse-share.error.invalid.description": "Ce partage inversé a expiré ou n'est pas valide.",
+
+  // showEmailVerificationModal.tsx
+  "upload.verification.title": "Vérifiez votre email",
+  "upload.verification.email.description":
+    "Saisissez votre email pour recevoir un code à usage unique avant de partager.",
+  "upload.verification.email.label": "Email",
+  "upload.verification.email.button": "Envoyer le code",
+  "upload.verification.code.description":
+    "Saisissez le code à 6 chiffres envoyé à {email}.",
+  "upload.verification.code.button": "Vérifier",
+  "upload.verification.code.resend": "Renvoyer le code",
+  "upload.verification.code.resend.cooldown": "Renvoyer le code ({seconds}s)",
+  "upload.verification.code.change-email": "Utiliser un autre email",
+  "upload.verification.notify.code-sent": "Code envoyé à {email}.",
+
   // Dropzone.tsx
   "upload.dropzone.title": "Téléverser des fichiers",
   "upload.dropzone.description": "Glissez-déposez vos fichiers ou dossiers ici pour commencer le partage ou utilisez « Ctrl+V » pour importer du texte depuis le presse-papiers. Nous acceptons un maximum de {maxSize} fichiers au total.",
@@ -324,6 +339,8 @@ export default {
   // showCompletedUploadModal.tsx
   "upload.modal.completed.never-expires": "Ce partage n’expirera jamais.",
   "upload.modal.completed.expires-on": "Ce partage expirera le {expiration}.",
+  "upload.modal.completed.create-account":
+    "Créez un compte pour retrouver vos liens",
   "upload.modal.completed.share-ready": "Partage prêt",
   "upload.modal.completed.notified-reverse-share-creator": "Nous avons notifié le créateur du partage inverse. Vous pouvez également partager manuellement ce lien avec eux par d'autres moyens.",
   // END /upload
@@ -376,7 +393,7 @@ export default {
 
   // /admin/config
   "admin.config.config-file-warning.title": "Fichier de configuration présent",
-  "admin.config.config-file-warning.description": "Puisque vous avez configuré Pingvin Share avec un fichier de configuration, vous ne pouvez pas modifier la configuration via l'interface utilisateur.",
+  "admin.config.config-file-warning.description": "Puisqu'un fichier de configuration est présent, vous ne pouvez pas modifier la configuration via l'interface utilisateur.",
   "admin.config.title": "Paramètres",
   "admin.config.category.general": "Général",
   "admin.config.category.appearance": "Apparence",
@@ -407,7 +424,7 @@ export default {
   "admin.config.appearance.upload-progress-style.circle-percentage": "Cercle avec des pourcentages",
   "admin.config.appearance.upload-progress-style.percentage-time": "Pourcentage et temps restant",
   "admin.config.general.app-url": "URL de l’appli",
-  "admin.config.general.app-url.description": "Depuis quel URL le partage Pingvin est disponible",
+  "admin.config.general.app-url.description": "Depuis quelle URL l'application est disponible",
   "admin.config.general.secure-cookies": "Cookies sécurisés",
   "admin.config.general.secure-cookies.description": "Définir ou non le marquage sécurisé sur les cookies. Si activé, le site ne fonctionnera pas lorsqu'il est accédé via HTTP.",
   "admin.config.general.show-home-page": "Afficher la page d’accueil",
@@ -424,7 +441,7 @@ export default {
   "admin.config.cache.max-items": "Maximum d'éléments",
   "admin.config.cache.max-items.description": "Nombre maximum d'éléments conservés en cache.",
   "admin.config.cache.redis-enabled": "Redis activé",
-  "admin.config.cache.redis-enabled.description": "Usuellement, Pingvin Share conserve les informations en mémoire vive. Si vous exécutez plusieurs instances de Pingvin Share, vous devez activer la mise en cache Redis pour partager le cache entre ces instances.",
+  "admin.config.cache.redis-enabled.description": "Usuellement, l'application conserve les informations en mémoire vive. Si vous exécutez plusieurs instances, vous devez activer la mise en cache Redis pour partager le cache entre ces instances.",
   "admin.config.cache.redis-url": "URL de Redis",
   "admin.config.cache.redis-url.description": "URL de connexion à l’instance de Redis pour servir de cache.",
   "admin.config.cache.button.test-redis": "Tester la connexion Redis",
@@ -663,6 +680,7 @@ export default {
   "common.button.submit": "Envoyer",
   "common.button.delete": "Supprimer",
   "common.button.cancel": "Annuler",
+  "common.button.close": "Fermer",
   "common.button.confirm": "Confirmer",
   "common.button.disable": "Désactiver",
   "common.button.share": "Partager",

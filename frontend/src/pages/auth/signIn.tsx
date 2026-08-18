@@ -25,7 +25,7 @@ const SignIn = ({ redirectPath }: { redirectPath?: string }) => {
   useEffect(() => {
     refreshUser().then((user) => {
       if (user) {
-        router.replace(redirectPath ?? "/upload");
+        router.replace(redirectPath ?? "/");
       } else {
         setIsLoading(false);
       }
@@ -37,7 +37,7 @@ const SignIn = ({ redirectPath }: { redirectPath?: string }) => {
   return (
     <>
       <Meta title={t("signin.title")} />
-      <SignInForm redirectPath={redirectPath ?? "/upload"} />
+      <SignInForm redirectPath={redirectPath ?? "/"} />
     </>
   );
 };
