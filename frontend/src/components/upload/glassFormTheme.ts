@@ -37,18 +37,27 @@ const glassFormTheme: MantineThemeOverride = {
     // MantineProvider's `inherit` merge replaces the parent's whole
     // `components` object rather than deep-merging it key by key, so the
     // root theme's Button override (see styles/mantine.style.ts) never
-    // reaches this scoped provider unless it's repeated here too.
+    // reaches this scoped provider unless it's repeated here too. This one
+    // differs from the root override on purpose: a solid light chip reads
+    // as an opaque foreign object here, whereas the rest of the app's
+    // disabled buttons sit on plain backgrounds where translucency
+    // wouldn't read at all.
     Button: {
-      styles: (theme: any) => ({
-        root: {
-          "&:disabled, &[data-disabled]": {
-            opacity: 1,
-            backgroundColor: theme.colors.gray[3],
-            color: theme.colors.gray[7],
-            border: "none",
+      styles: (theme: any) => {
+        const dark = theme.colorScheme === "dark";
+        return {
+          root: {
+            "&:disabled, &[data-disabled]": {
+              opacity: 1,
+              backgroundColor: dark
+                ? "rgba(255, 255, 255, 0.14)"
+                : "rgba(255, 255, 255, 0.35)",
+              color: dark ? "rgba(255, 255, 255, 0.55)" : "rgba(0, 0, 0, 0.45)",
+              border: `1px solid ${dark ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.5)"}`,
+            },
           },
-        },
-      }),
+        };
+      },
     },
     TextInput: { styles: glassFieldStyles },
     NumberInput: { styles: glassFieldStyles },

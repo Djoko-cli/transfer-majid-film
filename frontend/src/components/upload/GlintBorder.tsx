@@ -70,23 +70,26 @@ const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
         overflow: "visible",
       }}
     >
-      <defs>
-        <linearGradient id="transfer-glint" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={accent} stopOpacity={0} />
-          <stop offset="50%" stopColor="#ffffff" stopOpacity={1} />
-          <stop offset="100%" stopColor={accent} stopOpacity={0} />
-        </linearGradient>
-      </defs>
       {path && (
         <path
           d={path}
           transform={`translate(${inset}, ${inset})`}
           fill="none"
-          stroke="url(#transfer-glint)"
+          // A plain solid stroke rather than a gradient — a gradient here
+          // is mapped once across the whole shape's bounding box
+          // (objectBoundingBox), not along the path itself, so it doesn't
+          // move with the comet. In practice that pinned the bright color
+          // to wherever the box's horizontal midpoint fell — squarely on
+          // the top/bottom edges, and permanently transparent on the
+          // vertical ones, wherever the dash actually was. The glow comes
+          // from the drop-shadow filter instead, which is position-agnostic.
+          stroke="#ffffff"
           strokeWidth={2.5}
+          strokeLinecap="round"
           pathLength={1000}
           strokeDasharray="70 930"
           className={classes.dash}
+          style={{ filter: `drop-shadow(0 0 4px ${accent})` }}
         />
       )}
     </svg>

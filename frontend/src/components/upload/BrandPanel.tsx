@@ -169,8 +169,6 @@ const useStyles = createStyles((theme) => ({
 
   // Sized slightly larger than its wrapper so the gentle zoom below never
   // uncovers an edge — the slide's own overflow:hidden clips it back down.
-  // Carries the sharp image and its blurred-left twin together, so both
-  // zoom in sync during the slide transition alike.
   slideImageWrap: {
     position: "absolute",
     inset: "-4%",
@@ -181,20 +179,6 @@ const useStyles = createStyles((theme) => ({
     inset: 0,
     backgroundSize: "cover",
     backgroundPosition: "center",
-  },
-
-  // A softly-blurred twin of the same still, masked to fade out before the
-  // halfway mark — this is what reads as the glass card's edge melting into
-  // the photo instead of a hard seam where the two meet.
-  slideImageBlurLeft: {
-    position: "absolute",
-    inset: 0,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    filter: "blur(16px) saturate(120%)",
-    WebkitMaskImage:
-      "linear-gradient(to right, black 0%, black 6%, transparent 16%)",
-    maskImage: "linear-gradient(to right, black 0%, black 6%, transparent 16%)",
   },
 
   // Only the currently-settled slide gets this — a slow, linear 7% zoom
@@ -269,10 +253,6 @@ const BrandPanel = () => {
             >
               <Box
                 className={classes.slideImage}
-                style={{ backgroundImage: `url(${slide.src})` }}
-              />
-              <Box
-                className={classes.slideImageBlurLeft}
                 style={{ backgroundImage: `url(${slide.src})` }}
               />
             </Box>
