@@ -396,6 +396,31 @@ const TransferCard = ({
                     // value directly from current form state instead, so
                     // there's never an ambiguous intermediate value and
                     // never a need to steal focus to correct one.
+                    //
+                    // The active-look border is still wanted while using
+                    // the buttons, though — done with a plain :focus-within
+                    // on the wrapper (matching the field's own focus style
+                    // from glassFieldStyles) rather than by focusing the
+                    // input itself, which would resurrect the exact sync
+                    // problem above. The buttons explicitly focus
+                    // *themselves* on click below, since Safari doesn't
+                    // focus buttons on click by default the way other
+                    // browsers do, and :focus-within needs a real focus
+                    // target inside the wrapper to trigger from.
+                    styles={(t2) => {
+                      const dark = t2.colorScheme === "dark";
+                      return {
+                        wrapper: {
+                          "&:focus-within input": {
+                            backgroundColor: dark
+                              ? "rgba(255, 255, 255, 0.13)"
+                              : "rgba(255, 255, 255, 0.55)",
+                            borderColor:
+                              t2.colors[t2.primaryColor][dark ? 4 : 6],
+                          },
+                        },
+                      };
+                    }}
                     rightSection={
                       <Stack spacing={0} sx={{ alignSelf: "stretch" }}>
                         <UnstyledButton
@@ -416,14 +441,15 @@ const TransferCard = ({
                                   : "rgba(255, 255, 255, 0.35)",
                             },
                           }}
-                          onClick={() =>
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.currentTarget.focus();
                             form.setFieldValue(
                               "maxViews",
                               typeof form.values.maxViews === "number"
                                 ? form.values.maxViews + 1
                                 : 1,
-                            )
-                          }
+                            );
+                          }}
                         >
                           <TbChevronUp size={12} />
                         </UnstyledButton>
@@ -445,15 +471,16 @@ const TransferCard = ({
                                   : "rgba(255, 255, 255, 0.35)",
                             },
                           }}
-                          onClick={() =>
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.currentTarget.focus();
                             form.setFieldValue(
                               "maxViews",
                               typeof form.values.maxViews === "number" &&
                                 form.values.maxViews > 1
                                 ? form.values.maxViews - 1
                                 : "",
-                            )
-                          }
+                            );
+                          }}
                         >
                           <TbChevronDown size={12} />
                         </UnstyledButton>
