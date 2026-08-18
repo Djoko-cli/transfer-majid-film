@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 const useStyles = createStyles(() => ({
   dash: {
-    animation: "glintTravel 5s linear infinite",
+    animation: "glintTravel 9s linear infinite",
   },
 }));
 
@@ -22,14 +22,14 @@ const buildRoundedRectPath = (width: number, height: number, r: number) => {
     Z`;
 };
 
-// A short, bright "comet" of light that continuously travels the card's own
-// rounded outline. Built from an explicit <path> with real measured pixel
-// coordinates (via ResizeObserver) rather than a <rect> — pathLength
-// normalization for stroke-dasharray/offset is only reliably supported by
-// browsers on <path> elements; on <rect> it visibly favoured the short
-// top/bottom edges over the long sides on a tall card. Traced at a 1.25px
-// inset with a 2.5px stroke so it sits exactly ON the card's real border
-// line — not a second, smaller ring floating inside it.
+// A thin, subtle glint that slowly travels the card's own rounded outline.
+// Built from an explicit <path> with real measured pixel coordinates (via
+// ResizeObserver) rather than a <rect> — pathLength normalization for
+// stroke-dasharray/offset is only reliably supported by browsers on <path>
+// elements; on <rect> it visibly favoured the short top/bottom edges over
+// the long sides on a tall card. Traced at a 1.25px inset so it sits
+// exactly ON the card's real border line — not a second, smaller ring
+// floating inside it.
 const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
   const { classes } = useStyles();
   const theme = useMantineTheme();
@@ -84,12 +84,13 @@ const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
           // vertical ones, wherever the dash actually was. The glow comes
           // from the drop-shadow filter instead, which is position-agnostic.
           stroke="#ffffff"
-          strokeWidth={2.5}
+          strokeOpacity={0.85}
+          strokeWidth={1.25}
           strokeLinecap="round"
           pathLength={1000}
-          strokeDasharray="70 930"
+          strokeDasharray="35 965"
           className={classes.dash}
-          style={{ filter: `drop-shadow(0 0 4px ${accent})` }}
+          style={{ filter: `drop-shadow(0 0 2px ${accent})` }}
         />
       )}
     </svg>

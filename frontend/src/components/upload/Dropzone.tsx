@@ -230,6 +230,15 @@ const Dropzone = ({
                     borderColor: dark
                       ? "rgba(255, 255, 255, 0.22)"
                       : "rgba(255, 255, 255, 0.6)",
+                    // Mantine's own Dropzone hover style is a solid dark
+                    // fill that doesn't know about this glass treatment —
+                    // without this it flashes flat grey on hover instead
+                    // of staying translucent.
+                    "&:hover": {
+                      backgroundColor: dark
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(255, 255, 255, 0.38)",
+                    },
                   },
                 };
               }
