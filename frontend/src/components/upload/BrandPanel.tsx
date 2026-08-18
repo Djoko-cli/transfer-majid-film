@@ -15,114 +15,66 @@ const TRANSITION_MS = 900;
 // cut off mid-motion by the next slide transition.
 const LIVING_DURATION_MS = SLIDE_DURATION_MS - TRANSITION_MS;
 
+// Standard breakpoint set derived (and downloaded, both avif+webp) from
+// majid.film's own responsive derivatives for each still — see
+// `public/img/brand/derived/`. A couple of projects' source stills top out
+// lower (portrait/lower-res originals), hence the per-slide override.
+const STANDARD_WIDTHS = [640, 1280, 2048, 3840];
+
 const SLIDES = [
+  { slug: "apetitfeu", title: "À petit feu", year: "2024" },
+  { slug: "atr", title: "ATR", year: "2022" },
+  { slug: "battle", title: "Battle - La Rényon", year: "2024" },
   {
-    src: "/img/brand/apetitfeu.webp",
-    slug: "apetitfeu",
-    title: "À petit feu",
-    year: "2024",
-  },
-  { src: "/img/brand/atr.webp", slug: "atr", title: "ATR", year: "2022" },
-  {
-    src: "/img/brand/battle.webp",
-    slug: "battle",
-    title: "Battle - La Rényon",
-    year: "2024",
-  },
-  {
-    src: "/img/brand/bluesmaron.webp",
     slug: "bluesmaron",
     title: "À la rencontre du blues maron",
     year: "2023",
   },
+  { slug: "cavacava", title: "Ça va ? Ça va", year: "2024" },
   {
-    src: "/img/brand/cavacava.webp",
-    slug: "cavacava",
-    title: "Ça va ? Ça va",
-    year: "2024",
-  },
-  {
-    src: "/img/brand/cilam-couple.webp",
     slug: "cilam-couple",
     title: "Des instants qui comptent - Couple",
     year: "2026",
   },
   {
-    src: "/img/brand/cilam-grand-pere.webp",
     slug: "cilam-grand-pere",
     title: "Des instants qui comptent - Grand-père",
     year: "2026",
   },
+  { slug: "dbba", title: "Dann' Babadzyé Artemis", year: "2025" },
+  { slug: "foli", title: "FOLÏ", year: "2024", widths: [640, 1280, 1920] },
+  { slug: "grave-dans-la-peau", title: "Gravé dans la peau", year: "2025" },
+  { slug: "hyundai-i10-n-line", title: "i10 N Line", year: "2024" },
+  { slug: "kalou", title: "KALOU", year: "2023" },
+  { slug: "kaskole", title: "KASKOLÉ", year: "2023" },
   {
-    src: "/img/brand/dbba.webp",
-    slug: "dbba",
-    title: "Dann' Babadzyé Artemis",
-    year: "2025",
-  },
-  { src: "/img/brand/foli.webp", slug: "foli", title: "FOLÏ", year: "2024" },
-  {
-    src: "/img/brand/grave-dans-la-peau.webp",
-    slug: "grave-dans-la-peau",
-    title: "Gravé dans la peau",
-    year: "2025",
-  },
-  {
-    src: "/img/brand/hyundai-i10-n-line.webp",
-    slug: "hyundai-i10-n-line",
-    title: "i10 N Line",
-    year: "2024",
-  },
-  { src: "/img/brand/kalou.webp", slug: "kalou", title: "KALOU", year: "2023" },
-  {
-    src: "/img/brand/kaskole.webp",
-    slug: "kaskole",
-    title: "KASKOLÉ",
-    year: "2023",
-  },
-  {
-    src: "/img/brand/lanrl.webp",
     slug: "lanrl",
     title: "La NRL, La Nouvelle Réunion Libre",
     year: "2023",
   },
+  { slug: "lespotscasses", title: "Les Pots Cassés", year: "2023" },
+  { slug: "quartierruisseau", title: "Quartier Ruisseau", year: "2023" },
   {
-    src: "/img/brand/lespotscasses.webp",
-    slug: "lespotscasses",
-    title: "Les Pots Cassés",
-    year: "2023",
-  },
-  {
-    src: "/img/brand/quartierruisseau.webp",
-    slug: "quartierruisseau",
-    title: "Quartier Ruisseau",
-    year: "2023",
-  },
-  {
-    src: "/img/brand/sfr-noel.webp",
     slug: "sfr-noel",
     title: "La connexion entre nous, ça se fête !",
     year: "2024",
   },
-  { src: "/img/brand/sovaz.webp", slug: "sovaz", title: "SOVAZ", year: "2023" },
-  {
-    src: "/img/brand/standup.webp",
-    slug: "standup",
-    title: "Stand Up !",
-    year: "2026",
-  },
-  {
-    src: "/img/brand/thousanddays.webp",
-    slug: "thousanddays",
-    title: "THOUSANDS DAYS",
-    year: "2023",
-  },
-  {
-    src: "/img/brand/tordballe.webp",
-    slug: "tordballe",
-    title: "Tord Balle",
-    year: "2024",
-  },
-];
+  { slug: "sovaz", title: "SOVAZ", year: "2023" },
+  { slug: "standup", title: "Stand Up !", year: "2026" },
+  { slug: "thousanddays", title: "THOUSANDS DAYS", year: "2023" },
+  { slug: "tordballe", title: "Tord Balle", year: "2024" },
+].map((slide) => ({ widths: STANDARD_WIDTHS, ...slide }));
+
+// The image panel is always full-bleed (100vw) at every breakpoint in this
+// layout — the glass card floats on top of it via absolute positioning
+// rather than sharing the image's own layout width — so the browser only
+// ever needs to weigh candidates against the viewport width itself.
+const SIZES = "100vw";
+
+const buildSrcSet = (slug: string, widths: number[], format: "avif" | "webp") =>
+  widths
+    .map((w) => `/img/brand/derived/${slug}-${w}.${format} ${w}w`)
+    .join(", ");
 
 // Fisher-Yates — done client-side only (see effect below) so the server and
 // the first client render agree, avoiding a hydration mismatch.
@@ -177,8 +129,10 @@ const useStyles = createStyles((theme) => ({
   slideImage: {
     position: "absolute",
     inset: 0,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    objectPosition: "center",
   },
 
   // Only the currently-settled slide gets this — a slow, linear 7% zoom
@@ -251,10 +205,25 @@ const BrandPanel = () => {
                 [classes.living]: isActive && !prefersReducedMotion,
               })}
             >
-              <Box
-                className={classes.slideImage}
-                style={{ backgroundImage: `url(${slide.src})` }}
-              />
+              <picture>
+                <source
+                  type="image/avif"
+                  srcSet={buildSrcSet(slide.slug, slide.widths, "avif")}
+                  sizes={SIZES}
+                />
+                <source
+                  type="image/webp"
+                  srcSet={buildSrcSet(slide.slug, slide.widths, "webp")}
+                  sizes={SIZES}
+                />
+                <img
+                  className={classes.slideImage}
+                  src={`/img/brand/derived/${slide.slug}-${slide.widths[1]}.webp`}
+                  alt=""
+                  loading={isActive ? "eager" : "lazy"}
+                  decoding="async"
+                />
+              </picture>
             </Box>
           </Box>
         );
