@@ -385,20 +385,28 @@ const TransferCard = ({
                     {...form.getInputProps("maxViews")}
                     // min=1 blocked the down arrow from doing anything once
                     // at 1 — there was no way back to "no limit" without
-                    // clearing the field by hand. Allowing 0 as the floor
-                    // and clearing it back to "" makes the down arrow at 1
-                    // land on "no limit" instead. Mantine only re-syncs a
-                    // NumberInput's displayed value from its controlled
-                    // `value` prop while it's NOT focused, so without the
-                    // blur the field would keep showing "0" — correct
-                    // underneath, but stuck on screen — until the user
-                    // clicked away some other way.
+                    // clearing the field by hand. min=0 fixes that (1 down
+                    // to 0), but it also means the up arrow from empty lands
+                    // on 0 first, one click short of 1 — Mantine's own
+                    // "increment from empty" logic starts from `min`. So 0
+                    // is ambiguous by itself; only the previous value says
+                    // whether it means "just cleared, treat as no limit" or
+                    // "was empty, this increment should really be 1".
+                    // Mantine also only re-syncs the field's displayed value
+                    // from a controlled `value` prop while it's NOT focused,
+                    // so either correction below needs an explicit blur —
+                    // otherwise the "0" Mantine computed internally stays
+                    // visible on screen despite being overridden underneath.
                     onChange={(value: number | "") => {
-                      const cleared = value === 0;
-                      form.setFieldValue("maxViews", cleared ? "" : value);
-                      if (cleared) {
-                        setTimeout(() => maxViewsInputRef.current?.blur());
+                      if (value !== 0) {
+                        form.setFieldValue("maxViews", value);
+                        return;
                       }
+                      form.setFieldValue(
+                        "maxViews",
+                        form.values.maxViews === "" ? 1 : "",
+                      );
+                      setTimeout(() => maxViewsInputRef.current?.blur());
                     }}
                   />
                 </Stack>
