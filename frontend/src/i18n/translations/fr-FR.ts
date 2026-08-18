@@ -297,6 +297,9 @@ export default {
   "upload.transfer.submit": "Transférer",
   "upload.transfer.options": "Options avancées",
 
+  // BrandPanel.tsx
+  "upload.brand.caption": "Image tirée de {title}, {year}",
+
   // Dropzone.tsx
   "upload.dropzone.title": "Téléverser des fichiers",
   "upload.dropzone.description": "Glissez-déposez vos fichiers ou dossiers ici pour commencer le partage ou utilisez « Ctrl+V » pour importer du texte depuis le presse-papiers. Nous acceptons un maximum de {maxSize} fichiers au total.",

@@ -36,7 +36,7 @@ export const configVariables = {
     },
     defaultLanguage: {
       type: "string",
-      defaultValue: "en-US",
+      defaultValue: "fr-FR",
       secret: false,
     },
   },

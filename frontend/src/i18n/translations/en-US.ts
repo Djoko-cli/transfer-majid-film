@@ -373,6 +373,9 @@ export default {
   "upload.transfer.submit": "Transfer",
   "upload.transfer.options": "Advanced options",
 
+  // BrandPanel.tsx
+  "upload.brand.caption": "Image from {title}, {year}",
+
   // Dropzone.tsx
   "upload.dropzone.title": "Upload files",
   "upload.dropzone.description":

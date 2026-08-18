@@ -13,7 +13,7 @@ general:
   #Time after which a user must log in again (default: 3 months).
   sessionDuration: 3 months
   #This applies to all users, each user can still personalise their language in their profile.
-  defaultLanguage: en-US
+  defaultLanguage: fr-FR
 appearance:
   #Primary color used for buttons, links, and accents. Choose custom to use a color picker override.
   themePrimaryColor: custom
