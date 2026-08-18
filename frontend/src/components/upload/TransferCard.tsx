@@ -92,11 +92,6 @@ const TransferCard = ({
             .required(t("common.error.field-required"))
             .email(t("common.error.invalid-email"))
         : yup.string().transform((value) => value || undefined),
-    name: yup
-      .string()
-      .transform((value) => value || undefined)
-      .min(3, t("common.error.too-short", { length: 3 }))
-      .max(30, t("common.error.too-long", { length: 30 })),
     password: yup
       .string()
       .transform((value) => value || undefined)
@@ -114,7 +109,6 @@ const TransferCard = ({
 
   const form = useForm({
     initialValues: {
-      name: undefined,
       // Populated client-side only, after mount (see below) — generating a
       // random id during render would differ between the server and client
       // pass and trigger a hydration mismatch.
@@ -183,7 +177,6 @@ const TransferCard = ({
     onSubmit(
       {
         id: values.link,
-        name: values.name,
         expiration: expirationString,
         recipients: values.recipients,
         description: values.description,
@@ -389,6 +382,15 @@ const TransferCard = ({
             )}
           </Text>
 
+          <Textarea
+            variant="filled"
+            label={t("upload.transfer.message.label")}
+            placeholder={t(
+              "upload.modal.accordion.name-and-description.description.placeholder",
+            )}
+            {...form.getInputProps("description")}
+          />
+
           <Accordion>
             <Accordion.Item value="options" sx={{ borderBottom: "none" }}>
               <Accordion.Control>
@@ -403,20 +405,6 @@ const TransferCard = ({
                     appUrl={appUrl}
                     defaultAppUrl={defaultAppUrl}
                     pathPrefix="/s/"
-                  />
-                  <TextInput
-                    variant="filled"
-                    placeholder={t(
-                      "upload.modal.accordion.name-and-description.name.placeholder",
-                    )}
-                    {...form.getInputProps("name")}
-                  />
-                  <Textarea
-                    variant="filled"
-                    placeholder={t(
-                      "upload.modal.accordion.name-and-description.description.placeholder",
-                    )}
-                    {...form.getInputProps("description")}
                   />
                   {!form.values.restrictToRecipients && (
                     <PasswordInput

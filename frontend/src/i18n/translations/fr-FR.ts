@@ -352,6 +352,7 @@ export default {
   "upload.transfer.sender.placeholder": "vous@exemple.com",
   "upload.transfer.submit": "Transférer",
   "upload.transfer.options": "Options avancées",
+  "upload.transfer.message.label": "Message",
 
   // BrandPanel.tsx
   "upload.brand.caption": "Image tirée de {title}, {year}",
