@@ -58,8 +58,8 @@ export function getDefaultConfig(): Config[] {
     },
     {
       key: "share.defaultExpiration",
-      value: "7 days",
-      defaultValue: "7 days",
+      value: "3 days",
+      defaultValue: "3 days",
       type: "timespan",
     },
     {

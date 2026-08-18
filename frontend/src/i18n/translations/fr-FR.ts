@@ -353,6 +353,7 @@ export default {
   "upload.transfer.submit": "Transférer",
   "upload.transfer.options": "Options avancées",
   "upload.transfer.message.label": "Message",
+  "upload.transfer.expires.label": "Expiration (jours)",
 
   // BrandPanel.tsx
   "upload.brand.caption": "Image tirée de {title}, {year}",

@@ -38,7 +38,7 @@ share:
   #and any user granted the "permanent shares" permission, bypass this cap.
   maxExpiration: 30 days
   #The default expiration time selected when creating a new share.
-  defaultExpiration: 7 days
+  defaultExpiration: 3 days
   #Default length for the generated ID of a share. This value is also used to generate links for reverse shares. A value below 8 is not considered secure.
   shareIdLength: "8"
   #Maximum share size

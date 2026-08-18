@@ -4,14 +4,11 @@ import {
   Box,
   Button,
   Checkbox,
-  Col,
-  Grid,
   MantineProvider,
   MultiSelect,
   NumberInput,
   PasswordInput,
   SegmentedControl,
-  Select,
   Stack,
   Text,
   Textarea,
@@ -20,7 +17,7 @@ import {
 import glassFormTheme from "./glassFormTheme";
 import { useForm, yupResolver } from "@mantine/form";
 import moment from "moment";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { TbAlertCircle } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
@@ -75,6 +72,7 @@ const TransferCard = ({
   const [mode, setMode] = useState<Mode>("link");
   const [emailSearch, setEmailSearch] = useState("");
   const [showNotSignedInAlert, setShowNotSignedInAlert] = useState(true);
+  const maxViewsInputRef = useRef<HTMLInputElement>(null);
 
   const validationSchema = yup.object().shape({
     link: yup
@@ -103,9 +101,14 @@ const TransferCard = ({
       .min(1),
   });
 
-  const defaultTimespan = defaultExpiration
-    ? defaultExpiration
-    : { value: 7, unit: "days" };
+  // Expiration is simplified down to a single 1-30 day picker (see the
+  // NumberInput below) — no more unit selector. Only honor the admin's
+  // configured default when it's already expressed in days; anything else
+  // (and the common case of no config at all) falls back to 3.
+  const defaultExpirationDays =
+    defaultExpiration && defaultExpiration.unit === "days"
+      ? Math.min(30, Math.max(1, defaultExpiration.value))
+      : 3;
 
   const form = useForm({
     initialValues: {
@@ -116,10 +119,15 @@ const TransferCard = ({
       recipients: [] as string[],
       senderEmail: "",
       password: undefined,
-      maxViews: undefined,
+      // "" rather than undefined: Mantine's NumberInput treats a controlled
+      // value of undefined as "uncontrolled, ignore me" and simply keeps
+      // whatever it last displayed — passing "" is what actually clears it
+      // back to the placeholder. onSubmit already normalizes "" to
+      // undefined for the actual payload (values.maxViews || undefined).
+      maxViews: "" as number | "",
       description: undefined,
-      expiration_num: defaultTimespan.value,
-      expiration_unit: `-${defaultTimespan.unit}` as string,
+      expiration_num: defaultExpirationDays,
+      expiration_unit: "-days",
       never_expires: false,
       restrictToRecipients: false,
     },
@@ -303,69 +311,15 @@ const TransferCard = ({
             />
           )}
 
-          <Grid align={form.errors.expiration_num ? "center" : "flex-end"}>
-            <Col xs={6}>
-              <NumberInput
-                min={1}
-                max={99999}
-                precision={0}
-                variant="filled"
-                label={t("upload.modal.expires.label")}
-                disabled={form.values.never_expires}
-                {...form.getInputProps("expiration_num")}
-              />
-            </Col>
-            <Col xs={6}>
-              <Select
-                disabled={form.values.never_expires}
-                {...form.getInputProps("expiration_unit")}
-                data={[
-                  {
-                    value: "-minutes",
-                    label:
-                      form.values.expiration_num == 1
-                        ? t("upload.modal.expires.minute-singular")
-                        : t("upload.modal.expires.minute-plural"),
-                  },
-                  {
-                    value: "-hours",
-                    label:
-                      form.values.expiration_num == 1
-                        ? t("upload.modal.expires.hour-singular")
-                        : t("upload.modal.expires.hour-plural"),
-                  },
-                  {
-                    value: "-days",
-                    label:
-                      form.values.expiration_num == 1
-                        ? t("upload.modal.expires.day-singular")
-                        : t("upload.modal.expires.day-plural"),
-                  },
-                  {
-                    value: "-weeks",
-                    label:
-                      form.values.expiration_num == 1
-                        ? t("upload.modal.expires.week-singular")
-                        : t("upload.modal.expires.week-plural"),
-                  },
-                  {
-                    value: "-months",
-                    label:
-                      form.values.expiration_num == 1
-                        ? t("upload.modal.expires.month-singular")
-                        : t("upload.modal.expires.month-plural"),
-                  },
-                  {
-                    value: "-years",
-                    label:
-                      form.values.expiration_num == 1
-                        ? t("upload.modal.expires.year-singular")
-                        : t("upload.modal.expires.year-plural"),
-                  },
-                ]}
-              />
-            </Col>
-          </Grid>
+          <NumberInput
+            min={1}
+            max={30}
+            precision={0}
+            variant="filled"
+            label={t("upload.transfer.expires.label")}
+            disabled={form.values.never_expires}
+            {...form.getInputProps("expiration_num")}
+          />
           {maxExpiration.value == 0 && (
             <Checkbox
               label={t("upload.modal.expires.never-long")}
@@ -420,7 +374,8 @@ const TransferCard = ({
                     />
                   )}
                   <NumberInput
-                    min={1}
+                    ref={maxViewsInputRef}
+                    min={0}
                     type="number"
                     variant="filled"
                     placeholder={t(
@@ -428,6 +383,23 @@ const TransferCard = ({
                     )}
                     label={t("upload.modal.accordion.security.max-views.label")}
                     {...form.getInputProps("maxViews")}
+                    // min=1 blocked the down arrow from doing anything once
+                    // at 1 — there was no way back to "no limit" without
+                    // clearing the field by hand. Allowing 0 as the floor
+                    // and clearing it back to "" makes the down arrow at 1
+                    // land on "no limit" instead. Mantine only re-syncs a
+                    // NumberInput's displayed value from its controlled
+                    // `value` prop while it's NOT focused, so without the
+                    // blur the field would keep showing "0" — correct
+                    // underneath, but stuck on screen — until the user
+                    // clicked away some other way.
+                    onChange={(value: number | "") => {
+                      const cleared = value === 0;
+                      form.setFieldValue("maxViews", cleared ? "" : value);
+                      if (cleared) {
+                        setTimeout(() => maxViewsInputRef.current?.blur());
+                      }
+                    }}
                   />
                 </Stack>
               </Accordion.Panel>
