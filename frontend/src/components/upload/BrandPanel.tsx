@@ -45,7 +45,12 @@ const SLIDES = [
   { slug: "foli", title: "FOLÏ", year: "2024", widths: [640, 1280, 1920] },
   { slug: "grave-dans-la-peau", title: "Gravé dans la peau", year: "2025" },
   { slug: "hyundai-i10-n-line", title: "i10 N Line", year: "2024" },
-  { slug: "kalou", title: "KALOU", year: "2023" },
+  {
+    slug: "kalou",
+    title: "KALOU",
+    year: "2023",
+    widths: [640, 1280, 2048, 4096],
+  },
   { slug: "kaskole", title: "KASKOLÉ", year: "2023" },
   {
     slug: "lanrl",
@@ -53,11 +58,17 @@ const SLIDES = [
     year: "2023",
   },
   { slug: "lespotscasses", title: "Les Pots Cassés", year: "2023" },
-  { slug: "quartierruisseau", title: "Quartier Ruisseau", year: "2023" },
+  {
+    slug: "quartierruisseau",
+    title: "Quartier Ruisseau",
+    year: "2023",
+    widths: [640, 1280, 2048, 2880],
+  },
   {
     slug: "sfr-noel",
     title: "La connexion entre nous, ça se fête !",
     year: "2024",
+    widths: [640, 1280, 2048, 3193],
   },
   { slug: "sovaz", title: "SOVAZ", year: "2023" },
   { slug: "standup", title: "Stand Up !", year: "2026" },
