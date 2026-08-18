@@ -84,17 +84,17 @@ const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
           // vertical ones, wherever the dash actually was. The glow comes
           // from the drop-shadow filter instead, which is position-agnostic.
           stroke="#ffffff"
-          strokeOpacity={0.8}
+          strokeOpacity={0.65}
           strokeWidth={1.5}
           strokeLinecap="round"
           pathLength={1000}
-          strokeDasharray="220 780"
+          strokeDasharray="260 740"
           className={classes.dash}
-          // A long dash means the blur only softens its two tips into a
-          // fade — the middle stays well short of the blur radius from
-          // either edge, so it reads as a soft-ended light band rather
-          // than a hard bar or a uniformly hazy blob.
-          style={{ filter: `blur(3px) drop-shadow(0 0 3px ${accent})` }}
+          // A wide blur relative to the dash's own width means there's no
+          // point along it where the edge is actually hard — it should
+          // read as a soft brightening of the card's existing border that
+          // fades in and out, not a distinct line with visible ends.
+          style={{ filter: `blur(8px) drop-shadow(0 0 2px ${accent})` }}
         />
       )}
     </svg>
