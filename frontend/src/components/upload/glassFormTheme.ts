@@ -42,10 +42,13 @@ const glassFieldStyles = (theme: any) => {
       color: dark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)",
       backgroundColor: "transparent",
 
+      // !important: Mantine's own NumberInput control has a hardcoded
+      // solid-dark :hover of its own: same selector specificity as this
+      // override, so which one wins is purely down to injection order —
+      // which wasn't reliably this one, unlike the equivalent Dropzone and
+      // Accordion hover overrides above.
       "&:hover": {
-        backgroundColor: dark
-          ? "rgba(255, 255, 255, 0.1)"
-          : "rgba(255, 255, 255, 0.35)",
+        backgroundColor: `${dark ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.35)"} !important`,
       },
     },
   };
