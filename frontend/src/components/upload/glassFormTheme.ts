@@ -42,15 +42,9 @@ const glassFormTheme: MantineThemeOverride = {
       styles: (theme: any) => ({
         root: {
           "&:disabled, &[data-disabled]": {
-            opacity: 0.5,
-            backgroundColor:
-              theme.colorScheme === "dark"
-                ? theme.colors.dark[5]
-                : theme.colors.gray[2],
-            color:
-              theme.colorScheme === "dark"
-                ? theme.colors.dark[1]
-                : theme.colors.gray[6],
+            opacity: 1,
+            backgroundColor: theme.colors.gray[3],
+            color: theme.colors.gray[7],
             border: "none",
           },
         },

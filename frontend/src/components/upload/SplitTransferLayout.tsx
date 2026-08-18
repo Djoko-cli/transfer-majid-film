@@ -32,34 +32,47 @@ const useStyles = createStyles((theme) => {
       },
     },
 
-    cardWrapper: {
+    // Spans the full visible height below the header and centers the
+    // (auto-height, content-sized) card slot vertically within it — rather
+    // than anchoring the card to a fixed offset, which read as floating too
+    // close to the header on tall viewports.
+    cardSlot: {
       position: "absolute",
-      // Auto height, sized to its content — anchored near the top instead
-      // of stretched to fill the panel, so short forms don't leave a huge
-      // empty lower half on tall viewports. maxHeight is only a safety net
-      // for very short viewports with a lot of expanded content.
-      top: `calc(${HEADER_HEIGHT}px + clamp(24px, 5vh, 64px))`,
+      top: HEADER_HEIGHT,
+      bottom: 0,
       left: "clamp(20px, 4vw, 56px)",
       width: 440,
       maxWidth: "calc(100vw - 40px)",
-      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - clamp(48px, 10vh, 128px))`,
       zIndex: 2,
-      borderRadius: CARD_RADIUS,
+      display: "flex",
+      alignItems: "center",
 
       [theme.fn.smallerThan("sm")]: {
         position: "relative",
         top: "auto",
+        bottom: "auto",
         left: "auto",
         width: "100%",
         maxWidth: "none",
-        maxHeight: "none",
+        display: "block",
       },
+    },
+
+    cardWrapper: {
+      position: "relative",
+      width: "100%",
+      borderRadius: CARD_RADIUS,
     },
 
     card: {
       position: "relative",
       height: "auto",
-      maxHeight: "100%",
+      // A direct viewport-relative cap (rather than a percentage against
+      // cardWrapper) since cardWrapper's own height is itself auto/content
+      // driven — a percentage there wouldn't have anything definite to
+      // resolve against. Only ever bites on short viewports with a lot of
+      // expanded content; overflowY is the actual safety net.
+      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - 48px)`,
       overflowY: "auto",
       padding: theme.spacing.xl,
       borderRadius: CARD_RADIUS,
@@ -75,6 +88,7 @@ const useStyles = createStyles((theme) => {
 
       [theme.fn.smallerThan("sm")]: {
         height: "auto",
+        maxHeight: "none",
         borderRadius: 0,
         border: "none",
         background: dark ? theme.colors.dark[7] : theme.white,
@@ -107,11 +121,13 @@ const SplitTransferLayout = ({ children }: { children: ReactNode }) => {
     <Box className={classes.bleed}>
       <LiquidGlassKeyframes />
       <BrandPanel />
-      <Box className={classes.cardWrapper}>
-        <Box className={classes.glint}>
-          <GlintBorder radius={CARD_RADIUS} />
+      <Box className={classes.cardSlot}>
+        <Box className={classes.cardWrapper}>
+          <Box className={classes.glint}>
+            <GlintBorder radius={CARD_RADIUS} />
+          </Box>
+          <Box className={classes.card}>{children}</Box>
         </Box>
-        <Box className={classes.card}>{children}</Box>
       </Box>
     </Box>
   );
