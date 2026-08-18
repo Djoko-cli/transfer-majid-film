@@ -287,6 +287,16 @@ export default {
   "upload.verification.code.change-email": "Utiliser un autre email",
   "upload.verification.notify.code-sent": "Code envoyé à {email}.",
 
+  // TransferCard.tsx
+  "upload.transfer.mode.email": "E-mail",
+  "upload.transfer.mode.link": "Lien",
+  "upload.transfer.recipient.label": "Destinataire",
+  "upload.transfer.recipient.placeholder": "E-mail du destinataire",
+  "upload.transfer.sender.label": "Votre e-mail",
+  "upload.transfer.sender.placeholder": "vous@exemple.com",
+  "upload.transfer.submit": "Transférer",
+  "upload.transfer.options": "Options avancées",
+
   // Dropzone.tsx
   "upload.dropzone.title": "Téléverser des fichiers",
   "upload.dropzone.description": "Glissez-déposez vos fichiers ou dossiers ici pour commencer le partage ou utilisez « Ctrl+V » pour importer du texte depuis le presse-papiers. Nous acceptons un maximum de {maxSize} fichiers au total.",

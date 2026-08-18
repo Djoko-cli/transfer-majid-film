@@ -363,6 +363,16 @@ export default {
   "upload.verification.code.change-email": "Use a different email",
   "upload.verification.notify.code-sent": "Code sent to {email}.",
 
+  // TransferCard.tsx
+  "upload.transfer.mode.email": "Email",
+  "upload.transfer.mode.link": "Link",
+  "upload.transfer.recipient.label": "To",
+  "upload.transfer.recipient.placeholder": "Recipient's email",
+  "upload.transfer.sender.label": "Your email",
+  "upload.transfer.sender.placeholder": "you@example.com",
+  "upload.transfer.submit": "Transfer",
+  "upload.transfer.options": "Advanced options",
+
   // Dropzone.tsx
   "upload.dropzone.title": "Upload files",
   "upload.dropzone.description":

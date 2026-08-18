@@ -8,6 +8,8 @@ import { FormattedMessage } from "react-intl";
 import Meta from "../Meta";
 import Dropzone from "./Dropzone";
 import FileList from "./FileList";
+import SplitTransferLayout from "./SplitTransferLayout";
+import TransferCard from "./TransferCard";
 import showCompletedUploadModal from "./modals/showCompletedUploadModal";
 import showCreateUploadModal from "./modals/showCreateUploadModal";
 import showEmailVerificationModal from "./modals/showEmailVerificationModal";
@@ -165,6 +167,26 @@ const Upload = ({
     Promise.all(fileUploadPromises);
   };
 
+  // Gates the actual upload behind the anonymous email-OTP check when required.
+  // knownEmail is set when the sender already typed their email into the
+  // TransferCard's "email" mode, so we only need to ask for the code.
+  const startUpload = (share: CreateShare, knownEmail?: string | null) => {
+    if (!requiresEmailVerification || isEmailVerified) {
+      uploadFiles(share, files);
+      return;
+    }
+
+    showEmailVerificationModal(
+      modals,
+      (email) => {
+        setIsEmailVerified(true);
+        setVerifiedEmail(email);
+        uploadFiles(share, files);
+      },
+      knownEmail || undefined,
+    );
+  };
+
   const openCreateUploadModal = (files: FileUpload[]) => {
     showCreateUploadModal(
       modals,
@@ -190,18 +212,6 @@ const Upload = ({
     );
   };
 
-  const showCreateUploadModalCallback = (files: FileUpload[]) => {
-    if (requiresEmailVerification && !isEmailVerified) {
-      showEmailVerificationModal(modals, (email) => {
-        setIsEmailVerified(true);
-        setVerifiedEmail(email);
-        openCreateUploadModal(files);
-      });
-    } else {
-      openCreateUploadModal(files);
-    }
-  };
-
   const handleDropzoneFilesChanged = (newFiles: FileUpload[]) => {
     const filtered = filterDuplicateFiles(newFiles, files, (normalizedName) =>
       toast.error(
@@ -210,9 +220,9 @@ const Upload = ({
     );
     if (filtered.length === 0) return;
 
-    if (autoOpenCreateUploadModal) {
+    if (isReverseShare && autoOpenCreateUploadModal) {
       setFiles(filtered);
-      showCreateUploadModalCallback(filtered);
+      openCreateUploadModal(filtered);
     } else {
       setFiles((oldArr) => [...oldArr, ...filtered]);
     }
@@ -259,9 +269,9 @@ const Upload = ({
         );
         if (filtered.length === 0) return;
 
-        if (autoOpenCreateUploadModal) {
+        if (isReverseShare && autoOpenCreateUploadModal) {
           setFiles(filtered);
-          showCreateUploadModalCallback(filtered);
+          openCreateUploadModal(filtered);
         } else {
           setFiles((oldArr) => [...oldArr, ...filtered]);
         }
@@ -320,32 +330,63 @@ const Upload = ({
     }
   }, [files]);
 
+  if (isReverseShare) {
+    return (
+      <>
+        <Meta title={t("upload.title")} />
+        <Group position="right" mb={20}>
+          <Button
+            loading={isUploading}
+            disabled={files.length <= 0}
+            onClick={() => openCreateUploadModal(files)}
+          >
+            <FormattedMessage id="common.button.share" />
+          </Button>
+        </Group>
+        <Dropzone
+          title={
+            !autoOpenCreateUploadModal && files.length > 0
+              ? t("share.edit.append-upload")
+              : undefined
+          }
+          maxShareSize={maxShareSize}
+          currentFilesSize={currentFilesSize}
+          onFilesChanged={handleDropzoneFilesChanged}
+          isUploading={isUploading}
+        />
+        {files.length > 0 && (
+          <FileList<FileUpload> files={files} setFiles={setFiles} />
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       <Meta title={t("upload.title")} />
-      <Group position="right" mb={20}>
-        <Button
-          loading={isUploading}
-          disabled={files.length <= 0}
-          onClick={() => showCreateUploadModalCallback(files)}
-        >
-          <FormattedMessage id="common.button.share" />
-        </Button>
-      </Group>
-      <Dropzone
-        title={
-          !autoOpenCreateUploadModal && files.length > 0
-            ? t("share.edit.append-upload")
-            : undefined
-        }
-        maxShareSize={maxShareSize}
-        currentFilesSize={currentFilesSize}
-        onFilesChanged={handleDropzoneFilesChanged}
-        isUploading={isUploading}
-      />
-      {files.length > 0 && (
-        <FileList<FileUpload> files={files} setFiles={setFiles} />
-      )}
+      <SplitTransferLayout>
+        <TransferCard
+          files={files}
+          isUploading={isUploading}
+          maxShareSize={maxShareSize}
+          currentFilesSize={currentFilesSize}
+          onFilesChanged={handleDropzoneFilesChanged}
+          setFiles={setFiles}
+          onSubmit={startUpload}
+          isUserSignedIn={user ? true : false}
+          appUrl={config.get("general.appUrl")}
+          defaultAppUrl={config.get("general.appUrl", true)}
+          enableEmailRecepients={config.get("email.enableShareEmailRecipients")}
+          enableUserRecipients={config.get("share.enableUserRecipients")}
+          maxExpiration={
+            user?.isAdmin
+              ? { value: 0, unit: "days" }
+              : config.get("share.maxExpiration")
+          }
+          defaultExpiration={config.get("share.defaultExpiration")}
+          shareIdLength={config.get("share.shareIdLength")}
+        />
+      </SplitTransferLayout>
     </>
   );
 };

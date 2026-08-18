@@ -22,6 +22,7 @@ const RESEND_COOLDOWN_SECONDS = 30;
 const showEmailVerificationModal = (
   modals: ModalsContextProps,
   onVerified: (email: string) => void,
+  knownEmail?: string,
 ) => {
   const t = translateOutsideContext();
 
@@ -31,6 +32,7 @@ const showEmailVerificationModal = (
     closeOnEscape: false,
     children: (
       <Body
+        knownEmail={knownEmail}
         onVerified={(email) => {
           modals.closeAll();
           onVerified(email);
@@ -40,10 +42,18 @@ const showEmailVerificationModal = (
   });
 };
 
-const Body = ({ onVerified }: { onVerified: (email: string) => void }) => {
+const Body = ({
+  onVerified,
+  knownEmail,
+}: {
+  onVerified: (email: string) => void;
+  knownEmail?: string;
+}) => {
   const t = useTranslate();
-  const [step, setStep] = useState<"email" | "code">("email");
-  const [email, setEmail] = useState("");
+  const [step, setStep] = useState<"email" | "code">(
+    knownEmail ? "code" : "email",
+  );
+  const [email, setEmail] = useState(knownEmail || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
@@ -82,6 +92,11 @@ const Body = ({ onVerified }: { onVerified: (email: string) => void }) => {
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (knownEmail) requestCode(knownEmail);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const verifyCode = async (code: string) => {
     setIsSubmitting(true);
