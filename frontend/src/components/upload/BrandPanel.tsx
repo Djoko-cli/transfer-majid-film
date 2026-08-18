@@ -10,25 +10,117 @@ import { FormattedMessage } from "react-intl";
 
 const SLIDE_DURATION_MS = 10000;
 const TRANSITION_MS = 900;
+// How long the "living" drift takes to loop back to its starting point once
+// a slide has settled — kept below the remaining dwell time so it never gets
+// cut off mid-motion by the next slide transition.
+const LIVING_DURATION_MS = SLIDE_DURATION_MS - TRANSITION_MS;
 
 const SLIDES = [
   {
-    src: "/img/brand/hero-1.webp",
-    slug: "quartierruisseau",
-    title: "Quartier Ruisseau",
-    year: "2023",
+    src: "/img/brand/apetitfeu.webp",
+    slug: "apetitfeu",
+    title: "À petit feu",
+    year: "2024",
   },
+  { src: "/img/brand/atr.webp", slug: "atr", title: "ATR", year: "2022" },
   {
-    src: "/img/brand/hero-2.webp",
+    src: "/img/brand/battle.webp",
     slug: "battle",
     title: "Battle - La Rényon",
     year: "2024",
   },
   {
-    src: "/img/brand/hero-3.webp",
-    slug: "atr",
-    title: "ATR",
-    year: "2022",
+    src: "/img/brand/bluesmaron.webp",
+    slug: "bluesmaron",
+    title: "À la rencontre du blues maron",
+    year: "2023",
+  },
+  {
+    src: "/img/brand/cavacava.webp",
+    slug: "cavacava",
+    title: "Ça va ? Ça va",
+    year: "2024",
+  },
+  {
+    src: "/img/brand/cilam-couple.webp",
+    slug: "cilam-couple",
+    title: "Des instants qui comptent - Couple",
+    year: "2026",
+  },
+  {
+    src: "/img/brand/cilam-grand-pere.webp",
+    slug: "cilam-grand-pere",
+    title: "Des instants qui comptent - Grand-père",
+    year: "2026",
+  },
+  {
+    src: "/img/brand/dbba.webp",
+    slug: "dbba",
+    title: "Dann' Babadzyé Artemis",
+    year: "2025",
+  },
+  { src: "/img/brand/foli.webp", slug: "foli", title: "FOLÏ", year: "2024" },
+  {
+    src: "/img/brand/grave-dans-la-peau.webp",
+    slug: "grave-dans-la-peau",
+    title: "Gravé dans la peau",
+    year: "2025",
+  },
+  {
+    src: "/img/brand/hyundai-i10-n-line.webp",
+    slug: "hyundai-i10-n-line",
+    title: "i10 N Line",
+    year: "2024",
+  },
+  { src: "/img/brand/kalou.webp", slug: "kalou", title: "KALOU", year: "2023" },
+  {
+    src: "/img/brand/kaskole.webp",
+    slug: "kaskole",
+    title: "KASKOLÉ",
+    year: "2023",
+  },
+  {
+    src: "/img/brand/lanrl.webp",
+    slug: "lanrl",
+    title: "La NRL, La Nouvelle Réunion Libre",
+    year: "2023",
+  },
+  {
+    src: "/img/brand/lespotscasses.webp",
+    slug: "lespotscasses",
+    title: "Les Pots Cassés",
+    year: "2023",
+  },
+  {
+    src: "/img/brand/quartierruisseau.webp",
+    slug: "quartierruisseau",
+    title: "Quartier Ruisseau",
+    year: "2023",
+  },
+  {
+    src: "/img/brand/sfr-noel.webp",
+    slug: "sfr-noel",
+    title: "La connexion entre nous, ça se fête !",
+    year: "2024",
+  },
+  { src: "/img/brand/sovaz.webp", slug: "sovaz", title: "SOVAZ", year: "2023" },
+  {
+    src: "/img/brand/standup.webp",
+    slug: "standup",
+    title: "Stand Up !",
+    year: "2026",
+  },
+  {
+    src: "/img/brand/thousanddays.webp",
+    slug: "thousanddays",
+    title: "THOUSANDS DAYS",
+    year: "2023",
+  },
+  {
+    src: "/img/brand/tordballe.webp",
+    slug: "tordballe",
+    title: "Tord Balle",
+    year: "2024",
   },
 ];
 
@@ -72,9 +164,25 @@ const useStyles = createStyles((theme) => ({
   slide: {
     position: "absolute",
     inset: 0,
+    overflow: "hidden",
+    transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`,
+  },
+
+  // Sized larger than its wrapper so the orbit/zoom below never uncovers an
+  // edge — the wrapper's overflow:hidden clips it back down to the panel.
+  slideImage: {
+    position: "absolute",
+    inset: "-4%",
     backgroundSize: "cover",
     backgroundPosition: "center",
-    transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`,
+  },
+
+  // Only the currently-settled slide gets this — a slow, subtle orbit-and-
+  // breathe loop, small enough to read as "alive" rather than as motion
+  // fighting the viewer's ability to actually look at the photo. Delayed
+  // by the slide transition so it only starts once the scroll has settled.
+  living: {
+    animation: `orbitFloat ${LIVING_DURATION_MS}ms ease-in-out ${TRANSITION_MS}ms infinite`,
   },
 
   caption: {
@@ -85,10 +193,18 @@ const useStyles = createStyles((theme) => ({
     padding: `${theme.spacing.xl} ${theme.spacing.lg} ${theme.spacing.md}`,
     background: "linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent)",
   },
+
+  "@keyframes orbitFloat": {
+    "0%": { transform: "scale(1.02) translate(0%, 0%)" },
+    "25%": { transform: "scale(1.035) translate(0.8%, -0.5%)" },
+    "50%": { transform: "scale(1.05) translate(0%, -0.9%)" },
+    "75%": { transform: "scale(1.035) translate(-0.8%, -0.5%)" },
+    "100%": { transform: "scale(1.02) translate(0%, 0%)" },
+  },
 }));
 
 const BrandPanel = () => {
-  const { classes } = useStyles();
+  const { classes, cx } = useStyles();
   const theme = useMantineTheme();
 
   const [order, setOrder] = useState(SLIDES);
@@ -119,16 +235,26 @@ const BrandPanel = () => {
     <Box className={classes.panel}>
       {order.map((slide, index) => {
         const delta = cyclicDelta(current, index, order.length);
+        const isActive = index === current;
         return (
           <Box
             key={slide.slug}
             className={classes.slide}
             style={{
-              backgroundImage: `url(${slide.src})`,
               transform: `translateX(${delta * 100}%)`,
               transition: prefersReducedMotion ? "none" : undefined,
             }}
-          />
+          >
+            <Box
+              // Remounts the animation fresh each time this slide becomes
+              // active again, instead of resuming mid-phase.
+              key={isActive ? `${slide.slug}-active` : slide.slug}
+              className={cx(classes.slideImage, {
+                [classes.living]: isActive && !prefersReducedMotion,
+              })}
+              style={{ backgroundImage: `url(${slide.src})` }}
+            />
+          </Box>
         );
       })}
 
