@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Checkbox,
-  Collapse,
   MantineProvider,
   MultiSelect,
   NumberInput,
@@ -20,7 +19,7 @@ import {
 import glassFormTheme from "./glassFormTheme";
 import { useForm, yupResolver } from "@mantine/form";
 import moment from "moment";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { TbAlertCircle, TbChevronDown, TbChevronUp } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
@@ -73,6 +72,43 @@ const TransferCard = ({
   const t = useTranslate();
   const theme = useMantineTheme();
 
+  // Shared between the max-views and expiration steppers below — both use
+  // the same custom rightSection buttons (native NumberInput controls step
+  // once per click only; the max-views one already needed to move off them
+  // for unrelated focus-sync reasons, and expiration now needs press-and-
+  // hold repeat, which native controls don't support either).
+  const stepperButtonSx = {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0 6px",
+    color:
+      theme.colorScheme === "dark"
+        ? "rgba(255, 255, 255, 0.7)"
+        : "rgba(0, 0, 0, 0.6)",
+    "&:hover": {
+      backgroundColor:
+        theme.colorScheme === "dark"
+          ? "rgba(255, 255, 255, 0.1)"
+          : "rgba(255, 255, 255, 0.35)",
+    },
+  } as const;
+
+  const stepperFieldStyles = (t2: any) => {
+    const dark = t2.colorScheme === "dark";
+    return {
+      wrapper: {
+        "&:focus-within input": {
+          backgroundColor: dark
+            ? "rgba(255, 255, 255, 0.13)"
+            : "rgba(255, 255, 255, 0.55)",
+          borderColor: t2.colors[t2.primaryColor][dark ? 4 : 6],
+        },
+      },
+    };
+  };
+
   const [mode, setMode] = useState<Mode>("link");
   const [emailSearch, setEmailSearch] = useState("");
   const [showNotSignedInAlert, setShowNotSignedInAlert] = useState(true);
@@ -91,13 +127,12 @@ const TransferCard = ({
       .transform((value) => value || undefined)
       .min(3, t("common.error.too-short", { length: 3 }))
       .max(30, t("common.error.too-long", { length: 30 })),
-    senderEmail:
-      mode === "email" && !isUserSignedIn
-        ? yup
-            .string()
-            .required(t("common.error.field-required"))
-            .email(t("common.error.invalid-email"))
-        : yup.string().transform((value) => value || undefined),
+    senderEmail: !isUserSignedIn
+      ? yup
+          .string()
+          .required(t("common.error.field-required"))
+          .email(t("common.error.invalid-email"))
+      : yup.string().transform((value) => value || undefined),
     password: yup
       .string()
       .transform((value) => value || undefined)
@@ -169,6 +204,43 @@ const TransferCard = ({
     }
   };
 
+  // Press-and-hold repeat for the expiration stepper buttons below. Tracked
+  // in a ref (not read from form.values inside the interval) because the
+  // interval closure is created once, at pointerdown, and would otherwise
+  // keep seeing the value as it was at that moment on every tick instead of
+  // the one it just wrote itself.
+  const expirationRef = useRef(defaultExpirationDays);
+  useEffect(() => {
+    if (typeof form.values.expiration_num === "number") {
+      expirationRef.current = form.values.expiration_num;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.values.expiration_num]);
+
+  const holdTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const holdIntervalRef = useRef<ReturnType<typeof setInterval>>();
+
+  const stepExpiration = (delta: number) => {
+    const next = Math.min(30, Math.max(1, expirationRef.current + delta));
+    expirationRef.current = next;
+    form.setFieldValue("expiration_num", next);
+  };
+
+  const stopExpirationHold = () => {
+    clearTimeout(holdTimeoutRef.current);
+    clearInterval(holdIntervalRef.current);
+  };
+
+  useEffect(() => stopExpirationHold, []);
+
+  const startExpirationHold = (delta: number) => {
+    if (form.values.never_expires) return;
+    stepExpiration(delta);
+    holdTimeoutRef.current = setTimeout(() => {
+      holdIntervalRef.current = setInterval(() => stepExpiration(delta), 80);
+    }, 400);
+  };
+
   const onFormSubmit = form.onSubmit(async (values) => {
     if (!(await shareService.isShareIdAvailable(values.link))) {
       form.setFieldError("link", t("upload.modal.link.error.taken"));
@@ -220,7 +292,7 @@ const TransferCard = ({
           restrictToRecipients: values.restrictToRecipients || undefined,
         },
       },
-      mode === "email" && !isUserSignedIn ? values.senderEmail : null,
+      !isUserSignedIn ? values.senderEmail : null,
     );
   });
 
@@ -326,29 +398,15 @@ const TransferCard = ({
           )}
 
           {!isUserSignedIn && (
-            // Collapse sets display:none on the wrapper once it finishes
-            // closing (never on opening, which settles on display:block).
-            // Inside a Stack's flex `gap` layout, a display:none item drops
-            // out of the gap calculation entirely — going from "0-height
-            // block flanked by two gaps" to "gone, one gap" shrinks the
-            // total space by one more gap-width, instantly, right after the
-            // smooth height animation already finished. That's the
-            // leftover snap, and only on close since only close ends in
-            // display:none. Forcing display:block (!important beats the
-            // inline style Collapse sets) keeps it a zero-height block
-            // forever instead, so there's nothing left to snap.
-            <Collapse
-              in={mode === "email"}
-              sx={{ "&[aria-hidden='true']": { display: "block !important" } }}
-            >
-              <TextInput
-                variant="filled"
-                label={t("upload.transfer.sender.label")}
-                placeholder={t("upload.transfer.sender.placeholder")}
-                tabIndex={mode === "email" ? undefined : -1}
-                {...form.getInputProps("senderEmail")}
-              />
-            </Collapse>
+            // Always asked regardless of Lien/E-mail mode — it's the
+            // anonymous sender's own identity for anti-spam verification,
+            // not tied to how the recipient gets the transfer.
+            <TextInput
+              variant="filled"
+              label={t("upload.transfer.sender.label")}
+              placeholder={t("upload.transfer.sender.placeholder")}
+              {...form.getInputProps("senderEmail")}
+            />
           )}
 
           {enableUserRecipients && enableEmailRecepients && (
@@ -359,7 +417,17 @@ const TransferCard = ({
             />
           )}
 
+          <Textarea
+            variant="filled"
+            label={t("upload.transfer.message.label")}
+            placeholder={t(
+              "upload.modal.accordion.name-and-description.description.placeholder",
+            )}
+            {...form.getInputProps("description")}
+          />
+
           <NumberInput
+            hideControls
             min={1}
             max={30}
             precision={0}
@@ -367,6 +435,49 @@ const TransferCard = ({
             label={t("upload.transfer.expires.label")}
             disabled={form.values.never_expires}
             {...form.getInputProps("expiration_num")}
+            styles={stepperFieldStyles}
+            rightSection={
+              <Stack spacing={0} sx={{ alignSelf: "stretch" }}>
+                <UnstyledButton
+                  disabled={form.values.never_expires}
+                  sx={{
+                    ...stepperButtonSx,
+                    ...(form.values.never_expires && {
+                      opacity: 0.4,
+                      cursor: "not-allowed",
+                    }),
+                  }}
+                  onPointerDown={(e: React.PointerEvent<HTMLButtonElement>) => {
+                    e.currentTarget.focus();
+                    startExpirationHold(1);
+                  }}
+                  onPointerUp={stopExpirationHold}
+                  onPointerLeave={stopExpirationHold}
+                  onPointerCancel={stopExpirationHold}
+                >
+                  <TbChevronUp size={12} />
+                </UnstyledButton>
+                <UnstyledButton
+                  disabled={form.values.never_expires}
+                  sx={{
+                    ...stepperButtonSx,
+                    ...(form.values.never_expires && {
+                      opacity: 0.4,
+                      cursor: "not-allowed",
+                    }),
+                  }}
+                  onPointerDown={(e: React.PointerEvent<HTMLButtonElement>) => {
+                    e.currentTarget.focus();
+                    startExpirationHold(-1);
+                  }}
+                  onPointerUp={stopExpirationHold}
+                  onPointerLeave={stopExpirationHold}
+                  onPointerCancel={stopExpirationHold}
+                >
+                  <TbChevronDown size={12} />
+                </UnstyledButton>
+              </Stack>
+            }
           />
           {maxExpiration.value == 0 && (
             <Checkbox
@@ -384,15 +495,6 @@ const TransferCard = ({
                 form,
               )}
           </Text>
-
-          <Textarea
-            variant="filled"
-            label={t("upload.transfer.message.label")}
-            placeholder={t(
-              "upload.modal.accordion.name-and-description.description.placeholder",
-            )}
-            {...form.getInputProps("description")}
-          />
 
           <Accordion>
             <Accordion.Item value="options" sx={{ borderBottom: "none" }}>
