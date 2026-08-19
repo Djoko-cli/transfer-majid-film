@@ -105,7 +105,7 @@ export const configVariables = {
     },
     maxSize: {
       type: "filesize",
-      defaultValue: "1000000000",
+      defaultValue: "15000000000",
       secret: false,
     },
     zipCompressionLevel: {

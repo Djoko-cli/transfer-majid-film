@@ -16,7 +16,6 @@ import "moment/min/locales";
 import { GetServerSidePropsContext } from "next";
 import type { AppProps } from "next/app";
 import Head from "next/head";
-import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { IntlProvider } from "react-intl";
 import Header, { HEADER_HEIGHT } from "../components/header/Header";
@@ -38,18 +37,15 @@ import AdminNoticeModal, {
   AdminNotice,
 } from "../components/admin/AdminNoticeModal";
 import adminNoticeService from "../services/adminNotice.service";
+import { NextPageWithLayout } from "../types/page.type";
 
-// These admin routes render their own AdminLayout (persistent sidebar +
-// header shared across the whole admin section) instead of the default
-// site Header/Container/Footer. "/admin/intro" is deliberately left out —
-// it's a one-off welcome screen, not part of the admin section's own nav.
-// "/admin" itself no longer has a page — it redirects to "/admin/users"
-// (see next.config.js), so it never reaches this check.
-const excludeDefaultLayoutRoutes = [
-  "/admin/users",
-  "/admin/shares",
-  "/admin/config/[category]",
-];
+// Pages that opt into their own persistent chrome (currently just the admin
+// section's AdminLayout) define `.getLayout` instead of being wrapped in
+// the default site Header/Container/Footer below — see NextPageWithLayout.
+// "/admin/intro" is deliberately left without one — it's a one-off welcome
+// screen, not part of the admin section's own nav.
+type AppPropsWithLayout = AppProps & { Component: NextPageWithLayout };
+
 const availableMantineColors = [
   "dark",
   "gray",
@@ -134,14 +130,12 @@ const createMantineScaleFromHex = (hex: string) =>
     string,
   ];
 
-function App({ Component, pageProps }: AppProps) {
+function App({ Component, pageProps }: AppPropsWithLayout) {
   const systemTheme = useColorScheme(pageProps.colorScheme);
-  const router = useRouter();
 
   const [colorScheme, setColorScheme] = useState<ColorScheme>(systemTheme);
 
   const [user, setUser] = useState<CurrentUser | null>(pageProps.user);
-  const [route, setRoute] = useState<string>(pageProps.route);
 
   const [configVariables, setConfigVariables] = useState<Config[]>(
     pageProps.configVariables,
@@ -215,10 +209,6 @@ function App({ Component, pageProps }: AppProps) {
       ...(adminTheme.colors ?? {}),
     },
   };
-
-  useEffect(() => {
-    setRoute(router.pathname);
-  }, [router.pathname]);
 
   useEffect(() => {
     const interval = setInterval(
@@ -348,8 +338,8 @@ function App({ Component, pageProps }: AppProps) {
                     notice={pendingNotices[0] || null}
                     onDismiss={handleDismissNotice}
                   />
-                  {excludeDefaultLayoutRoutes.includes(route) ? (
-                    <Component {...pageProps} />
+                  {Component.getLayout ? (
+                    Component.getLayout(<Component {...pageProps} />)
                   ) : (
                     <>
                       <Stack
@@ -382,12 +372,10 @@ App.getInitialProps = async ({ ctx }: { ctx: GetServerSidePropsContext }) => {
   let pageProps: {
     user?: CurrentUser;
     configVariables?: Config[];
-    route?: string;
     colorScheme: ColorScheme;
     language?: string;
     isConfigFallback?: boolean;
   } = {
-    route: ctx.resolvedUrl,
     // Light mode is retired from display for now — "dark" instead of the
     // original "light" fallback so a first-time visitor (no cookie yet)
     // gets dark from the very first server-rendered byte, not a flash of
@@ -416,8 +404,6 @@ App.getInitialProps = async ({ ctx }: { ctx: GetServerSidePropsContext }) => {
       pageProps.configVariables = getDefaultConfig();
       pageProps.isConfigFallback = true;
     }
-
-    pageProps.route = ctx.req.url;
 
     const requestLanguage = i18nUtil.getLanguageFromAcceptHeader(
       ctx.req.headers["accept-language"],

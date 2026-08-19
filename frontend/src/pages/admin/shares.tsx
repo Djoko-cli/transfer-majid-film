@@ -8,10 +8,11 @@ import ManageShareTable from "../../components/admin/shares/ManageShareTable";
 import DiskUsage from "../../components/admin/shares/DiskUsage";
 import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
+import { NextPageWithLayout } from "../../types/page.type";
 import { MyShare } from "../../types/share.type";
 import toast from "../../utils/toast.util";
 
-const Shares = () => {
+const Shares: NextPageWithLayout = () => {
   const [shares, setShares] = useState<MyShare[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -57,32 +58,32 @@ const Shares = () => {
   return (
     <>
       <Meta title={t("admin.shares.title")} />
-      <AdminLayout>
-        <Container size="lg">
-          <Group position="apart" align="center" mb={20}>
-            <Title mb={0} order={3}>
-              <FormattedMessage id="admin.shares.title" />
-            </Title>
-            <DiskUsage />
-          </Group>
+      <Container size="lg">
+        <Group position="apart" align="center" mb={20}>
+          <Title mb={0} order={3}>
+            <FormattedMessage id="admin.shares.title" />
+          </Title>
+          <DiskUsage />
+        </Group>
 
-          <ManageShareTable
-            shares={shares}
-            updateShare={(updatedShare) =>
-              setShares(
-                shares.map((share) =>
-                  share.id === updatedShare.id ? updatedShare : share,
-                ),
-              )
-            }
-            deleteShare={deleteShare}
-            isLoading={isLoading}
-          />
-          <Space h="xl" />
-        </Container>
-      </AdminLayout>
+        <ManageShareTable
+          shares={shares}
+          updateShare={(updatedShare) =>
+            setShares(
+              shares.map((share) =>
+                share.id === updatedShare.id ? updatedShare : share,
+              ),
+            )
+          }
+          deleteShare={deleteShare}
+          isLoading={isLoading}
+        />
+        <Space h="xl" />
+      </Container>
     </>
   );
 };
+
+Shares.getLayout = (page) => <AdminLayout>{page}</AdminLayout>;
 
 export default Shares;

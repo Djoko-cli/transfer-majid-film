@@ -10,10 +10,11 @@ import showCreateUserModal from "../../components/admin/users/showCreateUserModa
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import userService from "../../services/user.service";
+import { NextPageWithLayout } from "../../types/page.type";
 import User from "../../types/user.type";
 import toast from "../../utils/toast.util";
 
-const Users = () => {
+const Users: NextPageWithLayout = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -60,37 +61,33 @@ const Users = () => {
   return (
     <>
       <Meta title={t("admin.users.title")} />
-      <AdminLayout>
-        <Container size="lg">
-          <Group position="apart" align="baseline" mb={20}>
-            <Title mb={30} order={3}>
-              <FormattedMessage id="admin.users.title" />
-            </Title>
-            <Button
-              onClick={() =>
-                showCreateUserModal(
-                  modals,
-                  config.get("smtp.enabled"),
-                  getUsers,
-                )
-              }
-              leftIcon={<TbPlus size={20} />}
-            >
-              <FormattedMessage id="common.button.create" />
-            </Button>
-          </Group>
+      <Container size="lg">
+        <Group position="apart" align="baseline" mb={20}>
+          <Title mb={30} order={3}>
+            <FormattedMessage id="admin.users.title" />
+          </Title>
+          <Button
+            onClick={() =>
+              showCreateUserModal(modals, config.get("smtp.enabled"), getUsers)
+            }
+            leftIcon={<TbPlus size={20} />}
+          >
+            <FormattedMessage id="common.button.create" />
+          </Button>
+        </Group>
 
-          <ManageUserTable
-            users={users}
-            getUsers={getUsers}
-            deleteUser={deleteUser}
-            isLoading={isLoading}
-          />
-          <Space h="xl" />
-        </Container>
-      </AdminLayout>
+        <ManageUserTable
+          users={users}
+          getUsers={getUsers}
+          deleteUser={deleteUser}
+          isLoading={isLoading}
+        />
+        <Space h="xl" />
+      </Container>
     </>
   );
 };
+
+Users.getLayout = (page) => <AdminLayout>{page}</AdminLayout>;
 
 export default Users;

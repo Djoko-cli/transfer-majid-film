@@ -1,14 +1,29 @@
-import { AppShell, MantineProvider, useMantineTheme } from "@mantine/core";
+import { AppShell, Box, MantineProvider, useMantineTheme } from "@mantine/core";
+import { useRouter } from "next/router";
 import { ReactNode, useState } from "react";
 import glassFormTheme from "../upload/glassFormTheme";
 import AdminHeader from "./AdminHeader";
 import AdminNavBar from "./AdminNavBar";
 
-// Shared chrome for the whole /admin section (dashboard, users, shares,
-// config) so navigating between them keeps the same sidebar/header instead
-// of only the config page having one.
+// Registered once here (not per-page) via a raw <style> tag — Mantine's
+// createStyles doesn't reliably serialize a top-level "@keyframes name" key
+// into an actual CSS rule (see liquidGlassKeyframes.tsx for the same fix on
+// the transfer card's own animations).
+const ADMIN_CONTENT_FADE_CSS = `@keyframes adminContentFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}`;
+
+// Shared chrome for the whole /admin section (users, shares, config) —
+// mounted once by _app.tsx's getLayout wiring rather than by each page, so
+// navigating between them only swaps this content area, not the whole
+// sidebar/header. The content is keyed by pathname so it still fades in on
+// every such swap; the settings page's own category switches (same
+// pathname, different query) don't retrigger this outer fade and instead
+// use their own inner one, keyed by category.
 const AdminLayout = ({ children }: { children: ReactNode }) => {
   const theme = useMantineTheme();
+  const router = useRouter();
   const [isMobileNavBarOpened, setIsMobileNavBarOpened] = useState(false);
 
   return (
@@ -34,8 +49,16 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
         />
       }
     >
+      <style dangerouslySetInnerHTML={{ __html: ADMIN_CONTENT_FADE_CSS }} />
       <MantineProvider inherit theme={glassFormTheme}>
-        {children}
+        <Box
+          key={router.pathname}
+          sx={{
+            animation: "adminContentFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
+        >
+          {children}
+        </Box>
       </MantineProvider>
     </AppShell>
   );

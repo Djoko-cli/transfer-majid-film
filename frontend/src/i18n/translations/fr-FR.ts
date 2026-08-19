@@ -247,7 +247,7 @@ export default {
   // /admin
   "admin.title": "Administration",
   "admin.button.users": "Gestion des utilisateurs",
-  "admin.button.shares": "Gestion des partages",
+  "admin.button.shares": "Gestion des transferts",
   "admin.button.config": "Paramètres",
   "admin.version": "Version",
   // END /admin
@@ -303,7 +303,7 @@ export default {
   // END /admin/users
 
   // /admin/shares
-  "admin.shares.title": "Gestion des partages",
+  "admin.shares.title": "Gestion des transferts",
   "admin.shares.diskUsage": "Utilisation du disque",
   "admin.shares.table.id": "ID de partage",
   "admin.shares.table.username": "Créateur",

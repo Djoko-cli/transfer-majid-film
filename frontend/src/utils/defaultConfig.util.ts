@@ -70,8 +70,8 @@ export function getDefaultConfig(): Config[] {
     },
     {
       key: "share.maxSize",
-      value: "1000000000",
-      defaultValue: "1000000000",
+      value: "15000000000",
+      defaultValue: "15000000000",
       type: "filesize",
     },
     {

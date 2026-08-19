@@ -270,7 +270,7 @@ export default {
   // /admin
   "admin.title": "Administration",
   "admin.button.users": "User management",
-  "admin.button.shares": "Share management",
+  "admin.button.shares": "Transfer management",
   "admin.button.config": "Configuration",
   "admin.version": "Version",
   // END /admin
@@ -326,7 +326,7 @@ export default {
   // END /admin/users
 
   // /admin/shares
-  "admin.shares.title": "Share management",
+  "admin.shares.title": "Transfer management",
   "admin.shares.diskUsage": "Disk Usage",
   "admin.shares.table.id": "Share ID",
   "admin.shares.table.username": "Creator",
