@@ -84,7 +84,28 @@ const glassFormTheme: MantineThemeOverride = {
     TextInput: { styles: glassFieldStyles },
     NumberInput: { styles: glassFieldStyles },
     Select: { styles: glassFieldStyles },
-    MultiSelect: { styles: glassFieldStyles },
+    // Recipient chips ("value pills") are a separate sub-component with
+    // their own style keys (defaultValue/defaultValueRemove) — glassFieldStyles
+    // only covers input/label/control, so without this the chips kept
+    // Mantine's default solid near-black fill (this app's dark[7]), the
+    // one spot still opaque against the rest of the glass-ified card.
+    MultiSelect: {
+      styles: (theme: any) => {
+        const dark = theme.colorScheme === "dark";
+        return {
+          ...glassFieldStyles(theme),
+          defaultValue: {
+            backgroundColor: dark
+              ? "rgba(255, 255, 255, 0.14)"
+              : "rgba(255, 255, 255, 0.5)",
+            color: dark ? theme.white : theme.black,
+          },
+          defaultValueRemove: {
+            color: dark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)",
+          },
+        };
+      },
+    },
     PasswordInput: { styles: glassFieldStyles },
     Textarea: { styles: glassFieldStyles },
 
