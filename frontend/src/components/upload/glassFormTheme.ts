@@ -108,6 +108,32 @@ const glassFormTheme: MantineThemeOverride = {
     },
     PasswordInput: { styles: glassFieldStyles },
     Textarea: { styles: glassFieldStyles },
+    PinInput: { styles: glassFieldStyles },
+
+    // The dropped-files table (FileList): Mantine draws its row/header
+    // borders in this app's near-black dark[4], the same "stray black seam
+    // against a translucent field" issue as the NumberInput +/- controls
+    // above, just on table rows instead.
+    Table: {
+      styles: (theme: any) => {
+        const dark = theme.colorScheme === "dark";
+        const borderColor = dark
+          ? "rgba(255, 255, 255, 0.14)"
+          : "rgba(255, 255, 255, 0.5)";
+        return {
+          root: {
+            color: dark ? theme.white : theme.black,
+            "& > thead > tr > th": {
+              color: dark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)",
+              borderBottom: `1px solid ${borderColor}`,
+            },
+            "& > tbody > tr > td": {
+              borderTop: `1px solid ${borderColor}`,
+            },
+          },
+        };
+      },
+    },
 
     SegmentedControl: {
       styles: (theme: any) => {

@@ -98,12 +98,7 @@ const FileListRow = ({
             )}
             {restorable && (
               <HoverTip label={t("common.button.undo")}>
-                <ActionIcon
-                  color="victoria"
-                  variant="light"
-                  size={25}
-                  onClick={onRestore}
-                >
+                <ActionIcon variant="light" size={25} onClick={onRestore}>
                   <GrUndo />
                 </ActionIcon>
               </HoverTip>

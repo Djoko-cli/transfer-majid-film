@@ -2,6 +2,7 @@ import {
   Anchor,
   Button,
   Group,
+  MantineProvider,
   PinInput,
   Stack,
   Text,
@@ -16,6 +17,8 @@ import useTranslate, {
 } from "../../../hooks/useTranslate.hook";
 import verificationService from "../../../services/verification.service";
 import toast from "../../../utils/toast.util";
+import glassFormTheme from "../glassFormTheme";
+import { glassModalStyles } from "../glassModalTheme";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
@@ -30,14 +33,17 @@ const showEmailVerificationModal = (
     title: t("upload.verification.title"),
     closeOnClickOutside: false,
     closeOnEscape: false,
+    styles: glassModalStyles,
     children: (
-      <Body
-        knownEmail={knownEmail}
-        onVerified={(email) => {
-          modals.closeAll();
-          onVerified(email);
-        }}
-      />
+      <MantineProvider inherit theme={glassFormTheme}>
+        <Body
+          knownEmail={knownEmail}
+          onVerified={(email) => {
+            modals.closeAll();
+            onVerified(email);
+          }}
+        />
+      </MantineProvider>
     ),
   });
 };

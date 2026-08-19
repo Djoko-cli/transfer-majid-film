@@ -324,6 +324,7 @@ const Upload = ({
             config.get("general.appUrl"),
             config.get("general.appUrl", true),
             !user && verifiedEmail ? verifiedEmail : undefined,
+            !isReverseShare,
           );
           setFiles([]);
         })

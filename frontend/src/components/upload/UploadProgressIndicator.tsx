@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader, RingProgress, Text } from "@mantine/core";
+import { Loader, RingProgress, Text, useMantineTheme } from "@mantine/core";
 import { TbCircleCheck } from "react-icons/tb";
 import { HoverTip } from "../core/HoverTip";
 import { useIntl } from "react-intl";
@@ -7,6 +7,9 @@ import useConfig from "../../hooks/config.hook";
 const UploadProgressIndicator = ({ progress }: { progress: number }) => {
   const intl = useIntl();
   const config = useConfig();
+  // "victoria" was the pre-rebrand accent — this app's actual accent is
+  // whatever the admin theme resolves primaryColor to (orange by default).
+  const { primaryColor } = useMantineTheme();
   const progressStyle =
     config.get("appearance.uploadProgressStyle") ?? "circle";
   const startTimeRef = useRef<number | null>(null);
@@ -69,7 +72,7 @@ const UploadProgressIndicator = ({ progress }: { progress: number }) => {
       return (
         <HoverTip label={tooltipLabel}>
           <RingProgress
-            sections={[{ value: progress, color: "victoria" }]}
+            sections={[{ value: progress, color: primaryColor }]}
             thickness={3}
             size={25}
           />
@@ -88,11 +91,16 @@ const UploadProgressIndicator = ({ progress }: { progress: number }) => {
             }}
           >
             <RingProgress
-              sections={[{ value: progress, color: "victoria" }]}
+              sections={[{ value: progress, color: primaryColor }]}
               thickness={3}
               size={40}
               label={
-                <Text size="xs" color="victoria" weight={500} align="center">
+                <Text
+                  size="xs"
+                  color={primaryColor}
+                  weight={500}
+                  align="center"
+                >
                   {Math.min(Math.round(progress), 99)}%
                 </Text>
               }
