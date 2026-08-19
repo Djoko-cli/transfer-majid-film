@@ -1,20 +1,21 @@
 import {
   Box,
-  Button,
   createStyles,
   Group,
-  MediaQuery,
   Navbar,
   Stack,
   Text,
   ThemeIcon,
 } from "@mantine/core";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { Dispatch, SetStateAction } from "react";
 import {
   TbAt,
   TbBinaryTree,
   TbBucket,
+  TbLayoutDashboard,
+  TbLink,
   TbMail,
   TbPalette,
   TbScale,
@@ -22,6 +23,7 @@ import {
   TbSettings,
   TbShare,
   TbSocial,
+  TbUsers,
 } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 
@@ -36,6 +38,20 @@ export const categories = [
   { name: "S3", icon: <TbBucket /> },
   { name: "Legal", icon: <TbScale /> },
   { name: "Cache", icon: <TbServerBolt /> },
+];
+
+const topLevelItems = [
+  { href: "/admin", labelId: "admin.title", icon: <TbLayoutDashboard /> },
+  {
+    href: "/admin/users",
+    labelId: "admin.button.users",
+    icon: <TbUsers />,
+  },
+  {
+    href: "/admin/shares",
+    labelId: "admin.button.shares",
+    icon: <TbLink />,
+  },
 ];
 
 const useStyles = createStyles((theme) => {
@@ -71,16 +87,22 @@ const useStyles = createStyles((theme) => {
   };
 });
 
-const ConfigurationNavBar = ({
-  categoryId,
+const AdminNavBar = ({
   isMobileNavBarOpened,
   setIsMobileNavBarOpened,
 }: {
-  categoryId: string;
   isMobileNavBarOpened: boolean;
   setIsMobileNavBarOpened: Dispatch<SetStateAction<boolean>>;
 }) => {
   const { classes } = useStyles();
+  const router = useRouter();
+
+  const categorySlug =
+    router.pathname === "/admin/config/[category]" &&
+    typeof router.query.category === "string"
+      ? router.query.category.toLowerCase()
+      : null;
+
   return (
     <Navbar
       className={classes.navbar}
@@ -90,57 +112,64 @@ const ConfigurationNavBar = ({
       width={{ sm: 200, lg: 300 }}
     >
       <Navbar.Section>
+        <Stack spacing="xs">
+          {topLevelItems.map((item) => {
+            const active = router.pathname === item.href;
+            return (
+              <Box
+                p="xs"
+                component={Link}
+                onClick={() => setIsMobileNavBarOpened(false)}
+                className={active ? classes.activeLink : undefined}
+                key={item.href}
+                href={item.href}
+              >
+                <Group>
+                  <ThemeIcon variant={active ? "filled" : "light"}>
+                    {item.icon}
+                  </ThemeIcon>
+                  <Text size="sm">
+                    <FormattedMessage id={item.labelId} />
+                  </Text>
+                </Group>
+              </Box>
+            );
+          })}
+        </Stack>
+      </Navbar.Section>
+      <Navbar.Section mt="md">
         <Text size="xs" color="dimmed" mb="sm">
           <FormattedMessage id="admin.config.title" />
         </Text>
         <Stack spacing="xs">
-          {categories.map((category) => (
-            <Box
-              p="xs"
-              component={Link}
-              onClick={() => setIsMobileNavBarOpened(false)}
-              className={
-                categoryId == category.name.toLowerCase()
-                  ? classes.activeLink
-                  : undefined
-              }
-              key={category.name}
-              href={`/admin/config/${category.name.toLowerCase()}`}
-            >
-              <Group>
-                <ThemeIcon
-                  variant={
-                    categoryId == category.name.toLowerCase()
-                      ? "filled"
-                      : "light"
-                  }
-                >
-                  {category.icon}
-                </ThemeIcon>
-                <Text size="sm">
-                  <FormattedMessage
-                    id={`admin.config.category.${category.name.toLowerCase()}`}
-                  />
-                </Text>
-              </Group>
-            </Box>
-          ))}
+          {categories.map((category) => {
+            const active = categorySlug === category.name.toLowerCase();
+            return (
+              <Box
+                p="xs"
+                component={Link}
+                onClick={() => setIsMobileNavBarOpened(false)}
+                className={active ? classes.activeLink : undefined}
+                key={category.name}
+                href={`/admin/config/${category.name.toLowerCase()}`}
+              >
+                <Group>
+                  <ThemeIcon variant={active ? "filled" : "light"}>
+                    {category.icon}
+                  </ThemeIcon>
+                  <Text size="sm">
+                    <FormattedMessage
+                      id={`admin.config.category.${category.name.toLowerCase()}`}
+                    />
+                  </Text>
+                </Group>
+              </Box>
+            );
+          })}
         </Stack>
       </Navbar.Section>
-      <MediaQuery largerThan="sm" styles={{ display: "none" }}>
-        <Button
-          mt="xl"
-          pt="sm"
-          pb="sm"
-          variant="light"
-          component={Link}
-          href="/admin"
-        >
-          <FormattedMessage id="common.button.go-back" />
-        </Button>
-      </MediaQuery>
     </Navbar>
   );
 };
 
-export default ConfigurationNavBar;
+export default AdminNavBar;

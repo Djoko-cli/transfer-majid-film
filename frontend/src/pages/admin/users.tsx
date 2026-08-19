@@ -1,9 +1,10 @@
-import { Button, Group, Space, Text, Title } from "@mantine/core";
+import { Button, Container, Group, Space, Text, Title } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { useEffect, useState } from "react";
 import { TbPlus } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import Meta from "../../components/Meta";
+import AdminLayout from "../../components/admin/AdminLayout";
 import ManageUserTable from "../../components/admin/users/ManageUserTable";
 import showCreateUserModal from "../../components/admin/users/showCreateUserModal";
 import useConfig from "../../hooks/config.hook";
@@ -59,27 +60,35 @@ const Users = () => {
   return (
     <>
       <Meta title={t("admin.users.title")} />
-      <Group position="apart" align="baseline" mb={20}>
-        <Title mb={30} order={3}>
-          <FormattedMessage id="admin.users.title" />
-        </Title>
-        <Button
-          onClick={() =>
-            showCreateUserModal(modals, config.get("smtp.enabled"), getUsers)
-          }
-          leftIcon={<TbPlus size={20} />}
-        >
-          <FormattedMessage id="common.button.create" />
-        </Button>
-      </Group>
+      <AdminLayout>
+        <Container size="lg">
+          <Group position="apart" align="baseline" mb={20}>
+            <Title mb={30} order={3}>
+              <FormattedMessage id="admin.users.title" />
+            </Title>
+            <Button
+              onClick={() =>
+                showCreateUserModal(
+                  modals,
+                  config.get("smtp.enabled"),
+                  getUsers,
+                )
+              }
+              leftIcon={<TbPlus size={20} />}
+            >
+              <FormattedMessage id="common.button.create" />
+            </Button>
+          </Group>
 
-      <ManageUserTable
-        users={users}
-        getUsers={getUsers}
-        deleteUser={deleteUser}
-        isLoading={isLoading}
-      />
-      <Space h="xl" />
+          <ManageUserTable
+            users={users}
+            getUsers={getUsers}
+            deleteUser={deleteUser}
+            isLoading={isLoading}
+          />
+          <Space h="xl" />
+        </Container>
+      </AdminLayout>
     </>
   );
 };

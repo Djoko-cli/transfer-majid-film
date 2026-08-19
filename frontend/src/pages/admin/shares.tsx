@@ -1,8 +1,9 @@
-import { Group, Space, Text, Title } from "@mantine/core";
+import { Container, Group, Space, Text, Title } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { useEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import Meta from "../../components/Meta";
+import AdminLayout from "../../components/admin/AdminLayout";
 import ManageShareTable from "../../components/admin/shares/ManageShareTable";
 import DiskUsage from "../../components/admin/shares/DiskUsage";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -56,26 +57,30 @@ const Shares = () => {
   return (
     <>
       <Meta title={t("admin.shares.title")} />
-      <Group position="apart" align="center" mb={20}>
-        <Title mb={0} order={3}>
-          <FormattedMessage id="admin.shares.title" />
-        </Title>
-        <DiskUsage />
-      </Group>
+      <AdminLayout>
+        <Container size="lg">
+          <Group position="apart" align="center" mb={20}>
+            <Title mb={0} order={3}>
+              <FormattedMessage id="admin.shares.title" />
+            </Title>
+            <DiskUsage />
+          </Group>
 
-      <ManageShareTable
-        shares={shares}
-        updateShare={(updatedShare) =>
-          setShares(
-            shares.map((share) =>
-              share.id === updatedShare.id ? updatedShare : share,
-            ),
-          )
-        }
-        deleteShare={deleteShare}
-        isLoading={isLoading}
-      />
-      <Space h="xl" />
+          <ManageShareTable
+            shares={shares}
+            updateShare={(updatedShare) =>
+              setShares(
+                shares.map((share) =>
+                  share.id === updatedShare.id ? updatedShare : share,
+                ),
+              )
+            }
+            deleteShare={deleteShare}
+            isLoading={isLoading}
+          />
+          <Space h="xl" />
+        </Container>
+      </AdminLayout>
     </>
   );
 };

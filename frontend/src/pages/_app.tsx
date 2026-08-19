@@ -39,7 +39,16 @@ import AdminNoticeModal, {
 } from "../components/admin/AdminNoticeModal";
 import adminNoticeService from "../services/adminNotice.service";
 
-const excludeDefaultLayoutRoutes = ["/admin/config/[category]"];
+// These admin routes render their own AdminLayout (persistent sidebar +
+// header shared across the whole admin section) instead of the default
+// site Header/Container/Footer. "/admin/intro" is deliberately left out —
+// it's a one-off welcome screen, not part of the admin section's own nav.
+const excludeDefaultLayoutRoutes = [
+  "/admin",
+  "/admin/users",
+  "/admin/shares",
+  "/admin/config/[category]",
+];
 const availableMantineColors = [
   "dark",
   "gray",

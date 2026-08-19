@@ -1,6 +1,5 @@
 import {
   Burger,
-  Button,
   Group,
   Header,
   MediaQuery,
@@ -9,11 +8,11 @@ import {
 } from "@mantine/core";
 import Link from "next/link";
 import { Dispatch, SetStateAction } from "react";
-import { FormattedMessage } from "react-intl";
-import useConfig from "../../../hooks/config.hook";
-import Logo from "../../Logo";
+import useConfig from "../../hooks/config.hook";
+import ActionAvatar from "../header/ActionAvatar";
+import Logo from "../Logo";
 
-const ConfigurationHeader = ({
+const AdminHeader = ({
   isMobileNavBarOpened,
   setIsMobileNavBarOpened,
 }: {
@@ -47,17 +46,14 @@ const ConfigurationHeader = ({
               <Text weight={600}>{config.get("general.appName")}</Text>
             </Group>
           </Link>
-          <MediaQuery smallerThan="sm" styles={{ display: "none" }}>
-            <Button variant="light" component={Link} href="/admin">
-              <FormattedMessage id="common.button.go-back" />
-            </Button>
-          </MediaQuery>
+          <ActionAvatar />
         </Group>
         <MediaQuery largerThan="sm" styles={{ display: "none" }}>
           <Burger
             opened={isMobileNavBarOpened}
             onClick={() => setIsMobileNavBarOpened((o) => !o)}
             size="sm"
+            ml="sm"
           />
         </MediaQuery>
       </div>
@@ -65,4 +61,4 @@ const ConfigurationHeader = ({
   );
 };
 
-export default ConfigurationHeader;
+export default AdminHeader;
