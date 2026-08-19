@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Collapse,
   MantineProvider,
   MultiSelect,
   NumberInput,
@@ -35,6 +36,34 @@ import Dropzone from "./Dropzone";
 import FileList from "./FileList";
 
 type Mode = "email" | "link";
+
+// Press-and-hold repeat for a stepper button pair: one immediate step on
+// press, then repeating every 80ms after an initial 400ms delay, until
+// released. `step` should read/write its own ref rather than form.values —
+// the interval closure is created once, at pointerdown, so a value read
+// from form.values inside it would stay frozen at whatever it was at that
+// moment instead of reflecting the steps the interval itself just made.
+const useHoldRepeat = (step: (delta: number) => void, disabled: boolean) => {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+
+  const stop = () => {
+    clearTimeout(timeoutRef.current);
+    clearInterval(intervalRef.current);
+  };
+
+  useEffect(() => stop, []);
+
+  const start = (delta: number) => {
+    if (disabled) return;
+    step(delta);
+    timeoutRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(() => step(delta), 80);
+    }, 400);
+  };
+
+  return { start, stop };
+};
 
 const TransferCard = ({
   files,
@@ -204,11 +233,8 @@ const TransferCard = ({
     }
   };
 
-  // Press-and-hold repeat for the expiration stepper buttons below. Tracked
-  // in a ref (not read from form.values inside the interval) because the
-  // interval closure is created once, at pointerdown, and would otherwise
-  // keep seeing the value as it was at that moment on every tick instead of
-  // the one it just wrote itself.
+  // Tracked in refs rather than read from form.values inside the hold
+  // interval — see useHoldRepeat above for why.
   const expirationRef = useRef(defaultExpirationDays);
   useEffect(() => {
     if (typeof form.values.expiration_num === "number") {
@@ -217,29 +243,37 @@ const TransferCard = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.values.expiration_num]);
 
-  const holdTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-  const holdIntervalRef = useRef<ReturnType<typeof setInterval>>();
-
   const stepExpiration = (delta: number) => {
     const next = Math.min(30, Math.max(1, expirationRef.current + delta));
     expirationRef.current = next;
     form.setFieldValue("expiration_num", next);
   };
 
-  const stopExpirationHold = () => {
-    clearTimeout(holdTimeoutRef.current);
-    clearInterval(holdIntervalRef.current);
+  const expirationHold = useHoldRepeat(
+    stepExpiration,
+    form.values.never_expires,
+  );
+
+  const maxViewsRef = useRef<number | "">(form.values.maxViews);
+  useEffect(() => {
+    maxViewsRef.current = form.values.maxViews;
+  }, [form.values.maxViews]);
+
+  const stepMaxViews = (delta: number) => {
+    const current = maxViewsRef.current;
+    const next: number | "" =
+      delta > 0
+        ? typeof current === "number"
+          ? current + 1
+          : 1
+        : typeof current === "number" && current > 1
+          ? current - 1
+          : "";
+    maxViewsRef.current = next;
+    form.setFieldValue("maxViews", next);
   };
 
-  useEffect(() => stopExpirationHold, []);
-
-  const startExpirationHold = (delta: number) => {
-    if (form.values.never_expires) return;
-    stepExpiration(delta);
-    holdTimeoutRef.current = setTimeout(() => {
-      holdIntervalRef.current = setInterval(() => stepExpiration(delta), 80);
-    }, 400);
-  };
+  const maxViewsHold = useHoldRepeat(stepMaxViews, false);
 
   const onFormSubmit = form.onSubmit(async (values) => {
     if (!(await shareService.isShareIdAvailable(values.link))) {
@@ -343,58 +377,71 @@ const TransferCard = ({
             {...form.getInputProps("name")}
           />
 
-          {enableEmailRecepients && (isUserSignedIn || mode === "email") && (
-            <MultiSelect
-              label={t("upload.transfer.recipient.email.label")}
-              data={form.values.recipients}
-              placeholder={t("upload.transfer.recipient.email.placeholder")}
-              searchable
-              creatable
-              variant="filled"
-              id="recipient-emails"
-              inputMode="email"
-              searchValue={emailSearch}
-              onSearchChange={setEmailSearch}
-              getCreateLabel={(query) => `+ ${query}`}
-              onCreate={(query) => {
-                if (!query.match(/^\S+@\S+\.\S+$/)) {
-                  form.setFieldError(
-                    "recipients",
-                    t("upload.modal.accordion.email.invalid-email"),
-                  );
-                  return undefined;
-                }
-                form.setFieldError("recipients", null);
-                const newRecipients = form.values.recipients.includes(query)
-                  ? form.values.recipients
-                  : [...form.values.recipients, query];
-                form.setFieldValue("recipients", newRecipients);
-                return query;
-              }}
-              {...form.getInputProps("recipients")}
-              onChange={(value: string[]) => {
-                form.setFieldValue("recipients", value);
-              }}
-              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                if (e.key === "Enter" || e.key === "," || e.key === ";") {
-                  e.preventDefault();
-                  const inputValue = emailSearch.trim();
-                  if (
-                    inputValue.match(/^\S+@\S+\.\S+$/) &&
-                    !form.values.recipients.includes(inputValue)
-                  ) {
-                    form.setFieldValue("recipients", [
-                      ...form.values.recipients,
-                      inputValue,
-                    ]);
+          {enableEmailRecepients && (
+            // Same display:block-instead-of-none trick as the old
+            // sender-email field used to need: a Collapse settles closed at
+            // display:none, which drops the item out of the Stack's flex
+            // gap calculation and snaps the layout by one gap-width right
+            // after the height animation finishes. Only anonymous users
+            // ever toggle this (signed-in users have no mode switch, so
+            // `in` is always true for them and this never animates).
+            <Collapse
+              in={isUserSignedIn || mode === "email"}
+              sx={{ "&[aria-hidden='true']": { display: "block !important" } }}
+            >
+              <MultiSelect
+                label={t("upload.transfer.recipient.email.label")}
+                data={form.values.recipients}
+                placeholder={t("upload.transfer.recipient.email.placeholder")}
+                searchable
+                creatable
+                variant="filled"
+                id="recipient-emails"
+                inputMode="email"
+                tabIndex={isUserSignedIn || mode === "email" ? undefined : -1}
+                searchValue={emailSearch}
+                onSearchChange={setEmailSearch}
+                getCreateLabel={(query) => `+ ${query}`}
+                onCreate={(query) => {
+                  if (!query.match(/^\S+@\S+\.\S+$/)) {
+                    form.setFieldError(
+                      "recipients",
+                      t("upload.modal.accordion.email.invalid-email"),
+                    );
+                    return undefined;
                   }
-                  setEmailSearch("");
-                } else if (e.key === " ") {
-                  e.preventDefault();
-                  setEmailSearch("");
-                }
-              }}
-            />
+                  form.setFieldError("recipients", null);
+                  const newRecipients = form.values.recipients.includes(query)
+                    ? form.values.recipients
+                    : [...form.values.recipients, query];
+                  form.setFieldValue("recipients", newRecipients);
+                  return query;
+                }}
+                {...form.getInputProps("recipients")}
+                onChange={(value: string[]) => {
+                  form.setFieldValue("recipients", value);
+                }}
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === "Enter" || e.key === "," || e.key === ";") {
+                    e.preventDefault();
+                    const inputValue = emailSearch.trim();
+                    if (
+                      inputValue.match(/^\S+@\S+\.\S+$/) &&
+                      !form.values.recipients.includes(inputValue)
+                    ) {
+                      form.setFieldValue("recipients", [
+                        ...form.values.recipients,
+                        inputValue,
+                      ]);
+                    }
+                    setEmailSearch("");
+                  } else if (e.key === " ") {
+                    e.preventDefault();
+                    setEmailSearch("");
+                  }
+                }}
+              />
+            </Collapse>
           )}
 
           {!isUserSignedIn && (
@@ -449,11 +496,11 @@ const TransferCard = ({
                   }}
                   onPointerDown={(e: React.PointerEvent<HTMLButtonElement>) => {
                     e.currentTarget.focus();
-                    startExpirationHold(1);
+                    expirationHold.start(1);
                   }}
-                  onPointerUp={stopExpirationHold}
-                  onPointerLeave={stopExpirationHold}
-                  onPointerCancel={stopExpirationHold}
+                  onPointerUp={expirationHold.stop}
+                  onPointerLeave={expirationHold.stop}
+                  onPointerCancel={expirationHold.stop}
                 >
                   <TbChevronUp size={12} />
                 </UnstyledButton>
@@ -468,11 +515,11 @@ const TransferCard = ({
                   }}
                   onPointerDown={(e: React.PointerEvent<HTMLButtonElement>) => {
                     e.currentTarget.focus();
-                    startExpirationHold(-1);
+                    expirationHold.start(-1);
                   }}
-                  onPointerUp={stopExpirationHold}
-                  onPointerLeave={stopExpirationHold}
-                  onPointerCancel={stopExpirationHold}
+                  onPointerUp={expirationHold.stop}
+                  onPointerLeave={expirationHold.stop}
+                  onPointerCancel={expirationHold.stop}
                 >
                   <TbChevronDown size={12} />
                 </UnstyledButton>
@@ -544,7 +591,8 @@ const TransferCard = ({
                     // flash this replaces. Custom buttons compute the next
                     // value directly from current form state instead, so
                     // there's never an ambiguous intermediate value and
-                    // never a need to steal focus to correct one.
+                    // never a need to steal focus to correct one. They also
+                    // support press-and-hold, which native controls don't.
                     //
                     // The active-look border is still wanted while using
                     // the buttons, though — done with a plain :focus-within
@@ -552,84 +600,38 @@ const TransferCard = ({
                     // from glassFieldStyles) rather than by focusing the
                     // input itself, which would resurrect the exact sync
                     // problem above. The buttons explicitly focus
-                    // *themselves* on click below, since Safari doesn't
+                    // *themselves* on press below, since Safari doesn't
                     // focus buttons on click by default the way other
                     // browsers do, and :focus-within needs a real focus
                     // target inside the wrapper to trigger from.
-                    styles={(t2) => {
-                      const dark = t2.colorScheme === "dark";
-                      return {
-                        wrapper: {
-                          "&:focus-within input": {
-                            backgroundColor: dark
-                              ? "rgba(255, 255, 255, 0.13)"
-                              : "rgba(255, 255, 255, 0.55)",
-                            borderColor:
-                              t2.colors[t2.primaryColor][dark ? 4 : 6],
-                          },
-                        },
-                      };
-                    }}
+                    styles={stepperFieldStyles}
                     rightSection={
                       <Stack spacing={0} sx={{ alignSelf: "stretch" }}>
                         <UnstyledButton
-                          sx={{
-                            flex: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: "0 6px",
-                            color:
-                              theme.colorScheme === "dark"
-                                ? "rgba(255, 255, 255, 0.7)"
-                                : "rgba(0, 0, 0, 0.6)",
-                            "&:hover": {
-                              backgroundColor:
-                                theme.colorScheme === "dark"
-                                  ? "rgba(255, 255, 255, 0.1)"
-                                  : "rgba(255, 255, 255, 0.35)",
-                            },
-                          }}
-                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                          sx={stepperButtonSx}
+                          onPointerDown={(
+                            e: React.PointerEvent<HTMLButtonElement>,
+                          ) => {
                             e.currentTarget.focus();
-                            form.setFieldValue(
-                              "maxViews",
-                              typeof form.values.maxViews === "number"
-                                ? form.values.maxViews + 1
-                                : 1,
-                            );
+                            maxViewsHold.start(1);
                           }}
+                          onPointerUp={maxViewsHold.stop}
+                          onPointerLeave={maxViewsHold.stop}
+                          onPointerCancel={maxViewsHold.stop}
                         >
                           <TbChevronUp size={12} />
                         </UnstyledButton>
                         <UnstyledButton
-                          sx={{
-                            flex: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: "0 6px",
-                            color:
-                              theme.colorScheme === "dark"
-                                ? "rgba(255, 255, 255, 0.7)"
-                                : "rgba(0, 0, 0, 0.6)",
-                            "&:hover": {
-                              backgroundColor:
-                                theme.colorScheme === "dark"
-                                  ? "rgba(255, 255, 255, 0.1)"
-                                  : "rgba(255, 255, 255, 0.35)",
-                            },
-                          }}
-                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                          sx={stepperButtonSx}
+                          onPointerDown={(
+                            e: React.PointerEvent<HTMLButtonElement>,
+                          ) => {
                             e.currentTarget.focus();
-                            form.setFieldValue(
-                              "maxViews",
-                              typeof form.values.maxViews === "number" &&
-                                form.values.maxViews > 1
-                                ? form.values.maxViews - 1
-                                : "",
-                            );
+                            maxViewsHold.start(-1);
                           }}
+                          onPointerUp={maxViewsHold.stop}
+                          onPointerLeave={maxViewsHold.stop}
+                          onPointerCancel={maxViewsHold.stop}
                         >
                           <TbChevronDown size={12} />
                         </UnstyledButton>
