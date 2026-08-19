@@ -43,8 +43,9 @@ import adminNoticeService from "../services/adminNotice.service";
 // header shared across the whole admin section) instead of the default
 // site Header/Container/Footer. "/admin/intro" is deliberately left out —
 // it's a one-off welcome screen, not part of the admin section's own nav.
+// "/admin" itself no longer has a page — it redirects to "/admin/users"
+// (see next.config.js), so it never reaches this check.
 const excludeDefaultLayoutRoutes = [
-  "/admin",
   "/admin/users",
   "/admin/shares",
   "/admin/config/[category]",

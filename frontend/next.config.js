@@ -22,4 +22,16 @@ module.exports = withPWA({
   env: {
     VERSION: version,
   },
+  async redirects() {
+    return [
+      // The admin dashboard page was removed — its 3 cards just duplicated
+      // the admin sidebar's own nav. "Administration" is now a section
+      // label in that sidebar instead (see AdminNavBar).
+      {
+        source: "/admin",
+        destination: "/admin/users",
+        permanent: false,
+      },
+    ];
+  },
 });

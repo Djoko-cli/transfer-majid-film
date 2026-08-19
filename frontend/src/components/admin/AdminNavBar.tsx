@@ -14,7 +14,6 @@ import {
   TbAt,
   TbBinaryTree,
   TbBucket,
-  TbLayoutDashboard,
   TbLink,
   TbMail,
   TbPalette,
@@ -40,8 +39,7 @@ export const categories = [
   { name: "Cache", icon: <TbServerBolt /> },
 ];
 
-const topLevelItems = [
-  { href: "/admin", labelId: "admin.title", icon: <TbLayoutDashboard /> },
+const adminItems = [
   {
     href: "/admin/users",
     labelId: "admin.button.users",
@@ -112,8 +110,11 @@ const AdminNavBar = ({
       width={{ sm: 200, lg: 300 }}
     >
       <Navbar.Section>
+        <Text size="xs" color="dimmed" mb="sm">
+          <FormattedMessage id="admin.title" />
+        </Text>
         <Stack spacing="xs">
-          {topLevelItems.map((item) => {
+          {adminItems.map((item) => {
             const active = router.pathname === item.href;
             return (
               <Box
