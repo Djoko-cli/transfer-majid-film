@@ -155,6 +155,17 @@ const useStyles = createStyles((theme) => ({
     animation: `gentleZoom ${LIVING_DURATION_MS}ms linear ${TRANSITION_MS}ms forwards`,
   },
 
+  // On tall content the transfer card (z-index 2, see SplitTransferLayout)
+  // can reach far enough down to visually and functionally sit over this
+  // bottom-left corner of the image, swallowing clicks meant for the credit
+  // link underneath it. Because this box has its own z-index, it's a
+  // stacking context — a descendant's z-index (however high) is scoped
+  // *inside* it and can never outrank a sibling subtree like the card, only
+  // raising this box's own z-index above the card's actually escapes that.
+  // pointer-events: none here then lets clicks fall through everywhere in
+  // this now-higher box (to the card, if it's there, or the image) except
+  // where the link re-enables itself below, so the rest of the caption
+  // never blocks the card's own controls just because it now paints above.
   caption: {
     position: "absolute",
     left: 0,
@@ -162,7 +173,12 @@ const useStyles = createStyles((theme) => ({
     bottom: 0,
     padding: `${theme.spacing.xl} ${theme.spacing.lg} ${theme.spacing.md}`,
     background: "linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent)",
-    zIndex: 1,
+    zIndex: 3,
+    pointerEvents: "none",
+  },
+
+  captionLink: {
+    pointerEvents: "auto",
   },
 }));
 
@@ -252,6 +268,7 @@ const BrandPanel = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     fw={600}
+                    className={classes.captionLink}
                     sx={{
                       color:
                         theme.colors[theme.primaryColor][

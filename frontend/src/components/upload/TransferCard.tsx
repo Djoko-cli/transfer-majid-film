@@ -141,6 +141,20 @@ const TransferCard = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // getExpirationPreview() below calls moment() (i.e. "now") directly at
+  // render time — evaluated once during SSR and again during client
+  // hydration, a few seconds apart, occasionally landing on different
+  // minutes and triggering a genuine hydration mismatch (not just a
+  // console warning: React discards the SSR output and re-renders the
+  // whole tree client-side). Gating the real text behind a mount flag
+  // makes the pre-hydration markup identical on both sides — nothing is
+  // shown until the first client-only render, same fix already applied to
+  // the "link" field's random id above.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleRestrictToggle = (checked: boolean) => {
     form.setFieldValue("restrictToRecipients", checked);
     if (checked) {
@@ -329,13 +343,14 @@ const TransferCard = ({
             />
           )}
           <Text italic size="xs" color="dimmed">
-            {getExpirationPreview(
-              {
-                neverExpires: t("upload.modal.completed.never-expires"),
-                expiresOn: t("upload.modal.completed.expires-on"),
-              },
-              form,
-            )}
+            {mounted &&
+              getExpirationPreview(
+                {
+                  neverExpires: t("upload.modal.completed.never-expires"),
+                  expiresOn: t("upload.modal.completed.expires-on"),
+                },
+                form,
+              )}
           </Text>
 
           <Textarea
