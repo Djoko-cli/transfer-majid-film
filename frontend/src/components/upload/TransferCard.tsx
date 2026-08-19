@@ -86,6 +86,11 @@ const TransferCard = ({
       .matches(new RegExp("^[a-zA-Z0-9_-]*$"), {
         message: t("upload.modal.link.error.invalid"),
       }),
+    name: yup
+      .string()
+      .transform((value) => value || undefined)
+      .min(3, t("common.error.too-short", { length: 3 }))
+      .max(30, t("common.error.too-long", { length: 30 })),
     senderEmail:
       mode === "email" && !isUserSignedIn
         ? yup
@@ -119,6 +124,7 @@ const TransferCard = ({
       // random id during render would differ between the server and client
       // pass and trigger a hydration mismatch.
       link: "",
+      name: "",
       recipients: [] as string[],
       senderEmail: "",
       password: undefined,
@@ -202,6 +208,7 @@ const TransferCard = ({
     onSubmit(
       {
         id: values.link,
+        name: values.name || undefined,
         expiration: expirationString,
         recipients: values.recipients,
         description: values.description,
@@ -257,11 +264,18 @@ const TransferCard = ({
             <FileList<FileUpload> files={files} setFiles={setFiles} />
           )}
 
-          {enableEmailRecepients && (
+          <TextInput
+            variant="filled"
+            label={t("upload.transfer.recipient.name.label")}
+            placeholder={t("upload.transfer.recipient.name.placeholder")}
+            {...form.getInputProps("name")}
+          />
+
+          {enableEmailRecepients && (isUserSignedIn || mode === "email") && (
             <MultiSelect
-              label={t("upload.transfer.recipient.label")}
+              label={t("upload.transfer.recipient.email.label")}
               data={form.values.recipients}
-              placeholder={t("upload.transfer.recipient.placeholder")}
+              placeholder={t("upload.transfer.recipient.email.placeholder")}
               searchable
               creatable
               variant="filled"

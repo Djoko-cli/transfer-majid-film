@@ -370,8 +370,10 @@ export default {
   // TransferCard.tsx
   "upload.transfer.mode.email": "Email",
   "upload.transfer.mode.link": "Link",
-  "upload.transfer.recipient.label": "To",
-  "upload.transfer.recipient.placeholder": "Recipient's email",
+  "upload.transfer.recipient.name.label": "Recipient",
+  "upload.transfer.recipient.name.placeholder": "Recipient's name",
+  "upload.transfer.recipient.email.label": "Recipient's email",
+  "upload.transfer.recipient.email.placeholder": "name@example.com",
   "upload.transfer.sender.label": "Your email",
   "upload.transfer.sender.placeholder": "you@example.com",
   "upload.transfer.submit": "Transfer",
