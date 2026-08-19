@@ -146,13 +146,13 @@ export const configVariables = {
   verification: {
     codeSubject: {
       type: "string",
-      defaultValue: "Your verification code",
+      defaultValue: "Votre code de vérification",
       secret: false,
     },
     codeMessage: {
       type: "text",
       defaultValue:
-        "Hey!\n\nHere is your verification code: {code}\n\nIt expires in 10 minutes. Enter it to continue your upload.",
+        "Bonjour !\n\nVoici votre code de vérification : {code}\n\nIl expire dans 10 minutes. Saisissez-le pour continuer votre transfert.",
       secret: false,
     },
   },
@@ -187,39 +187,39 @@ export const configVariables = {
     },
     shareRecipientsSubject: {
       type: "string",
-      defaultValue: "Files shared with you",
+      defaultValue: "Des fichiers ont été partagés avec vous",
     },
     shareRecipientsMessage: {
       type: "text",
       defaultValue:
-        "Hey!\n\n{creator} ({creatorEmail}) shared some files with you. You can view or download the files with this link: {shareUrl}\n\nThe share will expire {expires}.\n\nNote: {desc}",
+        "Bonjour !\n\n{creator} ({creatorEmail}) a partagé des fichiers avec vous. Vous pouvez les consulter ou les télécharger via ce lien : {shareUrl}\n\nCe partage expirera {expires}.\n\nNote : {desc}",
     },
     reverseShareSubject: {
       type: "string",
-      defaultValue: "Reverse share link used",
+      defaultValue: "Votre lien de dépôt a été utilisé",
     },
     reverseShareMessage: {
       type: "text",
       defaultValue:
-        "Hey!\n\nA share was just created with your reverse share link: {shareUrl}",
+        "Bonjour !\n\nUn partage vient d'être créé avec votre lien de dépôt : {shareUrl}",
     },
     resetPasswordSubject: {
       type: "string",
-      defaultValue: "Password reset",
+      defaultValue: "Réinitialisation du mot de passe",
     },
     resetPasswordMessage: {
       type: "text",
       defaultValue:
-        "Hey!\n\nYou requested a password reset. Click this link to reset your password: {url}\nThe link expires in an hour.",
+        "Bonjour !\n\nVous avez demandé une réinitialisation de mot de passe. Cliquez sur ce lien pour réinitialiser votre mot de passe : {url}\nCe lien expire dans une heure.",
     },
     inviteSubject: {
       type: "string",
-      defaultValue: "You've been invited",
+      defaultValue: "Vous avez été invité(e)",
     },
     inviteMessage: {
       type: "text",
       defaultValue:
-        'Hey!\n\nYou were invited. Click this link to accept the invite: {url}\n\nYou can use the email "{email}" and the password "{password}" to sign in.',
+        "Bonjour !\n\nVous avez été invité(e). Cliquez sur ce lien pour accepter l'invitation : {url}\n\nVous pouvez utiliser l'adresse e-mail « {email} » et le mot de passe « {password} » pour vous connecter.",
     },
     enableShareDownloadNotifications: {
       type: "boolean",
@@ -233,12 +233,12 @@ export const configVariables = {
     },
     shareDownloadNotificationSubject: {
       type: "string",
-      defaultValue: "Your file was downloaded",
+      defaultValue: "Votre fichier a été téléchargé",
     },
     shareDownloadNotificationMessage: {
       type: "text",
       defaultValue:
-        "Hey!\n\n{recipientEmail} downloaded {fileName} from your share: {shareUrl}",
+        "Bonjour !\n\n{recipientEmail} a téléchargé {fileName} depuis votre partage : {shareUrl}",
     },
     enableEmailVerification: {
       type: "boolean",
@@ -247,12 +247,12 @@ export const configVariables = {
     },
     verificationSubject: {
       type: "string",
-      defaultValue: "Verify your account",
+      defaultValue: "Vérifiez votre compte",
     },
     verificationMessage: {
       type: "text",
       defaultValue:
-        "Hey!\n\nYou just signed up. Click this link to verify your account: {url}\n\nThe link expires in 24 hours.",
+        "Bonjour !\n\nVous venez de vous inscrire. Cliquez sur ce lien pour vérifier votre compte : {url}\n\nCe lien expire dans 24 heures.",
     },
   },
   smtp: {

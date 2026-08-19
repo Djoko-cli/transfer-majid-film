@@ -671,6 +671,10 @@ export default {
     "Allow unauthenticated shares",
   "admin.config.share.allow-unauthenticated-shares.description":
     "Whether unauthenticated users can create shares",
+  "admin.config.share.require-email-verification-for-anonymous-shares":
+    "Email verification for anonymous shares",
+  "admin.config.share.require-email-verification-for-anonymous-shares.description":
+    "Requires entering a code sent by email before a signed-out visitor can send a share. Requires SMTP to be enabled.",
   "admin.config.share.default-expiration": "Default expiration",
   "admin.config.share.default-expiration.description":
     "The default expiration time selected when creating a new share.",

@@ -644,6 +644,10 @@ export default {
     "Autoriser les partages anonymes",
   "admin.config.share.allow-unauthenticated-shares.description":
     "Permet aux visiteurs de créer des partages",
+  "admin.config.share.require-email-verification-for-anonymous-shares":
+    "Vérification par e-mail pour les partages anonymes",
+  "admin.config.share.require-email-verification-for-anonymous-shares.description":
+    "Exige la saisie d'un code envoyé par e-mail avant qu'un visiteur non connecté puisse envoyer un partage. Nécessite que le protocole SMTP soit activé.",
   "admin.config.share.default-expiration": "Expiration par défaut",
   "admin.config.share.default-expiration.description":
     "Durée d'expiration par défaut sélectionnée lors de la création d'une nouvelle action.",

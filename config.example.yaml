@@ -59,16 +59,16 @@ share:
   fileRetentionPeriod: 0 days
 verification:
   #Subject of the email that contains the one-time verification code.
-  codeSubject: Your verification code
+  codeSubject: Votre code de vérification
   #Message which gets sent with the verification code. {code} will be replaced with the actual code.
   codeMessage: >-
-    Hey!
+    Bonjour !
 
 
-    Here is your verification code: {code}
+    Voici votre code de vérification : {code}
 
 
-    It expires in 10 minutes. Enter it to continue your upload.
+    Il expire dans 10 minutes. Saisissez-le pour continuer votre transfert.
 cache:
   #Normally Pingvin Share caches information in memory. If you run multiple instances of Pingvin Share, you need to enable Redis caching to share the cache between the instances.
   redis-enabled: "false"
@@ -84,7 +84,7 @@ email:
   #Whether to allow email sharing with recipients. This can only be enabled if SMTP is activated.
   enableShareEmailRecipients: "false"
   #Subject of the email which gets sent to the share recipients.
-  shareRecipientsSubject: Files shared with you
+  shareRecipientsSubject: Des fichiers ont été partagés avec vous
   #Message which gets sent to the share recipients. Available variables:
   # {creator} - The username of the creator of the share
   # {creatorEmail} - The email of the creator of the share
@@ -93,75 +93,76 @@ email:
   # {expires} - The expiration date of the share
   # These variables will be replaced with the actual value.
   shareRecipientsMessage: >-
-    Hey!
+    Bonjour !
 
 
-    {creator} ({creatorEmail}) shared some files with you. You can view or
-    download the files with this link: {shareUrl}
+    {creator} ({creatorEmail}) a partagé des fichiers avec vous. Vous pouvez
+    les consulter ou les télécharger via ce lien : {shareUrl}
 
 
-    The share will expire {expires}.
+    Ce partage expirera {expires}.
 
 
-    Note: {desc}
+    Note : {desc}
   #Subject of the sent email when someone created a share with your reverse share link.
-  reverseShareSubject: Reverse share link used
+  reverseShareSubject: Votre lien de dépôt a été utilisé
   #Message which gets sent when someone created a share with your reverse share link. {shareUrl} will be replaced with the creator's name and the share URL.
   reverseShareMessage: |-
-    Hey!
+    Bonjour !
 
-    A share was just created with your reverse share link: {shareUrl}
+    Un partage vient d'être créé avec votre lien de dépôt : {shareUrl}
   #Subject of the sent email when a user requests a password reset.
-  resetPasswordSubject: Password reset
+  resetPasswordSubject: Réinitialisation du mot de passe
   #Message which gets sent when a user requests a password reset. {url} will be replaced with the reset password URL.
   resetPasswordMessage: >-
-    Hey!
+    Bonjour !
 
 
-    You requested a password reset. Click this link to reset your password:
-    {url}
+    Vous avez demandé une réinitialisation de mot de passe. Cliquez sur ce
+    lien pour réinitialiser votre mot de passe : {url}
 
-    The link expires in an hour.
+    Ce lien expire dans une heure.
   #Subject of the sent email when an admin invites a user.
-  inviteSubject: You've been invited
+  inviteSubject: Vous avez été invité(e)
   #Message which gets sent when an admin invites a user. {url} will be replaced with the invite URL, {email} with the email and {password} with the users password.
   inviteMessage: >-
-    Hey!
+    Bonjour !
 
 
-    You were invited. Click this link to accept the invite:
+    Vous avez été invité(e). Cliquez sur ce lien pour accepter l'invitation :
     {url}
 
 
-    You can use the email "{email}" and the password "{password}" to sign in.
+    Vous pouvez utiliser l'adresse e-mail « {email} » et le mot de passe
+    « {password} » pour vous connecter.
   #Whether to send an email to the share creator when an email recipient downloads a file. This requires SMTP and email recipient sharing.
   enableShareDownloadNotifications: "false"
   #Whether to set the Reply-To header to the email address of the user who created the share.
   shareRecipientsReplyToCreator: "false"
   #Subject of the email which gets sent to the share creator when a recipient downloads a file.
-  shareDownloadNotificationSubject: Your file was downloaded
+  shareDownloadNotificationSubject: Votre fichier a été téléchargé
   #Message which gets sent to the share creator when a recipient downloads a file. Available variables:
   # {recipientEmail} - The email of the recipient
   # {fileName} - The downloaded file name
   # {shareUrl} - The URL of the share
   shareDownloadNotificationMessage: |-
-    Hey!
+    Bonjour !
 
-    {recipientEmail} downloaded {fileName} from your share: {shareUrl}
+    {recipientEmail} a téléchargé {fileName} depuis votre partage : {shareUrl}
   #Whether to require users to verify their email address before being able to sign in. This can only be enabled if SMTP is activated.
   enableEmailVerification: "false"
   #Subject of the email which gets sent to the user when they sign up.
-  verificationSubject: Verify your account
+  verificationSubject: Vérifiez votre compte
   #Message which gets sent to the user when they sign up. {url} will be replaced with the verification URL.
   verificationMessage: >-
-    Hey!
+    Bonjour !
 
 
-    You just signed up. Click this link to verify your
-    account: {url}
+    Vous venez de vous inscrire. Cliquez sur ce lien pour vérifier votre
+    compte : {url}
 
 
-    The link expires in 24 hours.
+    Ce lien expire dans 24 heures.
 smtp:
   #Whether SMTP is enabled. Only set this to true if you entered the host, port, email, user and password of your SMTP server.
   enabled: "false"
