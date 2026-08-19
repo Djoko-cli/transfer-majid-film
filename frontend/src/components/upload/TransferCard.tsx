@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Collapse,
   MantineProvider,
   MultiSelect,
   NumberInput,
@@ -310,13 +311,15 @@ const TransferCard = ({
             />
           )}
 
-          {mode === "email" && !isUserSignedIn && (
-            <TextInput
-              variant="filled"
-              label={t("upload.transfer.sender.label")}
-              placeholder={t("upload.transfer.sender.placeholder")}
-              {...form.getInputProps("senderEmail")}
-            />
+          {!isUserSignedIn && (
+            <Collapse in={mode === "email"}>
+              <TextInput
+                variant="filled"
+                label={t("upload.transfer.sender.label")}
+                placeholder={t("upload.transfer.sender.placeholder")}
+                {...form.getInputProps("senderEmail")}
+              />
+            </Collapse>
           )}
 
           {enableUserRecipients && enableEmailRecepients && (
