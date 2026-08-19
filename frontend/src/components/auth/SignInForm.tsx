@@ -1,11 +1,10 @@
 import {
   Anchor,
+  Box,
   Button,
-  Container,
   createStyles,
   Group,
   Loader,
-  Paper,
   PasswordInput,
   Stack,
   Text,
@@ -20,6 +19,7 @@ import { useEffect, useState } from "react";
 import { TbInfoCircle } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
+import AuthGlassLayout from "./AuthGlassLayout";
 import useConfig from "../../hooks/config.hook";
 import useUser from "../../hooks/user.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -151,7 +151,7 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
     );
 
   return (
-    <Container size={420} my={40}>
+    <AuthGlassLayout>
       <Title order={2} align="center" weight={900}>
         <FormattedMessage id="signin.title" />
       </Title>
@@ -163,7 +163,7 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
           </Anchor>
         </Text>
       )}
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+      <Box mt={30}>
         {config.get("oauth.disablePassword") || (
           <form
             onSubmit={form.onSubmit((values) => {
@@ -227,8 +227,8 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
             </Group>
           </Stack>
         )}
-      </Paper>
-    </Container>
+      </Box>
+    </AuthGlassLayout>
   );
 };
 

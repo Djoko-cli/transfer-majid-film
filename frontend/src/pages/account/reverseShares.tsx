@@ -2,10 +2,10 @@ import {
   Accordion,
   ActionIcon,
   Anchor,
-  Box,
   Button,
   Center,
   Group,
+  Paper,
   Stack,
   Table,
   Text,
@@ -22,6 +22,7 @@ import showReverseShareLinkModal from "../../components/account/showReverseShare
 import showShareLinkModal from "../../components/account/showShareLinkModal";
 import { HoverTip } from "../../components/core/HoverTip";
 import CenterLoader from "../../components/core/CenterLoader";
+import GlassPageBackdrop from "../../components/core/GlassPageBackdrop";
 import showCreateReverseShareModal from "../../components/share/modals/showCreateReverseShareModal";
 import useConfig from "../../hooks/config.hook";
 import useUser from "../../hooks/user.hook";
@@ -61,6 +62,7 @@ const MyShares = () => {
   return (
     <>
       <Meta title={t("account.reverseShares.title")} />
+      <GlassPageBackdrop />
       <Group position="apart" align="baseline" mb={20}>
         <Group align="center" spacing={3} mb={30}>
           <Title order={3}>
@@ -106,7 +108,7 @@ const MyShares = () => {
           </Stack>
         </Center>
       ) : (
-        <Box sx={{ display: "block", overflowX: "auto" }}>
+        <Paper withBorder p="md" sx={{ overflowX: "auto" }}>
           <Table>
             <thead>
               <tr>
@@ -163,7 +165,6 @@ const MyShares = () => {
                                 </Anchor>
                                 <HoverTip label={t("common.button.copy-link")}>
                                   <ActionIcon
-                                    color="victoria"
                                     variant="light"
                                     size={25}
                                     onClick={() => {
@@ -207,7 +208,6 @@ const MyShares = () => {
                     <Group position="right">
                       <HoverTip label={t("common.button.copy-link")}>
                         <ActionIcon
-                          color="victoria"
                           variant="light"
                           size={25}
                           onClick={() => {
@@ -275,7 +275,7 @@ const MyShares = () => {
               ))}
             </tbody>
           </Table>
-        </Box>
+        </Paper>
       )}
     </>
   );

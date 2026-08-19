@@ -1,8 +1,7 @@
 import {
   Anchor,
+  Box,
   Button,
-  Container,
-  Paper,
   PasswordInput,
   Text,
   TextInput,
@@ -13,6 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
+import AuthGlassLayout from "./AuthGlassLayout";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import useUser from "../../hooks/user.hook";
@@ -68,7 +68,7 @@ const SignUpForm = () => {
   };
 
   return (
-    <Container size={420} my={40}>
+    <AuthGlassLayout>
       <Title order={2} align="center" weight={900}>
         <FormattedMessage id="signup.title" />
       </Title>
@@ -80,7 +80,7 @@ const SignUpForm = () => {
           </Anchor>
         </Text>
       )}
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+      <Box mt={30}>
         <form
           onSubmit={form.onSubmit((values) =>
             signUp(values.email, values.username, values.password),
@@ -107,8 +107,8 @@ const SignUpForm = () => {
             <FormattedMessage id="signup.button.submit" />
           </Button>
         </form>
-      </Paper>
-    </Container>
+      </Box>
+    </AuthGlassLayout>
   );
 };
 

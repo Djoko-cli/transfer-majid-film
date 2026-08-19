@@ -1,9 +1,8 @@
 import {
+  Box,
   Button,
-  Container,
   createStyles,
   Group,
-  Paper,
   PasswordInput,
   Text,
   Title,
@@ -12,6 +11,7 @@ import { useForm, yupResolver } from "@mantine/form";
 import { useRouter } from "next/router";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
+import AuthGlassLayout from "../../../components/auth/AuthGlassLayout";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import authService from "../../../services/auth.service";
 import toast from "../../../utils/toast.util";
@@ -46,7 +46,7 @@ const ResetPassword = () => {
   const resetPasswordToken = router.query.resetPasswordToken as string;
 
   return (
-    <Container size={460} my={30}>
+    <AuthGlassLayout width={460}>
       <Title order={2} weight={900} align="center">
         <FormattedMessage id="resetPassword.text.resetPassword" />
       </Title>
@@ -54,7 +54,7 @@ const ResetPassword = () => {
         <FormattedMessage id="resetPassword.text.enterNewPassword" />
       </Text>
 
-      <Paper withBorder shadow="md" p={30} radius="md" mt="xl">
+      <Box mt="xl">
         <form
           onSubmit={form.onSubmit((values) => {
             authService
@@ -78,8 +78,8 @@ const ResetPassword = () => {
             </Button>
           </Group>
         </form>
-      </Paper>
-    </Container>
+      </Box>
+    </AuthGlassLayout>
   );
 };
 

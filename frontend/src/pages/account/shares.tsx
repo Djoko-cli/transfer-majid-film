@@ -1,8 +1,8 @@
 import {
   ActionIcon,
-  Box,
   Button,
   Center,
+  Paper,
   useMantineTheme,
   Group,
   Space,
@@ -31,6 +31,7 @@ import showShareInformationsModal from "../../components/share/showShareInformat
 import showShareLinkModal from "../../components/account/showShareLinkModal";
 import { HoverTip } from "../../components/core/HoverTip";
 import CenterLoader from "../../components/core/CenterLoader";
+import GlassPageBackdrop from "../../components/core/GlassPageBackdrop";
 import useConfig from "../../hooks/config.hook";
 import useUser from "../../hooks/user.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -57,6 +58,7 @@ const MyShares = () => {
   return (
     <>
       <Meta title={t("account.shares.title")} />
+      <GlassPageBackdrop />
       <Title mb={30} order={3}>
         <FormattedMessage id="account.shares.title" />
       </Title>
@@ -76,7 +78,12 @@ const MyShares = () => {
           </Stack>
         </Center>
       ) : (
-        <Box sx={{ display: "block", overflowX: "auto" }}>
+        // Dense data table: kept fully opaque/legible rather than glass, per
+        // the same "chrome glass, tables plain" split used for the admin
+        // panel — a wrapping Paper (not glass-themed) is enough since it
+        // now sits over the page's own photo backdrop instead of a plain
+        // background.
+        <Paper withBorder p="md" sx={{ overflowX: "auto" }}>
           <Table>
             <thead>
               <tr>
@@ -206,7 +213,6 @@ const MyShares = () => {
                         </HoverTip>
                         <HoverTip label={t("common.button.copy-link")}>
                           <ActionIcon
-                            color="victoria"
                             variant="light"
                             size={25}
                             onClick={() => {
@@ -271,7 +277,7 @@ const MyShares = () => {
               })}
             </tbody>
           </Table>
-        </Box>
+        </Paper>
       )}
     </>
   );

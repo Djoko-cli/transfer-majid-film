@@ -5,12 +5,15 @@ import {
   Button,
   Group,
   Anchor,
+  MantineProvider,
   Stack,
   Badge,
 } from "@mantine/core";
 import { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { TbAlertTriangle, TbExternalLink } from "react-icons/tb";
+import glassFormTheme from "../upload/glassFormTheme";
+import { glassModalStyles } from "../upload/glassModalTheme";
 
 export interface AdminNotice {
   id: string;
@@ -58,59 +61,62 @@ export default function AdminNoticeModal({ notice, onDismiss }: Props) {
       }
       centered
       size="lg"
+      styles={glassModalStyles}
     >
-      <Stack spacing="md">
-        <div>
-          <Text weight={700} size="lg" mb={4}>
-            {notice.title}
-          </Text>
-          <Text size="sm" color="dimmed">
-            {notice.message}
-          </Text>
-        </div>
+      <MantineProvider inherit theme={glassFormTheme}>
+        <Stack spacing="md">
+          <div>
+            <Text weight={700} size="lg" mb={4}>
+              {notice.title}
+            </Text>
+            <Text size="sm" color="dimmed">
+              {notice.message}
+            </Text>
+          </div>
 
-        {notice.actionLink && (
-          <Anchor
-            href={notice.actionLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            size="sm"
-          >
-            <Group spacing={4}>
-              <FormattedMessage id="admin.notice.modal.docsLink" />
-              <TbExternalLink size={14} />
-            </Group>
-          </Anchor>
-        )}
+          {notice.actionLink && (
+            <Anchor
+              href={notice.actionLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              size="sm"
+            >
+              <Group spacing={4}>
+                <FormattedMessage id="admin.notice.modal.docsLink" />
+                <TbExternalLink size={14} />
+              </Group>
+            </Anchor>
+          )}
 
-        <Checkbox
-          checked={confirmed}
-          onChange={(e) => setConfirmed(e.currentTarget.checked)}
-          label={intl.formatMessage({
-            id: "admin.notice.modal.defaultCheckboxLabel",
-          })}
-          color="red"
-        />
-
-        <Text size="xs" color="dimmed" fs="italic">
-          <FormattedMessage id="admin.notice.modal.globalNoticeFooter" />
-        </Text>
-
-        <Group position="right" mt="xs">
-          <Button
+          <Checkbox
+            checked={confirmed}
+            onChange={(e) => setConfirmed(e.currentTarget.checked)}
+            label={intl.formatMessage({
+              id: "admin.notice.modal.defaultCheckboxLabel",
+            })}
             color="red"
-            disabled={!confirmed}
-            loading={submitting}
-            onClick={handleConfirm}
-          >
-            {submitting ? (
-              <FormattedMessage id="admin.notice.modal.button.acknowledging" />
-            ) : (
-              <FormattedMessage id="admin.notice.modal.button.acknowledge" />
-            )}
-          </Button>
-        </Group>
-      </Stack>
+          />
+
+          <Text size="xs" color="dimmed" fs="italic">
+            <FormattedMessage id="admin.notice.modal.globalNoticeFooter" />
+          </Text>
+
+          <Group position="right" mt="xs">
+            <Button
+              color="red"
+              disabled={!confirmed}
+              loading={submitting}
+              onClick={handleConfirm}
+            >
+              {submitting ? (
+                <FormattedMessage id="admin.notice.modal.button.acknowledging" />
+              ) : (
+                <FormattedMessage id="admin.notice.modal.button.acknowledge" />
+              )}
+            </Button>
+          </Group>
+        </Stack>
+      </MantineProvider>
     </Modal>
   );
 }

@@ -1,16 +1,10 @@
-import {
-  Button,
-  Container,
-  Group,
-  Paper,
-  PinInput,
-  Title,
-} from "@mantine/core";
+import { Button, Group, PinInput, Title } from "@mantine/core";
 import { useForm, yupResolver } from "@mantine/form";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
+import AuthGlassLayout from "./AuthGlassLayout";
 import useTranslate from "../../hooks/useTranslate.hook";
 import useUser from "../../hooks/user.hook";
 import authService from "../../services/auth.service";
@@ -57,28 +51,26 @@ function TotpForm({ redirectPath }: { redirectPath: string }) {
   };
 
   return (
-    <Container size={420} my={40}>
+    <AuthGlassLayout>
       <Title order={2} align="center" weight={900}>
         <FormattedMessage id="totp.title" />
       </Title>
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-        <form onSubmit={form.onSubmit(onSubmit)}>
-          <Group position="center">
-            <PinInput
-              length={6}
-              oneTimeCode
-              aria-label="One time code"
-              autoFocus={true}
-              onComplete={onSubmit}
-              {...form.getInputProps("code")}
-            />
-            <Button mt="md" type="submit" loading={loading}>
-              {t("totp.button.signIn")}
-            </Button>
-          </Group>
-        </form>
-      </Paper>
-    </Container>
+      <form onSubmit={form.onSubmit(onSubmit)} style={{ marginTop: 30 }}>
+        <Group position="center">
+          <PinInput
+            length={6}
+            oneTimeCode
+            aria-label="One time code"
+            autoFocus={true}
+            onComplete={onSubmit}
+            {...form.getInputProps("code")}
+          />
+          <Button mt="md" type="submit" loading={loading}>
+            {t("totp.button.signIn")}
+          </Button>
+        </Group>
+      </form>
+    </AuthGlassLayout>
   );
 }
 

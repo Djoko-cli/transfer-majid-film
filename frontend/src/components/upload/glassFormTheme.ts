@@ -84,6 +84,9 @@ const glassFormTheme: MantineThemeOverride = {
     TextInput: { styles: glassFieldStyles },
     NumberInput: { styles: glassFieldStyles },
     Select: { styles: glassFieldStyles },
+    NativeSelect: { styles: glassFieldStyles },
+    ColorInput: { styles: glassFieldStyles },
+    FileInput: { styles: glassFieldStyles },
     // Recipient chips ("value pills") are a separate sub-component with
     // their own style keys (defaultValue/defaultValueRemove) — glassFieldStyles
     // only covers input/label/control, so without this the chips kept
@@ -109,6 +112,26 @@ const glassFormTheme: MantineThemeOverride = {
     PasswordInput: { styles: glassFieldStyles },
     Textarea: { styles: glassFieldStyles },
     PinInput: { styles: glassFieldStyles },
+
+    // Generic translucent surface for chrome outside the transfer card
+    // itself — account-settings sections and admin panel cards. Not used
+    // by the transfer card (it builds its own glass box directly in
+    // SplitTransferLayout rather than via Paper).
+    Paper: {
+      styles: (theme: any) => {
+        const dark = theme.colorScheme === "dark";
+        return {
+          root: {
+            background: dark
+              ? "linear-gradient(160deg, rgba(255, 255, 255, 0.12) 0%, rgba(18, 18, 18, 0.55) 60%, rgba(255, 255, 255, 0.05) 100%)"
+              : "linear-gradient(160deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.3) 60%, rgba(255, 255, 255, 0.4) 100%)",
+            backdropFilter: "blur(18px) saturate(160%)",
+            WebkitBackdropFilter: "blur(18px) saturate(160%)",
+            border: `1px solid ${dark ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.5)"}`,
+          },
+        };
+      },
+    },
 
     // The dropped-files table (FileList): Mantine draws its row/header
     // borders in this app's near-black dark[4], the same "stray black seam
@@ -196,6 +219,28 @@ const glassFormTheme: MantineThemeOverride = {
           },
           label: {
             color: dark ? "rgba(255, 255, 255, 0.85)" : "rgba(0, 0, 0, 0.75)",
+          },
+        };
+      },
+    },
+
+    Switch: {
+      styles: (theme: any) => {
+        const dark = theme.colorScheme === "dark";
+        return {
+          track: {
+            backgroundColor: dark
+              ? "rgba(255, 255, 255, 0.12)"
+              : "rgba(255, 255, 255, 0.45)",
+            borderColor: dark
+              ? "rgba(255, 255, 255, 0.22)"
+              : "rgba(255, 255, 255, 0.6)",
+          },
+          label: {
+            color: dark ? "rgba(255, 255, 255, 0.85)" : "rgba(0, 0, 0, 0.75)",
+          },
+          description: {
+            color: dark ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.5)",
           },
         };
       },

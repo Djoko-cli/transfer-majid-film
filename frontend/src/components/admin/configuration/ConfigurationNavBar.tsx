@@ -38,27 +38,38 @@ export const categories = [
   { name: "Cache", icon: <TbServerBolt /> },
 ];
 
-const useStyles = createStyles((theme) => ({
-  navbar: {
-    [theme.fn.smallerThan("sm")]: {
-      height: "calc(100dvh - 60px)",
-      maxHeight: "calc(100dvh - 60px)",
-      overflowY: "auto",
+const useStyles = createStyles((theme) => {
+  const dark = theme.colorScheme === "dark";
+
+  return {
+    navbar: {
+      background: dark
+        ? "linear-gradient(160deg, rgba(255, 255, 255, 0.08) 0%, rgba(18, 18, 18, 0.5) 60%, rgba(255, 255, 255, 0.03) 100%)"
+        : "linear-gradient(160deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.28) 60%, rgba(255, 255, 255, 0.35) 100%)",
+      backdropFilter: "blur(18px) saturate(160%)",
+      WebkitBackdropFilter: "blur(18px) saturate(160%)",
+      borderRight: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
+
+      [theme.fn.smallerThan("sm")]: {
+        height: "calc(100dvh - 60px)",
+        maxHeight: "calc(100dvh - 60px)",
+        overflowY: "auto",
+      },
     },
-  },
 
-  activeLink: {
-    backgroundColor: theme.fn.variant({
-      variant: "light",
-      color: theme.primaryColor,
-    }).background,
-    color: theme.fn.variant({ variant: "light", color: theme.primaryColor })
-      .color,
+    activeLink: {
+      backgroundColor: theme.fn.variant({
+        variant: "light",
+        color: theme.primaryColor,
+      }).background,
+      color: theme.fn.variant({ variant: "light", color: theme.primaryColor })
+        .color,
 
-    borderRadius: theme.radius.sm,
-    fontWeight: 600,
-  },
-}));
+      borderRadius: theme.radius.sm,
+      fontWeight: 600,
+    },
+  };
+});
 
 const ConfigurationNavBar = ({
   categoryId,

@@ -1,13 +1,4 @@
-import {
-  Container,
-  Title,
-  Text,
-  Button,
-  Paper,
-  Stack,
-  Loader,
-  Center,
-} from "@mantine/core";
+import { Title, Text, Button, Stack, Loader } from "@mantine/core";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
@@ -15,6 +6,7 @@ import authService from "../../../services/auth.service";
 import toast from "../../../utils/toast.util";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import Meta from "../../../components/Meta";
+import AuthGlassLayout from "../../../components/auth/AuthGlassLayout";
 
 export default function VerifyAccount() {
   const router = useRouter();
@@ -39,48 +31,46 @@ export default function VerifyAccount() {
   return (
     <>
       <Meta title={t("verify.title")} />
-      <Container size={420} my={40}>
+      <AuthGlassLayout>
         <Title order={2} align="center" weight={900}>
           <FormattedMessage id="verify.title" />
         </Title>
-        <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-          <Stack align="center">
-            {status === "loading" && <Loader />}
-            {status === "success" && (
-              <>
-                <Text align="center">
-                  <FormattedMessage id="verify.success" />
-                </Text>
-                <Button
-                  fullWidth
-                  mt="xl"
-                  onClick={() => router.replace("/auth/signIn")}
-                >
-                  <FormattedMessage id="verify.button.signin" />
-                </Button>
-              </>
-            )}
-            {status === "error" && (
-              <>
-                <Text align="center" color="red">
-                  <FormattedMessage id="verify.error" />
-                </Text>
-                <Button
-                  fullWidth
-                  mt="xl"
-                  variant="light"
-                  onClick={() => router.replace("/auth/signIn")}
-                >
-                  <FormattedMessage
-                    id="verify.button.signin"
-                    defaultMessage="Go to Sign In"
-                  />
-                </Button>
-              </>
-            )}
-          </Stack>
-        </Paper>
-      </Container>
+        <Stack align="center" mt={30}>
+          {status === "loading" && <Loader />}
+          {status === "success" && (
+            <>
+              <Text align="center">
+                <FormattedMessage id="verify.success" />
+              </Text>
+              <Button
+                fullWidth
+                mt="xl"
+                onClick={() => router.replace("/auth/signIn")}
+              >
+                <FormattedMessage id="verify.button.signin" />
+              </Button>
+            </>
+          )}
+          {status === "error" && (
+            <>
+              <Text align="center" color="red">
+                <FormattedMessage id="verify.error" />
+              </Text>
+              <Button
+                fullWidth
+                mt="xl"
+                variant="light"
+                onClick={() => router.replace("/auth/signIn")}
+              >
+                <FormattedMessage
+                  id="verify.button.signin"
+                  defaultMessage="Go to Sign In"
+                />
+              </Button>
+            </>
+          )}
+        </Stack>
+      </AuthGlassLayout>
     </>
   );
 }

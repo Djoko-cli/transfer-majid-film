@@ -2,6 +2,7 @@ import {
   Accordion,
   Button,
   Group,
+  MantineProvider,
   PasswordInput,
   Stack,
   Switch,
@@ -18,6 +19,8 @@ import userService from "../../../services/user.service";
 import User from "../../../types/user.type";
 import toast from "../../../utils/toast.util";
 import FileSizeInput from "../../core/FileSizeInput";
+import glassFormTheme from "../../upload/glassFormTheme";
+import { glassModalStyles } from "../../upload/glassModalTheme";
 
 const showUpdateUserModal = (
   modals: ModalsContextProps,
@@ -27,6 +30,7 @@ const showUpdateUserModal = (
   const t = translateOutsideContext();
   return modals.openModal({
     title: t("admin.users.edit.update.title", { username: user.username }),
+    styles: glassModalStyles,
     children: <Body user={user} modals={modals} getUsers={getUsers} />,
   });
 };
@@ -92,157 +96,161 @@ const Body = ({
   });
 
   return (
-    <Stack>
-      <form
-        id="accountForm"
-        onSubmit={accountForm.onSubmit(async (values) => {
-          userService
-            .update(user.id, {
-              username: values.username,
-              email: values.email,
-              isAdmin: values.isAdmin,
-              isActivated: values.isActivated,
-              canCreatePermanentShares: values.canCreatePermanentShares,
-              shareSizeLimit: values.hasCustomShareSizeLimit
-                ? values.shareSizeLimit.toString()
-                : null,
-              storageQuotaLimit: values.hasCustomStorageQuotaLimit
-                ? values.storageQuotaLimit.toString()
-                : null,
-            })
-            .then(() => {
-              getUsers();
-              modals.closeAll();
-            })
-            .catch(toast.axiosError);
-        })}
-      >
-        <Stack>
-          <TextInput
-            label={t("admin.users.table.username")}
-            {...accountForm.getInputProps("username")}
-          />
-          <TextInput
-            label={t("admin.users.table.email")}
-            {...accountForm.getInputProps("email")}
-          />
-          <Switch
-            mt="xs"
-            labelPosition="left"
-            label={t("admin.users.edit.update.admin-privileges")}
-            {...accountForm.getInputProps("isAdmin", { type: "checkbox" })}
-          />
-          <Switch
-            mt="xs"
-            labelPosition="left"
-            label={t("admin.users.edit.update.email-verified")}
-            {...accountForm.getInputProps("isActivated", { type: "checkbox" })}
-            disabled={user.isActivated}
-          />
-          <Switch
-            mt="xs"
-            labelPosition="left"
-            label={t("admin.users.edit.update.permanent-shares")}
-            description={t(
-              "admin.users.edit.update.permanent-shares.description",
-            )}
-            {...accountForm.getInputProps("canCreatePermanentShares", {
-              type: "checkbox",
-            })}
-          />
-          <Switch
-            styles={{
-              body: {
-                display: "flex",
-                justifyContent: "space-between",
-              },
-            }}
-            mt="xs"
-            labelPosition="left"
-            label={t("admin.users.edit.update.custom-share-size-limit")}
-            description={t(
-              "admin.users.edit.update.custom-share-size-limit.description",
-            )}
-            {...accountForm.getInputProps("hasCustomShareSizeLimit", {
-              type: "checkbox",
-            })}
-          />
-          {accountForm.values.hasCustomShareSizeLimit && (
-            <FileSizeInput
-              label={t("admin.users.edit.update.custom-share-size-limit")}
-              value={accountForm.values.shareSizeLimit}
-              onChange={(val) =>
-                accountForm.setFieldValue("shareSizeLimit", val)
-              }
+    <MantineProvider inherit theme={glassFormTheme}>
+      <Stack>
+        <form
+          id="accountForm"
+          onSubmit={accountForm.onSubmit(async (values) => {
+            userService
+              .update(user.id, {
+                username: values.username,
+                email: values.email,
+                isAdmin: values.isAdmin,
+                isActivated: values.isActivated,
+                canCreatePermanentShares: values.canCreatePermanentShares,
+                shareSizeLimit: values.hasCustomShareSizeLimit
+                  ? values.shareSizeLimit.toString()
+                  : null,
+                storageQuotaLimit: values.hasCustomStorageQuotaLimit
+                  ? values.storageQuotaLimit.toString()
+                  : null,
+              })
+              .then(() => {
+                getUsers();
+                modals.closeAll();
+              })
+              .catch(toast.axiosError);
+          })}
+        >
+          <Stack>
+            <TextInput
+              label={t("admin.users.table.username")}
+              {...accountForm.getInputProps("username")}
             />
-          )}
-          <Switch
-            styles={{
-              body: {
-                display: "flex",
-                justifyContent: "space-between",
-              },
-            }}
-            mt="xs"
-            labelPosition="left"
-            label={t("admin.users.edit.update.custom-storage-quota-limit")}
-            description={t(
-              "admin.users.edit.update.custom-storage-quota-limit.description",
-            )}
-            {...accountForm.getInputProps("hasCustomStorageQuotaLimit", {
-              type: "checkbox",
-            })}
-          />
-          {accountForm.values.hasCustomStorageQuotaLimit && (
-            <FileSizeInput
-              label={t("admin.users.edit.update.custom-storage-quota-limit")}
-              value={accountForm.values.storageQuotaLimit}
-              onChange={(val) =>
-                accountForm.setFieldValue("storageQuotaLimit", val)
-              }
+            <TextInput
+              label={t("admin.users.table.email")}
+              {...accountForm.getInputProps("email")}
             />
-          )}
-        </Stack>
-      </form>
-      <Accordion>
-        <Accordion.Item sx={{ borderBottom: "none" }} value="changePassword">
-          <Accordion.Control px={0}>
-            <FormattedMessage id="admin.users.edit.update.change-password.title" />
-          </Accordion.Control>
-          <Accordion.Panel>
-            <form
-              onSubmit={passwordForm.onSubmit(async (values) => {
-                userService
-                  .update(user.id, {
-                    password: values.password,
-                  })
-                  .then(() =>
-                    toast.success(
-                      t("admin.users.edit.update.notify.password.success"),
-                    ),
-                  )
-                  .catch(toast.axiosError);
+            <Switch
+              mt="xs"
+              labelPosition="left"
+              label={t("admin.users.edit.update.admin-privileges")}
+              {...accountForm.getInputProps("isAdmin", { type: "checkbox" })}
+            />
+            <Switch
+              mt="xs"
+              labelPosition="left"
+              label={t("admin.users.edit.update.email-verified")}
+              {...accountForm.getInputProps("isActivated", {
+                type: "checkbox",
               })}
-            >
-              <Stack>
-                <PasswordInput
-                  label={t("admin.users.edit.update.change-password.field")}
-                  {...passwordForm.getInputProps("password")}
-                />
-                <Button variant="light" type="submit">
-                  <FormattedMessage id="admin.users.edit.update.change-password.button" />
-                </Button>
-              </Stack>
-            </form>
-          </Accordion.Panel>
-        </Accordion.Item>
-      </Accordion>
-      <Group position="right">
-        <Button type="submit" form="accountForm">
-          <FormattedMessage id="common.button.save" />
-        </Button>
-      </Group>
-    </Stack>
+              disabled={user.isActivated}
+            />
+            <Switch
+              mt="xs"
+              labelPosition="left"
+              label={t("admin.users.edit.update.permanent-shares")}
+              description={t(
+                "admin.users.edit.update.permanent-shares.description",
+              )}
+              {...accountForm.getInputProps("canCreatePermanentShares", {
+                type: "checkbox",
+              })}
+            />
+            <Switch
+              styles={{
+                body: {
+                  display: "flex",
+                  justifyContent: "space-between",
+                },
+              }}
+              mt="xs"
+              labelPosition="left"
+              label={t("admin.users.edit.update.custom-share-size-limit")}
+              description={t(
+                "admin.users.edit.update.custom-share-size-limit.description",
+              )}
+              {...accountForm.getInputProps("hasCustomShareSizeLimit", {
+                type: "checkbox",
+              })}
+            />
+            {accountForm.values.hasCustomShareSizeLimit && (
+              <FileSizeInput
+                label={t("admin.users.edit.update.custom-share-size-limit")}
+                value={accountForm.values.shareSizeLimit}
+                onChange={(val) =>
+                  accountForm.setFieldValue("shareSizeLimit", val)
+                }
+              />
+            )}
+            <Switch
+              styles={{
+                body: {
+                  display: "flex",
+                  justifyContent: "space-between",
+                },
+              }}
+              mt="xs"
+              labelPosition="left"
+              label={t("admin.users.edit.update.custom-storage-quota-limit")}
+              description={t(
+                "admin.users.edit.update.custom-storage-quota-limit.description",
+              )}
+              {...accountForm.getInputProps("hasCustomStorageQuotaLimit", {
+                type: "checkbox",
+              })}
+            />
+            {accountForm.values.hasCustomStorageQuotaLimit && (
+              <FileSizeInput
+                label={t("admin.users.edit.update.custom-storage-quota-limit")}
+                value={accountForm.values.storageQuotaLimit}
+                onChange={(val) =>
+                  accountForm.setFieldValue("storageQuotaLimit", val)
+                }
+              />
+            )}
+          </Stack>
+        </form>
+        <Accordion>
+          <Accordion.Item sx={{ borderBottom: "none" }} value="changePassword">
+            <Accordion.Control px={0}>
+              <FormattedMessage id="admin.users.edit.update.change-password.title" />
+            </Accordion.Control>
+            <Accordion.Panel>
+              <form
+                onSubmit={passwordForm.onSubmit(async (values) => {
+                  userService
+                    .update(user.id, {
+                      password: values.password,
+                    })
+                    .then(() =>
+                      toast.success(
+                        t("admin.users.edit.update.notify.password.success"),
+                      ),
+                    )
+                    .catch(toast.axiosError);
+                })}
+              >
+                <Stack>
+                  <PasswordInput
+                    label={t("admin.users.edit.update.change-password.field")}
+                    {...passwordForm.getInputProps("password")}
+                  />
+                  <Button variant="light" type="submit">
+                    <FormattedMessage id="admin.users.edit.update.change-password.button" />
+                  </Button>
+                </Stack>
+              </form>
+            </Accordion.Panel>
+          </Accordion.Item>
+        </Accordion>
+        <Group position="right">
+          <Button type="submit" form="accountForm">
+            <FormattedMessage id="common.button.save" />
+          </Button>
+        </Group>
+      </Stack>
+    </MantineProvider>
   );
 };
 

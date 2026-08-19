@@ -182,7 +182,7 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-const BrandPanel = () => {
+const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
   const { classes, cx } = useStyles();
   const theme = useMantineTheme();
 
@@ -256,7 +256,7 @@ const BrandPanel = () => {
         );
       })}
 
-      {activeSlide && (
+      {activeSlide && showCaption && (
         <Box className={classes.caption}>
           <Text size="sm" color="gray.3">
             <FormattedMessage

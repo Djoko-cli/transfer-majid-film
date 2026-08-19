@@ -1,6 +1,7 @@
 import {
   Button,
   Group,
+  MantineProvider,
   PasswordInput,
   Stack,
   Switch,
@@ -14,6 +15,8 @@ import useTranslate from "../../../hooks/useTranslate.hook";
 import userService from "../../../services/user.service";
 import toast from "../../../utils/toast.util";
 import FileSizeInput from "../../core/FileSizeInput";
+import glassFormTheme from "../../upload/glassFormTheme";
+import { glassModalStyles } from "../../upload/glassModalTheme";
 
 const showCreateUserModal = (
   modals: ModalsContextProps,
@@ -22,6 +25,7 @@ const showCreateUserModal = (
 ) => {
   return modals.openModal({
     title: "Create user",
+    styles: glassModalStyles,
     children: (
       <Body modals={modals} smtpEnabled={smtpEnabled} getUsers={getUsers} />
     ),
@@ -75,126 +79,128 @@ const Body = ({
   });
 
   return (
-    <Stack>
-      <form
-        onSubmit={form.onSubmit(async (values) => {
-          userService
-            .create({
-              username: values.username,
-              email: values.email,
-              password: values.password,
-              isAdmin: values.isAdmin,
-              shareSizeLimit: values.hasCustomShareSizeLimit
-                ? values.shareSizeLimit.toString()
-                : null,
-              storageQuotaLimit: values.hasCustomStorageQuotaLimit
-                ? values.storageQuotaLimit.toString()
-                : null,
-            })
-            .then(() => {
-              getUsers();
-              modals.closeAll();
-            })
-            .catch(toast.axiosError);
-        })}
-      >
-        <Stack>
-          <TextInput
-            label={t("admin.users.modal.create.username")}
-            {...form.getInputProps("username")}
-          />
-          <TextInput
-            label={t("admin.users.modal.create.email")}
-            {...form.getInputProps("email")}
-          />
-          {smtpEnabled && (
+    <MantineProvider inherit theme={glassFormTheme}>
+      <Stack>
+        <form
+          onSubmit={form.onSubmit(async (values) => {
+            userService
+              .create({
+                username: values.username,
+                email: values.email,
+                password: values.password,
+                isAdmin: values.isAdmin,
+                shareSizeLimit: values.hasCustomShareSizeLimit
+                  ? values.shareSizeLimit.toString()
+                  : null,
+                storageQuotaLimit: values.hasCustomStorageQuotaLimit
+                  ? values.storageQuotaLimit.toString()
+                  : null,
+              })
+              .then(() => {
+                getUsers();
+                modals.closeAll();
+              })
+              .catch(toast.axiosError);
+          })}
+        >
+          <Stack>
+            <TextInput
+              label={t("admin.users.modal.create.username")}
+              {...form.getInputProps("username")}
+            />
+            <TextInput
+              label={t("admin.users.modal.create.email")}
+              {...form.getInputProps("email")}
+            />
+            {smtpEnabled && (
+              <Switch
+                mt="xs"
+                labelPosition="left"
+                label={t("admin.users.modal.create.manual-password")}
+                description={t(
+                  "admin.users.modal.create.manual-password.description",
+                )}
+                {...form.getInputProps("setPasswordManually", {
+                  type: "checkbox",
+                })}
+              />
+            )}
+            {(form.values.setPasswordManually || !smtpEnabled) && (
+              <PasswordInput
+                label={t("admin.users.modal.create.password")}
+                {...form.getInputProps("password")}
+              />
+            )}
             <Switch
+              styles={{
+                body: {
+                  display: "flex",
+                  justifyContent: "space-between",
+                },
+              }}
               mt="xs"
               labelPosition="left"
-              label={t("admin.users.modal.create.manual-password")}
+              label={t("admin.users.modal.create.custom-share-size-limit")}
               description={t(
-                "admin.users.modal.create.manual-password.description",
+                "admin.users.modal.create.custom-share-size-limit.description",
               )}
-              {...form.getInputProps("setPasswordManually", {
+              {...form.getInputProps("hasCustomShareSizeLimit", {
                 type: "checkbox",
               })}
             />
-          )}
-          {(form.values.setPasswordManually || !smtpEnabled) && (
-            <PasswordInput
-              label={t("admin.users.modal.create.password")}
-              {...form.getInputProps("password")}
-            />
-          )}
-          <Switch
-            styles={{
-              body: {
-                display: "flex",
-                justifyContent: "space-between",
-              },
-            }}
-            mt="xs"
-            labelPosition="left"
-            label={t("admin.users.modal.create.custom-share-size-limit")}
-            description={t(
-              "admin.users.modal.create.custom-share-size-limit.description",
+            {form.values.hasCustomShareSizeLimit && (
+              <FileSizeInput
+                label={t("admin.users.modal.create.custom-share-size-limit")}
+                value={form.values.shareSizeLimit}
+                onChange={(val) => form.setFieldValue("shareSizeLimit", val)}
+              />
             )}
-            {...form.getInputProps("hasCustomShareSizeLimit", {
-              type: "checkbox",
-            })}
-          />
-          {form.values.hasCustomShareSizeLimit && (
-            <FileSizeInput
-              label={t("admin.users.modal.create.custom-share-size-limit")}
-              value={form.values.shareSizeLimit}
-              onChange={(val) => form.setFieldValue("shareSizeLimit", val)}
-            />
-          )}
-          <Switch
-            styles={{
-              body: {
-                display: "flex",
-                justifyContent: "space-between",
-              },
-            }}
-            mt="xs"
-            labelPosition="left"
-            label={t("admin.users.modal.create.custom-storage-quota-limit")}
-            description={t(
-              "admin.users.modal.create.custom-storage-quota-limit.description",
-            )}
-            {...form.getInputProps("hasCustomStorageQuotaLimit", {
-              type: "checkbox",
-            })}
-          />
-          {form.values.hasCustomStorageQuotaLimit && (
-            <FileSizeInput
+            <Switch
+              styles={{
+                body: {
+                  display: "flex",
+                  justifyContent: "space-between",
+                },
+              }}
+              mt="xs"
+              labelPosition="left"
               label={t("admin.users.modal.create.custom-storage-quota-limit")}
-              value={form.values.storageQuotaLimit}
-              onChange={(val) => form.setFieldValue("storageQuotaLimit", val)}
+              description={t(
+                "admin.users.modal.create.custom-storage-quota-limit.description",
+              )}
+              {...form.getInputProps("hasCustomStorageQuotaLimit", {
+                type: "checkbox",
+              })}
             />
-          )}
-          <Switch
-            styles={{
-              body: {
-                display: "flex",
-                justifyContent: "space-between",
-              },
-            }}
-            mt="xs"
-            labelPosition="left"
-            label={t("admin.users.modal.create.admin")}
-            description={t("admin.users.modal.create.admin.description")}
-            {...form.getInputProps("isAdmin", { type: "checkbox" })}
-          />
-          <Group position="right">
-            <Button type="submit">
-              <FormattedMessage id="common.button.create" />
-            </Button>
-          </Group>
-        </Stack>
-      </form>
-    </Stack>
+            {form.values.hasCustomStorageQuotaLimit && (
+              <FileSizeInput
+                label={t("admin.users.modal.create.custom-storage-quota-limit")}
+                value={form.values.storageQuotaLimit}
+                onChange={(val) => form.setFieldValue("storageQuotaLimit", val)}
+              />
+            )}
+            <Switch
+              styles={{
+                body: {
+                  display: "flex",
+                  justifyContent: "space-between",
+                },
+              }}
+              mt="xs"
+              labelPosition="left"
+              label={t("admin.users.modal.create.admin")}
+              description={t("admin.users.modal.create.admin.description")}
+              {...form.getInputProps("isAdmin", { type: "checkbox" })}
+            />
+            <Group position="right">
+              <Button type="submit">
+                <FormattedMessage id="common.button.create" />
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Stack>
+    </MantineProvider>
   );
 };
 

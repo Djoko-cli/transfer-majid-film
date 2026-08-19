@@ -1,8 +1,8 @@
 import {
-  Box,
   Button,
   Center,
   Group,
+  Paper,
   Space,
   Stack,
   Table,
@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import Meta from "../../components/Meta";
 import CenterLoader from "../../components/core/CenterLoader";
+import GlassPageBackdrop from "../../components/core/GlassPageBackdrop";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
@@ -39,6 +40,7 @@ const ReceivedShares = () => {
   return (
     <>
       <Meta title={t("account.received-shares.title")} />
+      <GlassPageBackdrop />
       <Title mb={30} order={3}>
         <FormattedMessage id="account.received-shares.title" />
       </Title>
@@ -55,7 +57,7 @@ const ReceivedShares = () => {
           </Stack>
         </Center>
       ) : (
-        <Box sx={{ display: "block", overflowX: "auto" }}>
+        <Paper withBorder p="md" sx={{ overflowX: "auto" }}>
           <Table>
             <thead>
               <tr>
@@ -94,7 +96,6 @@ const ReceivedShares = () => {
                         href={`/share/${share.id}`}
                         variant="light"
                         size="xs"
-                        color="victoria"
                       >
                         <FormattedMessage id="account.received-shares.button.open" />
                       </Button>
@@ -104,7 +105,7 @@ const ReceivedShares = () => {
               ))}
             </tbody>
           </Table>
-        </Box>
+        </Paper>
       )}
     </>
   );
