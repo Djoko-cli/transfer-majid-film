@@ -312,11 +312,26 @@ const TransferCard = ({
           )}
 
           {!isUserSignedIn && (
-            <Collapse in={mode === "email"}>
+            // Collapse sets display:none on the wrapper once it finishes
+            // closing (never on opening, which settles on display:block).
+            // Inside a Stack's flex `gap` layout, a display:none item drops
+            // out of the gap calculation entirely — going from "0-height
+            // block flanked by two gaps" to "gone, one gap" shrinks the
+            // total space by one more gap-width, instantly, right after the
+            // smooth height animation already finished. That's the
+            // leftover snap, and only on close since only close ends in
+            // display:none. Forcing display:block (!important beats the
+            // inline style Collapse sets) keeps it a zero-height block
+            // forever instead, so there's nothing left to snap.
+            <Collapse
+              in={mode === "email"}
+              sx={{ "&[aria-hidden='true']": { display: "block !important" } }}
+            >
               <TextInput
                 variant="filled"
                 label={t("upload.transfer.sender.label")}
                 placeholder={t("upload.transfer.sender.placeholder")}
+                tabIndex={mode === "email" ? undefined : -1}
                 {...form.getInputProps("senderEmail")}
               />
             </Collapse>
