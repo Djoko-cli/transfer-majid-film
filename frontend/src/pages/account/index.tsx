@@ -20,7 +20,6 @@ import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
 import Meta from "../../components/Meta";
 import LanguagePicker from "../../components/account/LanguagePicker";
-import ThemeSwitcher from "../../components/account/ThemeSwitcher";
 import showEnableTotpModal from "../../components/account/showEnableTotpModal";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -391,12 +390,8 @@ const Account = () => {
           </Title>
           <LanguagePicker />
         </Paper>
-        <Paper withBorder p="xl" mt="lg">
-          <Title order={5} mb="xs">
-            <FormattedMessage id="account.card.color.title" />
-          </Title>
-          <ThemeSwitcher />
-        </Paper>
+        {/* Light mode is retired from display for now — ThemeSwitcher and
+            its translations are untouched, just not rendered here. */}
         <Center mt={80} mb="lg">
           <Stack>
             <Button

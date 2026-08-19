@@ -249,9 +249,13 @@ function App({ Component, pageProps }: AppProps) {
     toggleColorScheme(colorScheme);
   }, [adminDefaultColorScheme, systemTheme, user]);
 
-  const toggleColorScheme = (value: ColorScheme) => {
-    setColorScheme(value ?? "light");
-    setCookie("mantine-color-scheme", value ?? "light", {
+  // Light mode is retired from display — kept fully working in the theme/
+  // preference logic above (user/admin/system color-scheme resolution is
+  // untouched) so it's a one-line revert later, but every result funnels
+  // through here and is forced to "dark" before it's ever applied.
+  const toggleColorScheme = (_value: ColorScheme) => {
+    setColorScheme("dark");
+    setCookie("mantine-color-scheme", "dark", {
       sameSite: "lax",
     });
   };
@@ -374,8 +378,12 @@ App.getInitialProps = async ({ ctx }: { ctx: GetServerSidePropsContext }) => {
     isConfigFallback?: boolean;
   } = {
     route: ctx.resolvedUrl,
+    // Light mode is retired from display for now — "dark" instead of the
+    // original "light" fallback so a first-time visitor (no cookie yet)
+    // gets dark from the very first server-rendered byte, not a flash of
+    // light before the client-side force-dark effect below corrects it.
     colorScheme:
-      (getCookie("mantine-color-scheme", ctx) as ColorScheme) ?? "light",
+      (getCookie("mantine-color-scheme", ctx) as ColorScheme) ?? "dark",
   };
 
   if (ctx.req) {
