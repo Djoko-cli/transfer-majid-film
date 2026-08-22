@@ -11,6 +11,7 @@ import {
   ShareMetaData,
   UpdateShare,
 } from "../types/share.type";
+import { generateUUID } from "../utils/crypto.util";
 import api from "./api.service";
 
 const isValidId = (id: string) => {
@@ -184,14 +185,15 @@ const uploadFileDirectS3 = async (
   totalChunks: number,
   onUploadProgress?: (progressEvent: any) => void,
 ): Promise<FileUploadResponse> => {
-  const sessionKey = `${shareId}:${file.id || file.name}`;
+  const fileId = file.id || generateUUID();
+  const sessionKey = `${shareId}:${file.name}`;
 
   try {
     if (chunkIndex === 0 && !s3UploadSessions[sessionKey]) {
       const initResponse = await api.post(
         `shares/${shareId}/files/upload-init`,
         {
-          id: file.id,
+          id: fileId,
           name: file.name,
           totalChunks,
         },
@@ -201,7 +203,7 @@ const uploadFileDirectS3 = async (
         uploadId: initResponse.data.uploadId,
         urls: initResponse.data.urls,
         parts: [],
-        fileId: file.id || "",
+        fileId: fileId,
       };
     }
 
@@ -236,7 +238,7 @@ const uploadFileDirectS3 = async (
       const completeResponse = await api.post(
         `shares/${shareId}/files/upload-complete`,
         {
-          id: session.fileId || undefined,
+          id: session.fileId || fileId,
           name: file.name,
           uploadId: session.uploadId,
           parts: session.parts,
@@ -247,7 +249,8 @@ const uploadFileDirectS3 = async (
     }
 
     return {
-      id: session.fileId || "s3-upload-in-progress",
+      id: session.fileId || fileId,
+      name: file.name,
     } as FileUploadResponse;
   } catch (error) {
     const session = s3UploadSessions[sessionKey];
@@ -304,13 +307,15 @@ const uploadFile = async (
       translateOutsideContext()("upload.modal.link.error.invalid"),
     );
 
-  const sessionKey = `${shareId}:${file.id || file.name}`;
+  const fileId = file.id || generateUUID();
+  const fileWithId = { ...file, id: fileId };
+  const sessionKey = `${shareId}:${file.name}`;
 
   if (s3UploadSessions[sessionKey]) {
     return uploadFileDirectS3(
       shareId,
       chunk,
-      file,
+      fileWithId,
       chunkIndex,
       totalChunks,
       onUploadProgress,
@@ -321,7 +326,7 @@ const uploadFile = async (
     return uploadFileProxied(
       shareId,
       chunk,
-      file,
+      fileWithId,
       chunkIndex,
       totalChunks,
       onUploadProgress,
@@ -333,8 +338,8 @@ const uploadFile = async (
       const initResponse = await api.post(
         `shares/${shareId}/files/upload-init`,
         {
-          id: file.id,
-          name: file.name,
+          id: fileWithId.id,
+          name: fileWithId.name,
           totalChunks,
         },
       );
@@ -345,12 +350,12 @@ const uploadFile = async (
           uploadId: initResponse.data.uploadId,
           urls: initResponse.data.urls,
           parts: [],
-          fileId: file.id || "",
+          fileId: fileWithId.id,
         };
         return uploadFileDirectS3(
           shareId,
           chunk,
-          file,
+          fileWithId,
           chunkIndex,
           totalChunks,
           onUploadProgress,
@@ -370,7 +375,7 @@ const uploadFile = async (
   return uploadFileProxied(
     shareId,
     chunk,
-    file,
+    fileWithId,
     chunkIndex,
     totalChunks,
     onUploadProgress,
