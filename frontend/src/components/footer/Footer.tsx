@@ -1,12 +1,39 @@
-import { Anchor, Footer as MFooter, SimpleGrid, Text } from "@mantine/core";
+import {
+  Anchor,
+  Footer as MFooter,
+  SimpleGrid,
+  Text,
+  createStyles,
+} from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useRef } from "react";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 
+// Mirrors Header's own `.root` glass treatment (see Header.tsx) — without
+// this, Mantine's default Footer falls back to a solid near-black fill,
+// which reads as a continuation of BrandPanel's own bottom caption gradient
+// (there to keep the credit text legible over the photo), making the whole
+// bottom of the page look like one long fade to black instead of a distinct
+// bar matching the navbar above.
+const useStyles = createStyles((theme) => {
+  const dark = theme.colorScheme === "dark";
+  return {
+    root: {
+      background: dark
+        ? "linear-gradient(160deg, rgba(255, 255, 255, 0.1) 0%, rgba(18, 18, 18, 0.45) 55%, rgba(255, 255, 255, 0.04) 100%)"
+        : "linear-gradient(160deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.28) 55%, rgba(255, 255, 255, 0.4) 100%)",
+      backdropFilter: "blur(18px) saturate(160%)",
+      WebkitBackdropFilter: "blur(18px) saturate(160%)",
+      borderTop: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
+    },
+  };
+});
+
 const Footer = () => {
   const t = useTranslate();
   const config = useConfig();
+  const { classes } = useStyles();
   // Published as a CSS var (rather than prop-drilled) so pages that need to
   // reserve room for the footer — e.g. SplitTransferLayout, which lives
   // several components away with no shared parent — can read the real,
@@ -52,7 +79,14 @@ const Footer = () => {
   const isMobile = useMediaQuery("(max-width: 700px)");
 
   return (
-    <MFooter ref={footerRef} height="auto" py={6} px="xl" zIndex={100}>
+    <MFooter
+      ref={footerRef}
+      height="auto"
+      py={6}
+      px="xl"
+      zIndex={100}
+      className={classes.root}
+    >
       {!config.get("legal.enabled") && (
         <Text size="xs" color="dimmed" align="center">
           {config.get("general.appName")} ·{" "}
