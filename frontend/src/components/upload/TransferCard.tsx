@@ -83,14 +83,22 @@ const useSubmitButtonStyles = createStyles((theme) => {
 
   return {
     // Once files are selected the button is genuinely actionable, so it
-    // gets a glint sweep — wide, soft-edged and blurred (echoing
-    // GlintBorder's own glass-catching-light look) rather than a crisp,
-    // high-contrast streak, which reads as a metal reflection instead of
-    // light passing through glass. The 200%/-100%→200% background-size and
-    // sweep pair is the standard jump-free combo: at both loop endpoints
-    // the highlight band sits fully outside the visible box, so the
-    // instant reset at the end of each cycle happens while nothing is
-    // showing — never seen as a pop.
+    // gets a glint sweep — the same idea as GlintBorder's own
+    // glass-catching-light comet: a soft, blurred glow plus an
+    // accent-colored drop-shadow halo, rather than a flat opaque streak,
+    // which reads as a metal reflection instead of light through glass.
+    //
+    // The previous version placed the highlight so it sat *exactly* on a
+    // computed "invisible" boundary at both loop endpoints — a gradient
+    // angle that wasn't perfectly horizontal (100deg) stretches those
+    // stops in a way that's hard to get pixel-exact, so the loop reset
+    // showed as a visible pop right at the edges. This version keeps the
+    // gradient perfectly horizontal and gives the sweep a lot more room
+    // than it strictly needs (background-size 400% vs. the highlight's own
+    // sliver of that width, and a travel range well past the minimum) —
+    // comfortable slack rather than a razor's-edge boundary, so neither
+    // gradient-angle math nor the blur's own edge bleed can push anything
+    // into view right as the loop resets.
     ready: {
       position: "relative",
       overflow: "hidden",
@@ -99,15 +107,14 @@ const useSubmitButtonStyles = createStyles((theme) => {
         content: "''",
         position: "absolute",
         inset: 0,
-        background: `linear-gradient(100deg,
-          transparent 25%,
-          ${accent}33 40%,
-          rgba(255, 255, 255, 0.55) 50%,
-          ${accent}33 60%,
-          transparent 75%)`,
-        backgroundSize: "200% 100%",
-        filter: "blur(4px)",
-        animation: "buttonShimmer 3.2s ease-in-out infinite",
+        background: `linear-gradient(90deg,
+          transparent,
+          rgba(255, 255, 255, 0.5) 50%,
+          transparent)`,
+        backgroundSize: "400% 100%",
+        backgroundRepeat: "no-repeat",
+        filter: `blur(8px) drop-shadow(0 0 10px ${accent}aa)`,
+        animation: "buttonShimmer 3.4s ease-in-out infinite",
       },
 
       "@media (prefers-reduced-motion: reduce)": {

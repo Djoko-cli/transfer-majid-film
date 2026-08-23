@@ -41,8 +41,8 @@ const CSS = `
   to   { --glint-angle: 360deg; }
 }
 @keyframes buttonShimmer {
-  from { background-position: -100% 0; }
-  to   { background-position: 200% 0; }
+  from { background-position: -150% 0; }
+  to   { background-position: 350% 0; }
 }
 @keyframes buttonWaitingPulse {
   0%, 100% { box-shadow: 0 0 0 0 var(--pulse-glow-color, transparent); }
