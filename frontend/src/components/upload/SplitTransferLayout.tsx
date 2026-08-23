@@ -31,24 +31,19 @@ const useStyles = createStyles((theme) => {
       // Pulls the panel back up underneath the fixed, translucent header
       // (see _app.tsx's compensating paddingTop) so the image reaches the
       // very top of the viewport instead of starting below the navbar.
+      // marginBottom does the same for the fixed, translucent footer (see
+      // Footer.tsx and _app.tsx's compensating paddingBottom) — without it,
+      // the image would stop short of the true viewport bottom, leaving a
+      // gap the footer's own translucency would have nothing to show
+      // through.
       marginTop: -HEADER_HEIGHT,
-      // Reserves whichever is larger: the header's own height (so the
-      // bottom gap to the viewport edge always matches the top gap under
-      // the navbar, which is what the card is actually centered against —
-      // not the header height, until the footer forces it), or the
-      // footer's real, live-measured height (published as a CSS var by
-      // Footer.tsx, since it isn't constant — it grows when legal links
-      // wrap to a second line at narrow-but-not-mobile widths). Reserving
-      // only the header's height unconditionally previously let a tall
-      // footer's own painting area overlap the card; reserving only the
-      // footer's height (previously) broke the symmetric top/bottom gap
-      // whenever the footer was shorter than the header, which is the
-      // common case.
-      minHeight: `calc(100vh - max(${HEADER_HEIGHT}px, var(--footer-height, 40px)))`,
+      marginBottom: "calc(-1 * var(--footer-height, 40px))",
+      minHeight: "100vh",
       overflow: "hidden",
 
       [theme.fn.smallerThan("sm")]: {
         marginTop: 0,
+        marginBottom: 0,
         minHeight: "auto",
         overflow: "visible",
       },
@@ -61,7 +56,15 @@ const useStyles = createStyles((theme) => {
     cardSlot: {
       position: "absolute",
       top: HEADER_HEIGHT,
-      bottom: 0,
+      // Mirrors `top` — now that `.bleed` spans the full viewport (see
+      // above), the card needs its own explicit reservation to stay clear
+      // of the footer instead of relying on `.bleed`'s own box stopping
+      // short of it. Whichever is larger: the header's height (keeps the
+      // bottom gap matching the top gap in the common case, where the
+      // footer is shorter than the header) or the footer's real,
+      // live-measured height (so a tall, wrapped footer never overlaps the
+      // card).
+      bottom: `max(${HEADER_HEIGHT}px, var(--footer-height, 40px))`,
       left: "clamp(20px, 4vw, 56px)",
       width: 440,
       maxWidth: "calc(100vw - 40px)",
@@ -96,10 +99,10 @@ const useStyles = createStyles((theme) => {
       // driven — a percentage there wouldn't have anything definite to
       // resolve against. Only ever bites on short viewports with a lot of
       // expanded content; overflowY is the actual safety net. Must reserve
-      // the exact same space as cardSlot's band above (`.bleed`'s minHeight
-      // plus cardSlot's own vertical padding) — a smaller reservation here
-      // than there let the card grow taller than the band it's centered in
-      // and overflow past it.
+      // the exact same space as cardSlot's own band (its top/bottom
+      // reservations plus its vertical padding) — a smaller reservation
+      // here than there let the card grow taller than the band it's
+      // centered in and overflow past it.
       maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - max(${HEADER_HEIGHT}px, var(--footer-height, 40px)) - ${2 * CARD_VERTICAL_MARGIN}px)`,
       overflowY: "auto",
       padding: theme.spacing.xl,

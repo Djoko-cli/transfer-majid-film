@@ -23,19 +23,20 @@ const useStyles = createStyles((theme) => {
       marginLeft: "-50vw",
       marginRight: "-50vw",
       width: "100vw",
+      // Pulls the panel up under the fixed header, and down under the
+      // fixed footer (see Footer.tsx and _app.tsx's compensating
+      // paddingTop/paddingBottom), so the image spans the true full
+      // viewport and shows through both bars' translucent glass instead of
+      // stopping short to leave flow space for them. See the matching,
+      // more detailed comment in SplitTransferLayout.
       marginTop: -HEADER_HEIGHT,
-      marginBottom: -1,
-      // Reserves whichever is larger: the header's height (so the bottom
-      // gap to the viewport edge matches the top gap under the navbar) or
-      // the footer's real, live-measured height (published as a CSS var by
-      // Footer.tsx — it isn't constant, it grows when legal links wrap to
-      // a second line). See the matching, more detailed comment in
-      // SplitTransferLayout.
-      minHeight: `calc(100vh - max(${HEADER_HEIGHT}px, var(--footer-height, 40px)))`,
+      marginBottom: "calc(-1 * var(--footer-height, 40px))",
+      minHeight: "100vh",
       overflow: "hidden",
 
       [theme.fn.smallerThan("sm")]: {
         marginTop: 0,
+        marginBottom: 0,
         minHeight: "auto",
         overflow: "visible",
       },
@@ -44,7 +45,10 @@ const useStyles = createStyles((theme) => {
     cardSlot: {
       position: "absolute",
       top: HEADER_HEIGHT,
-      bottom: 0,
+      // Mirrors `top` — reserves room to stay clear of the now-floating
+      // footer instead of relying on `.bleed`'s own box stopping short of
+      // it. See the matching, more detailed comment in SplitTransferLayout.
+      bottom: `max(${HEADER_HEIGHT}px, var(--footer-height, 40px))`,
       left: 0,
       right: 0,
       zIndex: 2,

@@ -346,7 +346,19 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                         justify="space-between"
                         sx={{ minHeight: "100vh" }}
                       >
-                        <div style={{ paddingTop: HEADER_HEIGHT }}>
+                        <div
+                          style={{
+                            paddingTop: HEADER_HEIGHT,
+                            // Footer is a fixed, floating glass bar (see
+                            // Footer.tsx) rather than flow content, so
+                            // nothing pushes it down naturally the way a
+                            // normal last element would — without this,
+                            // a page whose content reaches the bottom of
+                            // the viewport would have its last bit hidden
+                            // underneath it.
+                            paddingBottom: "var(--footer-height, 40px)",
+                          }}
+                        >
                           <Header />
                           <Container>
                             <Component {...pageProps} />

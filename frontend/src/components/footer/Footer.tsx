@@ -10,12 +10,12 @@ import { useEffect, useRef } from "react";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 
-// Mirrors Header's own `.root` glass treatment (see Header.tsx) — without
-// this, Mantine's default Footer falls back to a solid near-black fill,
-// which reads as a continuation of BrandPanel's own bottom caption gradient
-// (there to keep the credit text legible over the photo), making the whole
-// bottom of the page look like one long fade to black instead of a distinct
-// bar matching the navbar above.
+// Mirrors Header's own `.root` glass treatment (see Header.tsx): fixed,
+// floating over the page rather than sitting in normal document flow, so
+// the brand-photo carousel behind it (see SplitTransferLayout/
+// AuthGlassLayout's `.bleed`) can extend all the way to the true bottom of
+// the viewport and show through the footer's translucent glass, instead of
+// the carousel stopping short to leave flow space for an opaque bar.
 const useStyles = createStyles((theme) => {
   const dark = theme.colorScheme === "dark";
   return {
@@ -81,6 +81,7 @@ const Footer = () => {
   return (
     <MFooter
       ref={footerRef}
+      fixed
       height="auto"
       py={6}
       px="xl"
