@@ -392,7 +392,7 @@ export default {
   "upload.transfer.expires.label": "Expiration (days)",
 
   // BrandPanel.tsx
-  "upload.brand.caption": "Image from {title}, {year}",
+  "upload.brand.caption": "{title}, {year}",
 
   // Dropzone.tsx
   "upload.dropzone.title": "Upload files",

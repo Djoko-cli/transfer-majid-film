@@ -175,6 +175,7 @@ const useStyles = createStyles((theme) => ({
     background: "linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent)",
     zIndex: 3,
     pointerEvents: "none",
+    textAlign: "right",
   },
 
   captionLink: {
