@@ -111,7 +111,9 @@ const MyShares = () => {
                       <Group spacing="xs">
                         {share.id}{" "}
                         {share.security?.passwordProtected && (
-                          <HoverTip label="Password Protected">
+                          <HoverTip
+                            label={t("account.shares.table.password-protected")}
+                          >
                             <span style={{ display: "inline-flex" }}>
                               <TbLock
                                 color="orange"
@@ -124,7 +126,11 @@ const MyShares = () => {
                         )}
                         {config.get("share.enableUserRecipients") &&
                           (share.security?.restrictToRecipients ? (
-                            <HoverTip label="Recipients Only">
+                            <HoverTip
+                              label={t(
+                                "account.shares.table.restricted-to-recipients",
+                              )}
+                            >
                               <span style={{ display: "inline-flex" }}>
                                 <FaUserLock
                                   color={theme.colors.gray[6]}
@@ -135,7 +141,11 @@ const MyShares = () => {
                               </span>
                             </HoverTip>
                           ) : share.recipients?.length ? (
-                            <HoverTip label="Sent to Recipients">
+                            <HoverTip
+                              label={t(
+                                "account.shares.table.shared-with-recipients",
+                              )}
+                            >
                               <span style={{ display: "inline-flex" }}>
                                 <TbUsers
                                   color={theme.colors.gray[6]}
@@ -257,12 +267,16 @@ const MyShares = () => {
                                   cancel: t("common.button.cancel"),
                                 },
                                 onConfirm: () => {
-                                  shareService.expire(share.id);
-                                  setShares(
-                                    shares.filter(
-                                      (item) => item.id !== share.id,
-                                    ),
-                                  );
+                                  shareService
+                                    .expire(share.id)
+                                    .then(() =>
+                                      setShares(
+                                        shares.filter(
+                                          (item) => item.id !== share.id,
+                                        ),
+                                      ),
+                                    )
+                                    .catch(toast.axiosError);
                                 },
                               });
                             }}

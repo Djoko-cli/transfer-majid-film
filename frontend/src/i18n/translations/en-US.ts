@@ -83,6 +83,7 @@ export default {
 
   // /auth/totp
   "totp.title": "TOTP Authentication",
+  "totp.input.code.ariaLabel": "One time code",
   "totp.button.signIn": "Sign in",
 
   // END /auth/totp
@@ -275,6 +276,14 @@ export default {
   "admin.version": "Version",
   // END /admin
 
+  // /admin/intro
+  "admin.intro.title": "Welcome to {appName}",
+  "admin.intro.description": "Your admin account is ready.",
+  "admin.intro.question": "How do you want to continue?",
+  "admin.intro.button.config": "Customize configuration",
+  "admin.intro.button.explore": "Explore {appName}",
+  // END /admin/intro
+
   // /admin/users
   "admin.users.title": "User management",
   "admin.users.table.username": "Username",
@@ -330,6 +339,7 @@ export default {
   "admin.shares.diskUsage": "Disk Usage",
   "admin.shares.table.id": "Share ID",
   "admin.shares.table.username": "Creator",
+  "admin.shares.table.anonymous": "Anonymous",
   "admin.shares.table.visitors": "Visitors",
   "admin.shares.table.expires": "Expires on",
   "admin.shares.table.deletes": "Deletes on",
@@ -531,6 +541,7 @@ export default {
   "admin.config.category.general": "General",
   "admin.config.category.appearance": "Appearance",
   "admin.config.category.share": "Share",
+  "admin.config.category.verification": "Verification",
   "admin.config.category.cache": "Cache",
   "admin.config.category.email": "Email",
   "admin.config.category.smtp": "SMTP",
@@ -712,6 +723,12 @@ export default {
   "admin.config.share.file-retention-period": "File retention period",
   "admin.config.share.file-retention-period.description":
     "How long files are kept after a share expires or gets deleted. Only useful if the 'Allow admin access to all shares' is also enabled. Set to -1 to keep files forever.",
+  "admin.config.verification.code-subject": "Verification code subject",
+  "admin.config.verification.code-subject.description":
+    "Subject of the email that contains the one-time verification code.",
+  "admin.config.verification.code-message": "Verification code message",
+  "admin.config.verification.code-message.description":
+    "Message which gets sent with the verification code. {code} will be replaced with the actual code.",
   "admin.config.smtp.enabled": "Enable",
   "admin.config.smtp.enabled.description":
     "Whether SMTP is enabled. Only set this to true if you entered the host, port, email, user and password of your SMTP server.",
@@ -945,6 +962,7 @@ export default {
   "common.button.preview": "Preview",
   "common.button.edit": "Edit",
   "common.button.profile": "Profile",
+  "common.badge.ldap": "LDAP",
   "common.button.shares": "Shares",
   "common.button.save": "Save",
   "common.button.create": "Create",

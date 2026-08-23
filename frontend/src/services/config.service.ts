@@ -7,6 +7,7 @@ const categories = [
   "appearance",
   "email",
   "share",
+  "verification",
   "smtp",
   "oauth",
   "ldap",

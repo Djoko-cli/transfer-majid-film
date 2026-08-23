@@ -21,6 +21,7 @@ import {
   TbServerBolt,
   TbSettings,
   TbShare,
+  TbShieldCheck,
   TbSocial,
   TbUsers,
 } from "react-icons/tb";
@@ -31,6 +32,7 @@ export const categories = [
   { name: "Appearance", icon: <TbPalette /> },
   { name: "Email", icon: <TbMail /> },
   { name: "Share", icon: <TbShare /> },
+  { name: "Verification", icon: <TbShieldCheck /> },
   { name: "SMTP", icon: <TbAt /> },
   { name: "OAuth", icon: <TbSocial /> },
   { name: "LDAP", icon: <TbBinaryTree /> },

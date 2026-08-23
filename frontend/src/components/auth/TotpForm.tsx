@@ -60,7 +60,7 @@ function TotpForm({ redirectPath }: { redirectPath: string }) {
           <PinInput
             length={6}
             oneTimeCode
-            aria-label="One time code"
+            aria-label={t("totp.input.code.ariaLabel")}
             autoFocus={true}
             onComplete={onSubmit}
             {...form.getInputProps("code")}

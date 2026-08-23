@@ -85,7 +85,9 @@ const ManageShareTable = ({
                     {share.creator ? (
                       share.creator.username
                     ) : (
-                      <Text color="dimmed">Anonymous</Text>
+                      <Text color="dimmed">
+                        {t("admin.shares.table.anonymous")}
+                      </Text>
                     )}
                   </td>
                   <td>{share.views}</td>

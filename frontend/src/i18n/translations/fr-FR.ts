@@ -78,6 +78,7 @@ export default {
 
   // /auth/totp
   "totp.title": "Authentification TOTP",
+  "totp.input.code.ariaLabel": "Code à usage unique",
   "totp.button.signIn": "Se connecter",
   // END /auth/totp
 
@@ -252,6 +253,14 @@ export default {
   "admin.version": "Version",
   // END /admin
 
+  // /admin/intro
+  "admin.intro.title": "Bienvenue sur {appName}",
+  "admin.intro.description": "Votre compte administrateur est prêt.",
+  "admin.intro.question": "Comment voulez-vous continuer ?",
+  "admin.intro.button.config": "Personnaliser la configuration",
+  "admin.intro.button.explore": "Découvrir {appName}",
+  // END /admin/intro
+
   // /admin/users
   "admin.users.title": "Gestion des utilisateurs",
   "admin.users.table.username": "Surnom",
@@ -307,6 +316,7 @@ export default {
   "admin.shares.diskUsage": "Utilisation du disque",
   "admin.shares.table.id": "ID de partage",
   "admin.shares.table.username": "Créateur",
+  "admin.shares.table.anonymous": "Anonyme",
   "admin.shares.table.visitors": "Visiteurs",
   "admin.shares.table.expires": "Expire le",
   "admin.shares.table.deletes": "Sera supprimé le",
@@ -496,6 +506,7 @@ export default {
   "admin.config.category.general": "Général",
   "admin.config.category.appearance": "Apparence",
   "admin.config.category.share": "Partage",
+  "admin.config.category.verification": "Vérification",
   "admin.config.category.cache": "Cache",
   "admin.config.category.email": "Courriel",
   "admin.config.category.smtp": "SMTP",
@@ -687,6 +698,12 @@ export default {
     "Période de conservation des fichiers",
   "admin.config.share.file-retention-period.description":
     "Durée de conservation des fichiers après l'expiration ou la suppression d'un partage. Utile uniquement si l'option « Autoriser l'accès administrateur à tous les partages » est également activée. Définir à -1 pour garder les fichiers pour toujours.",
+  "admin.config.verification.code-subject": "Sujet du code de vérification",
+  "admin.config.verification.code-subject.description":
+    "Intitulé du courriel contenant le code de vérification à usage unique.",
+  "admin.config.verification.code-message": "Message du code de vérification",
+  "admin.config.verification.code-message.description":
+    "Contenu du courriel envoyé avec le code de vérification. {code} sera remplacé par le code réel.",
   "admin.config.smtp.enabled": "Activer",
   "admin.config.smtp.enabled.description":
     "Active SMTP. Activez ceci uniquement si vous avez saisi l’hôte, le port, le courriel, l’utilisateur et son mot de passe, de votre serveur SMTP.",
@@ -865,7 +882,7 @@ export default {
   "admin.config.s3.use-checksum.description":
     "Désactivez cette option pour les backends qui ne prennent pas en charge la somme de contrôle (ex. B2).",
   "admin.config.s3.docs-link":
-    "CORS must be reconfigured on your bucket, see the {wikiLink} for details.",
+    "Le CORS doit être reconfiguré sur votre bucket, voir la {wikiLink} pour plus de détails.",
   "admin.config.category.legal": "Juridique",
   "admin.config.legal.enabled": "Activer les mentions légales",
   "admin.config.legal.enabled.description":
@@ -925,6 +942,7 @@ export default {
   "common.button.preview": "Aperçu",
   "common.button.edit": "Modifier",
   "common.button.profile": "Profil",
+  "common.badge.ldap": "LDAP",
   "common.button.shares": "Partages",
   "common.button.save": "Sauvegarder",
   "common.button.create": "Créer",

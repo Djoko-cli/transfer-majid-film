@@ -163,8 +163,9 @@ export const configVariables = {
     },
     "redis-url": {
       type: "string",
-      defaultValue: "redis://pingvin-redis:6379",
+      defaultValue: "redis://redis:6379",
       secret: true,
+      obscured: true,
     },
     ttl: {
       type: "number",
@@ -479,6 +480,7 @@ export const configVariables = {
       type: "string",
       defaultValue: "",
       secret: true,
+      obscured: true,
     },
     secret: {
       type: "string",

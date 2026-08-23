@@ -35,6 +35,7 @@ const categories = [
   "Appearance",
   "Email",
   "Share",
+  "Verification",
   "SMTP",
   "OAuth",
   "LDAP",
@@ -228,11 +229,11 @@ const AdminConfigPage: NextPageWithLayout = () => {
                           values={{
                             wikiLink: (
                               <Anchor
-                                href="https://smp46.github.io/pingvin-share-x/v2/setup/s3#cors-configuration"
+                                href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html"
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
-                                wiki
+                                AWS S3 CORS documentation
                               </Anchor>
                             ),
                           }}

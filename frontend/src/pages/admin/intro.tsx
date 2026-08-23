@@ -13,13 +13,16 @@ import Logo from "../../components/Logo";
 import Meta from "../../components/Meta";
 import glassFormTheme from "../../components/upload/glassFormTheme";
 import useConfig from "../../hooks/config.hook";
+import useTranslate from "../../hooks/useTranslate.hook";
 
 const Intro = () => {
   const config = useConfig();
+  const t = useTranslate();
+  const appName = config.get("general.appName");
 
   return (
     <>
-      <Meta title="Intro" />
+      <Meta title={t("admin.intro.title", { appName })} />
       <Container size="xs">
         <MantineProvider inherit theme={glassFormTheme}>
           <Paper p="xl">
@@ -28,18 +31,16 @@ const Intro = () => {
                 <Logo height={80} width={80} />
               </Center>
               <Center>
-                <Title order={2}>
-                  Welcome to {config.get("general.appName")}
-                </Title>
+                <Title order={2}>{t("admin.intro.title", { appName })}</Title>
               </Center>
-              <Text>Your admin account is ready.</Text>
-              <Text mt="lg">How do you want to continue?</Text>
+              <Text>{t("admin.intro.description")}</Text>
+              <Text mt="lg">{t("admin.intro.question")}</Text>
               <Stack>
                 <Button href="/admin/config/general" component={Link}>
-                  Customize configuration
+                  {t("admin.intro.button.config")}
                 </Button>
                 <Button href="/" component={Link} variant="light">
-                  Explore {config.get("general.appName")}
+                  {t("admin.intro.button.explore", { appName })}
                 </Button>
               </Stack>
             </Stack>

@@ -254,14 +254,16 @@ const MyShares = () => {
                                 cancel: t("common.button.cancel"),
                               },
                               onConfirm: () => {
-                                shareService.removeReverseShare(
-                                  reverseShare.id,
-                                );
-                                setReverseShares(
-                                  reverseShares.filter(
-                                    (item) => item.id !== reverseShare.id,
-                                  ),
-                                );
+                                shareService
+                                  .removeReverseShare(reverseShare.id)
+                                  .then(() =>
+                                    setReverseShares(
+                                      reverseShares.filter(
+                                        (item) => item.id !== reverseShare.id,
+                                      ),
+                                    ),
+                                  )
+                                  .catch(toast.axiosError);
                               },
                             });
                           }}
