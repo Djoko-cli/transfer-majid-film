@@ -126,19 +126,17 @@ const FileList = ({
                 <TableSortIcon sort={sort} setSort={setSort} property="name" />
               </Group>
             </th>
-            {/* Left-aligned, matching "Nom" — right-aligning the values
-                (tried, then reverted) put their *right* edge flush with
-                the header's, but "Taille" plus its sort icon needs ~100px
-                to avoid wrapping (verified: 80px content + 10px padding
-                each side) while a typical value like "200.0 B" is far
-                narrower, so their *left* edges staggered instead, reading
-                as the header floating disconnected from the column below
-                it. Left-aligning both instead means they share the exact
-                same left edge — unambiguously "the same column" — at the
-                cost of some trailing space after short values, which is
-                just how left-aligned columns of variable-width content
-                normally look (see also "Nom" itself). */}
-            <th style={{ width: 100 }}>
+            {/* Left-aligned, matching "Nom" (see the longer comment history
+                in git log for why). Width is the column's real minimum —
+                verified live: "Taille" text (35px) + gap (10px) +
+                TableSortIcon at its now-reduced 18px (see SortIcon.tsx) +
+                10px padding each side ≈ 83px — plus a few px of buffer for
+                font-rendering variance, not the old 100px, which had
+                ~17px of pure slack once the icon stopped being Mantine's
+                oversized 28px default. That reclaimed width isn't lost —
+                under table-layout: fixed it flows straight to the name
+                column, the one that actually benefits from it. */}
+            <th style={{ width: 90 }}>
               <Group spacing="xs" noWrap>
                 <FormattedMessage id="share.table.size" />
                 <TableSortIcon sort={sort} setSort={setSort} property="size" />
