@@ -6,6 +6,16 @@ import GlintBorder from "./GlintBorder";
 import LiquidGlassKeyframes from "./liquidGlassKeyframes";
 
 const CARD_RADIUS = 28;
+// Guaranteed breathing room between the card and the header above / viewport
+// bottom below, on top of just clearing the header's own height. Without
+// this, a card that's tall enough to hit its own maxHeight cap sits flush
+// against the header (0px gap) while still leaving a visible gap at the
+// bottom — because the header is opaque and "eats" its own reserved space,
+// while the bottom's reservation is empty space nothing else occupies. This
+// margin is applied identically top and bottom (see cardSlot's padding and
+// .card's maxHeight below) so the two visible gaps are always equal,
+// independent of window size or how tall the card's content is.
+const CARD_VERTICAL_MARGIN = 24;
 
 const useStyles = createStyles((theme) => {
   const dark = theme.colorScheme === "dark";
@@ -22,13 +32,19 @@ const useStyles = createStyles((theme) => {
       // (see _app.tsx's compensating paddingTop) so the image reaches the
       // very top of the viewport instead of starting below the navbar.
       marginTop: -HEADER_HEIGHT,
-      // Reserves exactly the footer's real, live-measured height (published
-      // as a CSS var by Footer.tsx) rather than a guessed pixel figure —
-      // the footer isn't a fixed height, it grows when legal links wrap to
-      // a second line at narrow-but-not-mobile widths. Getting this wrong
-      // let the card below grow taller than the space actually available
-      // and get visually cut off by the footer painting over it.
-      minHeight: "calc(100vh - var(--footer-height, 40px))",
+      // Reserves whichever is larger: the header's own height (so the
+      // bottom gap to the viewport edge always matches the top gap under
+      // the navbar, which is what the card is actually centered against —
+      // not the header height, until the footer forces it), or the
+      // footer's real, live-measured height (published as a CSS var by
+      // Footer.tsx, since it isn't constant — it grows when legal links
+      // wrap to a second line at narrow-but-not-mobile widths). Reserving
+      // only the header's height unconditionally previously let a tall
+      // footer's own painting area overlap the card; reserving only the
+      // footer's height (previously) broke the symmetric top/bottom gap
+      // whenever the footer was shorter than the header, which is the
+      // common case.
+      minHeight: `calc(100vh - max(${HEADER_HEIGHT}px, var(--footer-height, 40px)))`,
       overflow: "hidden",
 
       [theme.fn.smallerThan("sm")]: {
@@ -52,6 +68,7 @@ const useStyles = createStyles((theme) => {
       zIndex: 2,
       display: "flex",
       alignItems: "center",
+      padding: `${CARD_VERTICAL_MARGIN}px 0`,
 
       [theme.fn.smallerThan("sm")]: {
         position: "relative",
@@ -61,6 +78,7 @@ const useStyles = createStyles((theme) => {
         width: "100%",
         maxWidth: "none",
         display: "block",
+        padding: 0,
       },
     },
 
@@ -78,11 +96,11 @@ const useStyles = createStyles((theme) => {
       // driven — a percentage there wouldn't have anything definite to
       // resolve against. Only ever bites on short viewports with a lot of
       // expanded content; overflowY is the actual safety net. Must reserve
-      // the exact same footer space as cardSlot's band above (`.bleed`'s
-      // minHeight) — a smaller reservation here than there let the card
-      // grow taller than the band it's centered in and overflow past it,
-      // straight into the footer.
-      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - var(--footer-height, 40px))`,
+      // the exact same space as cardSlot's band above (`.bleed`'s minHeight
+      // plus cardSlot's own vertical padding) — a smaller reservation here
+      // than there let the card grow taller than the band it's centered in
+      // and overflow past it.
+      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - max(${HEADER_HEIGHT}px, var(--footer-height, 40px)) - ${2 * CARD_VERTICAL_MARGIN}px)`,
       overflowY: "auto",
       padding: theme.spacing.xl,
       borderRadius: CARD_RADIUS,

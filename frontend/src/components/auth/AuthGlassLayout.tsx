@@ -25,13 +25,13 @@ const useStyles = createStyles((theme) => {
       width: "100vw",
       marginTop: -HEADER_HEIGHT,
       marginBottom: -1,
-      // Reserves the footer's real, live-measured height (published as a
-      // CSS var by Footer.tsx) instead of a guessed pixel figure — see the
-      // matching comment in SplitTransferLayout, whose "cut off by the
-      // footer on some viewports" bug came from exactly this kind of
-      // mismatch between a guessed reservation and the footer's actual,
-      // content-dependent height.
-      minHeight: "calc(100vh - var(--footer-height, 40px))",
+      // Reserves whichever is larger: the header's height (so the bottom
+      // gap to the viewport edge matches the top gap under the navbar) or
+      // the footer's real, live-measured height (published as a CSS var by
+      // Footer.tsx — it isn't constant, it grows when legal links wrap to
+      // a second line). See the matching, more detailed comment in
+      // SplitTransferLayout.
+      minHeight: `calc(100vh - max(${HEADER_HEIGHT}px, var(--footer-height, 40px)))`,
       overflow: "hidden",
 
       [theme.fn.smallerThan("sm")]: {
@@ -70,6 +70,14 @@ const useStyles = createStyles((theme) => {
 
     card: {
       position: "relative",
+      // Must reserve the exact same space as cardSlot's band above (`.bleed`'s
+      // minHeight plus cardSlot's own 48px vertical padding) — otherwise an
+      // unusually tall auth card (e.g. TOTP with an error message) could
+      // grow past the space actually available and get cut off by the
+      // footer; overflowY is the safety net if it does hit the cap. See the
+      // matching, more detailed comment in SplitTransferLayout.
+      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - max(${HEADER_HEIGHT}px, var(--footer-height, 40px)) - 96px)`,
+      overflowY: "auto",
       padding: theme.spacing.xl,
       borderRadius: CARD_RADIUS,
       border: `1px solid ${dark ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.5)"}`,
@@ -83,6 +91,7 @@ const useStyles = createStyles((theme) => {
         : "0 24px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
 
       [theme.fn.smallerThan("sm")]: {
+        maxHeight: "none",
         borderRadius: 0,
         border: "none",
         background: dark ? theme.colors.dark[7] : theme.white,

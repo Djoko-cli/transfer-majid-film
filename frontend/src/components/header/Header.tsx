@@ -65,6 +65,19 @@ const useStyles = createStyles((theme) => {
       },
     },
 
+    // Reserves a little breathing room below the fixed header specifically
+    // for the collapsed mobile menu (see the `!opened` spacer below) — it
+    // must not render past the "sm" breakpoint like `mobilePanel` above,
+    // otherwise it silently adds an unaccounted-for 40px gap under the
+    // header on every desktop page too, throwing off any layout (e.g. the
+    // upload card, auth cards) that centers its content symmetrically
+    // between the header and the viewport/footer.
+    mobileSpacer: {
+      [theme.fn.largerThan("sm")]: {
+        display: "none",
+      },
+    },
+
     header: {
       display: "flex",
       justifyContent: "space-between",
@@ -390,7 +403,7 @@ const Header = () => {
           </Paper>
         )}
       </Transition>
-      {!opened && <Box mb={40} />}
+      {!opened && <Box mb={40} className={classes.mobileSpacer} />}
     </>
   );
 };
