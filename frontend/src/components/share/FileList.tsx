@@ -108,26 +108,30 @@ const FileList = ({
 
   return (
     <Box sx={{ display: "block", overflowX: "auto" }}>
-      <Table>
+      {/* table-layout: fixed pins the size/actions columns to an explicit
+          width (their content never varies enough to need more) and lets
+          the name column take whatever's left — under the default auto
+          layout, a long file name grew the name column and squeezed the
+          other two instead, both wrapping their header's icon onto its own
+          line and, at the extreme, clipping the last action icon past the
+          card's own edge. The name column's own overflow is then handled
+          by truncating with an ellipsis (below) rather than growing. */}
+      <Table style={{ tableLayout: "fixed", width: "100%" }}>
         <thead>
           <tr>
             <th>
-              <Group spacing="xs">
+              <Group spacing="xs" noWrap>
                 <FormattedMessage id="share.table.name" />
                 <TableSortIcon sort={sort} setSort={setSort} property="name" />
               </Group>
             </th>
-            {/* nowrap on both the size and actions columns — without it,
-                a long file name in the (flexible, unconstrained) name
-                column starves these of width under the table's default
-                auto-layout, squeezing e.g. "200.0 B" onto two lines. */}
-            <th style={{ whiteSpace: "nowrap" }}>
-              <Group spacing="xs">
+            <th style={{ width: 110 }}>
+              <Group spacing="xs" noWrap>
                 <FormattedMessage id="share.table.size" />
                 <TableSortIcon sort={sort} setSort={setSort} property="size" />
               </Group>
             </th>
-            <th style={{ whiteSpace: "nowrap" }}></th>
+            <th style={{ width: 160 }}></th>
           </tr>
         </thead>
         <tbody>
@@ -135,7 +139,15 @@ const FileList = ({
             ? skeletonRows
             : files!.map((file) => (
                 <tr key={file.name}>
-                  <td>{renderFileName(file.name)}</td>
+                  <td
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {renderFileName(file.name)}
+                  </td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     {byteToHumanSizeString(parseInt(file.size))}
                   </td>
@@ -223,19 +235,21 @@ const FileList = ({
   );
 };
 
+// Three cells — matching the real table's Name/Size/Actions columns.
+// Previously had a stray 4th cell, invisible under the old auto table
+// layout (the browser just quietly folded it in), but table-layout: fixed
+// above assigns column widths by index, so a mismatched cell count would
+// now visibly misalign the skeleton against the real header.
 const skeletonRows = [...Array(5)].map((c, i) => (
   <tr key={i}>
     <td>
-      <Skeleton height={30} width={30} />
-    </td>
-    <td>
       <Skeleton height={14} />
     </td>
     <td>
-      <Skeleton height={14} />
+      <Skeleton height={14} width={70} />
     </td>
     <td>
-      <Skeleton height={25} width={25} />
+      <Skeleton height={25} width={25} ml="auto" />
     </td>
   </tr>
 ));
