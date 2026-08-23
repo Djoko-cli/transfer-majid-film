@@ -17,7 +17,7 @@ const CARD_RADIUS = 28;
 // independent of window size or how tall the card's content is.
 const CARD_VERTICAL_MARGIN = 24;
 
-const useStyles = createStyles((theme) => {
+const useStyles = createStyles((theme, { width }: { width: number }) => {
   const dark = theme.colorScheme === "dark";
 
   return {
@@ -68,7 +68,7 @@ const useStyles = createStyles((theme) => {
       // the bar itself just inflates that leftover on one side only.
       bottom: "var(--footer-height, 40px)",
       left: "clamp(20px, 4vw, 56px)",
-      width: 440,
+      width,
       maxWidth: "calc(100vw - 40px)",
       zIndex: 2,
       display: "flex",
@@ -147,8 +147,14 @@ const useStyles = createStyles((theme) => {
   };
 });
 
-const SplitTransferLayout = ({ children }: { children: ReactNode }) => {
-  const { classes } = useStyles();
+const SplitTransferLayout = ({
+  children,
+  width = 440,
+}: {
+  children: ReactNode;
+  width?: number;
+}) => {
+  const { classes } = useStyles({ width });
 
   return (
     <Box className={classes.bleed}>

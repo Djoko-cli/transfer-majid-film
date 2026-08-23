@@ -4,6 +4,7 @@ import {
   Button,
   Center,
   Group,
+  MantineProvider,
   Stack,
   Text,
   Title,
@@ -21,6 +22,8 @@ import FileList from "../../../components/share/FileList";
 import showEnterPasswordModal from "../../../components/share/showEnterPasswordModal";
 import showErrorModal from "../../../components/share/showErrorModal";
 import showShareInformationsModal from "../../../components/share/showShareInformationsModal";
+import glassFormTheme from "../../../components/upload/glassFormTheme";
+import SplitTransferLayout from "../../../components/upload/SplitTransferLayout";
 import useConfig from "../../../hooks/config.hook";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import useUser from "../../../hooks/user.hook";
@@ -30,6 +33,11 @@ import toast from "../../../utils/toast.util";
 import { byteToHumanSizeString } from "../../../utils/fileSize.util";
 import { getQueryString } from "../../../utils/router.util";
 import { HoverTip } from "../../../components/core/HoverTip";
+
+// Wider than the upload card (440) — a file table with a name column plus
+// up to 4 action icons per row needs more room than a form does before it
+// starts feeling cramped.
+const CARD_WIDTH = 640;
 
 export function getServerSideProps(context: GetServerSidePropsContext) {
   return {
@@ -168,22 +176,26 @@ const Share = ({ shareId }: { shareId: string }) => {
 
   if (isRestricted) {
     return (
-      <Center style={{ height: "70vh" }}>
-        <Stack align="center" spacing="md">
-          <Title order={3}>
-            <FormattedMessage id="share.error.restricted.title" />
-          </Title>
-          <Text color="dimmed" align="center">
-            <FormattedMessage id="share.error.restricted.description" />
-          </Text>
-          <Button
-            component={Link}
-            href={`/auth/signIn?redirect=/share/${shareId}`}
-          >
-            <FormattedMessage id="share.error.restricted.button" />
-          </Button>
-        </Stack>
-      </Center>
+      <SplitTransferLayout width={CARD_WIDTH}>
+        <MantineProvider inherit theme={glassFormTheme}>
+          <Center>
+            <Stack align="center" spacing="md">
+              <Title order={3}>
+                <FormattedMessage id="share.error.restricted.title" />
+              </Title>
+              <Text color="dimmed" align="center">
+                <FormattedMessage id="share.error.restricted.description" />
+              </Text>
+              <Button
+                component={Link}
+                href={`/auth/signIn?redirect=/share/${shareId}`}
+              >
+                <FormattedMessage id="share.error.restricted.button" />
+              </Button>
+            </Stack>
+          </Center>
+        </MantineProvider>
+      </SplitTransferLayout>
     );
   }
 
@@ -194,64 +206,71 @@ const Share = ({ shareId }: { shareId: string }) => {
         description={t("share.description")}
       />
 
-      <Group position="apart" mb="lg">
-        <Box style={{ maxWidth: "70%" }}>
-          <Title order={3}>{share?.name || share?.id}</Title>
-          <Text size="sm">{share?.description}</Text>
-          {share?.files?.length > 0 && (
-            <Text size="sm" color="dimmed" mt={5}>
-              <FormattedMessage
-                id="share.fileCount"
-                values={{
-                  count: share?.files?.length || 0,
-                  size: byteToHumanSizeString(
-                    share?.files?.reduce(
-                      (total: number, file: { size: string }) =>
-                        total + parseInt(file.size),
-                      0,
-                    ) || 0,
-                  ),
-                }}
-              />
-            </Text>
-          )}
-        </Box>
+      <SplitTransferLayout width={CARD_WIDTH}>
+        <MantineProvider inherit theme={glassFormTheme}>
+          <Group position="apart" mb="lg" noWrap align="flex-start">
+            <Box style={{ minWidth: 0 }}>
+              <Title order={3}>{share?.name || share?.id}</Title>
+              <Text size="sm">{share?.description}</Text>
+              {share?.files?.length > 0 && (
+                <Text size="sm" color="dimmed" mt={5}>
+                  <FormattedMessage
+                    id="share.fileCount"
+                    values={{
+                      count: share?.files?.length || 0,
+                      size: byteToHumanSizeString(
+                        share?.files?.reduce(
+                          (total: number, file: { size: string }) =>
+                            total + parseInt(file.size),
+                          0,
+                        ) || 0,
+                      ),
+                    }}
+                  />
+                </Text>
+              )}
+            </Box>
 
-        <Group spacing="xs">
-          {isOwner && (
-            <HoverTip label={t("account.shares.button.edit")}>
-              <Link href={`/share/${shareId}/edit`}>
-                <ActionIcon variant="light" color="orange" size="lg">
-                  <TbPlusMinus />
-                </ActionIcon>
-              </Link>
-            </HoverTip>
-          )}
-          {isOwnerOrAdmin && (
-            <HoverTip label={t("common.button.edit")}>
-              <ActionIcon
-                variant="light"
-                color="blue"
-                size="lg"
-                onClick={handleEditClick}
-              >
-                <TbEdit />
-              </ActionIcon>
-            </HoverTip>
-          )}
-          {share?.files.length > 1 && (
-            <DownloadAllButton shareId={shareId} recipientId={recipientId} />
-          )}
-        </Group>
-      </Group>
+            <Group spacing="xs" noWrap>
+              {isOwner && (
+                <HoverTip label={t("account.shares.button.edit")}>
+                  <Link href={`/share/${shareId}/edit`}>
+                    <ActionIcon variant="light" color="orange" size="lg">
+                      <TbPlusMinus />
+                    </ActionIcon>
+                  </Link>
+                </HoverTip>
+              )}
+              {isOwnerOrAdmin && (
+                <HoverTip label={t("common.button.edit")}>
+                  <ActionIcon
+                    variant="light"
+                    color="blue"
+                    size="lg"
+                    onClick={handleEditClick}
+                  >
+                    <TbEdit />
+                  </ActionIcon>
+                </HoverTip>
+              )}
+              {share?.files.length > 1 && (
+                <DownloadAllButton
+                  shareId={shareId}
+                  recipientId={recipientId}
+                />
+              )}
+            </Group>
+          </Group>
 
-      <FileList
-        files={share?.files}
-        setShare={setShare}
-        share={share!}
-        isLoading={!share}
-        recipientId={recipientId}
-      />
+          <FileList
+            files={share?.files}
+            setShare={setShare}
+            share={share!}
+            isLoading={!share}
+            recipientId={recipientId}
+          />
+        </MantineProvider>
+      </SplitTransferLayout>
     </>
   );
 };
