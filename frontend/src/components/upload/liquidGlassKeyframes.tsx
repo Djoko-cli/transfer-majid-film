@@ -39,6 +39,14 @@ const CSS = `
   from { --glint-angle: 0deg; }
   to   { --glint-angle: 360deg; }
 }
+@keyframes buttonShimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -100% 0; }
+}
+@keyframes buttonWaitingPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--pulse-glow-color, transparent); }
+  50%      { box-shadow: 0 0 14px 3px var(--pulse-glow-color, transparent); }
+}
 `;
 
 const LiquidGlassKeyframes = () => (

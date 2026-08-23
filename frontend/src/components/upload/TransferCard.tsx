@@ -138,6 +138,38 @@ const TransferCard = ({
     };
   };
 
+  // The submit button's two "nothing to do yet" states, both reusing
+  // liquidGlassKeyframes' global @keyframes (createStyles doesn't reliably
+  // register object-syntax @keyframes in this codebase — see that file).
+  // Once files are selected the button is genuinely actionable, so it gets
+  // an energetic shimmer sweep; before that it's disabled, so a shimmer
+  // there would read as "something is happening" when nothing is — a
+  // slower breathing glow says "waiting for input" instead.
+  const submitButtonReadySx = {
+    position: "relative",
+    overflow: "hidden",
+    "&::after": {
+      content: "''",
+      position: "absolute",
+      inset: 0,
+      background:
+        "linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.6) 50%, transparent 65%)",
+      backgroundSize: "250% 100%",
+      animation: "buttonShimmer 2.6s ease-in-out infinite",
+    },
+    "@media (prefers-reduced-motion: reduce)": {
+      "&::after": { animation: "none" },
+    },
+  } as const;
+
+  const submitButtonWaitingSx = {
+    ["--pulse-glow-color" as string]: `${theme.colors[theme.primaryColor][theme.colorScheme === "dark" ? 4 : 6]}66`,
+    animation: "buttonWaitingPulse 2.8s ease-in-out infinite",
+    "@media (prefers-reduced-motion: reduce)": {
+      animation: "none",
+    },
+  } as const;
+
   const [mode, setMode] = useState<Mode>("link");
   const [emailSearch, setEmailSearch] = useState("");
   const [showNotSignedInAlert, setShowNotSignedInAlert] = useState(true);
@@ -648,6 +680,13 @@ const TransferCard = ({
             size="md"
             disabled={files.length === 0}
             loading={isUploading}
+            sx={
+              isUploading
+                ? undefined
+                : files.length === 0
+                  ? submitButtonWaitingSx
+                  : submitButtonReadySx
+            }
           >
             <FormattedMessage id="upload.transfer.submit" />
           </Button>
