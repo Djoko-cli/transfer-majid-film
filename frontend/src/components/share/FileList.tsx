@@ -114,8 +114,9 @@ const FileList = ({
           layout, a long file name grew the name column and squeezed the
           other two instead, both wrapping their header's icon onto its own
           line and, at the extreme, clipping the last action icon past the
-          card's own edge. The name column's own overflow is then handled
-          by truncating with an ellipsis (below) rather than growing. */}
+          card's own edge. The name column's own overflow then wraps onto
+          extra lines (see the name cell below) instead of growing the
+          table or truncating the file name away. */}
       <Table style={{ tableLayout: "fixed", width: "100%" }}>
         <thead>
           <tr>
@@ -125,8 +126,15 @@ const FileList = ({
                 <TableSortIcon sort={sort} setSort={setSort} property="name" />
               </Group>
             </th>
-            <th style={{ width: 110 }}>
-              <Group spacing="xs" noWrap>
+            {/* Right-aligned (header label and values both) so a short
+                value like "200.0 B" sits flush against the actions column
+                that follows instead of floating with dead space after it —
+                the column still needs to stay wide enough for the header's
+                own label plus sort icon, and for a realistic worst-case
+                value ("999.9 GB"), so this is about where the text sits
+                within that width, not the width itself. */}
+            <th style={{ width: 100, textAlign: "right" }}>
+              <Group spacing="xs" noWrap position="right">
                 <FormattedMessage id="share.table.size" />
                 <TableSortIcon sort={sort} setSort={setSort} property="size" />
               </Group>
@@ -141,17 +149,23 @@ const FileList = ({
                 <tr key={file.name}>
                   <td
                     style={{
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+                      whiteSpace: "normal",
+                      overflowWrap: "break-word",
+                      verticalAlign: "top",
                     }}
                   >
                     {renderFileName(file.name)}
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  <td
+                    style={{
+                      whiteSpace: "nowrap",
+                      textAlign: "right",
+                      verticalAlign: "top",
+                    }}
+                  >
                     {byteToHumanSizeString(parseInt(file.size))}
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  <td style={{ whiteSpace: "nowrap", verticalAlign: "top" }}>
                     <Group position="right" noWrap>
                       {shareService.isShareTextFile(file.name) && (
                         <HoverTip label={t("share.copy-text-contents")}>
