@@ -59,12 +59,14 @@ const useStyles = createStyles((theme) => {
       // Mirrors `top` — now that `.bleed` spans the full viewport (see
       // above), the card needs its own explicit reservation to stay clear
       // of the footer instead of relying on `.bleed`'s own box stopping
-      // short of it. Whichever is larger: the header's height (keeps the
-      // bottom gap matching the top gap in the common case, where the
-      // footer is shorter than the header) or the footer's real,
-      // live-measured height (so a tall, wrapped footer never overlaps the
-      // card).
-      bottom: `max(${HEADER_HEIGHT}px, var(--footer-height, 40px))`,
+      // short of it. Uses the footer's real, live-measured height directly
+      // (not padded up to match the header's) — the header and footer
+      // aren't the same height (60px vs. ~32px), so reserving the larger
+      // of the two here would leave visibly *more* breathing room below
+      // the card than above it: the visible gap is what's left after the
+      // real bar's own height is subtracted, and a taller reservation than
+      // the bar itself just inflates that leftover on one side only.
+      bottom: "var(--footer-height, 40px)",
       left: "clamp(20px, 4vw, 56px)",
       width: 440,
       maxWidth: "calc(100vw - 40px)",
@@ -103,7 +105,7 @@ const useStyles = createStyles((theme) => {
       // reservations plus its vertical padding) — a smaller reservation
       // here than there let the card grow taller than the band it's
       // centered in and overflow past it.
-      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - max(${HEADER_HEIGHT}px, var(--footer-height, 40px)) - ${2 * CARD_VERTICAL_MARGIN}px)`,
+      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - var(--footer-height, 40px) - ${2 * CARD_VERTICAL_MARGIN}px)`,
       overflowY: "auto",
       padding: theme.spacing.xl,
       borderRadius: CARD_RADIUS,

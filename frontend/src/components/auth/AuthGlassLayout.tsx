@@ -47,8 +47,10 @@ const useStyles = createStyles((theme) => {
       top: HEADER_HEIGHT,
       // Mirrors `top` — reserves room to stay clear of the now-floating
       // footer instead of relying on `.bleed`'s own box stopping short of
-      // it. See the matching, more detailed comment in SplitTransferLayout.
-      bottom: `max(${HEADER_HEIGHT}px, var(--footer-height, 40px))`,
+      // it. Uses the footer's real height directly, not padded up to match
+      // the header's. See the matching, more detailed comment in
+      // SplitTransferLayout.
+      bottom: "var(--footer-height, 40px)",
       left: 0,
       right: 0,
       zIndex: 2,
@@ -80,7 +82,7 @@ const useStyles = createStyles((theme) => {
       // grow past the space actually available and get cut off by the
       // footer; overflowY is the safety net if it does hit the cap. See the
       // matching, more detailed comment in SplitTransferLayout.
-      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - max(${HEADER_HEIGHT}px, var(--footer-height, 40px)) - 96px)`,
+      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - var(--footer-height, 40px) - 96px)`,
       overflowY: "auto",
       padding: theme.spacing.xl,
       borderRadius: CARD_RADIUS,
