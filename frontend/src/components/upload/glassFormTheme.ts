@@ -26,6 +26,22 @@ const glassFieldStyles = (theme: any) => {
         borderColor: theme.colors[theme.primaryColor][dark ? 4 : 6],
       },
     },
+    // PasswordInput (alone among these) splits "input" into an outer
+    // wrapper (border/background — the `input` key above) and this inner
+    // key for the actual <input> it contains, because the wrapper also
+    // hosts the show/hide toggle button. `::placeholder` only ever matches
+    // a real <input>, never an ancestor, so without repeating it here the
+    // wrapper's placeholder color silently matches nothing and the field
+    // falls back to Mantine's own default — a dark grey meant for an
+    // opaque background, unreadable against this translucent one. Every
+    // other component using glassFieldStyles has just one real input, so
+    // this key is simply ignored there.
+    innerInput: {
+      color: dark ? theme.white : theme.black,
+      "&::placeholder": {
+        color: dark ? "rgba(255, 255, 255, 0.42)" : "rgba(0, 0, 0, 0.4)",
+      },
+    },
     label: {
       color: dark ? "rgba(255, 255, 255, 0.85)" : "rgba(0, 0, 0, 0.75)",
     },
@@ -97,6 +113,16 @@ const glassFormTheme: MantineThemeOverride = {
         const dark = theme.colorScheme === "dark";
         return {
           ...glassFieldStyles(theme),
+          // Same split as PasswordInput's innerInput above: MultiSelect's
+          // own "input" key is the outer box holding the chips *and* the
+          // search field together, not the real text-entry element, so its
+          // placeholder needs repeating here to actually take effect.
+          searchInput: {
+            color: dark ? theme.white : theme.black,
+            "&::placeholder": {
+              color: dark ? "rgba(255, 255, 255, 0.42)" : "rgba(0, 0, 0, 0.4)",
+            },
+          },
           defaultValue: {
             backgroundColor: dark
               ? "rgba(255, 255, 255, 0.14)"
