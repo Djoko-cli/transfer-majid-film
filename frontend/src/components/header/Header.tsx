@@ -115,10 +115,15 @@ const useStyles = createStyles((theme) => {
       fontSize: theme.fontSizes.sm,
       fontWeight: 500,
 
+      // A solid near-black fill here (Mantine's own default hover for a
+      // dark-scheme nav link) reads as a stray opaque chip against this
+      // header's translucent glass background — the same soft white-alpha
+      // overlay used for hover states elsewhere in the glass system
+      // (e.g. TransferCard's stepper buttons) instead.
       "&:hover": {
         backgroundColor:
           theme.colorScheme === "dark"
-            ? theme.colors.dark[6]
+            ? "rgba(255, 255, 255, 0.1)"
             : theme.colors.gray[0],
       },
 
@@ -142,7 +147,7 @@ const useStyles = createStyles((theme) => {
       "&:hover": {
         backgroundColor:
           theme.colorScheme === "dark"
-            ? theme.colors.dark[6]
+            ? "rgba(255, 255, 255, 0.1)"
             : theme.colors.gray[0],
       },
     },

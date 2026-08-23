@@ -117,13 +117,17 @@ const FileList = ({
                 <TableSortIcon sort={sort} setSort={setSort} property="name" />
               </Group>
             </th>
-            <th>
+            {/* nowrap on both the size and actions columns — without it,
+                a long file name in the (flexible, unconstrained) name
+                column starves these of width under the table's default
+                auto-layout, squeezing e.g. "200.0 B" onto two lines. */}
+            <th style={{ whiteSpace: "nowrap" }}>
               <Group spacing="xs">
                 <FormattedMessage id="share.table.size" />
                 <TableSortIcon sort={sort} setSort={setSort} property="size" />
               </Group>
             </th>
-            <th></th>
+            <th style={{ whiteSpace: "nowrap" }}></th>
           </tr>
         </thead>
         <tbody>
@@ -132,8 +136,10 @@ const FileList = ({
             : files!.map((file) => (
                 <tr key={file.name}>
                   <td>{renderFileName(file.name)}</td>
-                  <td>{byteToHumanSizeString(parseInt(file.size))}</td>
-                  <td>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    {byteToHumanSizeString(parseInt(file.size))}
+                  </td>
+                  <td style={{ whiteSpace: "nowrap" }}>
                     <Group position="right" noWrap>
                       {shareService.isShareTextFile(file.name) && (
                         <HoverTip label={t("share.copy-text-contents")}>

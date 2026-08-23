@@ -247,6 +247,7 @@ const EditableUpload = ({
         currentFilesSize={currentFilesSize}
         onFilesChanged={appendFiles}
         isUploading={isUploading}
+        glass
       />
       {existingAndUploadedFiles.length > 0 && (
         <FileList files={existingAndUploadedFiles} setFiles={setFiles} />

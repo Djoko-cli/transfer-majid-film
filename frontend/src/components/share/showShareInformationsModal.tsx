@@ -5,6 +5,7 @@ import {
   Divider,
   Flex,
   Group,
+  MantineProvider,
   NumberInput,
   PasswordInput,
   Progress,
@@ -25,6 +26,8 @@ import { Timespan } from "../../types/timespan.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
 import CopyTextField from "../upload/CopyTextField";
+import glassFormTheme from "../upload/glassFormTheme";
+import { glassModalStyles } from "../upload/glassModalTheme";
 import QRCode from "./QRCode";
 import { useState } from "react";
 
@@ -42,16 +45,19 @@ const showShareInformationsModal = (
 
   return modals.openModal({
     title: t("account.shares.modal.share-informations"),
+    styles: glassModalStyles,
     children: (
-      <Body
-        share={share}
-        maxShareSize={maxShareSize}
-        appUrl={appUrl}
-        defaultAppUrl={defaultAppUrl}
-        maxExpiration={maxExpiration}
-        onShareUpdated={onShareUpdated}
-        initiallyEditing={initiallyEditing}
-      />
+      <MantineProvider inherit theme={glassFormTheme}>
+        <Body
+          share={share}
+          maxShareSize={maxShareSize}
+          appUrl={appUrl}
+          defaultAppUrl={defaultAppUrl}
+          maxExpiration={maxExpiration}
+          onShareUpdated={onShareUpdated}
+          initiallyEditing={initiallyEditing}
+        />
+      </MantineProvider>
     ),
   });
 };
