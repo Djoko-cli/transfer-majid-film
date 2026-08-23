@@ -272,7 +272,12 @@ const useStyles = createStyles((theme) => ({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 0,
+    // Sits just above the fixed, translucent footer (see Footer.tsx)
+    // rather than at the panel's own true bottom edge — since that footer
+    // now floats on top of the image (z-index 100) with the image showing
+    // through its glass, a caption placed underneath it would be readable
+    // only as a faint blur, not legible text.
+    bottom: "var(--footer-height, 40px)",
     padding: `${theme.spacing.xl} ${theme.spacing.lg} ${theme.spacing.md}`,
     background: "linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent)",
     zIndex: 3,
