@@ -17,29 +17,62 @@ import { FileUpload } from "../../types/File.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
 
-const useStyles = createStyles((theme) => ({
-  wrapper: {
-    position: "relative",
-    marginBottom: 30,
-  },
+const useStyles = createStyles((theme) => {
+  const dark = theme.colorScheme === "dark";
+  const accent = theme.colors[theme.primaryColor][dark ? 4 : 6];
 
-  dropzone: {
-    borderWidth: 1,
-    paddingBottom: 50,
-  },
+  return {
+    wrapper: {
+      position: "relative",
+      marginBottom: 30,
+    },
 
-  icon: {
-    color:
-      theme.colorScheme === "dark"
-        ? theme.colors.dark[3]
-        : theme.colors.gray[4],
-  },
+    dropzone: {
+      borderWidth: 1,
+      paddingBottom: 50,
+    },
 
-  control: {
-    position: "absolute",
-    bottom: -20,
-  },
-}));
+    // Reuses liquidGlassKeyframes' global @keyframes (see TransferCard,
+    // where this same pulse used to live on the submit button — moved here
+    // since the dropzone is the element a waiting user actually needs to
+    // act on). Glow lives on a pseudo-element with a fixed (unanimated)
+    // box-shadow, animating only its opacity — box-shadow itself isn't a
+    // compositable property, so animating its blur/spread radius directly
+    // forces a repaint on every frame and reads as stuttery rather than a
+    // smooth breath.
+    waitingPulse: {
+      position: "relative",
+
+      "&::after": {
+        content: "''",
+        position: "absolute",
+        // Flush with the dropzone's own edge, not offset outward from it —
+        // a box-shadow already radiates outward from wherever this box's
+        // own boundary sits, so an inset here just pushes that boundary
+        // out and leaves a visible gap of nothing in between.
+        inset: 0,
+        borderRadius: "inherit",
+        boxShadow: `0 0 18px 4px ${accent}66`,
+        opacity: 0,
+        animation: "waitingPulse 2.8s ease-in-out infinite",
+        pointerEvents: "none",
+      },
+
+      "@media (prefers-reduced-motion: reduce)": {
+        "&::after": { animation: "none" },
+      },
+    },
+
+    icon: {
+      color: dark ? theme.colors.dark[3] : theme.colors.gray[4],
+    },
+
+    control: {
+      position: "absolute",
+      bottom: -20,
+    },
+  };
+});
 
 const traverseDirectory = async (entry: any, path = ""): Promise<File[]> => {
   if (entry.isFile) {
@@ -129,6 +162,7 @@ const Dropzone = ({
   currentFilesSize = 0,
   onFilesChanged,
   glass = false,
+  waiting = false,
 }: {
   title?: string;
   isUploading: boolean;
@@ -136,9 +170,14 @@ const Dropzone = ({
   currentFilesSize?: number;
   onFilesChanged: (files: FileUpload[]) => void;
   glass?: boolean;
+  // Pulses gently to draw the eye while there's nothing to act on yet
+  // (see TransferCard, the only caller that currently sets this) — off by
+  // default so append-mode dropzones (EditableUpload, UploadPage) that
+  // always have at least one file already keep their plain look.
+  waiting?: boolean;
 }) => {
   const t = useTranslate();
-  const { classes } = useStyles();
+  const { classes, cx } = useStyles();
   const openRef = useRef<() => void>();
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -216,7 +255,7 @@ const Dropzone = ({
             onFilesChanged(files);
           }
         }}
-        className={classes.dropzone}
+        className={cx(classes.dropzone, waiting && classes.waitingPulse)}
         radius="md"
         styles={
           glass

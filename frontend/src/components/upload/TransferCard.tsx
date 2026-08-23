@@ -66,17 +66,21 @@ const useHoldRepeat = (step: (delta: number) => void, disabled: boolean) => {
   return { start, stop };
 };
 
-// The submit button's two "nothing to do yet" states, both reusing
-// liquidGlassKeyframes' global @keyframes (createStyles doesn't reliably
-// register object-syntax @keyframes in this codebase — see that file, and
-// GlintBorder for the same pattern already working elsewhere). A
-// createStyles hook rather than an inline `sx` object specifically because
-// `sx` is recomputed fresh on every render — with an infinite CSS
-// animation, a rebuilt style object can visibly restart the animation
-// mid-cycle on the next render, reading as a jump/teleport rather than a
-// continuous sweep. createStyles instead memoizes its output by theme, so
-// the generated class (and the animation riding on it) stays untouched
-// across re-renders.
+// The submit button's glint once it's genuinely actionable (files
+// selected), reusing liquidGlassKeyframes' global @keyframes (createStyles
+// doesn't reliably register object-syntax @keyframes in this codebase —
+// see that file, and GlintBorder for the same pattern already working
+// elsewhere). A createStyles hook rather than an inline `sx` object
+// specifically because `sx` is recomputed fresh on every render — with an
+// infinite CSS animation, a rebuilt style object can visibly restart the
+// animation mid-cycle on the next render, reading as a jump/teleport
+// rather than a continuous sweep. createStyles instead memoizes its output
+// by theme, so the generated class (and the animation riding on it) stays
+// untouched across re-renders.
+//
+// The pre-selection "waiting for input" pulse lives on the Dropzone
+// instead (see Dropzone.tsx's `waiting` prop) — that's the element the
+// user actually needs to act on, not this button.
 const useSubmitButtonStyles = createStyles((theme) => {
   const dark = theme.colorScheme === "dark";
   const accent = theme.colors[theme.primaryColor][dark ? 4 : 6];
@@ -115,40 +119,6 @@ const useSubmitButtonStyles = createStyles((theme) => {
         backgroundRepeat: "no-repeat",
         filter: `blur(8px) drop-shadow(0 0 10px ${accent}aa)`,
         animation: "buttonShimmer 3.4s ease-in-out infinite",
-      },
-
-      "@media (prefers-reduced-motion: reduce)": {
-        "&::after": { animation: "none" },
-      },
-    },
-
-    // Before that, the button is disabled — a shimmer there would read as
-    // "something is happening" when nothing is, so it gets a slower
-    // breathing glow (in the theme's accent color) to say "waiting for
-    // input" instead.
-    // Glow rendered on a pseudo-element with a fixed (unanimated) box-shadow,
-    // animating only its opacity — box-shadow itself isn't a compositable
-    // property, so animating its blur/spread radius directly forces a
-    // repaint on every frame, which read as stuttery rather than a smooth
-    // breath. Opacity is compositor-only, no repaint per frame.
-    waiting: {
-      position: "relative",
-      overflow: "visible",
-
-      "&::after": {
-        content: "''",
-        position: "absolute",
-        // Flush with the button's own edge, not offset outward from it — a
-        // box-shadow already radiates outward from wherever this box's own
-        // boundary sits, so an inset here just pushes that boundary out
-        // and leaves a visible gap of nothing between the button and where
-        // the glow starts.
-        inset: 0,
-        borderRadius: "inherit",
-        boxShadow: `0 0 14px 3px ${accent}66`,
-        opacity: 0,
-        animation: "buttonWaitingPulse 2.8s ease-in-out infinite",
-        pointerEvents: "none",
       },
 
       "@media (prefers-reduced-motion: reduce)": {
@@ -459,6 +429,7 @@ const TransferCard = ({
             currentFilesSize={currentFilesSize}
             onFilesChanged={onFilesChanged}
             isUploading={isUploading}
+            waiting={files.length === 0}
             glass
           />
           {files.length > 0 && (
@@ -744,11 +715,9 @@ const TransferCard = ({
             disabled={files.length === 0}
             loading={isUploading}
             className={
-              isUploading
-                ? undefined
-                : files.length === 0
-                  ? submitButtonClasses.waiting
-                  : submitButtonClasses.ready
+              !isUploading && files.length > 0
+                ? submitButtonClasses.ready
+                : undefined
             }
           >
             <FormattedMessage id="upload.transfer.submit" />
