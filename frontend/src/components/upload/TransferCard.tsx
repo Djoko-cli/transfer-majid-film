@@ -5,6 +5,7 @@ import {
   Button,
   Checkbox,
   Collapse,
+  createStyles,
   MantineProvider,
   MultiSelect,
   NumberInput,
@@ -64,6 +65,70 @@ const useHoldRepeat = (step: (delta: number) => void, disabled: boolean) => {
 
   return { start, stop };
 };
+
+// The submit button's two "nothing to do yet" states, both reusing
+// liquidGlassKeyframes' global @keyframes (createStyles doesn't reliably
+// register object-syntax @keyframes in this codebase — see that file, and
+// GlintBorder for the same pattern already working elsewhere). A
+// createStyles hook rather than an inline `sx` object specifically because
+// `sx` is recomputed fresh on every render — with an infinite CSS
+// animation, a rebuilt style object can visibly restart the animation
+// mid-cycle on the next render, reading as a jump/teleport rather than a
+// continuous sweep. createStyles instead memoizes its output by theme, so
+// the generated class (and the animation riding on it) stays untouched
+// across re-renders.
+const useSubmitButtonStyles = createStyles((theme) => {
+  const dark = theme.colorScheme === "dark";
+  const accent = theme.colors[theme.primaryColor][dark ? 4 : 6];
+
+  return {
+    // Once files are selected the button is genuinely actionable, so it
+    // gets a glint sweep — wide, soft-edged and blurred (echoing
+    // GlintBorder's own glass-catching-light look) rather than a crisp,
+    // high-contrast streak, which reads as a metal reflection instead of
+    // light passing through glass. The 200%/-100%→200% background-size and
+    // sweep pair is the standard jump-free combo: at both loop endpoints
+    // the highlight band sits fully outside the visible box, so the
+    // instant reset at the end of each cycle happens while nothing is
+    // showing — never seen as a pop.
+    ready: {
+      position: "relative",
+      overflow: "hidden",
+
+      "&::after": {
+        content: "''",
+        position: "absolute",
+        inset: 0,
+        background: `linear-gradient(100deg,
+          transparent 25%,
+          ${accent}33 40%,
+          rgba(255, 255, 255, 0.55) 50%,
+          ${accent}33 60%,
+          transparent 75%)`,
+        backgroundSize: "200% 100%",
+        filter: "blur(4px)",
+        animation: "buttonShimmer 3.2s ease-in-out infinite",
+      },
+
+      "@media (prefers-reduced-motion: reduce)": {
+        "&::after": { animation: "none" },
+      },
+    },
+
+    // Before that, the button is disabled — a shimmer there would read as
+    // "something is happening" when nothing is, so it gets a slower
+    // breathing glow (in the theme's accent color) to say "waiting for
+    // input" instead.
+    waiting: {
+      ["--pulse-glow-color" as string]: `${accent}66`,
+      animation: "buttonWaitingPulse 2.8s ease-in-out infinite",
+
+      "@media (prefers-reduced-motion: reduce)": {
+        animation: "none",
+      },
+    },
+  };
+});
 
 const TransferCard = ({
   files,
@@ -138,37 +203,7 @@ const TransferCard = ({
     };
   };
 
-  // The submit button's two "nothing to do yet" states, both reusing
-  // liquidGlassKeyframes' global @keyframes (createStyles doesn't reliably
-  // register object-syntax @keyframes in this codebase — see that file).
-  // Once files are selected the button is genuinely actionable, so it gets
-  // an energetic shimmer sweep; before that it's disabled, so a shimmer
-  // there would read as "something is happening" when nothing is — a
-  // slower breathing glow says "waiting for input" instead.
-  const submitButtonReadySx = {
-    position: "relative",
-    overflow: "hidden",
-    "&::after": {
-      content: "''",
-      position: "absolute",
-      inset: 0,
-      background:
-        "linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.6) 50%, transparent 65%)",
-      backgroundSize: "250% 100%",
-      animation: "buttonShimmer 2.6s ease-in-out infinite",
-    },
-    "@media (prefers-reduced-motion: reduce)": {
-      "&::after": { animation: "none" },
-    },
-  } as const;
-
-  const submitButtonWaitingSx = {
-    ["--pulse-glow-color" as string]: `${theme.colors[theme.primaryColor][theme.colorScheme === "dark" ? 4 : 6]}66`,
-    animation: "buttonWaitingPulse 2.8s ease-in-out infinite",
-    "@media (prefers-reduced-motion: reduce)": {
-      animation: "none",
-    },
-  } as const;
+  const { classes: submitButtonClasses } = useSubmitButtonStyles();
 
   const [mode, setMode] = useState<Mode>("link");
   const [emailSearch, setEmailSearch] = useState("");
@@ -680,12 +715,12 @@ const TransferCard = ({
             size="md"
             disabled={files.length === 0}
             loading={isUploading}
-            sx={
+            className={
               isUploading
                 ? undefined
                 : files.length === 0
-                  ? submitButtonWaitingSx
-                  : submitButtonReadySx
+                  ? submitButtonClasses.waiting
+                  : submitButtonClasses.ready
             }
           >
             <FormattedMessage id="upload.transfer.submit" />

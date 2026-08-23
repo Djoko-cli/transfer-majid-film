@@ -9,8 +9,9 @@
 // A plain literal <style> tag sidesteps that serialization gap entirely —
 // this is guaranteed-verbatim CSS text, not run through any object-styles
 // pipeline. Rendered once (see SplitTransferLayout), it's just global CSS;
-// BrandPanel's and GlintBorder's own createStyles calls still own the
-// `animation: name …` declarations that reference these by name.
+// BrandPanel's, GlintBorder's and TransferCard's own createStyles calls
+// still own the `animation: name …` declarations that reference these by
+// name.
 //
 // @property is here for the same reason: registering --glint-angle as a
 // typed <angle> is what lets the browser smoothly interpolate it through
@@ -40,8 +41,8 @@ const CSS = `
   to   { --glint-angle: 360deg; }
 }
 @keyframes buttonShimmer {
-  from { background-position: 200% 0; }
-  to   { background-position: -100% 0; }
+  from { background-position: -100% 0; }
+  to   { background-position: 200% 0; }
 }
 @keyframes buttonWaitingPulse {
   0%, 100% { box-shadow: 0 0 0 0 var(--pulse-glow-color, transparent); }
