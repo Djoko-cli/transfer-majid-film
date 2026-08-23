@@ -138,7 +138,12 @@ const useSubmitButtonStyles = createStyles((theme) => {
       "&::after": {
         content: "''",
         position: "absolute",
-        inset: -6,
+        // Flush with the button's own edge, not offset outward from it — a
+        // box-shadow already radiates outward from wherever this box's own
+        // boundary sits, so an inset here just pushes that boundary out
+        // and leaves a visible gap of nothing between the button and where
+        // the glow starts.
+        inset: 0,
         borderRadius: "inherit",
         boxShadow: `0 0 14px 3px ${accent}66`,
         opacity: 0,
