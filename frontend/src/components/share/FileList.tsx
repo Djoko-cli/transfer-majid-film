@@ -126,17 +126,18 @@ const FileList = ({
                 <TableSortIcon sort={sort} setSort={setSort} property="name" />
               </Group>
             </th>
-            {/* Only the values right-align, not the header label — right-
-                aligning both looked misaligned rather than tidy, since
-                "Taille" plus its sort icon is a wider phrase than a typical
-                value like "200.0 B": both ends up flush on their *right*
-                edge (verified: they land on the exact same pixel), but
-                their *left* edges then stagger, which reads as the header
-                floating disconnected from the column below it. Left-
-                aligning the label instead matches how "Nom" is treated,
-                and is the conventional pattern anyway — headers as
-                left-to-right-read labels, values right-aligned for
-                scannability. */}
+            {/* Left-aligned, matching "Nom" — right-aligning the values
+                (tried, then reverted) put their *right* edge flush with
+                the header's, but "Taille" plus its sort icon needs ~100px
+                to avoid wrapping (verified: 80px content + 10px padding
+                each side) while a typical value like "200.0 B" is far
+                narrower, so their *left* edges staggered instead, reading
+                as the header floating disconnected from the column below
+                it. Left-aligning both instead means they share the exact
+                same left edge — unambiguously "the same column" — at the
+                cost of some trailing space after short values, which is
+                just how left-aligned columns of variable-width content
+                normally look (see also "Nom" itself). */}
             <th style={{ width: 100 }}>
               <Group spacing="xs" noWrap>
                 <FormattedMessage id="share.table.size" />
@@ -163,7 +164,6 @@ const FileList = ({
                   <td
                     style={{
                       whiteSpace: "nowrap",
-                      textAlign: "right",
                       verticalAlign: "top",
                     }}
                   >
