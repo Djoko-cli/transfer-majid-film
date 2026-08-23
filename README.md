@@ -1,143 +1,74 @@
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/b5bc0c1e-5641-4106-b322-a1b0f5448b0f" width="60"/>
-  
-  <h1>Pingvin Share X</h1>
+  <img src="frontend/public/img/logo.png" width="72"/>
 
-  <p align="center">
+  <h1>Transfer</h1>
 
-![GitHub Release](https://img.shields.io/github/v/release/smp46/pingvin-share-x) [![Crowdin](https://badges.crowdin.net/pingvin-share-x/localized.svg)](https://crowdin.com/project/pingvin-share-x) ![Docker Pulls](https://img.shields.io/docker/pulls/smp46/pingvin-share-x) [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-%40smp46-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/smp46)
-
-  </p>
+  <p><strong>Self-hosted, WeTransfer-style file sharing — send large files with a link, no account required.</strong></p>
 </div>
 
+---
 
-Pingvin Share X is a fork of [Pingvin Share](https://github.com/stonith404/pingvin-share), a self-hosted file sharing platform and an alternative for WeTransfer.
+## What this is
+
+Transfer is a self-hosted file transfer service: drop files, get a link, set an expiration, done. Anonymous senders are verified with a one-time e-mail code before anything uploads, so the drop zone can stay wide open on the landing page without turning into a spam relay.
+
+It started as a fork of [Pingvin Share](https://github.com/stonith404/pingvin-share) — the auth system, admin panel, and NestJS/Prisma backend are all descended from that project, and it remains under Pingvin Share's original BSD-2-Clause license (see [`LICENSE`](LICENSE)). Since forking, the frontend has been rebuilt around a full landing/upload page (no separate marketing site), a "liquid glass" visual design carried through the entire app (auth, account, admin), and a handful of backend features (anonymous-upload email verification, a per-user "permanent shares" permission, French as the default locale) that don't exist upstream. It's maintained as a personal, self-hosted instance rather than a general-purpose public project — expect the README, docs, and contribution process to reflect that.
 
 ## Features
 
-- Share files using a link
-- Unlimited file size (restricted only by disk space)
-- Set an expiration date for shares
-- Secure shares with visitor limits and passwords
-- Email recipients
-- Reverse shares
-- OIDC and LDAP authentication
-- Integration with ClamAV for security scans
-- Different file providers: local storage and S3
+- **Frictionless anonymous sharing** — drop files straight from the landing page, no sign-up. A one-time e-mail code (sent over SMTP) verifies anonymous senders before their transfer is created; this can be turned off per instance.
+- **Accounts, when you want them** — registered users skip the e-mail-code step, get a transfer history, reverse-share links (a shareable "drop files here" link that lets someone else send *you* files), and higher/unlimited size and expiration caps.
+- **Expiring, secured links** — password protection, a visitor-count limit, a custom short link, and an expiration window capped per instance (with an optional "permanent share" override grantable per user by an admin).
+- **E-mail delivery** — optionally e-mail the share link straight to one or more recipients, with a download notification back to the sender.
+- **Authentication** — local accounts, TOTP two-factor, LDAP, and OAuth/OIDC (Google, GitHub, Microsoft, Discord, or any spec-compliant OIDC provider via a generic connector).
+- **Storage** — local disk or S3-compatible object storage, with optional ClamAV scanning of uploads.
+- **Admin panel** — user and transfer management, and every setting above configurable from the UI (or via `config.yaml`/environment variables — see [`config.example.yaml`](config.example.yaml) for the full reference).
+- **i18n** — ships with French and English out of the box; the wider translation set inherited from upstream is present but unmaintained here.
 
 ## Setup
 
-### Installation with Docker (recommended)
+There's no published Docker image for this fork — build it from source with Docker Compose:
 
-1. Download the `docker-compose.yml` file
-2. Run `docker compose up -d`
-
-The website is now listening on `http://localhost:3000`.
-
-> [!TIP]
-> Checkout [stonith404/Pocket ID](https://github.com/stonith404/pocket-id), a user-friendly OIDC provider that lets you easily log in to services like Pingvin Share X using Passkeys. Made by the original creator of Pingvin Share.
-
-### Beta Channel (Testing)
-
-Pingvin Share X now has a beta, this is where all (non-time sensitive) bug fixes, features and other updates will go before reaching stable.
-
-To use the Beta channel:
-1. Update the container image tag in your `docker-compose.yml` to `:beta`:
-   ```yaml
-   image: smp46/pingvin-share-x:beta
-   # or ghcr.io/smp46/pingvin-share-x:beta
-   ```
-2. Pull the latest beta image and recreate the container:
+1. Clone this repository.
+2. Copy `docker-compose.local.yml` (builds the image locally) or adapt `docker-compose.yml` to point `build: .` instead of pulling an image.
+3. Run:
    ```bash
-   docker compose pull
-   docker compose up -d
+   docker compose -f docker-compose.local.yml up -d --build
    ```
 
-> [!IMPORTANT]
-> If you encounter any bugs, regressions, or have any other feedback while running the beta version, please [open a GitHub Issue](https://github.com/smp46/pingvin-share-x/issues). Please ensure you specify the exact version (including the beta tag).
+The app listens on the port mapped in whichever compose file you used. There's no default admin account: the first user to sign up (`/auth/signUp`) is automatically made an admin. To pre-provision an admin instead (e.g. for an automated deploy), set `initUser` in `config.yaml` before first boot — see `config.example.yaml`.
 
-### Alternative Deployments
+To scan uploads with ClamAV, see `docker-compose.dev.yml` for a ClamAV service you can add alongside the app.
 
-Pingvin Share X can also be deployed through other platforms. For more information, see the [documentation](https://smp46.github.io/pingvin-share-x/setup/installation#alternative-deployments).
+### Configuration
 
-## Documentation
+Everything under `config.example.yaml` (general, appearance, share limits, e-mail verification, cache, SMTP, LDAP, OAuth, S3, legal pages, initial admin user) can be set two ways:
 
-For more installation options and advanced configurations, please refer to the [documentation](https://smp46.github.io/pingvin-share-x/).
+- **From the admin panel** (`/admin`) — the default; values are stored in the database and take effect immediately.
+- **Via `config.yaml`** — copy `config.example.yaml`, edit it, and mount it into the container (see the commented-out volume line in the compose files). Useful for provisioning a fresh instance without clicking through the UI.
 
-## Sponsors
+### Local development
 
-If you find Pingvin Share X useful and would like to support its ongoing development and maintenance please consider becoming a sponsor! 
+```bash
+# backend
+cd backend
+npm install
+npx prisma db push
+npx prisma db seed
+npm run dev
 
-I would like to host a demo instance online for people to try out Pingvin, your sponsorship would make this possible.
+# frontend (separate terminal, once the backend is running)
+cd frontend
+npm install
+npm run dev
+```
 
-As a token of appreciation, sponsors can have their profile or company logo displayed right here in this section.
+## Tech stack
 
-### Our Awesome Sponsors
+- **Frontend** — Next.js (Pages Router), Mantine UI, TypeScript.
+- **Backend** — NestJS, Prisma, SQLite by default.
+- **Deployment** — single Docker image (multi-stage build), reverse-proxy examples in [`reverse-proxy/`](reverse-proxy).
 
-| <a href="https://github.com/sponsors/smp46"><img src="https://github.com/images/modules/logos_page/GitHub-Mark.png" width="60px;" alt=""/><br /><sub><b>Your Name Here</b></sub></a> |
-| :---: |
+## License
 
-💖 Support the project via [GitHub Sponsors](https://github.com/sponsors/smp46)
-
-## Contributing
-
-All contributions are welcome, including issues, feature suggestions, pull requests and *translations*.
-
-### Translations
-
-This project supports 32 languages so far (to varying degrees), you can help complete
-those translations or add more at [CrowdIn](https://crowdin.com/project/pingvin-share-x).
-
-### AI Usage Policy
-
-Anyone submitting code to this repo needs to read and comply with the project's [AI Usage Policy](https://github.com/smp46/pingvin-share-x/blob/main/AI_USAGE_POLICY.md). Submissions that do not comply with be closed.
-
-### Getting started
-
-If you have found a bug, have suggestion or something else, please create an issue.
-
-### Submit a Pull Request
-
-Before you submit the pull request for review please ensure that
-
-- The pull request naming follows the [Conventional Commits specification](https://www.conventionalcommits.org):
-
-  `<type>[optional scope]: <description>`
-
-  example:
-
-  ```
-  feat(share): add password protection
-  ```
-
-  When `TYPE` can be:
-  - **feat** - is a new feature
-  - **doc** - documentation only changes
-  - **fix** - a bug fix
-  - **refactor** - code change that neither fixes a bug nor adds a feature
-
-- Your pull request has a detailed description
-- You run `npm run format` to format the code
-
-### Setup project
-
-#### Backend
-
-1. Open the `backend` folder
-2. Install the dependencies with `npm install`
-3. Push the database schema to the database by running `npx prisma db push`
-4. Seed the database with `npx prisma db seed`
-5. Start the backend with `npm run dev`
-
-#### Frontend
-
-1. Start the backend first
-2. Open the `frontend` folder
-3. Install the dependencies with `npm install`
-4. Start the frontend with `npm run dev`
-
-You're all set!
-
-#### Testing
-
-At the moment we only have system tests for the backend. To run these tests, run `npm run test:system` in the backend folder.
+BSD 2-Clause, inherited from the upstream [Pingvin Share](https://github.com/stonith404/pingvin-share) project. See [`LICENSE`](LICENSE).
