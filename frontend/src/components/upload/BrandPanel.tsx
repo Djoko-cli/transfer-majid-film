@@ -279,10 +279,13 @@ const useStyles = createStyles((theme) => ({
     // only as a faint blur, not legible text.
     bottom: "var(--footer-height, 40px)",
     padding: `${theme.spacing.xl} ${theme.spacing.lg} ${theme.spacing.md}`,
-    background: "linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent)",
     zIndex: 3,
     pointerEvents: "none",
     textAlign: "right",
+    // A text-shadow (inherited by the Text/Anchor children) keeps the
+    // credit legible against a busy photo without painting a visible dark
+    // rectangle behind it the way a background scrim would.
+    textShadow: "0 1px 3px rgba(0, 0, 0, 0.8), 0 1px 12px rgba(0, 0, 0, 0.5)",
   },
 
   captionLink: {
