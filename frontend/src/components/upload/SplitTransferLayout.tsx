@@ -22,7 +22,13 @@ const useStyles = createStyles((theme) => {
       // (see _app.tsx's compensating paddingTop) so the image reaches the
       // very top of the viewport instead of starting below the navbar.
       marginTop: -HEADER_HEIGHT,
-      minHeight: "calc(100vh - 90px)",
+      // Reserves exactly the footer's real, live-measured height (published
+      // as a CSS var by Footer.tsx) rather than a guessed pixel figure —
+      // the footer isn't a fixed height, it grows when legal links wrap to
+      // a second line at narrow-but-not-mobile widths. Getting this wrong
+      // let the card below grow taller than the space actually available
+      // and get visually cut off by the footer painting over it.
+      minHeight: "calc(100vh - var(--footer-height, 40px))",
       overflow: "hidden",
 
       [theme.fn.smallerThan("sm")]: {
@@ -71,8 +77,12 @@ const useStyles = createStyles((theme) => {
       // cardWrapper) since cardWrapper's own height is itself auto/content
       // driven — a percentage there wouldn't have anything definite to
       // resolve against. Only ever bites on short viewports with a lot of
-      // expanded content; overflowY is the actual safety net.
-      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - 48px)`,
+      // expanded content; overflowY is the actual safety net. Must reserve
+      // the exact same footer space as cardSlot's band above (`.bleed`'s
+      // minHeight) — a smaller reservation here than there let the card
+      // grow taller than the band it's centered in and overflow past it,
+      // straight into the footer.
+      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - var(--footer-height, 40px))`,
       overflowY: "auto",
       padding: theme.spacing.xl,
       borderRadius: CARD_RADIUS,

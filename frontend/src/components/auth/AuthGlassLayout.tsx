@@ -25,7 +25,13 @@ const useStyles = createStyles((theme) => {
       width: "100vw",
       marginTop: -HEADER_HEIGHT,
       marginBottom: -1,
-      minHeight: "calc(100vh - 90px)",
+      // Reserves the footer's real, live-measured height (published as a
+      // CSS var by Footer.tsx) instead of a guessed pixel figure — see the
+      // matching comment in SplitTransferLayout, whose "cut off by the
+      // footer on some viewports" bug came from exactly this kind of
+      // mismatch between a guessed reservation and the footer's actual,
+      // content-dependent height.
+      minHeight: "calc(100vh - var(--footer-height, 40px))",
       overflow: "hidden",
 
       [theme.fn.smallerThan("sm")]: {
