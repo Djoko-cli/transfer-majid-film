@@ -126,15 +126,19 @@ const FileList = ({
                 <TableSortIcon sort={sort} setSort={setSort} property="name" />
               </Group>
             </th>
-            {/* Right-aligned (header label and values both) so a short
-                value like "200.0 B" sits flush against the actions column
-                that follows instead of floating with dead space after it —
-                the column still needs to stay wide enough for the header's
-                own label plus sort icon, and for a realistic worst-case
-                value ("999.9 GB"), so this is about where the text sits
-                within that width, not the width itself. */}
-            <th style={{ width: 100, textAlign: "right" }}>
-              <Group spacing="xs" noWrap position="right">
+            {/* Only the values right-align, not the header label — right-
+                aligning both looked misaligned rather than tidy, since
+                "Taille" plus its sort icon is a wider phrase than a typical
+                value like "200.0 B": both ends up flush on their *right*
+                edge (verified: they land on the exact same pixel), but
+                their *left* edges then stagger, which reads as the header
+                floating disconnected from the column below it. Left-
+                aligning the label instead matches how "Nom" is treated,
+                and is the conventional pattern anyway — headers as
+                left-to-right-read labels, values right-aligned for
+                scannability. */}
+            <th style={{ width: 100 }}>
+              <Group spacing="xs" noWrap>
                 <FormattedMessage id="share.table.size" />
                 <TableSortIcon sort={sort} setSort={setSort} property="size" />
               </Group>
