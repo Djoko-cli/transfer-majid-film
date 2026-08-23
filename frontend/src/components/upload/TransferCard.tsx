@@ -126,12 +126,28 @@ const useSubmitButtonStyles = createStyles((theme) => {
     // "something is happening" when nothing is, so it gets a slower
     // breathing glow (in the theme's accent color) to say "waiting for
     // input" instead.
+    // Glow rendered on a pseudo-element with a fixed (unanimated) box-shadow,
+    // animating only its opacity — box-shadow itself isn't a compositable
+    // property, so animating its blur/spread radius directly forces a
+    // repaint on every frame, which read as stuttery rather than a smooth
+    // breath. Opacity is compositor-only, no repaint per frame.
     waiting: {
-      ["--pulse-glow-color" as string]: `${accent}66`,
-      animation: "buttonWaitingPulse 2.8s ease-in-out infinite",
+      position: "relative",
+      overflow: "visible",
+
+      "&::after": {
+        content: "''",
+        position: "absolute",
+        inset: -6,
+        borderRadius: "inherit",
+        boxShadow: `0 0 14px 3px ${accent}66`,
+        opacity: 0,
+        animation: "buttonWaitingPulse 2.8s ease-in-out infinite",
+        pointerEvents: "none",
+      },
 
       "@media (prefers-reduced-motion: reduce)": {
-        animation: "none",
+        "&::after": { animation: "none" },
       },
     },
   };

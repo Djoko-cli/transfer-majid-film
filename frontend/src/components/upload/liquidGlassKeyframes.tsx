@@ -45,8 +45,8 @@ const CSS = `
   to   { background-position: 350% 0; }
 }
 @keyframes buttonWaitingPulse {
-  0%, 100% { box-shadow: 0 0 0 0 var(--pulse-glow-color, transparent); }
-  50%      { box-shadow: 0 0 14px 3px var(--pulse-glow-color, transparent); }
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
 }
 `;
 
