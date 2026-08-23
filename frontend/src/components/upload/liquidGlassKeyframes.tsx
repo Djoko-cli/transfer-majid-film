@@ -48,6 +48,10 @@ const CSS = `
   0%, 100% { opacity: 0; }
   50%      { opacity: 1; }
 }
+@keyframes brandPanelFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 `;
 
 const LiquidGlassKeyframes = () => (

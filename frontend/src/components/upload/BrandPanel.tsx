@@ -300,10 +300,24 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
   const [order, setOrder] = useState(SLIDES);
   const [current, setCurrent] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  // `order` starts as the unshuffled SLIDES array so the server-rendered
+  // HTML and the client's first render agree (Math.random() at render time
+  // would desync them, since the server and the client's first pass would
+  // each pick their own random slide independently — a hydration mismatch,
+  // not just a cosmetic one). But that means SLIDES[0] ("À petit feu") is
+  // what actually starts loading, `loading="eager"`, the instant this
+  // mounts — the shuffle effect runs a moment later and picks something
+  // else, so the *real* slide's own request starts later than À petit
+  // feu's did, and often loses that race. The fix isn't shuffling faster;
+  // it's not rendering (and so not requesting) any image at all until
+  // the shuffle has already happened, so the very first request the
+  // browser makes is already for the right slide.
+  const [isReady, setIsReady] = useState(false);
 
   // Randomize the slide order once the component has mounted on the client.
   useEffect(() => {
     setOrder(shuffle(SLIDES));
+    setIsReady(true);
     setPrefersReducedMotion(
       window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     );
@@ -323,88 +337,104 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
 
   return (
     <Box className={classes.panel}>
-      {order.map((slide, index) => {
-        const delta = cyclicDelta(current, index, order.length);
-        const isActive = index === current;
-        const slideKey = `${slide.slug}-s${slide.still}`;
-        return (
-          <Box
-            key={slideKey}
-            className={classes.slide}
-            style={{
-              transform: `translateX(${delta * 100}%)`,
-              transition: prefersReducedMotion ? "none" : undefined,
-            }}
-          >
-            <Box
-              // Remounts the animation fresh each time this slide becomes
-              // active again, instead of resuming mid-phase.
-              key={isActive ? `${slideKey}-active` : slideKey}
-              className={cx(classes.slideImageWrap, {
-                [classes.living]: isActive && !prefersReducedMotion,
-              })}
-            >
-              <picture>
-                <source
-                  type="image/avif"
-                  srcSet={buildSrcSet(
-                    slide.slug,
-                    slide.still,
-                    slide.widths,
-                    "avif",
-                  )}
-                  sizes={SIZES}
-                />
-                <source
-                  type="image/webp"
-                  srcSet={buildSrcSet(
-                    slide.slug,
-                    slide.still,
-                    slide.widths,
-                    "webp",
-                  )}
-                  sizes={SIZES}
-                />
-                <img
-                  className={classes.slideImage}
-                  src={`/img/brand/derived/${slide.slug}-s${slide.still}-${slide.widths[1]}.webp`}
-                  alt=""
-                  loading={isActive ? "eager" : "lazy"}
-                  decoding="async"
-                />
-              </picture>
-            </Box>
-          </Box>
-        );
-      })}
+      {isReady && (
+        <Box
+          // Fades the whole reveal in once there's something real to show,
+          // rather than popping in the instant the shuffle resolves (which
+          // can be before the chosen image has actually loaded) — a beat
+          // of the panel's own dark background reads as an intentional
+          // transition, not a stall.
+          style={{
+            opacity: 1,
+            animation: prefersReducedMotion
+              ? undefined
+              : "brandPanelFadeIn 500ms ease",
+          }}
+        >
+          {order.map((slide, index) => {
+            const delta = cyclicDelta(current, index, order.length);
+            const isActive = index === current;
+            const slideKey = `${slide.slug}-s${slide.still}`;
+            return (
+              <Box
+                key={slideKey}
+                className={classes.slide}
+                style={{
+                  transform: `translateX(${delta * 100}%)`,
+                  transition: prefersReducedMotion ? "none" : undefined,
+                }}
+              >
+                <Box
+                  // Remounts the animation fresh each time this slide
+                  // becomes active again, instead of resuming mid-phase.
+                  key={isActive ? `${slideKey}-active` : slideKey}
+                  className={cx(classes.slideImageWrap, {
+                    [classes.living]: isActive && !prefersReducedMotion,
+                  })}
+                >
+                  <picture>
+                    <source
+                      type="image/avif"
+                      srcSet={buildSrcSet(
+                        slide.slug,
+                        slide.still,
+                        slide.widths,
+                        "avif",
+                      )}
+                      sizes={SIZES}
+                    />
+                    <source
+                      type="image/webp"
+                      srcSet={buildSrcSet(
+                        slide.slug,
+                        slide.still,
+                        slide.widths,
+                        "webp",
+                      )}
+                      sizes={SIZES}
+                    />
+                    <img
+                      className={classes.slideImage}
+                      src={`/img/brand/derived/${slide.slug}-s${slide.still}-${slide.widths[1]}.webp`}
+                      alt=""
+                      loading={isActive ? "eager" : "lazy"}
+                      decoding="async"
+                    />
+                  </picture>
+                </Box>
+              </Box>
+            );
+          })}
 
-      {activeSlide && showCaption && (
-        <Box className={classes.caption}>
-          <Text size="sm" color="gray.3">
-            <FormattedMessage
-              id="upload.brand.caption"
-              values={{
-                title: (
-                  <Anchor
-                    href={`https://majid.film/projects/${activeSlide.slug}/`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    fw={600}
-                    className={classes.captionLink}
-                    sx={{
-                      color:
-                        theme.colors[theme.primaryColor][
-                          theme.colorScheme === "dark" ? 4 : 6
-                        ],
-                    }}
-                  >
-                    {activeSlide.title}
-                  </Anchor>
-                ),
-                year: activeSlide.year,
-              }}
-            />
-          </Text>
+          {activeSlide && showCaption && (
+            <Box className={classes.caption}>
+              <Text size="sm" color="gray.3">
+                <FormattedMessage
+                  id="upload.brand.caption"
+                  values={{
+                    title: (
+                      <Anchor
+                        href={`https://majid.film/projects/${activeSlide.slug}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        fw={600}
+                        className={classes.captionLink}
+                        sx={{
+                          color:
+                            theme.colors[theme.primaryColor][
+                              theme.colorScheme === "dark" ? 4 : 6
+                            ],
+                        }}
+                      >
+                        {activeSlide.title}
+                      </Anchor>
+                    ),
+                    year: activeSlide.year,
+                  }}
+                />
+              </Text>
+            </Box>
+          )}
         </Box>
       )}
     </Box>
