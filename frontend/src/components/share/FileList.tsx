@@ -4,8 +4,8 @@ import {
   Group,
   Skeleton,
   Stack,
+  Table,
   TextInput,
-  useMantineTheme,
 } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
@@ -23,6 +23,28 @@ import TableSortIcon, { TableSort } from "../core/SortIcon";
 import showFilePreviewModal from "./modals/showFilePreviewModal";
 import { HoverTip } from "../core/HoverTip";
 import api from "../../services/api.service";
+
+// Geometry of one row's action buttons, used to derive the actions column's
+// width below. Kept next to each other so they stay in sync with the
+// ActionIcon `size` and the <Group> spacing actually used in the render.
+const ACTION_ICON_SIZE = 25;
+const ACTION_ICON_GAP = 16; // <Group>'s default "md" spacing
+const CELL_PADDING = 10; // Mantine's Table cell padding, per side
+
+// How many action buttons a given file's row will render — mirrors the
+// conditionals in the actions cell exactly (download is unconditional; the
+// clipboard/preview ones depend on the file type, and the copy-link one on
+// whether the share is password-protected).
+const countActionIcons = (file: FileMetaData, hasPassword: boolean) =>
+  1 +
+  (shareService.isShareTextFile(file.name) ? 1 : 0) +
+  (shareService.doesFileSupportPreview(file.name) ? 1 : 0) +
+  (hasPassword ? 0 : 1);
+
+const actionsColumnWidth = (iconCount: number) =>
+  iconCount * ACTION_ICON_SIZE +
+  Math.max(0, iconCount - 1) * ACTION_ICON_GAP +
+  2 * CELL_PADDING;
 
 const renderFileName = (name: string) => {
   const parts = name.split("/");
@@ -54,17 +76,6 @@ const FileList = ({
   const config = useConfig();
   const modals = useModals();
   const t = useTranslate();
-  const theme = useMantineTheme();
-  const dark = theme.colorScheme === "dark";
-  // Real <table> borders/colors used to come from glassFormTheme's Table
-  // override, scoped to actual table/th/td selectors — replicated by hand
-  // below now that this is a flex-based "table" instead (see the render's
-  // own comment for why a real table couldn't do what was asked here).
-  const borderColor = dark
-    ? "rgba(255, 255, 255, 0.14)"
-    : "rgba(255, 255, 255, 0.5)";
-  const headerColor = dark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)";
-  const cellColor = dark ? theme.white : theme.black;
 
   const [sort, setSort] = useState<TableSort>({
     property: "name",
@@ -117,196 +128,170 @@ const FileList = ({
 
   useEffect(sortFiles, [sort]);
 
-  const cellPadding = "10px";
+  // One width for the whole actions column (a table column can only have
+  // one — that's what keeps every column vertically aligned), but derived
+  // from the most buttons any row in *this* share actually renders rather
+  // than a hardcoded worst case. So a share of plain binaries reserves
+  // room for 3 buttons, and only one containing a text file (which adds
+  // the copy-contents button) reserves room for 4 — no dead space either
+  // way, and whatever isn't reserved goes to the name column, since that's
+  // the one with `width: auto` under table-layout: fixed.
+  const maxActionIcons =
+    files && files.length > 0
+      ? Math.max(
+          ...files.map((file) => countActionIcons(file, share?.hasPassword)),
+        )
+      : 3;
 
   return (
-    // A real <table> can't do what was asked here: table-layout: fixed (or
-    // even auto) assigns each COLUMN a single width shared by every row —
-    // there's no way for a row with 2 action icons to have a narrower
-    // actions column than a row with 4, they're the same column. Flexbox
-    // rows have no such constraint: each row lays itself out independently,
-    // so the actions cell can size to exactly what that row's own icon
-    // count needs, and the name cell (flex: 1) absorbs whatever's left —
-    // more of it on rows with fewer icons, less on rows with more. The
-    // size cell keeps a fixed width so it still reads as one aligned
-    // column top to bottom; only the actions cell doesn't.
-    // role="table"/"row"/"columnheader"/"cell" replicate a real table's
-    // semantics for assistive tech, since the markup itself no longer is.
-    <Box role="table" sx={{ display: "block", overflowX: "auto" }}>
-      <Box
-        role="row"
-        sx={{ display: "flex", borderBottom: `1px solid ${borderColor}` }}
-      >
-        <Box
-          role="columnheader"
-          sx={{
-            flex: 1,
-            minWidth: 0,
-            padding: cellPadding,
-            color: headerColor,
-          }}
-        >
-          <Group spacing="xs" noWrap>
-            <FormattedMessage id="share.table.name" />
-            <TableSortIcon sort={sort} setSort={setSort} property="name" />
-          </Group>
-        </Box>
-        <Box
-          role="columnheader"
-          sx={{
-            width: 90,
-            flexShrink: 0,
-            padding: cellPadding,
-            color: headerColor,
-          }}
-        >
-          <Group spacing="xs" noWrap>
-            <FormattedMessage id="share.table.size" />
-            <TableSortIcon sort={sort} setSort={setSort} property="size" />
-          </Group>
-        </Box>
-        {/* No label lives here, so no width to reserve — the actions cell
-            is empty in the header and every data row sizes its own. */}
-      </Box>
+    <Box sx={{ display: "block", overflowX: "auto" }}>
+      {/* table-layout: fixed so the size/actions columns keep exactly the
+          widths set below and the name column absorbs the remainder —
+          under the default auto layout a long file name would instead grow
+          the name column and squeeze the other two, wrapping their header's
+          sort icon onto its own line and, at the extreme, clipping the last
+          action button past the card's edge. The name column's own overflow
+          then wraps onto extra lines (see the name cell) rather than
+          widening the table or truncating the name away. */}
+      <Table style={{ tableLayout: "fixed", width: "100%" }}>
+        <thead>
+          <tr>
+            <th>
+              <Group spacing="xs" noWrap>
+                <FormattedMessage id="share.table.name" />
+                <TableSortIcon sort={sort} setSort={setSort} property="name" />
+              </Group>
+            </th>
+            {/* Left-aligned like "Nom": 90px is this column's real minimum
+                ("Taille" ≈ 35px + the Group's 10px gap + the sort icon's
+                18px + 10px padding per side), so right-aligning the values
+                inside it would only stagger them against the header rather
+                than tidy anything up. */}
+            <th style={{ width: 90 }}>
+              <Group spacing="xs" noWrap>
+                <FormattedMessage id="share.table.size" />
+                <TableSortIcon sort={sort} setSort={setSort} property="size" />
+              </Group>
+            </th>
+            <th style={{ width: actionsColumnWidth(maxActionIcons) }}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {isLoading
+            ? skeletonRows
+            : files!.map((file) => (
+                <tr key={file.name}>
+                  <td
+                    style={{
+                      whiteSpace: "normal",
+                      overflowWrap: "break-word",
+                      verticalAlign: "top",
+                    }}
+                  >
+                    {renderFileName(file.name)}
+                  </td>
+                  <td style={{ whiteSpace: "nowrap", verticalAlign: "top" }}>
+                    {byteToHumanSizeString(parseInt(file.size))}
+                  </td>
+                  <td style={{ whiteSpace: "nowrap", verticalAlign: "top" }}>
+                    <Group position="right" noWrap>
+                      {shareService.isShareTextFile(file.name) && (
+                        <HoverTip label={t("share.copy-text-contents")}>
+                          <ActionIcon
+                            color="blue"
+                            variant="light"
+                            size={ACTION_ICON_SIZE}
+                            onClick={() => {
+                              api
+                                .get(
+                                  `/shares/${share.id}/files/${file.id}?download=false`,
+                                )
+                                .then((res) => {
+                                  if (window.isSecureContext) {
+                                    clipboard.copy(res.data);
+                                    toast.success(
+                                      t("share.notify.copied-contents"),
+                                    );
+                                  } else {
+                                    toast.error(
+                                      t("share.notify.copy-not-supported"),
+                                    );
+                                  }
+                                });
+                            }}
+                          >
+                            <TbClipboard />
+                          </ActionIcon>
+                        </HoverTip>
+                      )}
+                      {shareService.doesFileSupportPreview(file.name) && (
+                        <HoverTip label={t("common.button.preview")}>
+                          <ActionIcon
+                            color="green"
+                            variant="light"
+                            size={ACTION_ICON_SIZE}
+                            onClick={() =>
+                              showFilePreviewModal(share.id, file, modals)
+                            }
+                          >
+                            <TbEye />
+                          </ActionIcon>
+                        </HoverTip>
+                      )}
+                      {!share.hasPassword && (
+                        <HoverTip label={t("common.button.copy-link")}>
+                          <ActionIcon
+                            color="victoria"
+                            variant="light"
+                            size={ACTION_ICON_SIZE}
+                            onClick={() => copyFileLink(file)}
+                          >
+                            <TbLink />
+                          </ActionIcon>
+                        </HoverTip>
+                      )}
 
-      {isLoading
-        ? skeletonRows
-        : files!.map((file) => (
-            <Box
-              role="row"
-              key={file.name}
-              sx={{
-                display: "flex",
-                alignItems: "flex-start",
-                borderTop: `1px solid ${borderColor}`,
-                color: cellColor,
-              }}
-            >
-              <Box
-                role="cell"
-                sx={{
-                  flex: 1,
-                  minWidth: 0,
-                  padding: cellPadding,
-                  whiteSpace: "normal",
-                  overflowWrap: "break-word",
-                }}
-              >
-                {renderFileName(file.name)}
-              </Box>
-              <Box
-                role="cell"
-                sx={{
-                  width: 90,
-                  flexShrink: 0,
-                  padding: cellPadding,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {byteToHumanSizeString(parseInt(file.size))}
-              </Box>
-              <Box
-                role="cell"
-                sx={{
-                  flexShrink: 0,
-                  padding: cellPadding,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <Group position="right" noWrap>
-                  {shareService.isShareTextFile(file.name) && (
-                    <HoverTip label={t("share.copy-text-contents")}>
-                      <ActionIcon
-                        color="blue"
-                        variant="light"
-                        size={25}
-                        onClick={() => {
-                          api
-                            .get(
-                              `/shares/${share.id}/files/${file.id}?download=false`,
-                            )
-                            .then((res) => {
-                              if (window.isSecureContext) {
-                                clipboard.copy(res.data);
-                                toast.success(
-                                  t("share.notify.copied-contents"),
-                                );
-                              } else {
-                                toast.error(
-                                  t("share.notify.copy-not-supported"),
-                                );
-                              }
-                            });
-                        }}
-                      >
-                        <TbClipboard />
-                      </ActionIcon>
-                    </HoverTip>
-                  )}
-                  {shareService.doesFileSupportPreview(file.name) && (
-                    <HoverTip label={t("common.button.preview")}>
-                      <ActionIcon
-                        color="green"
-                        variant="light"
-                        size={25}
-                        onClick={() =>
-                          showFilePreviewModal(share.id, file, modals)
-                        }
-                      >
-                        <TbEye />
-                      </ActionIcon>
-                    </HoverTip>
-                  )}
-                  {!share.hasPassword && (
-                    <HoverTip label={t("common.button.copy-link")}>
-                      <ActionIcon
-                        color="victoria"
-                        variant="light"
-                        size={25}
-                        onClick={() => copyFileLink(file)}
-                      >
-                        <TbLink />
-                      </ActionIcon>
-                    </HoverTip>
-                  )}
-
-                  <HoverTip label={t("common.button.download")}>
-                    <ActionIcon
-                      color="cyan"
-                      variant="light"
-                      size={25}
-                      onClick={async () => {
-                        await shareService.downloadFile(
-                          share.id,
-                          file.id,
-                          recipientId,
-                        );
-                      }}
-                    >
-                      <TbDownload />
-                    </ActionIcon>
-                  </HoverTip>
-                </Group>
-              </Box>
-            </Box>
-          ))}
+                      <HoverTip label={t("common.button.download")}>
+                        <ActionIcon
+                          color="cyan"
+                          variant="light"
+                          size={ACTION_ICON_SIZE}
+                          onClick={async () => {
+                            await shareService.downloadFile(
+                              share.id,
+                              file.id,
+                              recipientId,
+                            );
+                          }}
+                        >
+                          <TbDownload />
+                        </ActionIcon>
+                      </HoverTip>
+                    </Group>
+                  </td>
+                </tr>
+              ))}
+        </tbody>
+      </Table>
     </Box>
   );
 };
 
-// Three cells — matching the real row's name/size/actions cells.
+// Three cells, matching the real rows' name/size/actions columns —
+// table-layout: fixed assigns widths by index, so a mismatched cell count
+// would visibly misalign the skeleton against the header above it.
 const skeletonRows = [...Array(5)].map((c, i) => (
-  <Box role="row" key={i} sx={{ display: "flex" }}>
-    <Box role="cell" sx={{ flex: 1, minWidth: 0, padding: "10px" }}>
+  <tr key={i}>
+    <td>
       <Skeleton height={14} />
-    </Box>
-    <Box role="cell" sx={{ width: 90, flexShrink: 0, padding: "10px" }}>
+    </td>
+    <td>
       <Skeleton height={14} width={70} />
-    </Box>
-    <Box role="cell" sx={{ flexShrink: 0, padding: "10px" }}>
-      <Skeleton height={25} width={25} />
-    </Box>
-  </Box>
+    </td>
+    <td>
+      <Skeleton height={25} width={25} ml="auto" />
+    </td>
+  </tr>
 ));
 
 export default FileList;
