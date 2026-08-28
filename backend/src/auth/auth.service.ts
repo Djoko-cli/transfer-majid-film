@@ -38,13 +38,17 @@ export class AuthService {
   ) {}
   private readonly logger = new Logger(AuthService.name);
 
+  async isFirstUser(): Promise<boolean> {
+    return (await this.prisma.user.count()) == 0;
+  }
+
   async signUp(
     dto: AuthRegisterDTO,
     ip: string,
     isAdmin?: boolean,
     skipVerification?: boolean,
   ) {
-    const isFirstUser = (await this.prisma.user.count()) == 0;
+    const isFirstUser = await this.isFirstUser();
     const enableEmailVerification = this.config.get(
       "email.enableEmailVerification",
     );

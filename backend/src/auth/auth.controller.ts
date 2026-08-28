@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   ForbiddenException,
+  Get,
   HttpCode,
   Param,
   Patch,
@@ -11,7 +12,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
-import { Throttle } from "@nestjs/throttler";
+import { SkipThrottle, Throttle } from "@nestjs/throttler";
 import { User } from "@prisma/client";
 import { Request, Response } from "express";
 import { I18nService } from "nestjs-i18n";
@@ -39,6 +40,16 @@ export class AuthController {
     private config: ConfigService,
     private readonly i18n: I18nService,
   ) {}
+
+  // Public and unguarded on purpose — the frontend middleware needs this on
+  // every request, before anyone is authenticated, to redirect a fresh
+  // instance (no users at all yet) straight to sign-up instead of showing
+  // the normal public upload page with no obvious way to become admin.
+  @Get("needsSetup")
+  @SkipThrottle()
+  async needsSetup() {
+    return { needsSetup: await this.authService.isFirstUser() };
+  }
 
   @Post("signUp")
   @Throttle({

@@ -30,6 +30,29 @@ async function fetchConfig(apiUrl: string): Promise<any> {
   }
 }
 
+// A fresh instance (no users at all yet) has no obvious way to become admin
+// from the public upload page — this lets every route converge on sign-up
+// until the first account (which auto-becomes admin, see auth.service.ts)
+// exists. Defaults to false on any fetch failure so a transient backend
+// hiccup doesn't lock an already-set-up instance out of its own site.
+async function fetchNeedsSetup(apiUrl: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${apiUrl}/api/auth/needsSetup`, {
+      next: { revalidate: 30 },
+      signal: AbortSignal.timeout(1000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`needsSetup fetch failed: ${response.status}`);
+    }
+
+    return (await response.json()).needsSetup === true;
+  } catch (error) {
+    console.error("needsSetup fetch failed, assuming false:", error);
+    return false;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const routes = {
     unauthenticated: new Routes(["/auth/*"]),
@@ -48,7 +71,10 @@ export async function middleware(request: NextRequest) {
 
   // Get config from backend with caching and error handling
   const apiUrl = process.env.API_URL || "http://localhost:8080";
-  const config = await fetchConfig(apiUrl);
+  const [config, needsSetup] = await Promise.all([
+    fetchConfig(apiUrl),
+    fetchNeedsSetup(apiUrl),
+  ]);
 
   const getConfig = (key: string) => {
     return configService.get(key, config);
@@ -104,6 +130,15 @@ export async function middleware(request: NextRequest) {
 
   // prettier-ignore
   const rules = [
+    // No admin exists yet — converge everything on sign-up instead of
+    // showing the normal (public, pre-admin) site with no obvious way in.
+    // Guarded on allowRegistration so a fresh instance with registration
+    // disabled doesn't deadlock against the "Disabled routes" rule below,
+    // which would otherwise bounce /auth/signUp right back to "/".
+    {
+      condition: needsSetup && route !== "/auth/signUp" && getConfig("share.allowRegistration"),
+      path: "/auth/signUp",
+    },
     // Disabled routes
     {
       condition: routes.disabled.contains(route),
