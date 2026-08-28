@@ -246,6 +246,7 @@ App.getInitialProps = async ({ ctx }: { ctx: GetServerSidePropsContext }) => {
     colorScheme: ColorScheme;
     language?: string;
     isConfigFallback?: boolean;
+    needsSetup?: boolean;
   } = {
     // Light mode is retired from display for now — "dark" instead of the
     // original "light" fallback so a first-time visitor (no cookie yet)
@@ -275,6 +276,12 @@ App.getInitialProps = async ({ ctx }: { ctx: GetServerSidePropsContext }) => {
       pageProps.configVariables = getDefaultConfig();
       pageProps.isConfigFallback = true;
     }
+
+    pageProps.needsSetup = await axios(`${apiURL}/api/auth/needsSetup`, {
+      timeout: 1000,
+    })
+      .then((res) => res.data.needsSetup === true)
+      .catch(() => false);
 
     const requestLanguage = i18nUtil.getLanguageFromAcceptHeader(
       ctx.req.headers["accept-language"],

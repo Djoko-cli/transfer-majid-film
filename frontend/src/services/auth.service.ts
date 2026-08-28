@@ -96,6 +96,10 @@ const disableTOTP = async (totpCode: string, password: string) => {
   });
 };
 
+const needsSetup = async (): Promise<boolean> => {
+  return (await api.get("/auth/needsSetup")).data.needsSetup === true;
+};
+
 const getAvailableOAuth = async () => {
   return api.get("/oauth/available");
 };
@@ -120,4 +124,5 @@ export default {
   disableTOTP,
   getAvailableOAuth,
   getOAuthStatus,
+  needsSetup,
 };

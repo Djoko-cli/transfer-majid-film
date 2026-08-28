@@ -63,6 +63,10 @@ export default {
   "signup.input.email": "Email",
   "signup.input.email.placeholder": "Your email",
   "signup.button.submit": "Let's get started",
+  "signup.onboarding.title": "Welcome to Transfer",
+  "signup.onboarding.description":
+    "No account exists on this instance yet. The account you create here automatically becomes admin.",
+  "signup.onboarding.button.submit": "Create the admin account",
 
   // /auth/verify
   "verify.title": "Verify Account",
