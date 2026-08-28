@@ -1,6 +1,9 @@
+import { MantineProvider } from "@mantine/core";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
 import mime from "mime-types";
 import { FileMetaData } from "../../../types/File.type";
+import glassFormTheme from "../../upload/glassFormTheme";
+import { glassModalStyles } from "../../upload/glassModalTheme";
 import FilePreview from "../FilePreview";
 
 const showFilePreviewModal = (
@@ -12,8 +15,11 @@ const showFilePreviewModal = (
   return modals.openModal({
     size: "xl",
     title: file.name,
+    styles: glassModalStyles,
     children: (
-      <FilePreview shareId={shareId} fileId={file.id} mimeType={mimeType} />
+      <MantineProvider inherit theme={glassFormTheme}>
+        <FilePreview shareId={shareId} fileId={file.id} mimeType={mimeType} />
+      </MantineProvider>
     ),
   });
 };

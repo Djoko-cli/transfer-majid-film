@@ -1,5 +1,5 @@
 import Head from "next/head";
-import useConfig from "../hooks/config.hook";
+import { APP_NAME } from "../constants";
 
 const Meta = ({
   title,
@@ -8,9 +8,7 @@ const Meta = ({
   title: string;
   description?: string;
 }) => {
-  const config = useConfig();
-
-  const metaTitle = `${title} - ${config.get("general.appName")}`;
+  const metaTitle = `${title} - ${APP_NAME}`;
 
   return (
     <Head>

@@ -148,7 +148,7 @@ export default {
 
   "account.card.language.title": "Language",
   "account.card.language.description":
-    "The project is translated by the community. Some languages might be incomplete.",
+    "English and French are the only two languages maintained.",
   "account.card.color.title": "Color scheme",
 
   // ThemeSwitcher.tsx
@@ -193,7 +193,7 @@ export default {
 
   "account.shares.modal.delete.title": "Delete share: {share}",
   "account.shares.modal.delete.description":
-    "Do you really want to delete this share?",
+    "The link will stop working immediately. This action cannot be undone.",
 
   // END /account/shares
 
@@ -346,7 +346,7 @@ export default {
 
   "admin.shares.edit.delete.title": "Delete share: {id}",
   "admin.shares.edit.delete.description":
-    "Do you really want to delete this share?",
+    "The link will stop working immediately. This action cannot be undone.",
 
   // END /admin/shares
 
@@ -357,7 +357,9 @@ export default {
     "Are you sure you want to leave this page? Your upload will be canceled.",
   "upload.notify.generic-error":
     "An error occurred while finishing your share.",
-  "upload.notify.count-failed": "{count} files failed to upload. Trying again.",
+  "upload.notify.count-failed":
+    "{count} file(s) failed to upload after several attempts.",
+  "upload.notify.cancelled": "Upload cancelled.",
   "upload.notify.duplicate-skipped": "Skipped duplicate file: {name}",
   "upload.reverse-share.error.invalid.title": "Invalid reverse share link",
   "upload.reverse-share.error.invalid.description":
@@ -380,26 +382,41 @@ export default {
   // TransferCard.tsx
   "upload.transfer.mode.email": "Email",
   "upload.transfer.mode.link": "Link",
-  "upload.transfer.recipient.name.label": "Recipient",
-  "upload.transfer.recipient.name.placeholder": "Recipient's name",
+  "upload.transfer.share-name.label": "Share name",
+  "upload.transfer.share-name.placeholder":
+    "Optional — defaults to the file name",
+  "upload.transfer.name.default-multiple": "{count} files",
+  "upload.transfer.name.default-generic": "New share",
   "upload.transfer.recipient.email.label": "Recipient's email",
   "upload.transfer.recipient.email.placeholder": "name@example.com",
+  "upload.transfer.recipient.email.required":
+    "Add at least one recipient, or switch back to Link mode.",
   "upload.transfer.sender.label": "Your email",
+  "upload.transfer.sender.otp-description":
+    "We'll send you a code to confirm the transfer.",
   "upload.transfer.sender.placeholder": "you@example.com",
   "upload.transfer.submit": "Transfer",
+  "upload.transfer.submit.link": "Get a link",
   "upload.transfer.options": "Advanced options",
   "upload.transfer.message.label": "Message",
   "upload.transfer.expires.label": "Expiration (days)",
+  "upload.transfer.expires.increase": "Increase expiration",
+  "upload.transfer.expires.decrease": "Decrease expiration",
 
   // BrandPanel.tsx
   "upload.brand.caption": "{title}, {year}",
+  "upload.brand.pause": "Pause the slideshow",
+  "upload.brand.play": "Resume the slideshow",
 
   // Dropzone.tsx
   "upload.dropzone.title": "Upload files",
+  "upload.dropzone.title.compact": "Add more files",
   "upload.dropzone.description":
-    "Drag'n'drop files or folders here to start your share or 'Ctrl+V' to upload text content from the clipboard. We only accept files up to {maxSize} in total.",
+    "Drag'n'drop files or folders here to start your share.\nUp to {maxSize}.",
   "upload.dropzone.notify.file-too-big":
     "Your files exceed the maximum share size of {maxSize}.",
+  "upload.page-drop-overlay.title": "Drop your files anywhere",
+  "upload.text-editor.title": "Editing {fileName}",
   "upload.button.folder": "Upload folder",
   "upload.button.folder.append": "Append folder",
   "upload.button.add": "Add to upload",
@@ -409,6 +426,7 @@ export default {
   "upload.filelist.size": "Size",
   "upload.filelist.estimating": "Estimating...",
   "upload.filelist.remaining": "{time} remaining",
+  "upload.filelist.aggregate-progress": "{uploaded} of {total} uploaded",
 
   // showCreateUploadModal.tsx
   "upload.modal.title": "Create Share",
@@ -421,6 +439,8 @@ export default {
   "upload.modal.not-signed-in": "You're not signed in",
   "upload.modal.not-signed-in-description":
     "You will be unable to delete your share manually and view the visitor count.",
+  "upload.transfer.anonymous-notice":
+    "Without an account, you won't be able to delete this share or see its view count after sending.",
 
   "upload.modal.expires.never": "never",
   "upload.modal.expires.never-long": "Permanent share",
@@ -458,6 +478,8 @@ export default {
   "upload.modal.accordion.security.password.placeholder": "No password",
   "upload.modal.accordion.security.max-views.label": "Maximum views",
   "upload.modal.accordion.security.max-views.placeholder": "No limit",
+  "upload.modal.accordion.security.max-views.increase": "Increase maximum views",
+  "upload.modal.accordion.security.max-views.decrease": "Decrease maximum views",
 
   // showCompletedUploadModal.tsx
   "upload.modal.completed.never-expires": "This share will never expire.",
@@ -466,8 +488,13 @@ export default {
   "upload.modal.completed.create-account":
     "Create an account to keep track of your links",
   "upload.modal.completed.share-ready": "Share ready",
+  "upload.modal.completed.share-ready-named": "“{name}” is ready!",
+  "upload.modal.completed.summary.singular": "{count} file · {size}",
+  "upload.modal.completed.summary.plural": "{count} files · {size}",
   "upload.modal.completed.notified-reverse-share-creator":
     "We have notified the creator of the reverse share. You can also manually share this link with them through other means.",
+  "upload.modal.completed.sender-emailed":
+    "We also sent this link to your email, just in case.",
 
   // END /upload
 
@@ -499,6 +526,7 @@ export default {
   "share.modal.error.invalid-password": "Invalid password",
 
   "share.button.download-all": "Download all",
+  "share.button.edit-details": "Edit details",
   "share.notify.download-all-preparing":
     "The share is being prepared. Please try again in a few minutes.",
 
@@ -510,10 +538,13 @@ export default {
   "share.modal.file-link": "File link",
   "share.table.name": "Name",
   "share.table.size": "Size",
+  "share.table.sort-ascending": "Sort by {label} (ascending)",
+  "share.table.sort-descending": "Sort by {label} (descending)",
 
   "share.modal.file-preview.error.not-supported.title": "Preview not supported",
   "share.modal.file-preview.error.not-supported.description":
     "Previews are not supported for this type of files. Please download the file to view it.",
+  "share.modal.file-preview.view-original": "View original file",
 
   // END /share/[id]
 
@@ -539,64 +570,40 @@ export default {
     "As you have a configuration file present, you can't change the configuration through the UI.",
   "admin.config.title": "Configuration",
   "admin.config.category.general": "General",
-  "admin.config.category.appearance": "Appearance",
   "admin.config.category.share": "Share",
   "admin.config.category.verification": "Verification",
   "admin.config.category.cache": "Cache",
+  "admin.config.category.clamav": "ClamAV",
   "admin.config.category.email": "Email",
   "admin.config.category.smtp": "SMTP",
   "admin.config.category.oauth": "Social Login",
-  "admin.config.general.app-name": "App name",
-  "admin.config.general.app-name.description": "Name of the application",
   "admin.config.general.default-language": "Default Language",
   "admin.config.general.default-language.description":
     "This applies to all users, each user can still personalise their language in their profile.",
-  "admin.config.appearance.theme-primary-color": "Theme primary color",
-  "admin.config.appearance.theme-primary-color.description":
-    "Primary color used for buttons, links, and accents. Choose custom to use a color picker override.",
-  "admin.config.appearance.theme-primary-color-override":
-    "Custom primary color",
-  "admin.config.appearance.theme-primary-color-override.description":
-    "Hex color override used when theme primary color is set to custom.",
-  "admin.config.appearance.theme-font-preset": "Theme font preset",
-  "admin.config.appearance.theme-font-preset.description":
-    "Font preset loaded at build time. Choose system default or one of the bundled Google Fonts.",
-  "admin.config.appearance.theme-color-scheme": "Default color scheme (guests)",
-  "admin.config.appearance.theme-color-scheme.description":
-    "Default light/dark mode for non-logged-in users. Logged-in users use their own account preference.",
-  "admin.config.appearance.theme-radius": "Theme border radius",
-  "admin.config.appearance.theme-radius.description":
-    "Default border radius used by Mantine components.",
-  "admin.config.appearance.custom-css": "Custom CSS",
-  "admin.config.appearance.custom-css.description":
-    "Global CSS applied to the frontend. Use carefully, as invalid CSS may affect the UI.",
-  "admin.config.appearance.upload-progress-style": "Upload progress style",
-  "admin.config.appearance.upload-progress-style.description":
-    "Choose how upload progress is displayed in the file list.",
-  "admin.config.appearance.upload-progress-style.circle": "Circle indicator",
-  "admin.config.appearance.upload-progress-style.circle-percentage":
-    "Circle with percentage",
-  "admin.config.appearance.upload-progress-style.percentage-time":
-    "Percentage and time remaining",
   "admin.config.general.app-url": "App URL",
   "admin.config.general.app-url.description":
     "On which URL the app is available",
   "admin.config.general.secure-cookies": "Secure cookies",
   "admin.config.general.secure-cookies.description":
     "Whether to set the secure flag on cookies. If enabled, the site will not function when accessed over HTTP.",
-  "admin.config.general.show-home-page": "Show home page",
-  "admin.config.general.show-home-page.description":
-    "Whether to show the home page",
   "admin.config.general.session-duration": "Session Duration",
   "admin.config.general.session-duration.description":
     "Time after which a user must log in again (default: 3 months).",
-  "admin.config.general.logo": "Logo",
-  "admin.config.general.logo.description":
-    "Change your logo by uploading a new image. The image must be a PNG and should have the format 1:1.",
-  "admin.config.general.logo-dark": "Dark mode logo",
-  "admin.config.general.logo-dark.description":
-    "Upload a separate logo for dark mode. The image must be a PNG and should have the format 1:1.",
-  "admin.config.general.logo.placeholder": "Pick image",
+  "admin.config.clamav.enabled": "Scan uploads with ClamAV",
+  "admin.config.clamav.enabled.description":
+    "Scan every uploaded share for malicious files before keeping it. Infected shares are deleted automatically. Requires a reachable ClamAV instance (see the integrations docs).",
+  "admin.clamav.status.title": "ClamAV status",
+  "admin.clamav.status.connected": "Connected",
+  "admin.clamav.status.disconnected": "Not connected",
+  "admin.clamav.scans.title": "Scan history",
+  "admin.clamav.scans.empty": "No scans yet.",
+  "admin.clamav.scans.column.date": "Date",
+  "admin.clamav.scans.column.share": "Share",
+  "admin.clamav.scans.column.files": "Files",
+  "admin.clamav.scans.column.status": "Status",
+  "admin.clamav.scans.status.clean": "Clean",
+  "admin.clamav.scans.status.infected": "Infected",
+  "admin.clamav.scans.status.error": "Error",
   "admin.config.cache.ttl": "TTL",
   "admin.config.cache.ttl.description":
     "Time in second to keep information inside the cache.",
@@ -683,7 +690,7 @@ export default {
   "admin.config.share.allow-unauthenticated-shares":
     "Allow unauthenticated shares",
   "admin.config.share.allow-unauthenticated-shares.description":
-    "Whether unauthenticated users can create shares",
+    "Lets signed-out visitors create shares and makes the site public. Off, the site requires signing in for everything, including the home page.",
   "admin.config.share.require-email-verification-for-anonymous-shares":
     "Email verification for anonymous shares",
   "admin.config.share.require-email-verification-for-anonymous-shares.description":
@@ -874,8 +881,6 @@ export default {
   "admin.config.ldap.field-name-email.description":
     "LDAP attribute name for the email of an user.",
   "admin.config.notify.success": "Configuration updated successfully.",
-  "admin.config.notify.logo-success":
-    "Logo updated successfully. It may take a few minutes to update on the website.",
   "admin.config.notify.no-changes": "No changes to save.",
   "admin.config.category.s3": "S3",
   "admin.config.s3.enabled": "Enabled",
@@ -956,6 +961,7 @@ export default {
   // Common translations
   "common.button.info": "Info",
   "common.button.undo": "Undo",
+  "common.button.retry": "Retry",
   "common.button.download": "Download",
   "common.button.copy": "Copy",
   "common.button.copy-link": "Copy link",
@@ -970,11 +976,15 @@ export default {
   "common.button.delete": "Delete",
   "common.button.cancel": "Cancel",
   "common.button.close": "Close",
+  "common.button.refresh": "Refresh",
   "common.button.confirm": "Confirm",
   "common.button.disable": "Disable",
   "common.button.share": "Share",
   "common.button.generate": "Generate",
   "common.button.done": "Done",
+  "common.button.menu": "Menu",
+  "common.button.back": "Back",
+  "common.button.toggle-password-visibility": "Show/hide password",
   "common.text.link": "Link",
   "common.text.navigate-to-link": "Visit link",
   "common.text.or": "or",

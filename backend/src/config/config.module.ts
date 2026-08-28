@@ -1,14 +1,14 @@
 import { Global, Module } from "@nestjs/common";
 import { Config } from "@prisma/client";
+import { ClamScanModule } from "src/clamscan/clamscan.module";
 import { EmailModule } from "src/email/email.module";
 import { PrismaService } from "src/prisma/prisma.service";
 import { ConfigController } from "./config.controller";
 import { ConfigService } from "./config.service";
-import { LogoService } from "./logo.service";
 
 @Global()
 @Module({
-  imports: [EmailModule],
+  imports: [EmailModule, ClamScanModule],
   providers: [
     {
       provide: "CONFIG_VARIABLES",
@@ -26,7 +26,6 @@ import { LogoService } from "./logo.service";
       },
       inject: [PrismaService, "CONFIG_VARIABLES"],
     },
-    LogoService,
   ],
   controllers: [ConfigController],
   exports: [ConfigService],

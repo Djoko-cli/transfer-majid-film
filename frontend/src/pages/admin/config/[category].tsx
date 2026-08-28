@@ -17,7 +17,7 @@ import { TbInfoCircle } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import Meta from "../../../components/Meta";
 import AdminConfigInput from "../../../components/admin/configuration/AdminConfigInput";
-import LogoConfigInput from "../../../components/admin/configuration/LogoConfigInput";
+import ClamavPanel from "../../../components/admin/clamav/ClamavPanel";
 import TestEmailButton from "../../../components/admin/configuration/TestEmailButton";
 import TestRedisButton from "../../../components/admin/configuration/TestRedisButton";
 import AdminLayout from "../../../components/admin/AdminLayout";
@@ -32,7 +32,6 @@ import toast from "../../../utils/toast.util";
 
 const categories = [
   "General",
-  "Appearance",
   "Email",
   "Share",
   "Verification",
@@ -42,6 +41,7 @@ const categories = [
   "S3",
   "Legal",
   "Cache",
+  "Clamav",
 ];
 
 const AdminConfigPage: NextPageWithLayout = () => {
@@ -66,34 +66,11 @@ const AdminConfigPage: NextPageWithLayout = () => {
   const [optionalConfigVariables, setOptionalConfigVariables] =
     useState<AdminConfig[]>();
 
-  const [logo, setLogo] = useState<File | null>(null);
-  const [darkLogo, setDarkLogo] = useState<File | null>(null);
-
   const isEditingAllowed = (): boolean => {
     return !configVariables || configVariables[0].allowEdit;
   };
 
   const saveConfigVariables = async () => {
-    if (logo) {
-      await configService
-        .changeLogo(logo)
-        .then(() => {
-          setLogo(null);
-          toast.success(t("admin.config.notify.logo-success"));
-        })
-        .catch(toast.axiosError);
-    }
-
-    if (darkLogo) {
-      await configService
-        .changeDarkLogo(darkLogo)
-        .then(() => {
-          setDarkLogo(null);
-          toast.success(t("admin.config.notify.logo-success"));
-        })
-        .catch(toast.axiosError);
-    }
-
     if (updatedConfigVariables.length > 0) {
       await configService
         .updateMany(updatedConfigVariables)
@@ -166,36 +143,7 @@ const AdminConfigPage: NextPageWithLayout = () => {
           <CenterLoader />
         ) : (
           <>
-            {/*
-             * Keep custom CSS at the bottom in Appearance settings for better UX.
-             */}
             {(() => {
-              const customCssConfigVariable = configVariables.find(
-                (configVariable) =>
-                  configVariable.key === "appearance.customCss",
-              );
-              const getEffectiveConfigValue = (key: string): string => {
-                const updatedValue = updatedConfigVariables.find(
-                  (item) => item.key === key,
-                );
-                if (updatedValue) return updatedValue.value;
-
-                const configVariable = configVariables.find(
-                  (item) => item.key === key,
-                );
-                return (
-                  configVariable?.value ?? configVariable?.defaultValue ?? ""
-                );
-              };
-
-              const shouldShowPrimaryColorOverride =
-                getEffectiveConfigValue("appearance.themePrimaryColor") ===
-                "custom";
-              const visibleConfigVariables = configVariables.filter(
-                (configVariable) =>
-                  configVariable.key !== "appearance.customCss",
-              );
-
               return (
                 <Box
                   key={categoryId}
@@ -240,15 +188,7 @@ const AdminConfigPage: NextPageWithLayout = () => {
                         />
                       </Text>
                     )}
-                    {visibleConfigVariables.map((configVariable) => {
-                      if (
-                        configVariable.key ===
-                          "appearance.themePrimaryColorOverride" &&
-                        !shouldShowPrimaryColorOverride
-                      ) {
-                        return null;
-                      }
-
+                    {configVariables.map((configVariable) => {
                       return (
                         <Group key={configVariable.key} position="apart">
                           <Stack
@@ -293,57 +233,7 @@ const AdminConfigPage: NextPageWithLayout = () => {
                         </Group>
                       );
                     })}
-                    {categoryId == "general" && (
-                      <LogoConfigInput
-                        logo={logo}
-                        setLogo={setLogo}
-                        darkLogo={darkLogo}
-                        setDarkLogo={setDarkLogo}
-                      />
-                    )}
-                    {categoryId == "appearance" && customCssConfigVariable && (
-                      <Group key={customCssConfigVariable.key} position="apart">
-                        <Stack
-                          style={{ maxWidth: isMobile ? "100%" : "40%" }}
-                          spacing={0}
-                        >
-                          <Title order={6}>
-                            <FormattedMessage
-                              id={`admin.config.${camelToKebab(
-                                customCssConfigVariable.key,
-                              )}`}
-                            />
-                          </Title>
-
-                          <Text
-                            sx={{
-                              whiteSpace: "pre-line",
-                            }}
-                            color="dimmed"
-                            size="sm"
-                            mb="xs"
-                          >
-                            <FormattedMessage
-                              id={`admin.config.${camelToKebab(
-                                customCssConfigVariable.key,
-                              )}.description`}
-                              values={{ br: <br /> }}
-                            />
-                          </Text>
-                        </Stack>
-                        <Stack></Stack>
-                        <Box style={{ width: isMobile ? "100%" : "50%" }}>
-                          <AdminConfigInput
-                            key={customCssConfigVariable.key}
-                            configVariable={customCssConfigVariable}
-                            updateConfigVariable={updateConfigVariable}
-                            allConfigVariables={configVariables}
-                            updatedConfigVariables={updatedConfigVariables}
-                            optionalConfigVariables={optionalConfigVariables}
-                          />
-                        </Box>
-                      </Group>
-                    )}
+                    {categoryId == "clamav" && <ClamavPanel />}
                   </Stack>
                 </Box>
               );

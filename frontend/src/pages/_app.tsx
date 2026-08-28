@@ -46,90 +46,6 @@ import { NextPageWithLayout } from "../types/page.type";
 // screen, not part of the admin section's own nav.
 type AppPropsWithLayout = AppProps & { Component: NextPageWithLayout };
 
-const availableMantineColors = [
-  "dark",
-  "gray",
-  "red",
-  "pink",
-  "grape",
-  "violet",
-  "indigo",
-  "blue",
-  "cyan",
-  "teal",
-  "green",
-  "lime",
-  "yellow",
-  "orange",
-  "victoria",
-] as const;
-const availableMantineRadii = ["xs", "sm", "md", "lg", "xl"] as const;
-const hexColorPattern = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
-
-const normalizeHexColor = (value: string): string | null => {
-  if (!hexColorPattern.test(value)) return null;
-  if (value.length === 4) {
-    return `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`;
-  }
-  return value.toLowerCase();
-};
-
-const hexToRgb = (hex: string): { r: number; g: number; b: number } => ({
-  r: parseInt(hex.slice(1, 3), 16),
-  g: parseInt(hex.slice(3, 5), 16),
-  b: parseInt(hex.slice(5, 7), 16),
-});
-
-const rgbToHex = (r: number, g: number, b: number): string =>
-  `#${[r, g, b]
-    .map((channel) =>
-      Math.min(255, Math.max(0, Math.round(channel)))
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
-
-const mixHexColors = (
-  baseHex: string,
-  mixHex: string,
-  weight: number,
-): string => {
-  const base = hexToRgb(baseHex);
-  const mix = hexToRgb(mixHex);
-  const inverseWeight = 1 - weight;
-
-  return rgbToHex(
-    base.r * inverseWeight + mix.r * weight,
-    base.g * inverseWeight + mix.g * weight,
-    base.b * inverseWeight + mix.b * weight,
-  );
-};
-
-const createMantineScaleFromHex = (hex: string) =>
-  [
-    mixHexColors(hex, "#ffffff", 0.92),
-    mixHexColors(hex, "#ffffff", 0.82),
-    mixHexColors(hex, "#ffffff", 0.68),
-    mixHexColors(hex, "#ffffff", 0.54),
-    mixHexColors(hex, "#ffffff", 0.36),
-    hex,
-    mixHexColors(hex, "#000000", 0.1),
-    mixHexColors(hex, "#000000", 0.22),
-    mixHexColors(hex, "#000000", 0.34),
-    mixHexColors(hex, "#000000", 0.46),
-  ] as [
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-  ];
-
 function App({ Component, pageProps }: AppPropsWithLayout) {
   const systemTheme = useColorScheme(pageProps.colorScheme);
 
@@ -140,75 +56,20 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
   const [configVariables, setConfigVariables] = useState<Config[]>(
     pageProps.configVariables,
   );
-  const getStringConfigValue = (key: string, fallback = ""): string => {
-    const config = configVariables?.find((item) => item.key === key);
-    return (config?.value ?? config?.defaultValue ?? fallback).trim();
-  };
 
-  const customCss = getStringConfigValue("appearance.customCss");
-  const themePrimaryColorRaw = getStringConfigValue(
-    "appearance.themePrimaryColor",
-    "custom",
-  );
-  const themePrimaryColorOverrideRaw = getStringConfigValue(
-    "appearance.themePrimaryColorOverride",
-    "#ff7a00",
-  );
-  const themeRadiusRaw = getStringConfigValue("appearance.themeRadius", "md");
-  const themeColorSchemeRaw = getStringConfigValue(
-    "appearance.themeColorScheme",
-    "system",
-  );
-
-  const normalizedPrimaryColorOverrideHex = normalizeHexColor(
-    themePrimaryColorOverrideRaw,
-  );
-  const useCustomPrimaryColor = themePrimaryColorRaw === "custom";
-
-  const effectivePrimaryHex = useCustomPrimaryColor
-    ? normalizedPrimaryColorOverrideHex
-    : null;
-
-  const themePrimaryColor = effectivePrimaryHex
-    ? "adminPrimary"
-    : (availableMantineColors as readonly string[]).includes(
-          themePrimaryColorRaw,
-        )
-      ? themePrimaryColorRaw
-      : "gray";
-
-  const themeRadius = (availableMantineRadii as readonly string[]).includes(
-    themeRadiusRaw,
-  )
-    ? themeRadiusRaw
-    : "sm";
-
-  const adminDefaultColorScheme =
-    themeColorSchemeRaw === "light" || themeColorSchemeRaw === "dark"
-      ? themeColorSchemeRaw
-      : "system";
-
-  const adminTheme: MantineThemeOverride = {
-    ...(effectivePrimaryHex
-      ? {
-          colors: {
-            adminPrimary: createMantineScaleFromHex(effectivePrimaryHex),
-          },
-        }
-      : {}),
-    primaryColor: themePrimaryColor,
-    defaultRadius: themeRadius,
-  };
-
+  // Accent color, border radius and every other visual token now live as
+  // static values in mantine.style.ts (globalStyle) — colorScheme is the
+  // one piece that still has to be layered on at runtime, since it tracks
+  // the live dark/light state below rather than a fixed design choice.
   const mergedTheme: MantineThemeOverride = {
     ...globalStyle,
-    ...adminTheme,
     colorScheme,
-    colors: {
-      ...(globalStyle.colors ?? {}),
-      ...(adminTheme.colors ?? {}),
-    },
   };
+
+  // Guests always get dark (see toggleColorScheme below) — kept as a
+  // constant rather than admin-configurable, matching everything else in
+  // mantine.style.ts.
+  const adminDefaultColorScheme = "system";
 
   useEffect(() => {
     const interval = setInterval(
@@ -293,9 +154,12 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
   return (
     <>
       <Head>
+        {/* No user-scalable=no / maximum-scale here — that blocks pinch-zoom
+            entirely, a WCAG 1.4.4 (Resize Text) failure for low-vision
+            visitors. */}
         <meta
           name="viewport"
-          content="minimum-scale=1, initial-scale=1, width=device-width, user-scalable=no"
+          content="minimum-scale=1, initial-scale=1, width=device-width"
         />
       </Head>
       <IntlProvider
@@ -304,11 +168,6 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
         defaultLocale={LOCALES.ENGLISH.code}
       >
         <MantineProvider withGlobalStyles withNormalizeCSS theme={mergedTheme}>
-          {customCss && (
-            <style id="admin-custom-css">
-              {customCss.replace(/<\/style/gi, "<\\/style")}
-            </style>
-          )}
           <ColorSchemeProvider
             colorScheme={colorScheme}
             toggleColorScheme={toggleColorScheme}
@@ -346,7 +205,19 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                         justify="space-between"
                         sx={{ minHeight: "100vh" }}
                       >
-                        <div style={{ paddingTop: HEADER_HEIGHT }}>
+                        <div
+                          style={{
+                            paddingTop: HEADER_HEIGHT,
+                            // Footer is a fixed, floating glass bar (see
+                            // Footer.tsx) rather than flow content, so
+                            // nothing pushes it down naturally the way a
+                            // normal last element would — without this,
+                            // a page whose content reaches the bottom of
+                            // the viewport would have its last bit hidden
+                            // underneath it.
+                            paddingBottom: "var(--footer-height, 40px)",
+                          }}
+                        >
                           <Header />
                           <Container>
                             <Component {...pageProps} />

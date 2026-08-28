@@ -1,5 +1,0 @@
-{
-  "notFound": "Токен зворотного поширення не знайдено",
-  "maxShareSizeExceeded": "Максимальний розмір поширення не може бути більшим за {maxSize} байт.",
-  "tokenInUse": "Reverse share token already in use"
-}

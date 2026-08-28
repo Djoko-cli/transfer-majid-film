@@ -23,13 +23,20 @@ const useStyles = createStyles((theme) => {
       marginLeft: "-50vw",
       marginRight: "-50vw",
       width: "100vw",
+      // Pulls the panel up under the fixed header, and down under the
+      // fixed footer (see Footer.tsx and _app.tsx's compensating
+      // paddingTop/paddingBottom), so the image spans the true full
+      // viewport and shows through both bars' translucent glass instead of
+      // stopping short to leave flow space for them. See the matching,
+      // more detailed comment in SplitTransferLayout.
       marginTop: -HEADER_HEIGHT,
-      marginBottom: -1,
-      minHeight: "calc(100vh - 90px)",
+      marginBottom: "calc(-1 * var(--footer-height, 40px))",
+      minHeight: "100vh",
       overflow: "hidden",
 
       [theme.fn.smallerThan("sm")]: {
         marginTop: 0,
+        marginBottom: 0,
         minHeight: "auto",
         overflow: "visible",
       },
@@ -38,7 +45,12 @@ const useStyles = createStyles((theme) => {
     cardSlot: {
       position: "absolute",
       top: HEADER_HEIGHT,
-      bottom: 0,
+      // Mirrors `top` — reserves room to stay clear of the now-floating
+      // footer instead of relying on `.bleed`'s own box stopping short of
+      // it. Uses the footer's real height directly, not padded up to match
+      // the header's. See the matching, more detailed comment in
+      // SplitTransferLayout.
+      bottom: "var(--footer-height, 40px)",
       left: 0,
       right: 0,
       zIndex: 2,
@@ -47,12 +59,17 @@ const useStyles = createStyles((theme) => {
       justifyContent: "center",
       padding: "48px 20px",
 
+      // Matches SplitTransferLayout's own mobile margin exactly (see its
+      // more detailed comment) — 16px sides, 40px top/bottom to match a
+      // pre-existing 40px spacer above the header that a plain top margin
+      // would otherwise collapse into and appear to have no effect at all.
       [theme.fn.smallerThan("sm")]: {
         position: "relative",
         top: "auto",
         bottom: "auto",
         display: "block",
         padding: 0,
+        margin: "40px 16px",
       },
     },
 
@@ -64,37 +81,46 @@ const useStyles = createStyles((theme) => {
 
     card: {
       position: "relative",
+      // Must reserve the exact same space as cardSlot's band above (`.bleed`'s
+      // minHeight plus cardSlot's own 48px vertical padding) — otherwise an
+      // unusually tall auth card (e.g. TOTP with an error message) could
+      // grow past the space actually available and get cut off by the
+      // footer; overflowY is the safety net if it does hit the cap. See the
+      // matching, more detailed comment in SplitTransferLayout.
+      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - var(--footer-height, 40px) - 96px)`,
+      overflowY: "auto",
       padding: theme.spacing.xl,
       borderRadius: CARD_RADIUS,
       border: `1px solid ${dark ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.5)"}`,
+      // Same tint recipe as Header/Footer/PageDropOverlay/SplitTransferLayout
+      // (see Header.tsx) — this card sits directly over BrandPanel's photo
+      // too, holding every form label the visitor actually reads.
       background: dark
-        ? "linear-gradient(160deg, rgba(255, 255, 255, 0.14) 0%, rgba(18, 18, 18, 0.55) 55%, rgba(255, 255, 255, 0.06) 100%)"
-        : "linear-gradient(160deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.32) 55%, rgba(255, 255, 255, 0.45) 100%)",
+        ? "linear-gradient(160deg, rgba(10, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0.6) 55%, rgba(10, 10, 10, 0.54) 100%)"
+        : "linear-gradient(160deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.6) 55%, rgba(255, 255, 255, 0.54) 100%)",
       backdropFilter: "blur(22px) saturate(160%)",
       WebkitBackdropFilter: "blur(22px) saturate(160%)",
       boxShadow: dark
         ? "0 24px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25)"
         : "0 24px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
 
+      // Was flat opaque here — matches the same fix in SplitTransferLayout:
+      // now that the photo behind it is a fixed backdrop (BrandPanel) that
+      // no longer scrolls away, the same translucent recipe above reads
+      // correctly at this size too.
       [theme.fn.smallerThan("sm")]: {
-        borderRadius: 0,
-        border: "none",
-        background: dark ? theme.colors.dark[7] : theme.white,
-        backdropFilter: "none",
-        WebkitBackdropFilter: "none",
-        boxShadow: "none",
+        maxHeight: "none",
         padding: theme.spacing.md,
       },
     },
 
+    // Used to be hidden below "sm" back when the mobile card was flat
+    // opaque with no real glass edge to catch — see the matching comment
+    // in SplitTransferLayout.
     glint: {
       position: "absolute",
       inset: 0,
       borderRadius: CARD_RADIUS,
-
-      [theme.fn.smallerThan("sm")]: {
-        display: "none",
-      },
     },
   };
 });

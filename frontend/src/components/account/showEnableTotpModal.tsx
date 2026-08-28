@@ -3,6 +3,7 @@ import {
   Center,
   Group,
   Image,
+  MantineProvider,
   Stack,
   Text,
   TextInput,
@@ -18,6 +19,8 @@ import useTranslate, {
 } from "../../hooks/useTranslate.hook";
 import authService from "../../services/auth.service";
 import toast from "../../utils/toast.util";
+import glassFormTheme from "../upload/glassFormTheme";
+import { glassModalStyles } from "../upload/glassModalTheme";
 
 const showEnableTotpModal = (
   modals: ModalsContextProps,
@@ -31,8 +34,11 @@ const showEnableTotpModal = (
   const t = translateOutsideContext();
   return modals.openModal({
     title: t("account.modal.totp.title"),
+    styles: glassModalStyles,
     children: (
-      <CreateEnableTotpModal options={options} refreshUser={refreshUser} />
+      <MantineProvider inherit theme={glassFormTheme}>
+        <CreateEnableTotpModal options={options} refreshUser={refreshUser} />
+      </MantineProvider>
     ),
   });
 };

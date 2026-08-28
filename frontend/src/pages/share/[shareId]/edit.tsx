@@ -1,14 +1,21 @@
-import { LoadingOverlay } from "@mantine/core";
+import { Box, LoadingOverlay, MantineProvider } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { GetServerSidePropsContext } from "next";
 import { useEffect, useState } from "react";
 import Meta from "../../../components/Meta";
 import showErrorModal from "../../../components/share/showErrorModal";
 import EditableUpload from "../../../components/upload/EditableUpload";
+import glassFormTheme from "../../../components/upload/glassFormTheme";
+import SplitTransferLayout from "../../../components/upload/SplitTransferLayout";
 import useConfirmLeave from "../../../hooks/confirm-leave.hook";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import shareService from "../../../services/share.service";
 import { Share as ShareType } from "../../../types/share.type";
+
+// Matches the main share page's own card width (see share/[shareId]/index)
+// — same file-table content, same reasoning for needing more room than the
+// 440px upload form.
+const CARD_WIDTH = 640;
 
 export function getServerSideProps(context: GetServerSidePropsContext) {
   return {
@@ -65,20 +72,32 @@ const Share = ({ shareId }: { shareId: string }) => {
       });
   }, []);
 
-  if (isLoading) return <LoadingOverlay visible />;
+  if (isLoading) {
+    return (
+      <SplitTransferLayout width={CARD_WIDTH}>
+        <Box sx={{ position: "relative", minHeight: 240 }}>
+          <LoadingOverlay visible />
+        </Box>
+      </SplitTransferLayout>
+    );
+  }
 
   return (
     <>
       <Meta title={t("share.edit.title", { shareId })} />
-      <EditableUpload
-        shareId={shareId}
-        files={share?.files || []}
-        maxShareSize={
-          share?.creator?.shareSizeLimit
-            ? parseInt(share.creator.shareSizeLimit)
-            : undefined
-        }
-      />
+      <SplitTransferLayout width={CARD_WIDTH}>
+        <MantineProvider inherit theme={glassFormTheme}>
+          <EditableUpload
+            shareId={shareId}
+            files={share?.files || []}
+            maxShareSize={
+              share?.creator?.shareSizeLimit
+                ? parseInt(share.creator.shareSizeLimit)
+                : undefined
+            }
+          />
+        </MantineProvider>
+      </SplitTransferLayout>
     </>
   );
 };

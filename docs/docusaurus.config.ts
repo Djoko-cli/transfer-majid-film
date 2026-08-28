@@ -3,15 +3,15 @@ import type { Config } from "@docusaurus/types";
 import { themes as prismThemes } from "prism-react-renderer";
 
 const config: Config = {
-  title: "Pingvin Share X",
+  title: "Transfer",
   tagline:
-    "Pingvin Share X is a self-hosted file sharing platform and an alternative for WeTransfer.",
-  favicon: "img/pingvinshare.svg",
+    "Transfer is a self-hosted file sharing platform and an alternative for WeTransfer.",
+  favicon: "img/logo.png",
 
-  url: "https://smp46.github.io",
-  baseUrl: "/pingvin-share-x/",
-  organizationName: "smp46",
-  projectName: "pingvin-share-x",
+  url: "https://djoko-cli.github.io",
+  baseUrl: "/transfer/",
+  organizationName: "Djoko-cli",
+  projectName: "transfer",
 
   onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
@@ -28,7 +28,8 @@ const config: Config = {
         docs: {
           routeBasePath: "/",
           sidebarPath: "./sidebars.ts",
-          editUrl: "https://github.com/smp46/pingvin-share-x/edit/main/docs",
+          editUrl:
+            "https://github.com/Djoko-cli/transfer-majid-film/edit/main/docs",
           lastVersion: "v1",
           versions: {
             v1: {
@@ -48,15 +49,15 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: "img/pingvinshare.svg",
+    image: "img/logo.png",
     colorMode: {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: "Pingvin Share X",
+      title: "Transfer",
       logo: {
-        alt: "Pingvin Share Logo",
-        src: "img/pingvinshare.svg",
+        alt: "Transfer Logo",
+        src: "img/logo.png",
       },
       items: [
         {
@@ -64,7 +65,7 @@ const config: Config = {
           position: "right",
         },
         {
-          href: "https://github.com/smp46/pingvin-share-x",
+          href: "https://github.com/Djoko-cli/transfer-majid-film",
           label: "GitHub",
           position: "right",
         },

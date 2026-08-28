@@ -1,6 +1,8 @@
 import { ModalsContextProps } from "@mantine/modals/lib/context";
 import mime from "mime-types";
+import { translateOutsideContext } from "../../../hooks/useTranslate.hook";
 import { FileListItem, FileUpload } from "../../../types/File.type";
+import { glassModalStyles } from "../glassModalTheme";
 import TextEditor from "../TextEditor";
 
 const showTextEditorModal = <T extends FileListItem>(
@@ -10,12 +12,14 @@ const showTextEditorModal = <T extends FileListItem>(
   text: string,
   modals: ModalsContextProps,
 ) => {
+  const t = translateOutsideContext();
   const originalFile = files[index] as unknown as File;
   const mimeType = (mime.contentType(originalFile.name) || "").split(";")[0];
 
   modals.openModal({
-    title: `Editing ${originalFile.name}`,
+    title: t("upload.text-editor.title", { fileName: originalFile.name }),
     size: "xl",
+    styles: glassModalStyles,
     children: (
       <TextEditor
         initialText={text}

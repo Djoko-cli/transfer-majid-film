@@ -8,9 +8,13 @@ import toast from "../../utils/toast.util";
 const DownloadAllButton = ({
   shareId,
   recipientId,
+  fullWidth,
+  size,
 }: {
   shareId: string;
   recipientId?: string;
+  fullWidth?: boolean;
+  size?: string;
 }) => {
   const [isZipReady, setIsZipReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,6 +51,8 @@ const DownloadAllButton = ({
     <Button
       variant="light"
       color="cyan"
+      fullWidth={fullWidth}
+      size={size}
       loading={isLoading}
       onClick={() => {
         if (!isZipReady) {

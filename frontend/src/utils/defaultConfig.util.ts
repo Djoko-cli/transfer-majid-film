@@ -3,18 +3,6 @@ import Config from "../types/config.type";
 export function getDefaultConfig(): Config[] {
   return [
     {
-      key: "general.appName",
-      value: "Transfer",
-      defaultValue: "Transfer",
-      type: "string",
-    },
-    {
-      key: "general.showHomePage",
-      value: "true",
-      defaultValue: "true",
-      type: "boolean",
-    },
-    {
       key: "general.defaultLanguage",
       value: "fr-FR",
       defaultValue: "fr-FR",

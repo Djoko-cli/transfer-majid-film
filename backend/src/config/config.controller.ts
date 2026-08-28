@@ -1,38 +1,34 @@
 import {
   Body,
   Controller,
-  FileTypeValidator,
   Get,
   GatewayTimeoutException,
   InternalServerErrorException,
   Param,
-  ParseFilePipe,
   Patch,
   Post,
-  UploadedFile,
+  Query,
   UseGuards,
-  UseInterceptors,
 } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
 import { SkipThrottle } from "@nestjs/throttler";
 import { createKeyv } from "@keyv/redis";
 import { I18nService } from "nestjs-i18n";
 import { AdministratorGuard } from "src/auth/guard/isAdmin.guard";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
+import { ClamScanService } from "src/clamscan/clamscan.service";
 import { EmailService } from "src/email/email.service";
 import { ConfigService } from "./config.service";
 import { AdminConfigDTO } from "./dto/adminConfig.dto";
 import { ConfigDTO } from "./dto/config.dto";
 import { TestEmailDTO } from "./dto/testEmail.dto";
 import UpdateConfigDTO from "./dto/updateConfig.dto";
-import { LogoService } from "./logo.service";
 
 @Controller("configs")
 export class ConfigController {
   constructor(
     private configService: ConfigService,
-    private logoService: LogoService,
     private emailService: EmailService,
+    private clamScanService: ClamScanService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -139,31 +135,20 @@ export class ConfigController {
     }
   }
 
-  @Post("admin/logo")
-  @UseInterceptors(FileInterceptor("file"))
+  @Get("admin/clamav/status")
   @UseGuards(JwtGuard, AdministratorGuard)
-  async uploadLogo(
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [new FileTypeValidator({ fileType: "image/png" })],
-      }),
-    )
-    file: Express.Multer.File,
-  ) {
-    return await this.logoService.create(file.buffer);
+  async clamavStatus() {
+    return this.clamScanService.getStatus();
   }
 
-  @Post("admin/logoDark")
-  @UseInterceptors(FileInterceptor("file"))
+  @Get("admin/clamav/scans")
   @UseGuards(JwtGuard, AdministratorGuard)
-  async uploadDarkLogo(
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [new FileTypeValidator({ fileType: "image/png" })],
-      }),
-    )
-    file: Express.Multer.File,
+  async clamavScans(
+    @Query("take") take?: string,
+    @Query("skip") skip?: string,
   ) {
-    return await this.logoService.createDark(file.buffer);
+    const parsedTake = Math.min(parseInt(take) || 20, 100);
+    const parsedSkip = parseInt(skip) || 0;
+    return this.clamScanService.listScans(parsedTake, parsedSkip);
   }
 }

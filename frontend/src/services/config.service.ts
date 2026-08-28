@@ -4,7 +4,6 @@ import { stringToTimespan } from "../utils/date.util";
 
 const categories = [
   "general",
-  "appearance",
   "email",
   "share",
   "verification",
@@ -14,6 +13,7 @@ const categories = [
   "s3",
   "legal",
   "cache",
+  "clamav",
 ];
 
 const list = async (): Promise<Config[]> => {
@@ -75,19 +75,35 @@ const testRedisConnection = async () => {
   };
 };
 
-const changeLogo = async (file: File) => {
-  const form = new FormData();
-  form.append("file", file);
-
-  await api.post("/configs/admin/logo", form);
+const getClamavStatus = async (): Promise<{
+  enabled: boolean;
+  connected: boolean;
+  version: string | null;
+}> => {
+  return (await api.get("/configs/admin/clamav/status")).data;
 };
 
-const changeDarkLogo = async (file: File) => {
-  const form = new FormData();
-  form.append("file", file);
-
-  await api.post("/configs/admin/logoDark", form);
+export type ClamavScan = {
+  id: string;
+  createdAt: string;
+  shareId: string | null;
+  shareName: string | null;
+  status: "clean" | "infected" | "error";
+  fileCount: number;
+  infectedCount: number;
+  infectedFileNames: string | null;
+  errorMessage: string | null;
 };
+
+const getClamavScans = async (
+  take: number,
+  skip: number,
+): Promise<{ scans: ClamavScan[]; total: number }> => {
+  return (
+    await api.get("/configs/admin/clamav/scans", { params: { take, skip } })
+  ).data;
+};
+
 export default {
   list,
   getByCategory,
@@ -96,6 +112,6 @@ export default {
   finishSetup,
   sendTestEmail,
   testRedisConnection,
-  changeLogo,
-  changeDarkLogo,
+  getClamavStatus,
+  getClamavScans,
 };

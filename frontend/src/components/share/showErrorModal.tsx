@@ -3,6 +3,7 @@ import { useModals } from "@mantine/modals";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
 import { useRouter } from "next/router";
 import { FormattedMessage } from "react-intl";
+import { glassModalStyles } from "../upload/glassModalTheme";
 
 const showErrorModal = (
   modals: ModalsContextProps,
@@ -15,7 +16,7 @@ const showErrorModal = (
     withCloseButton: false,
     closeOnEscape: false,
     title: title,
-
+    styles: glassModalStyles,
     children: <Body text={text} action={action} />,
   });
 };

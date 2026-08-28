@@ -87,16 +87,24 @@ export class VerificationService {
   }
 
   isRequestVerified(request: Request): boolean {
+    return !!this.getVerifiedEmail(request);
+  }
+
+  // Reused by ShareService.complete() to email an anonymous sender their own
+  // link — see isRequestVerified above for the boolean-only check.
+  getVerifiedEmail(request: Request): string | null {
     const token = request.cookies?.[ANON_SHARE_TOKEN_COOKIE];
-    if (!token) return false;
+    if (!token) return null;
 
     try {
       const claims = this.jwtService.verify(token, {
         secret: this.config.get("internal.jwtSecret"),
       });
-      return claims.purpose === ANON_SHARE_TOKEN_PURPOSE && !!claims.email;
+      return claims.purpose === ANON_SHARE_TOKEN_PURPOSE && claims.email
+        ? claims.email
+        : null;
     } catch {
-      return false;
+      return null;
     }
   }
 }

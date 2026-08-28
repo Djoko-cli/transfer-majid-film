@@ -1,10 +1,9 @@
 import {
   Accordion,
-  Alert,
-  Box,
   Button,
   Checkbox,
   Collapse,
+  createStyles,
   MantineProvider,
   MultiSelect,
   NumberInput,
@@ -21,17 +20,18 @@ import glassFormTheme from "./glassFormTheme";
 import { useForm, yupResolver } from "@mantine/form";
 import moment from "moment";
 import React, { useEffect, useRef, useState } from "react";
-import { TbAlertCircle, TbChevronDown, TbChevronUp } from "react-icons/tb";
+import { TbChevronDown, TbChevronUp } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
+import AnimatedHeight from "../core/AnimatedHeight";
+import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
-import shareService from "../../services/share.service";
 import { FileUpload } from "../../types/File.type";
 import { CreateShare } from "../../types/share.type";
 import { Timespan } from "../../types/timespan.type";
 import { getExpirationPreview } from "../../utils/date.util";
-import { generateShareId } from "../../utils/share.util";
-import CustomUrlInput from "../share/CustomUrlInput";
+import { getDefaultShareName } from "../../utils/file.util";
+import { generateAvailableShareId } from "../../utils/share.util";
 import Dropzone from "./Dropzone";
 import FileList from "./FileList";
 
@@ -65,17 +65,80 @@ const useHoldRepeat = (step: (delta: number) => void, disabled: boolean) => {
   return { start, stop };
 };
 
+// The submit button's glint once it's genuinely actionable (files
+// selected), reusing liquidGlassKeyframes' global @keyframes (createStyles
+// doesn't reliably register object-syntax @keyframes in this codebase —
+// see that file, and GlintBorder for the same pattern already working
+// elsewhere). A createStyles hook rather than an inline `sx` object
+// specifically because `sx` is recomputed fresh on every render — with an
+// infinite CSS animation, a rebuilt style object can visibly restart the
+// animation mid-cycle on the next render, reading as a jump/teleport
+// rather than a continuous sweep. createStyles instead memoizes its output
+// by theme, so the generated class (and the animation riding on it) stays
+// untouched across re-renders.
+//
+// The pre-selection "waiting for input" pulse lives on the Dropzone
+// instead (see Dropzone.tsx's `waiting` prop) — that's the element the
+// user actually needs to act on, not this button.
+const useSubmitButtonStyles = createStyles((theme) => {
+  const dark = theme.colorScheme === "dark";
+  const accent = theme.colors[theme.primaryColor][dark ? 4 : 6];
+
+  return {
+    // Once files are selected the button is genuinely actionable, so it
+    // gets a glint sweep — the same idea as GlintBorder's own
+    // glass-catching-light comet: a soft, blurred glow plus an
+    // accent-colored drop-shadow halo, rather than a flat opaque streak,
+    // which reads as a metal reflection instead of light through glass.
+    //
+    // The previous version placed the highlight so it sat *exactly* on a
+    // computed "invisible" boundary at both loop endpoints — a gradient
+    // angle that wasn't perfectly horizontal (100deg) stretches those
+    // stops in a way that's hard to get pixel-exact, so the loop reset
+    // showed as a visible pop right at the edges. This version keeps the
+    // gradient perfectly horizontal and gives the sweep a lot more room
+    // than it strictly needs (background-size 400% vs. the highlight's own
+    // sliver of that width, and a travel range well past the minimum) —
+    // comfortable slack rather than a razor's-edge boundary, so neither
+    // gradient-angle math nor the blur's own edge bleed can push anything
+    // into view right as the loop resets.
+    ready: {
+      position: "relative",
+      overflow: "hidden",
+
+      "&::after": {
+        content: "''",
+        position: "absolute",
+        inset: 0,
+        background: `linear-gradient(90deg,
+          transparent,
+          rgba(255, 255, 255, 0.5) 50%,
+          transparent)`,
+        backgroundSize: "400% 100%",
+        backgroundRepeat: "no-repeat",
+        filter: `blur(8px) drop-shadow(0 0 10px ${accent}aa)`,
+        animation: "buttonShimmer 3.4s ease-in-out infinite",
+      },
+
+      "@media (prefers-reduced-motion: reduce)": {
+        "&::after": { animation: "none" },
+      },
+    },
+  };
+});
+
 const TransferCard = ({
   files,
   isUploading,
+  onCancelUpload,
+  onRetryFile,
   maxShareSize,
   currentFilesSize,
   onFilesChanged,
   setFiles,
   onSubmit,
   isUserSignedIn,
-  appUrl,
-  defaultAppUrl,
+  userEmail,
   enableEmailRecepients,
   enableUserRecipients,
   maxExpiration,
@@ -84,14 +147,18 @@ const TransferCard = ({
 }: {
   files: FileUpload[];
   isUploading: boolean;
+  onCancelUpload: () => void;
+  onRetryFile: (fileIndex: number) => void;
   maxShareSize: number;
   currentFilesSize: number;
   onFilesChanged: (files: FileUpload[]) => void;
   setFiles: React.Dispatch<React.SetStateAction<FileUpload[]>>;
   onSubmit: (createShare: CreateShare, senderEmail: string | null) => void;
   isUserSignedIn: boolean;
-  appUrl: string;
-  defaultAppUrl: string;
+  // Pre-fills the sender field for a signed-in user (still editable — they
+  // may want a different reply-to for a given transfer) instead of asking
+  // them to retype an address the app already knows.
+  userEmail?: string;
   enableEmailRecepients: boolean;
   enableUserRecipients: boolean;
   maxExpiration: Timespan;
@@ -100,6 +167,16 @@ const TransferCard = ({
 }) => {
   const t = useTranslate();
   const theme = useMantineTheme();
+  const config = useConfig();
+
+  // Whether submitting will actually open the OTP modal — false for a
+  // signed-in sender (already known, field is locked below) and false when
+  // an admin has turned the verification step off entirely. Drives the
+  // sender-email field's own label/placeholder so the OTP step is never a
+  // surprise: see the field below.
+  const requiresEmailVerification =
+    !isUserSignedIn &&
+    config.get("share.requireEmailVerificationForAnonymousShares");
 
   // Shared between the max-views and expiration steppers below — both use
   // the same custom rightSection buttons (native NumberInput controls step
@@ -138,30 +215,37 @@ const TransferCard = ({
     };
   };
 
+  const { classes: submitButtonClasses } = useSubmitButtonStyles();
+
   const [mode, setMode] = useState<Mode>("link");
   const [emailSearch, setEmailSearch] = useState("");
-  const [showNotSignedInAlert, setShowNotSignedInAlert] = useState(true);
 
   const validationSchema = yup.object().shape({
-    link: yup
-      .string()
-      .required(t("common.error.field-required"))
-      .min(3, t("common.error.too-short", { length: 3 }))
-      .max(50, t("common.error.too-long", { length: 50 }))
-      .matches(new RegExp("^[a-zA-Z0-9_-]*$"), {
-        message: t("upload.modal.link.error.invalid"),
-      }),
     name: yup
       .string()
       .transform((value) => value || undefined)
       .min(3, t("common.error.too-short", { length: 3 }))
       .max(30, t("common.error.too-long", { length: 30 })),
+    // Only load-bearing in "E-mail" mode: leaving it empty there made the
+    // Lien/E-mail toggle silently inert (both branches sent an identical
+    // link-only share), even though populating it does trigger real
+    // recipient emails server-side (share.service.ts). Requiring it here
+    // makes the toggle's choice always have a visible consequence.
+    recipients:
+      mode === "email" && enableEmailRecepients
+        ? yup
+            .array()
+            .min(1, t("upload.transfer.recipient.email.required"))
+        : yup.array(),
     senderEmail: !isUserSignedIn
       ? yup
           .string()
           .required(t("common.error.field-required"))
           .email(t("common.error.invalid-email"))
-      : yup.string().transform((value) => value || undefined),
+      : yup
+          .string()
+          .transform((value) => value || undefined)
+          .email(t("common.error.invalid-email")),
     password: yup
       .string()
       .transform((value) => value || undefined)
@@ -184,13 +268,9 @@ const TransferCard = ({
 
   const form = useForm({
     initialValues: {
-      // Populated client-side only, after mount (see below) — generating a
-      // random id during render would differ between the server and client
-      // pass and trigger a hydration mismatch.
-      link: "",
       name: "",
       recipients: [] as string[],
-      senderEmail: "",
+      senderEmail: userEmail || "",
       password: undefined,
       // "" rather than undefined: Mantine's NumberInput treats a controlled
       // value of undefined as "uncontrolled, ignore me" and simply keeps
@@ -207,20 +287,13 @@ const TransferCard = ({
     validate: yupResolver(validationSchema),
   });
 
-  useEffect(() => {
-    form.setFieldValue("link", generateShareId(shareIdLength));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // getExpirationPreview() below calls moment() (i.e. "now") directly at
   // render time — evaluated once during SSR and again during client
   // hydration, a few seconds apart, occasionally landing on different
   // minutes and triggering a genuine hydration mismatch (not just a
   // console warning: React discards the SSR output and re-renders the
   // whole tree client-side). Gating the real text behind a mount flag
-  // makes the pre-hydration markup identical on both sides — nothing is
-  // shown until the first client-only render, same fix already applied to
-  // the "link" field's random id above.
+  // makes the pre-hydration markup identical on both sides.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -276,11 +349,6 @@ const TransferCard = ({
   const maxViewsHold = useHoldRepeat(stepMaxViews, false);
 
   const onFormSubmit = form.onSubmit(async (values) => {
-    if (!(await shareService.isShareIdAvailable(values.link))) {
-      form.setFieldError("link", t("upload.modal.link.error.taken"));
-      return;
-    }
-
     const expirationString = form.values.never_expires
       ? "never"
       : form.values.expiration_num + form.values.expiration_unit;
@@ -313,8 +381,8 @@ const TransferCard = ({
 
     onSubmit(
       {
-        id: values.link,
-        name: values.name || undefined,
+        id: await generateAvailableShareId(shareIdLength),
+        name: values.name || getDefaultShareName(files, t) || undefined,
         expiration: expirationString,
         recipients: values.recipients,
         description: values.description,
@@ -332,138 +400,80 @@ const TransferCard = ({
 
   return (
     <MantineProvider inherit theme={glassFormTheme}>
-      {showNotSignedInAlert && !isUserSignedIn && (
-        <Alert
-          withCloseButton
-          onClose={() => setShowNotSignedInAlert(false)}
-          icon={<TbAlertCircle size={16} />}
-          title={t("upload.modal.not-signed-in")}
-          color="yellow"
-          mb="md"
-        >
-          <FormattedMessage id="upload.modal.not-signed-in-description" />
-        </Alert>
-      )}
-
       <form onSubmit={onFormSubmit}>
         <Stack align="stretch">
-          {!isUserSignedIn && (
-            <SegmentedControl
-              fullWidth
-              value={mode}
-              onChange={(value) => setMode(value as Mode)}
-              data={[
-                { label: t("upload.transfer.mode.link"), value: "link" },
-                { label: t("upload.transfer.mode.email"), value: "email" },
-              ]}
-            />
-          )}
-
+          {
+            // The dropzone leads — before asking anything about delivery,
+            // naming, or recipients, there's nothing to make those
+            // decisions about yet. Everything below only makes sense once
+            // files exist, so it now follows rather than precedes them.
+          }
           <Dropzone
             maxShareSize={maxShareSize}
             currentFilesSize={currentFilesSize}
             onFilesChanged={onFilesChanged}
             isUploading={isUploading}
+            waiting={files.length === 0}
+            compact={files.length > 0}
             glass
           />
-          {files.length > 0 && (
-            <FileList<FileUpload> files={files} setFiles={setFiles} />
-          )}
+          {
+            // AnimatedHeight rather than Collapse — Collapse only
+            // animates its own `in` toggle (the table's first appearance,
+            // its last disappearance), not the table growing or shrinking
+            // by a row as further files are added/removed while it's
+            // already open. AnimatedHeight's ResizeObserver catches every
+            // one of those the same way.
+          }
+          <AnimatedHeight>
+            {files.length > 0 ? (
+              <FileList<FileUpload>
+                files={files}
+                setFiles={setFiles}
+                isUploading={isUploading}
+                onCancel={onCancelUpload}
+                onRetry={onRetryFile}
+              />
+            ) : null}
+          </AnimatedHeight>
 
+          {
+            // Moved below the dropzone (it used to open the card) — asking
+            // how a transfer will be delivered before a single file has
+            // been chosen answers a question that doesn't exist yet.
+          }
+          <SegmentedControl
+            fullWidth
+            value={mode}
+            onChange={(value) => setMode(value as Mode)}
+            data={[
+              { label: t("upload.transfer.mode.link"), value: "link" },
+              { label: t("upload.transfer.mode.email"), value: "email" },
+            ]}
+          />
+
+          {
+            // Always shown, in both Lien and E-mail mode: this names the
+            // share itself (it's what a recipient sees as the page title,
+            // and what the owner sees as the row label in "Mes partages"),
+            // not who it's addressed to — a link shared with no particular
+            // recipient still deserves its own identity. Left blank, the
+            // fallback in onFormSubmit derives one from the files being
+            // sent, so a share is never stuck showing its raw random ID as
+            // its only name.
+          }
           <TextInput
             variant="filled"
-            label={t("upload.transfer.recipient.name.label")}
-            placeholder={t("upload.transfer.recipient.name.placeholder")}
+            label={t("upload.transfer.share-name.label")}
+            placeholder={t("upload.transfer.share-name.placeholder")}
             {...form.getInputProps("name")}
           />
 
-          {enableEmailRecepients && (
-            // Same display:block-instead-of-none trick as the old
-            // sender-email field used to need: a Collapse settles closed at
-            // display:none, which drops the item out of the Stack's flex
-            // gap calculation and snaps the layout by one gap-width right
-            // after the height animation finishes. Only anonymous users
-            // ever toggle this (signed-in users have no mode switch, so
-            // `in` is always true for them and this never animates).
-            <Collapse
-              in={isUserSignedIn || mode === "email"}
-              sx={{ "&[aria-hidden='true']": { display: "block !important" } }}
-            >
-              <MultiSelect
-                label={t("upload.transfer.recipient.email.label")}
-                data={form.values.recipients}
-                placeholder={t("upload.transfer.recipient.email.placeholder")}
-                searchable
-                creatable
-                variant="filled"
-                id="recipient-emails"
-                inputMode="email"
-                tabIndex={isUserSignedIn || mode === "email" ? undefined : -1}
-                searchValue={emailSearch}
-                onSearchChange={setEmailSearch}
-                getCreateLabel={(query) => `+ ${query}`}
-                onCreate={(query) => {
-                  if (!query.match(/^\S+@\S+\.\S+$/)) {
-                    form.setFieldError(
-                      "recipients",
-                      t("upload.modal.accordion.email.invalid-email"),
-                    );
-                    return undefined;
-                  }
-                  form.setFieldError("recipients", null);
-                  const newRecipients = form.values.recipients.includes(query)
-                    ? form.values.recipients
-                    : [...form.values.recipients, query];
-                  form.setFieldValue("recipients", newRecipients);
-                  return query;
-                }}
-                {...form.getInputProps("recipients")}
-                onChange={(value: string[]) => {
-                  form.setFieldValue("recipients", value);
-                }}
-                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                  if (e.key === "Enter" || e.key === "," || e.key === ";") {
-                    e.preventDefault();
-                    const inputValue = emailSearch.trim();
-                    if (
-                      inputValue.match(/^\S+@\S+\.\S+$/) &&
-                      !form.values.recipients.includes(inputValue)
-                    ) {
-                      form.setFieldValue("recipients", [
-                        ...form.values.recipients,
-                        inputValue,
-                      ]);
-                    }
-                    setEmailSearch("");
-                  } else if (e.key === " ") {
-                    e.preventDefault();
-                    setEmailSearch("");
-                  }
-                }}
-              />
-            </Collapse>
-          )}
-
-          {!isUserSignedIn && (
-            // Always asked regardless of Lien/E-mail mode — it's the
-            // anonymous sender's own identity for anti-spam verification,
-            // not tied to how the recipient gets the transfer.
-            <TextInput
-              variant="filled"
-              label={t("upload.transfer.sender.label")}
-              placeholder={t("upload.transfer.sender.placeholder")}
-              {...form.getInputProps("senderEmail")}
-            />
-          )}
-
-          {enableUserRecipients && enableEmailRecepients && (
-            <Checkbox
-              label={t("upload.modal.accordion.email.restrict-to-recipients")}
-              checked={form.values.restrictToRecipients}
-              onChange={(e) => handleRestrictToggle(e.currentTarget.checked)}
-            />
-          )}
-
+          {
+            // Grouped with the name field above rather than down by
+            // expiration/recipients — both describe *what's being sent*,
+            // not *how* it's delivered.
+          }
           <Textarea
             variant="filled"
             label={t("upload.transfer.message.label")}
@@ -472,6 +482,114 @@ const TransferCard = ({
             )}
             {...form.getInputProps("description")}
           />
+
+          {
+            // Who actually receives the transfer, on the other hand, only
+            // applies once the sender has committed to addressing it to
+            // someone, i.e. "E-mail" mode — collapsed (rather than
+            // unmounted) so the height animation has something to animate.
+            // Also gated on enableEmailRecepients so switching to "E-mail"
+            // mode doesn't expand an empty box when that feature is off.
+            // Same display:block-instead-of-none trick as the old
+            // sender-email field used to need: a Collapse settles closed at
+            // display:none, which drops the item out of the Stack's flex
+            // gap calculation and snaps the layout by one gap-width right
+            // after the height animation finishes.
+          }
+          <Collapse
+            in={mode === "email" && enableEmailRecepients}
+            sx={{ "&[aria-hidden='true']": { display: "block !important" } }}
+          >
+            <Stack align="stretch">
+              {enableEmailRecepients && (
+                <MultiSelect
+                  withAsterisk={mode === "email"}
+                  label={t("upload.transfer.recipient.email.label")}
+                  data={form.values.recipients}
+                  placeholder={t("upload.transfer.recipient.email.placeholder")}
+                  searchable
+                  creatable
+                  variant="filled"
+                  id="recipient-emails"
+                  inputMode="email"
+                  tabIndex={mode === "email" ? undefined : -1}
+                  searchValue={emailSearch}
+                  onSearchChange={setEmailSearch}
+                  getCreateLabel={(query) => `+ ${query}`}
+                  onCreate={(query) => {
+                    if (!query.match(/^\S+@\S+\.\S+$/)) {
+                      form.setFieldError(
+                        "recipients",
+                        t("upload.modal.accordion.email.invalid-email"),
+                      );
+                      return undefined;
+                    }
+                    form.setFieldError("recipients", null);
+                    const newRecipients = form.values.recipients.includes(query)
+                      ? form.values.recipients
+                      : [...form.values.recipients, query];
+                    form.setFieldValue("recipients", newRecipients);
+                    return query;
+                  }}
+                  {...form.getInputProps("recipients")}
+                  onChange={(value: string[]) => {
+                    form.setFieldValue("recipients", value);
+                  }}
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === "Enter" || e.key === "," || e.key === ";") {
+                      e.preventDefault();
+                      const inputValue = emailSearch.trim();
+                      if (
+                        inputValue.match(/^\S+@\S+\.\S+$/) &&
+                        !form.values.recipients.includes(inputValue)
+                      ) {
+                        form.setFieldValue("recipients", [
+                          ...form.values.recipients,
+                          inputValue,
+                        ]);
+                      }
+                      setEmailSearch("");
+                    } else if (e.key === " ") {
+                      e.preventDefault();
+                      setEmailSearch("");
+                    }
+                  }}
+                />
+              )}
+            </Stack>
+          </Collapse>
+
+          {
+            // Always shown regardless of Lien/E-mail mode — it's the
+            // sender's own identity, not tied to how the recipient gets the
+            // transfer. Anonymous senders must type and verify it (see
+            // the OTP flow this feeds); a signed-in sender's is already
+            // known, so it's pre-filled from their account and locked
+            // rather than asked for again.
+          }
+          <TextInput
+            variant="filled"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            withAsterisk={!isUserSignedIn}
+            label={t("upload.transfer.sender.label")}
+            description={
+              requiresEmailVerification &&
+              t("upload.transfer.sender.otp-description")
+            }
+            placeholder={t("upload.transfer.sender.placeholder")}
+            disabled={isUserSignedIn}
+            {...form.getInputProps("senderEmail")}
+          />
+
+          {enableUserRecipients && enableEmailRecepients && (
+            <Checkbox
+              label={t("upload.modal.accordion.email.restrict-to-recipients")}
+              checked={form.values.restrictToRecipients}
+              onChange={(e) => handleRestrictToggle(e.currentTarget.checked)}
+            />
+          )}
 
           <NumberInput
             hideControls
@@ -501,6 +619,7 @@ const TransferCard = ({
                   onPointerUp={expirationHold.stop}
                   onPointerLeave={expirationHold.stop}
                   onPointerCancel={expirationHold.stop}
+                  aria-label={t("upload.transfer.expires.increase")}
                 >
                   <TbChevronUp size={12} />
                 </UnstyledButton>
@@ -520,6 +639,7 @@ const TransferCard = ({
                   onPointerUp={expirationHold.stop}
                   onPointerLeave={expirationHold.stop}
                   onPointerCancel={expirationHold.stop}
+                  aria-label={t("upload.transfer.expires.decrease")}
                 >
                   <TbChevronDown size={12} />
                 </UnstyledButton>
@@ -550,14 +670,6 @@ const TransferCard = ({
               </Accordion.Control>
               <Accordion.Panel>
                 <Stack align="stretch">
-                  <CustomUrlInput
-                    form={form}
-                    fieldName="link"
-                    shareIdLength={shareIdLength}
-                    appUrl={appUrl}
-                    defaultAppUrl={defaultAppUrl}
-                    pathPrefix="/s/"
-                  />
                   {!form.values.restrictToRecipients && (
                     <PasswordInput
                       variant="filled"
@@ -566,6 +678,9 @@ const TransferCard = ({
                       )}
                       label={t(
                         "upload.modal.accordion.security.password.label",
+                      )}
+                      visibilityToggleLabel={t(
+                        "common.button.toggle-password-visibility",
                       )}
                       autoComplete="new-password"
                       {...form.getInputProps("password")}
@@ -618,6 +733,9 @@ const TransferCard = ({
                           onPointerUp={maxViewsHold.stop}
                           onPointerLeave={maxViewsHold.stop}
                           onPointerCancel={maxViewsHold.stop}
+                          aria-label={t(
+                            "upload.modal.accordion.security.max-views.increase",
+                          )}
                         >
                           <TbChevronUp size={12} />
                         </UnstyledButton>
@@ -632,6 +750,9 @@ const TransferCard = ({
                           onPointerUp={maxViewsHold.stop}
                           onPointerLeave={maxViewsHold.stop}
                           onPointerCancel={maxViewsHold.stop}
+                          aria-label={t(
+                            "upload.modal.accordion.security.max-views.decrease",
+                          )}
                         >
                           <TbChevronDown size={12} />
                         </UnstyledButton>
@@ -643,13 +764,37 @@ const TransferCard = ({
             </Accordion.Item>
           </Accordion>
 
+          {
+            // Downgraded from a dismissible yellow warning banner that used
+            // to open the whole card — the same information, but as a
+            // quiet aside right where it's actually relevant (about to
+            // submit), not the first thing a visitor reads before they've
+            // even seen what this page does.
+          }
+          {!isUserSignedIn && (
+            <Text size="xs" color="dimmed">
+              <FormattedMessage id="upload.transfer.anonymous-notice" />
+            </Text>
+          )}
+
           <Button
             type="submit"
             size="md"
             disabled={files.length === 0}
             loading={isUploading}
+            className={
+              !isUploading && files.length > 0
+                ? submitButtonClasses.ready
+                : undefined
+            }
           >
-            <FormattedMessage id="upload.transfer.submit" />
+            <FormattedMessage
+              id={
+                mode === "link"
+                  ? "upload.transfer.submit.link"
+                  : "upload.transfer.submit"
+              }
+            />
           </Button>
         </Stack>
       </form>

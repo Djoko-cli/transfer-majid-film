@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import pLimit from "p-limit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
+import AnimatedHeight from "../../components/core/AnimatedHeight";
 import Dropzone from "../../components/upload/Dropzone";
 import FileList from "../../components/upload/FileList";
 import useConfig from "../../hooks/config.hook";
@@ -247,10 +248,13 @@ const EditableUpload = ({
         currentFilesSize={currentFilesSize}
         onFilesChanged={appendFiles}
         isUploading={isUploading}
+        glass
       />
-      {existingAndUploadedFiles.length > 0 && (
-        <FileList files={existingAndUploadedFiles} setFiles={setFiles} />
-      )}
+      <AnimatedHeight>
+        {existingAndUploadedFiles.length > 0 ? (
+          <FileList files={existingAndUploadedFiles} setFiles={setFiles} />
+        ) : null}
+      </AnimatedHeight>
     </>
   );
 };

@@ -2,35 +2,18 @@
 #You can remove keys you don't want to set. If a key is missing, the value set in the UI will be used; if that is also unset, the default value applies.
 
 general:
-  #Name of the application
-  appName: Transfer
-  #On which URL Pingvin Share is available
+  #On which URL Transfer is available
   appUrl: http://localhost:3000
   #Whether to set the secure flag on cookies. If enabled, the site will not function when accessed over HTTP.
   secureCookies: "false"
-  #Whether to show the home page
-  showHomePage: "true"
   #Time after which a user must log in again (default: 3 months).
   sessionDuration: 3 months
   #This applies to all users, each user can still personalise their language in their profile.
   defaultLanguage: fr-FR
-appearance:
-  #Primary color used for buttons, links, and accents. Choose custom to use a color picker override.
-  themePrimaryColor: custom
-  #Hex color override used when theme primary color is set to custom.
-  themePrimaryColorOverride: "#ff7a00"
-  #Default border radius used by Mantine components.
-  themeRadius: md
-  #Default light/dark mode for non-logged-in users. Logged-in users use their own account preference.
-  themeColorScheme: system
-  #Global CSS applied to the frontend. Use carefully, as invalid CSS may affect the UI.
-  customCss: ""
-  #Choose how upload progress is displayed in the file list.
-  uploadProgressStyle: circle
 share:
   #Whether registration is allowed
   allowRegistration: "true"
-  #Whether unauthenticated users can create shares
+  #Lets signed-out visitors create shares and makes the site public. Off, the site requires signing in for everything, including the home page.
   allowUnauthenticatedShares: "false"
   #Whether anonymous share creators must verify their email with a one-time code before uploading. Only applies when allowUnauthenticatedShares is enabled.
   requireEmailVerificationForAnonymousShares: "true"
@@ -69,8 +52,11 @@ verification:
 
 
     Il expire dans 10 minutes. Saisissez-le pour continuer votre transfert.
+clamav:
+  #Scan every uploaded share with ClamAV before keeping it (needs a reachable ClamAV instance, see the integrations docs).
+  enabled: "true"
 cache:
-  #Normally Pingvin Share caches information in memory. If you run multiple instances of Pingvin Share, you need to enable Redis caching to share the cache between the instances.
+  #Normally Transfer caches information in memory. If you run multiple instances of Transfer, you need to enable Redis caching to share the cache between the instances.
   redis-enabled: "false"
   #Url to connect to the Redis instance used for caching.
   redis-url: redis://redis:6379
@@ -104,6 +90,21 @@ email:
 
 
     Note : {desc}
+  #Subject of the email sent to an anonymous (unauthenticated) sender confirming their own transfer link, so it isn't lost if the completion screen is closed before they copy it.
+  anonymousSenderLinkSubject: Votre lien de transfert
+  #Message sent to an anonymous sender with their own transfer link. Available variables:
+  # {name} - " « <share name> »" (with a leading space) when the share was named, otherwise empty
+  # {shareUrl} - The URL of the share
+  # {expires} - The expiration date of the share
+  anonymousSenderLinkMessage: >-
+    Bonjour !
+
+
+    Voici le lien de votre transfert{name} : {shareUrl}
+
+
+    Gardez cet e-mail : c'est le seul moyen de retrouver ce lien si vous le
+    perdez. Ce partage expirera {expires}.
   #Subject of the sent email when someone created a share with your reverse share link.
   reverseShareSubject: Votre lien de dépôt a été utilisé
   #Message which gets sent when someone created a share with your reverse share link. {shareUrl} will be replaced with the creator's name and the share URL.

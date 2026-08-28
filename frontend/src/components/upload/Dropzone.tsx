@@ -1,6 +1,7 @@
 import {
   Button,
   Center,
+  Collapse,
   createStyles,
   Group,
   Text,
@@ -17,29 +18,72 @@ import { FileUpload } from "../../types/File.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
 
-const useStyles = createStyles((theme) => ({
-  wrapper: {
-    position: "relative",
-    marginBottom: 30,
-  },
+const useStyles = createStyles((theme) => {
+  const dark = theme.colorScheme === "dark";
+  const accent = theme.colors[theme.primaryColor][dark ? 4 : 6];
 
-  dropzone: {
-    borderWidth: 1,
-    paddingBottom: 50,
-  },
+  return {
+    wrapper: {
+      position: "relative",
+      marginBottom: 30,
+    },
 
-  icon: {
-    color:
-      theme.colorScheme === "dark"
-        ? theme.colors.dark[3]
-        : theme.colors.gray[4],
-  },
+    dropzone: {
+      borderWidth: 1,
+      paddingBottom: 50,
+    },
 
-  control: {
-    position: "absolute",
-    bottom: -20,
-  },
-}));
+    // Once files are already selected, the full "how to drop files"
+    // instructions are redundant with the file list right below it —
+    // this shrinks the dropzone to a slim "add more" bar instead of
+    // keeping ~120px of onboarding copy a visitor no longer needs.
+    dropzoneCompact: {
+      borderWidth: 1,
+      paddingTop: 14,
+      paddingBottom: 34,
+    },
+
+    // Reuses liquidGlassKeyframes' global @keyframes (see TransferCard,
+    // where this same pulse used to live on the submit button — moved here
+    // since the dropzone is the element a waiting user actually needs to
+    // act on). Glow lives on a pseudo-element with a fixed (unanimated)
+    // box-shadow, animating only its opacity — box-shadow itself isn't a
+    // compositable property, so animating its blur/spread radius directly
+    // forces a repaint on every frame and reads as stuttery rather than a
+    // smooth breath.
+    waitingPulse: {
+      position: "relative",
+
+      "&::after": {
+        content: "''",
+        position: "absolute",
+        // Flush with the dropzone's own edge, not offset outward from it —
+        // a box-shadow already radiates outward from wherever this box's
+        // own boundary sits, so an inset here just pushes that boundary
+        // out and leaves a visible gap of nothing in between.
+        inset: 0,
+        borderRadius: "inherit",
+        boxShadow: `0 0 18px 4px ${accent}66`,
+        opacity: 0,
+        animation: "waitingPulse 2.8s ease-in-out infinite",
+        pointerEvents: "none",
+      },
+
+      "@media (prefers-reduced-motion: reduce)": {
+        "&::after": { animation: "none" },
+      },
+    },
+
+    icon: {
+      color: dark ? theme.colors.dark[3] : theme.colors.gray[4],
+    },
+
+    control: {
+      position: "absolute",
+      bottom: -20,
+    },
+  };
+});
 
 const traverseDirectory = async (entry: any, path = ""): Promise<File[]> => {
   if (entry.isFile) {
@@ -81,7 +125,10 @@ const traverseDirectory = async (entry: any, path = ""): Promise<File[]> => {
   return [];
 };
 
-const getFilesFromEvent = async (event: any): Promise<any[]> => {
+// Exported so a page-wide drop target (anywhere outside this component's
+// own box) can reuse the exact same folder-traversal/dataTransfer handling
+// instead of only accepting flat file lists.
+export const getFilesFromEvent = async (event: any): Promise<any[]> => {
   if (Array.isArray(event)) {
     const filePromises = event.map(async (item: any) => {
       if (item && typeof item.getFile === "function") {
@@ -129,6 +176,8 @@ const Dropzone = ({
   currentFilesSize = 0,
   onFilesChanged,
   glass = false,
+  waiting = false,
+  compact = false,
 }: {
   title?: string;
   isUploading: boolean;
@@ -136,9 +185,17 @@ const Dropzone = ({
   currentFilesSize?: number;
   onFilesChanged: (files: FileUpload[]) => void;
   glass?: boolean;
+  // Pulses gently to draw the eye while there's nothing to act on yet
+  // (see TransferCard, the only caller that currently sets this) — off by
+  // default so append-mode dropzones (EditableUpload, UploadPage) that
+  // always have at least one file already keep their plain look.
+  waiting?: boolean;
+  // Shrinks the instructional copy down to a slim bar — set once files
+  // already exist, when the full onboarding text is no longer needed.
+  compact?: boolean;
 }) => {
   const t = useTranslate();
-  const { classes } = useStyles();
+  const { classes, cx } = useStyles();
   const openRef = useRef<() => void>();
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -216,7 +273,10 @@ const Dropzone = ({
             onFilesChanged(files);
           }
         }}
-        className={classes.dropzone}
+        className={cx(
+          compact ? classes.dropzoneCompact : classes.dropzone,
+          !compact && waiting && classes.waitingPulse,
+        )}
         radius="md"
         styles={
           glass
@@ -247,23 +307,68 @@ const Dropzone = ({
       >
         <div style={{ pointerEvents: "none" }}>
           <Group position="center">
-            <TbCloudUpload size={50} />
-          </Group>
-          <Text align="center" weight={700} size="lg" mt="xl">
-            {title || <FormattedMessage id="upload.dropzone.title" />}
-          </Text>
-          <Text align="center" size="sm" mt="xs" color="dimmed">
-            <FormattedMessage
-              id="upload.dropzone.description"
-              values={{ maxSize: byteToHumanSizeString(maxShareSize) }}
+            {
+              // A plain `size` prop swap on the icon (like the Text's own
+              // `size`/`mt` below) can't be animated — it sets width/height
+              // as SVG attributes, outside CSS's reach. An explicit style
+              // with its own transition covers both this and the Text
+              // props below, since Mantine's size-token classes still
+              // resolve to real computed font-size/margin values that a
+              // transition on the element (or an ancestor, since it's
+              // inherited) picks up regardless of *how* they changed.
+            }
+            <TbCloudUpload
+              size={50}
+              style={{
+                width: compact ? 24 : 50,
+                height: compact ? 24 : 50,
+                transition: "width 200ms ease, height 200ms ease",
+              }}
             />
+          </Group>
+          <Text
+            align="center"
+            weight={700}
+            size={compact ? "sm" : "xl"}
+            mt={compact ? "xs" : "xl"}
+            sx={{
+              transition: "font-size 200ms ease, margin-top 200ms ease",
+            }}
+          >
+            {compact ? (
+              <FormattedMessage id="upload.dropzone.title.compact" />
+            ) : (
+              title || <FormattedMessage id="upload.dropzone.title" />
+            )}
           </Text>
+          {
+            // Collapse rather than a bare conditional — this text
+            // disappearing/appearing is what makes the dropzone (and with
+            // it, the whole card above/below it) visibly jump the instant
+            // the first file lands, since nothing was animating the
+            // height change before.
+          }
+          <Collapse in={!compact}>
+            <Text
+              align="center"
+              size="sm"
+              mt="xs"
+              color="dimmed"
+              sx={{ whiteSpace: "pre-line" }}
+            >
+              <FormattedMessage
+                id="upload.dropzone.description"
+                values={{ maxSize: byteToHumanSizeString(maxShareSize) }}
+              />
+            </Text>
+          </Collapse>
         </div>
       </MantineDropzone>
       <Center>
         {isFolderUploadSupported && (
           <Button
             className={classes.control}
+            sx={{ bottom: compact ? -14 : -20 }}
             variant={dark ? "filled" : "light"}
             size="sm"
             radius="xl"

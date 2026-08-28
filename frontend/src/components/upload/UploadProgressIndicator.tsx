@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader, RingProgress, Text, useMantineTheme } from "@mantine/core";
-import { TbCircleCheck } from "react-icons/tb";
+import { RingProgress, Text, useMantineTheme } from "@mantine/core";
+import { TbCircleCheck, TbAlertCircle } from "react-icons/tb";
 import { HoverTip } from "../core/HoverTip";
 import { useIntl } from "react-intl";
-import useConfig from "../../hooks/config.hook";
+
+// Progress style used to be admin-configurable (circle / circle+percentage /
+// percentage+time, via appearance.uploadProgressStyle) — now fixed to the
+// circle indicator, the only style actually in use.
 const UploadProgressIndicator = ({ progress }: { progress: number }) => {
   const intl = useIntl();
-  const config = useConfig();
-  // "victoria" was the pre-rebrand accent — this app's actual accent is
-  // whatever the admin theme resolves primaryColor to (orange by default).
   const { primaryColor } = useMantineTheme();
-  const progressStyle =
-    config.get("appearance.uploadProgressStyle") ?? "circle";
   const startTimeRef = useRef<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
 
@@ -67,88 +65,24 @@ const UploadProgressIndicator = ({ progress }: { progress: number }) => {
   };
 
   if (progress > 0 && progress < 100) {
-    const tooltipLabel = formatRemainingTime(remainingSeconds);
-    if (progressStyle === "circle") {
-      return (
-        <HoverTip label={tooltipLabel}>
-          <RingProgress
-            sections={[{ value: progress, color: primaryColor }]}
-            thickness={3}
-            size={25}
-          />
-        </HoverTip>
-      );
-    } else if (progressStyle === "circle-percentage") {
-      return (
-        <HoverTip label={tooltipLabel}>
-          <div
-            style={{
-              display: "inline-flex",
-              justifyContent: "center",
-              alignItems: "center",
-              width: 40,
-              height: 40,
-            }}
-          >
-            <RingProgress
-              sections={[{ value: progress, color: primaryColor }]}
-              thickness={3}
-              size={40}
-              label={
-                <Text
-                  size="xs"
-                  color={primaryColor}
-                  weight={500}
-                  align="center"
-                >
-                  {Math.min(Math.round(progress), 99)}%
-                </Text>
-              }
-            />
-          </div>
-        </HoverTip>
-      );
-    } else {
-      return (
-        <Text size="sm" color="dimmed" style={{ whiteSpace: "nowrap" }}>
-          {Math.min(Math.round(progress), 99)}% • {tooltipLabel}
-        </Text>
-      );
-    }
+    return (
+      <HoverTip label={formatRemainingTime(remainingSeconds)}>
+        <RingProgress
+          sections={[{ value: progress, color: primaryColor }]}
+          thickness={3}
+          size={25}
+        />
+      </HoverTip>
+    );
   } else if (progress >= 100) {
-    if (progressStyle === "circle-percentage") {
-      return (
-        <div
-          style={{
-            display: "inline-flex",
-            justifyContent: "center",
-            alignItems: "center",
-            width: 40,
-            height: 40,
-          }}
-        >
-          <TbCircleCheck color="green" size={35} />
-        </div>
-      );
-    }
     return <TbCircleCheck color="green" size={22} />;
   } else {
-    if (progressStyle === "circle-percentage") {
-      return (
-        <div
-          style={{
-            display: "inline-flex",
-            justifyContent: "center",
-            alignItems: "center",
-            width: 40,
-            height: 40,
-          }}
-        >
-          <Loader color="red" size={30} />
-        </div>
-      );
-    }
-    return <Loader color="red" size={19} />;
+    // A spinning loader here (the previous treatment) reads as "still
+    // working" — this is the opposite: a terminal failure, done retrying on
+    // its own, waiting on the retry action FileList renders next to this.
+    // A static icon says "stopped" instead of implying more activity is
+    // coming with no further feedback if it never does.
+    return <TbAlertCircle color="red" size={19} />;
   }
 };
 

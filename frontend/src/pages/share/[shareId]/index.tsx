@@ -4,6 +4,7 @@ import {
   Button,
   Center,
   Group,
+  MantineProvider,
   Stack,
   Text,
   Title,
@@ -12,15 +13,18 @@ import { useModals } from "@mantine/modals";
 import { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import moment from "moment";
 import { useEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
-import { TbEdit, TbPlusMinus } from "react-icons/tb";
+import { TbDownload, TbEdit, TbFiles } from "react-icons/tb";
 import Meta from "../../../components/Meta";
 import DownloadAllButton from "../../../components/share/DownloadAllButton";
 import FileList from "../../../components/share/FileList";
 import showEnterPasswordModal from "../../../components/share/showEnterPasswordModal";
 import showErrorModal from "../../../components/share/showErrorModal";
 import showShareInformationsModal from "../../../components/share/showShareInformationsModal";
+import glassFormTheme from "../../../components/upload/glassFormTheme";
+import SplitTransferLayout from "../../../components/upload/SplitTransferLayout";
 import useConfig from "../../../hooks/config.hook";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import useUser from "../../../hooks/user.hook";
@@ -30,6 +34,11 @@ import toast from "../../../utils/toast.util";
 import { byteToHumanSizeString } from "../../../utils/fileSize.util";
 import { getQueryString } from "../../../utils/router.util";
 import { HoverTip } from "../../../components/core/HoverTip";
+
+// Wider than the upload card (440) — a file table with a name column plus
+// up to 4 action icons per row needs more room than a form does before it
+// starts feeling cramped.
+const CARD_WIDTH = 640;
 
 export function getServerSideProps(context: GetServerSidePropsContext) {
   return {
@@ -168,22 +177,26 @@ const Share = ({ shareId }: { shareId: string }) => {
 
   if (isRestricted) {
     return (
-      <Center style={{ height: "70vh" }}>
-        <Stack align="center" spacing="md">
-          <Title order={3}>
-            <FormattedMessage id="share.error.restricted.title" />
-          </Title>
-          <Text color="dimmed" align="center">
-            <FormattedMessage id="share.error.restricted.description" />
-          </Text>
-          <Button
-            component={Link}
-            href={`/auth/signIn?redirect=/share/${shareId}`}
-          >
-            <FormattedMessage id="share.error.restricted.button" />
-          </Button>
-        </Stack>
-      </Center>
+      <SplitTransferLayout width={CARD_WIDTH}>
+        <MantineProvider inherit theme={glassFormTheme}>
+          <Center>
+            <Stack align="center" spacing="md">
+              <Title order={2}>
+                <FormattedMessage id="share.error.restricted.title" />
+              </Title>
+              <Text color="dimmed" align="center">
+                <FormattedMessage id="share.error.restricted.description" />
+              </Text>
+              <Button
+                component={Link}
+                href={`/auth/signIn?redirect=/share/${shareId}`}
+              >
+                <FormattedMessage id="share.error.restricted.button" />
+              </Button>
+            </Stack>
+          </Center>
+        </MantineProvider>
+      </SplitTransferLayout>
     );
   }
 
@@ -194,64 +207,126 @@ const Share = ({ shareId }: { shareId: string }) => {
         description={t("share.description")}
       />
 
-      <Group position="apart" mb="lg">
-        <Box style={{ maxWidth: "70%" }}>
-          <Title order={3}>{share?.name || share?.id}</Title>
-          <Text size="sm">{share?.description}</Text>
-          {share?.files?.length > 0 && (
-            <Text size="sm" color="dimmed" mt={5}>
-              <FormattedMessage
-                id="share.fileCount"
-                values={{
-                  count: share?.files?.length || 0,
-                  size: byteToHumanSizeString(
-                    share?.files?.reduce(
-                      (total: number, file: { size: string }) =>
-                        total + parseInt(file.size),
-                      0,
-                    ) || 0,
-                  ),
-                }}
+      <SplitTransferLayout width={CARD_WIDTH}>
+        <MantineProvider inherit theme={glassFormTheme}>
+          <Group position="apart" mb="lg" noWrap align="flex-start">
+            <Box style={{ minWidth: 0 }}>
+              <Title order={2}>{share?.name || share?.id}</Title>
+              <Text size="sm">{share?.description}</Text>
+              {share?.files?.length > 0 && (
+                <Text size="sm" color="dimmed" mt={5}>
+                  <FormattedMessage
+                    id="share.fileCount"
+                    values={{
+                      count: share?.files?.length || 0,
+                      size: byteToHumanSizeString(
+                        share?.files?.reduce(
+                          (total: number, file: { size: string }) =>
+                            total + parseInt(file.size),
+                          0,
+                        ) || 0,
+                      ),
+                    }}
+                  />
+                </Text>
+              )}
+              {
+                // The recipient — the actual point of this page — previously
+                // had no way to know when their link stops working.
+                share?.expiration &&
+                  (moment(share.expiration).unix() === 0 ? (
+                    <Text size="sm" color="dimmed">
+                      <FormattedMessage id="upload.modal.completed.never-expires" />
+                    </Text>
+                  ) : (
+                    <Text size="sm" color="dimmed">
+                      <FormattedMessage
+                        id="upload.modal.completed.expires-on"
+                        values={{
+                          expiration: moment(share.expiration).format("LLL"),
+                        }}
+                      />
+                    </Text>
+                  ))
+              }
+            </Box>
+
+            <Group spacing="xs" noWrap>
+              {isOwner && (
+                <HoverTip label={t("account.shares.button.edit")}>
+                  <ActionIcon
+                    component={Link}
+                    href={`/share/${shareId}/edit`}
+                    variant="light"
+                    color="orange"
+                    size="lg"
+                    aria-label={t("account.shares.button.edit")}
+                  >
+                    <TbFiles />
+                  </ActionIcon>
+                </HoverTip>
+              )}
+              {isOwnerOrAdmin && (
+                <HoverTip label={t("share.button.edit-details")}>
+                  <ActionIcon
+                    variant="light"
+                    color="blue"
+                    size="lg"
+                    onClick={handleEditClick}
+                    aria-label={t("share.button.edit-details")}
+                  >
+                    <TbEdit />
+                  </ActionIcon>
+                </HoverTip>
+              )}
+            </Group>
+          </Group>
+
+          {
+            // A primary, unconditional download action — previously this
+            // only appeared (as DownloadAllButton) for shares with more
+            // than one file, so the common single-file case left the
+            // recipient with nothing but a 25px row icon to find. A single
+            // file downloads directly rather than through the zip
+            // pipeline, so it doesn't wait on isZipReady either.
+          }
+          {share?.files?.length === 1 && (
+            <Button
+              fullWidth
+              size="md"
+              mb="lg"
+              leftIcon={<TbDownload />}
+              onClick={() =>
+                shareService.downloadFile(
+                  shareId,
+                  share.files[0].id,
+                  recipientId,
+                )
+              }
+            >
+              <FormattedMessage id="common.button.download" />
+            </Button>
+          )}
+          {share?.files?.length > 1 && (
+            <Box mb="lg">
+              <DownloadAllButton
+                shareId={shareId}
+                recipientId={recipientId}
+                fullWidth
+                size="md"
               />
-            </Text>
+            </Box>
           )}
-        </Box>
 
-        <Group spacing="xs">
-          {isOwner && (
-            <HoverTip label={t("account.shares.button.edit")}>
-              <Link href={`/share/${shareId}/edit`}>
-                <ActionIcon variant="light" color="orange" size="lg">
-                  <TbPlusMinus />
-                </ActionIcon>
-              </Link>
-            </HoverTip>
-          )}
-          {isOwnerOrAdmin && (
-            <HoverTip label={t("common.button.edit")}>
-              <ActionIcon
-                variant="light"
-                color="blue"
-                size="lg"
-                onClick={handleEditClick}
-              >
-                <TbEdit />
-              </ActionIcon>
-            </HoverTip>
-          )}
-          {share?.files.length > 1 && (
-            <DownloadAllButton shareId={shareId} recipientId={recipientId} />
-          )}
-        </Group>
-      </Group>
-
-      <FileList
-        files={share?.files}
-        setShare={setShare}
-        share={share!}
-        isLoading={!share}
-        recipientId={recipientId}
-      />
+          <FileList
+            files={share?.files}
+            setShare={setShare}
+            share={share!}
+            isLoading={!share}
+            recipientId={recipientId}
+          />
+        </MantineProvider>
+      </SplitTransferLayout>
     </>
   );
 };

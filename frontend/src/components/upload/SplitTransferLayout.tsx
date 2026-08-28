@@ -6,8 +6,31 @@ import GlintBorder from "./GlintBorder";
 import LiquidGlassKeyframes from "./liquidGlassKeyframes";
 
 const CARD_RADIUS = 28;
+// Guaranteed breathing room between the card and the header above / viewport
+// bottom below, on top of just clearing the header's own height. Without
+// this, a card that's tall enough to hit its own maxHeight cap sits flush
+// against the header (0px gap) while still leaving a visible gap at the
+// bottom — because the header is opaque and "eats" its own reserved space,
+// while the bottom's reservation is empty space nothing else occupies. This
+// margin is applied identically top and bottom (see cardSlot's padding and
+// .card's maxHeight below) so the two visible gaps are always equal,
+// independent of window size or how tall the card's content is.
+const CARD_VERTICAL_MARGIN = 24;
+// Breathing room around the card on mobile, now that it floats over a
+// fixed photo backdrop instead of sitting flush opaque against the page —
+// edge-to-edge left the photo fully covered by the card with nothing
+// visible around it.
+const CARD_MOBILE_SIDE_MARGIN = 16;
+// A plain 16px top margin here doesn't actually render as 16px: there's a
+// pre-existing 40px spacer above Header/Container (unrelated to this
+// component — a Mantine layout artifact present on every page) whose own
+// margin-bottom collapses with this one, and adjoining margins collapse
+// to the larger of the two, not their sum. Matching it here (rather than
+// fighting it with a negative margin tied to an unrelated element's exact
+// value) is what actually makes the visible top and bottom gaps equal.
+const CARD_MOBILE_VERTICAL_MARGIN = 40;
 
-const useStyles = createStyles((theme) => {
+const useStyles = createStyles((theme, { width }: { width: number }) => {
   const dark = theme.colorScheme === "dark";
 
   return {
@@ -21,12 +44,19 @@ const useStyles = createStyles((theme) => {
       // Pulls the panel back up underneath the fixed, translucent header
       // (see _app.tsx's compensating paddingTop) so the image reaches the
       // very top of the viewport instead of starting below the navbar.
+      // marginBottom does the same for the fixed, translucent footer (see
+      // Footer.tsx and _app.tsx's compensating paddingBottom) — without it,
+      // the image would stop short of the true viewport bottom, leaving a
+      // gap the footer's own translucency would have nothing to show
+      // through.
       marginTop: -HEADER_HEIGHT,
-      minHeight: "calc(100vh - 90px)",
+      marginBottom: "calc(-1 * var(--footer-height, 40px))",
+      minHeight: "100vh",
       overflow: "hidden",
 
       [theme.fn.smallerThan("sm")]: {
         marginTop: 0,
+        marginBottom: 0,
         minHeight: "auto",
         overflow: "visible",
       },
@@ -39,22 +69,35 @@ const useStyles = createStyles((theme) => {
     cardSlot: {
       position: "absolute",
       top: HEADER_HEIGHT,
-      bottom: 0,
+      // Mirrors `top` — now that `.bleed` spans the full viewport (see
+      // above), the card needs its own explicit reservation to stay clear
+      // of the footer instead of relying on `.bleed`'s own box stopping
+      // short of it. Uses the footer's real, live-measured height directly
+      // (not padded up to match the header's) — the header and footer
+      // aren't the same height (60px vs. ~32px), so reserving the larger
+      // of the two here would leave visibly *more* breathing room below
+      // the card than above it: the visible gap is what's left after the
+      // real bar's own height is subtracted, and a taller reservation than
+      // the bar itself just inflates that leftover on one side only.
+      bottom: "var(--footer-height, 40px)",
       left: "clamp(20px, 4vw, 56px)",
-      width: 440,
+      width,
       maxWidth: "calc(100vw - 40px)",
       zIndex: 2,
       display: "flex",
       alignItems: "center",
+      padding: `${CARD_VERTICAL_MARGIN}px 0`,
 
       [theme.fn.smallerThan("sm")]: {
         position: "relative",
         top: "auto",
         bottom: "auto",
         left: "auto",
-        width: "100%",
+        width: "auto",
         maxWidth: "none",
         display: "block",
+        padding: 0,
+        margin: `${CARD_MOBILE_VERTICAL_MARGIN}px ${CARD_MOBILE_SIDE_MARGIN}px`,
       },
     },
 
@@ -71,51 +114,69 @@ const useStyles = createStyles((theme) => {
       // cardWrapper) since cardWrapper's own height is itself auto/content
       // driven — a percentage there wouldn't have anything definite to
       // resolve against. Only ever bites on short viewports with a lot of
-      // expanded content; overflowY is the actual safety net.
-      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - 48px)`,
+      // expanded content; overflowY is the actual safety net. Must reserve
+      // the exact same space as cardSlot's own band (its top/bottom
+      // reservations plus its vertical padding) — a smaller reservation
+      // here than there let the card grow taller than the band it's
+      // centered in and overflow past it.
+      maxHeight: `calc(100vh - ${HEADER_HEIGHT}px - var(--footer-height, 40px) - ${2 * CARD_VERTICAL_MARGIN}px)`,
       overflowY: "auto",
       padding: theme.spacing.xl,
       borderRadius: CARD_RADIUS,
       border: `1px solid ${dark ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.5)"}`,
+      // Same tint recipe as Header/Footer/PageDropOverlay (see Header.tsx)
+      // — this card sits directly over BrandPanel's photo too, holding
+      // every form label the visitor actually reads. Left at its original
+      // opacity by explicit request — two passes at raising it (0.82/0.9/
+      // 0.84, then a smaller 0.56/0.68/0.6 bump) both read as too opaque
+      // and lost the glass identity. Legibility for dimmed/placeholder
+      // text now leans entirely on their own halo/color treatment
+      // (glassFormTheme.ts) instead of the card's own tint.
       background: dark
-        ? "linear-gradient(160deg, rgba(255, 255, 255, 0.14) 0%, rgba(18, 18, 18, 0.55) 55%, rgba(255, 255, 255, 0.06) 100%)"
-        : "linear-gradient(160deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.32) 55%, rgba(255, 255, 255, 0.45) 100%)",
+        ? "linear-gradient(160deg, rgba(10, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0.6) 55%, rgba(10, 10, 10, 0.54) 100%)"
+        : "linear-gradient(160deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.6) 55%, rgba(255, 255, 255, 0.54) 100%)",
       backdropFilter: "blur(22px) saturate(160%)",
       WebkitBackdropFilter: "blur(22px) saturate(160%)",
       boxShadow: dark
         ? "0 24px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25)"
         : "0 24px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
 
+      // Was flat opaque here — the glass identity (and the photo it's
+      // meant to sit over) simply didn't exist on mobile. Now that the
+      // photo is a fixed backdrop (see BrandPanel.tsx) rather than a
+      // banner that scrolls away, the same translucent recipe above reads
+      // correctly at this size too — only the internal-scroll cap and
+      // padding still need to differ, since the whole page scrolls here
+      // instead of the card scrolling internally.
       [theme.fn.smallerThan("sm")]: {
         height: "auto",
         maxHeight: "none",
-        borderRadius: 0,
-        border: "none",
-        background: dark ? theme.colors.dark[7] : theme.white,
-        backdropFilter: "none",
-        WebkitBackdropFilter: "none",
-        boxShadow: "none",
         padding: theme.spacing.md,
       },
     },
 
     // Sits exactly over .card's own box (same parent, same size) so the
     // traced outline coincides with the card's real border instead of
-    // floating as a separate ring.
+    // floating as a separate ring. Used to be hidden below "sm" back when
+    // the mobile card was flat opaque with no real glass edge to catch —
+    // now that it's glass again (with room around it to actually see the
+    // edge), the comet reads the same way it does on desktop.
     glint: {
       position: "absolute",
       inset: 0,
       borderRadius: CARD_RADIUS,
-
-      [theme.fn.smallerThan("sm")]: {
-        display: "none",
-      },
     },
   };
 });
 
-const SplitTransferLayout = ({ children }: { children: ReactNode }) => {
-  const { classes } = useStyles();
+const SplitTransferLayout = ({
+  children,
+  width = 440,
+}: {
+  children: ReactNode;
+  width?: number;
+}) => {
+  const { classes } = useStyles({ width });
 
   return (
     <Box className={classes.bleed}>

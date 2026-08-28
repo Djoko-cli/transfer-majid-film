@@ -1,10 +1,18 @@
-import { Button, PasswordInput, Stack, Text } from "@mantine/core";
+import {
+  Button,
+  MantineProvider,
+  PasswordInput,
+  Stack,
+  Text,
+} from "@mantine/core";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
 import { useState } from "react";
 import { FormattedMessage } from "react-intl";
 import useTranslate, {
   translateOutsideContext,
 } from "../../hooks/useTranslate.hook";
+import glassFormTheme from "../upload/glassFormTheme";
+import { glassModalStyles } from "../upload/glassModalTheme";
 
 const showEnterPasswordModal = (
   modals: ModalsContextProps,
@@ -16,7 +24,12 @@ const showEnterPasswordModal = (
     withCloseButton: false,
     closeOnEscape: false,
     title: t("share.modal.password.title"),
-    children: <Body submitCallback={submitCallback} />,
+    styles: glassModalStyles,
+    children: (
+      <MantineProvider inherit theme={glassFormTheme}>
+        <Body submitCallback={submitCallback} />
+      </MantineProvider>
+    ),
   });
 };
 

@@ -6,7 +6,7 @@ id: upgrading
 
 ### Upgrade to a new version
 
-As Pingvin Share X is in active development, see the release notes for breaking changes before upgrading.
+As Transfer is in active development, see the release notes for breaking changes before upgrading.
 
 #### Docker
 
@@ -26,13 +26,13 @@ docker compose up -d
 1. Stop the running app
 
    ```bash
-   pm2 stop pingvin-share-x-backend pingvin-share-x-frontend
+   pm2 stop transfer-backend transfer-frontend
    ```
 
 2. Repeat the steps from the [installation guide](#stand-alone-installation) except the `git clone` step.
 
    ```bash
-   cd pingvin-share
+   cd transfer
 
    # Checkout the latest version
    git fetch --tags && git checkout $(git describe --tags `git rev-list --tags --max-count=1`)
@@ -41,13 +41,13 @@ docker compose up -d
    cd backend
    npm install
    npm run build
-   pm2 restart pingvin-share-x-backend
+   pm2 restart transfer-backend
 
    # Start the frontend
    cd ../frontend
    npm install
    npm run build
-   pm2 restart pingvin-share-x-frontend
+   pm2 restart transfer-frontend
    ```
 
    Note that environment variables are not picked up when using pm2 restart, if you actually want to change configs, you need to run `pm2 --update-env restart`

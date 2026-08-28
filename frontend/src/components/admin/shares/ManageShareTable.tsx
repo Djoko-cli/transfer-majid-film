@@ -136,7 +136,6 @@ const ManageShareTable = ({
                       </HoverTip>
                       <HoverTip label={t("common.button.copy-link")}>
                         <ActionIcon
-                          color="victoria"
                           variant="light"
                           size={25}
                           onClick={() => {

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
@@ -28,6 +29,8 @@ import { UpdateShareDTO } from "./dto/updateShare.dto";
 
 @Injectable()
 export class ShareService {
+  private readonly logger = new Logger(ShareService.name);
+
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
@@ -183,7 +186,11 @@ export class ShareService {
     await archive.finalize();
   }
 
-  async complete(id: string, reverseShareToken?: string) {
+  async complete(
+    id: string,
+    reverseShareToken?: string,
+    anonymousSenderEmail?: string | null,
+  ) {
     const share = await this.prisma.share.findUnique({
       where: { id },
       include: {
@@ -252,6 +259,26 @@ export class ShareService {
       );
     }
 
+    // An anonymous sender (no account, so no "Mes partages" to fall back
+    // to) only ever sees this link once — email it to the address the OTP
+    // step already verified, as a backstop against a lost/mis-clicked link.
+    // Caught rather than awaited-to-fail: a courtesy backup email should
+    // never block the completion response the upload itself is waiting on.
+    if (
+      !share.creator &&
+      anonymousSenderEmail &&
+      this.config.get("smtp.enabled")
+    ) {
+      await this.emailService
+        .sendShareLinkToSender(
+          anonymousSenderEmail,
+          share.id,
+          share.name,
+          share.expiration,
+        )
+        .catch((e) => this.logger.error(e));
+    }
+
     // Check if any file is malicious with ClamAV
     void this.clamScanService.checkAndRemove(share.id);
 
@@ -262,13 +289,22 @@ export class ShareService {
       });
     }
 
-    const updatedShare = await this.prisma.share.update({
+    await this.prisma.share.update({
       where: { id },
       data: { uploadLocked: true },
     });
 
+    // Included with files (transformShare sums their size) so the
+    // completion response can actually confirm what was just sent — the
+    // bare `update()` result above has neither, since only `uploadLocked`
+    // was touched.
+    const updatedShare = await this.prisma.share.findUnique({
+      where: { id },
+      include: { files: true },
+    });
+
     return {
-      ...updatedShare,
+      ...this.transformShare(updatedShare),
       notifyReverseShareCreator,
     };
   }
