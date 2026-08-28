@@ -1,6 +1,7 @@
 import {
   Button,
   Center,
+  Collapse,
   createStyles,
   Group,
   Text,
@@ -30,6 +31,16 @@ const useStyles = createStyles((theme) => {
     dropzone: {
       borderWidth: 1,
       paddingBottom: 50,
+    },
+
+    // Once files are already selected, the full "how to drop files"
+    // instructions are redundant with the file list right below it —
+    // this shrinks the dropzone to a slim "add more" bar instead of
+    // keeping ~120px of onboarding copy a visitor no longer needs.
+    dropzoneCompact: {
+      borderWidth: 1,
+      paddingTop: 14,
+      paddingBottom: 34,
     },
 
     // Reuses liquidGlassKeyframes' global @keyframes (see TransferCard,
@@ -114,7 +125,10 @@ const traverseDirectory = async (entry: any, path = ""): Promise<File[]> => {
   return [];
 };
 
-const getFilesFromEvent = async (event: any): Promise<any[]> => {
+// Exported so a page-wide drop target (anywhere outside this component's
+// own box) can reuse the exact same folder-traversal/dataTransfer handling
+// instead of only accepting flat file lists.
+export const getFilesFromEvent = async (event: any): Promise<any[]> => {
   if (Array.isArray(event)) {
     const filePromises = event.map(async (item: any) => {
       if (item && typeof item.getFile === "function") {
@@ -163,6 +177,7 @@ const Dropzone = ({
   onFilesChanged,
   glass = false,
   waiting = false,
+  compact = false,
 }: {
   title?: string;
   isUploading: boolean;
@@ -175,6 +190,9 @@ const Dropzone = ({
   // default so append-mode dropzones (EditableUpload, UploadPage) that
   // always have at least one file already keep their plain look.
   waiting?: boolean;
+  // Shrinks the instructional copy down to a slim bar — set once files
+  // already exist, when the full onboarding text is no longer needed.
+  compact?: boolean;
 }) => {
   const t = useTranslate();
   const { classes, cx } = useStyles();
@@ -255,7 +273,10 @@ const Dropzone = ({
             onFilesChanged(files);
           }
         }}
-        className={cx(classes.dropzone, waiting && classes.waitingPulse)}
+        className={cx(
+          compact ? classes.dropzoneCompact : classes.dropzone,
+          !compact && waiting && classes.waitingPulse,
+        )}
         radius="md"
         styles={
           glass
@@ -286,23 +307,68 @@ const Dropzone = ({
       >
         <div style={{ pointerEvents: "none" }}>
           <Group position="center">
-            <TbCloudUpload size={50} />
-          </Group>
-          <Text align="center" weight={700} size="lg" mt="xl">
-            {title || <FormattedMessage id="upload.dropzone.title" />}
-          </Text>
-          <Text align="center" size="sm" mt="xs" color="dimmed">
-            <FormattedMessage
-              id="upload.dropzone.description"
-              values={{ maxSize: byteToHumanSizeString(maxShareSize) }}
+            {
+              // A plain `size` prop swap on the icon (like the Text's own
+              // `size`/`mt` below) can't be animated — it sets width/height
+              // as SVG attributes, outside CSS's reach. An explicit style
+              // with its own transition covers both this and the Text
+              // props below, since Mantine's size-token classes still
+              // resolve to real computed font-size/margin values that a
+              // transition on the element (or an ancestor, since it's
+              // inherited) picks up regardless of *how* they changed.
+            }
+            <TbCloudUpload
+              size={50}
+              style={{
+                width: compact ? 24 : 50,
+                height: compact ? 24 : 50,
+                transition: "width 200ms ease, height 200ms ease",
+              }}
             />
+          </Group>
+          <Text
+            align="center"
+            weight={700}
+            size={compact ? "sm" : "xl"}
+            mt={compact ? "xs" : "xl"}
+            sx={{
+              transition: "font-size 200ms ease, margin-top 200ms ease",
+            }}
+          >
+            {compact ? (
+              <FormattedMessage id="upload.dropzone.title.compact" />
+            ) : (
+              title || <FormattedMessage id="upload.dropzone.title" />
+            )}
           </Text>
+          {
+            // Collapse rather than a bare conditional — this text
+            // disappearing/appearing is what makes the dropzone (and with
+            // it, the whole card above/below it) visibly jump the instant
+            // the first file lands, since nothing was animating the
+            // height change before.
+          }
+          <Collapse in={!compact}>
+            <Text
+              align="center"
+              size="sm"
+              mt="xs"
+              color="dimmed"
+              sx={{ whiteSpace: "pre-line" }}
+            >
+              <FormattedMessage
+                id="upload.dropzone.description"
+                values={{ maxSize: byteToHumanSizeString(maxShareSize) }}
+              />
+            </Text>
+          </Collapse>
         </div>
       </MantineDropzone>
       <Center>
         {isFolderUploadSupported && (
           <Button
             className={classes.control}
+            sx={{ bottom: compact ? -14 : -20 }}
             variant={dark ? "filled" : "light"}
             size="sm"
             radius="xl"

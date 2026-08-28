@@ -16,7 +16,7 @@ const ActionAvatar = () => {
   return (
     <Menu position="bottom-start" withinPortal onChange={setMenuOpened}>
       <Menu.Target>
-        <ActionIcon>
+        <ActionIcon aria-label={t("common.button.profile")}>
           <HoverTip label={t("common.button.profile")} disabled={menuOpened}>
             <Avatar size={28} />
           </HoverTip>

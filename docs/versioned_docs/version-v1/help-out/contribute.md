@@ -1,6 +1,6 @@
 # Contributing
 
-We would appreciate for you to contribute to Pingvin Share X and help make it better! All contributions are welcome, including issues, suggestions, pull requests and more.
+We would appreciate for you to contribute to Transfer and help make it better! All contributions are welcome, including issues, suggestions, pull requests and more.
 
 ## Getting started
 
@@ -32,12 +32,12 @@ Before you submit the pull request for review please ensure that
 <details>
   <summary>Don't know how to create a pull request? Learn how to create a pull request</summary>
 
-1. Create a fork of the repository by clicking on the `Fork` button in the Pingvin Share repository
+1. Create a fork of the repository by clicking on the `Fork` button in the Transfer repository
 
 2. Clone your fork to your machine with `git clone`
 
 ```
-git clone https://github.com/[your_username]/pingvin-share-x
+git clone https://github.com/[your_username]/transfer
 ```
 
 3. Work - commit - repeat
@@ -58,7 +58,7 @@ git push origin [name_of_your_new_branch]
 
 ## Setup project
 
-Pingvin Share consists of a frontend and a backend.
+Transfer consists of a frontend and a backend.
 
 ### Backend
 

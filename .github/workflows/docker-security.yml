@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  IMAGE_REF: pingvin-share-x:security-scan
+  IMAGE_REF: transfer:security-scan
 
 jobs:
   security-scan:

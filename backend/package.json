@@ -1,5 +1,5 @@
 {
-  "name": "pingvin-share-backend",
+  "name": "transfer-backend",
   "version": "1.22.1-beta.0",
   "scripts": {
     "build": "nest build",

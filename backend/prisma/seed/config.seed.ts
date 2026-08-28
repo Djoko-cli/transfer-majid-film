@@ -10,11 +10,6 @@ export const configVariables = {
     },
   },
   general: {
-    appName: {
-      type: "string",
-      defaultValue: "Transfer",
-      secret: false,
-    },
     appUrl: {
       type: "string",
       defaultValue: "http://localhost:3000",
@@ -24,11 +19,6 @@ export const configVariables = {
       type: "boolean",
       defaultValue: "false",
     },
-    showHomePage: {
-      type: "boolean",
-      defaultValue: "true",
-      secret: false,
-    },
     sessionDuration: {
       type: "timespan",
       defaultValue: "3 months",
@@ -37,38 +27,6 @@ export const configVariables = {
     defaultLanguage: {
       type: "string",
       defaultValue: "fr-FR",
-      secret: false,
-    },
-  },
-  appearance: {
-    themePrimaryColor: {
-      type: "string",
-      defaultValue: "custom",
-      secret: false,
-    },
-    themePrimaryColorOverride: {
-      type: "string",
-      defaultValue: "#ff7a00",
-      secret: false,
-    },
-    themeRadius: {
-      type: "string",
-      defaultValue: "md",
-      secret: false,
-    },
-    themeColorScheme: {
-      type: "string",
-      defaultValue: "system",
-      secret: false,
-    },
-    customCss: {
-      type: "text",
-      defaultValue: "",
-      secret: false,
-    },
-    uploadProgressStyle: {
-      type: "string",
-      defaultValue: "circle",
       secret: false,
     },
   },
@@ -156,6 +114,12 @@ export const configVariables = {
       secret: false,
     },
   },
+  clamav: {
+    enabled: {
+      type: "boolean",
+      defaultValue: "true",
+    },
+  },
   cache: {
     "redis-enabled": {
       type: "boolean",
@@ -194,6 +158,15 @@ export const configVariables = {
       type: "text",
       defaultValue:
         "Bonjour !\n\n{creator} ({creatorEmail}) a partagé des fichiers avec vous. Vous pouvez les consulter ou les télécharger via ce lien : {shareUrl}\n\nCe partage expirera {expires}.\n\nNote : {desc}",
+    },
+    anonymousSenderLinkSubject: {
+      type: "string",
+      defaultValue: "Votre lien de transfert",
+    },
+    anonymousSenderLinkMessage: {
+      type: "text",
+      defaultValue:
+        "Bonjour !\n\nVoici le lien de votre transfert{name} : {shareUrl}\n\nGardez cet e-mail : c'est le seul moyen de retrouver ce lien si vous le perdez. Ce partage expirera {expires}.",
     },
     reverseShareSubject: {
       type: "string",
@@ -550,7 +523,7 @@ const prisma = new PrismaClient({
     db: {
       url:
         process.env.DATABASE_URL ||
-        "file:../data/pingvin-share.db?connection_limit=1",
+        "file:../data/transfer.db?connection_limit=1",
     },
   },
 });

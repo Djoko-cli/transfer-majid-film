@@ -2,6 +2,7 @@ import {
   Button,
   Center,
   Group,
+  MantineProvider,
   Paper,
   Space,
   Stack,
@@ -17,6 +18,7 @@ import { FormattedMessage } from "react-intl";
 import Meta from "../../components/Meta";
 import CenterLoader from "../../components/core/CenterLoader";
 import GlassPageBackdrop from "../../components/core/GlassPageBackdrop";
+import glassFormTheme from "../../components/upload/glassFormTheme";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
@@ -41,13 +43,13 @@ const ReceivedShares = () => {
     <>
       <Meta title={t("account.received-shares.title")} />
       <GlassPageBackdrop />
-      <Title mb={30} order={3}>
+      <Title mt="xl" mb={30} order={2}>
         <FormattedMessage id="account.received-shares.title" />
       </Title>
       {receivedShares.length === 0 ? (
         <Center style={{ height: "70vh" }}>
           <Stack align="center" spacing={10}>
-            <Title order={3}>
+            <Title order={2}>
               <FormattedMessage id="account.received-shares.title.empty" />
             </Title>
             <Text>
@@ -57,55 +59,57 @@ const ReceivedShares = () => {
           </Stack>
         </Center>
       ) : (
-        <Paper withBorder p="md" sx={{ overflowX: "auto" }}>
-          <Table>
-            <thead>
-              <tr>
-                <th>
-                  <FormattedMessage id="account.shares.table.id" />
-                </th>
-                <th>
-                  <FormattedMessage id="account.shares.table.name" />
-                </th>
-                <th>
-                  <FormattedMessage id="account.received-shares.table.from" />
-                </th>
-                <th>
-                  <FormattedMessage id="account.shares.table.expiresAt" />
-                </th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {receivedShares.map(({ share }) => (
-                <tr key={share.id}>
-                  <td>{share.id}</td>
-                  <td>{share.name}</td>
-                  <td>{share.creator?.username ?? "—"}</td>
-                  <td>
-                    {moment(share.expiration).unix() === 0 ? (
-                      <FormattedMessage id="account.shares.table.expiry-never" />
-                    ) : (
-                      moment(share.expiration).format("LLL")
-                    )}
-                  </td>
-                  <td>
-                    <Group position="right">
-                      <Button
-                        component={Link}
-                        href={`/share/${share.id}`}
-                        variant="light"
-                        size="xs"
-                      >
-                        <FormattedMessage id="account.received-shares.button.open" />
-                      </Button>
-                    </Group>
-                  </td>
+        <MantineProvider inherit theme={glassFormTheme}>
+          <Paper withBorder p="md" sx={{ overflowX: "auto" }}>
+            <Table>
+              <thead>
+                <tr>
+                  <th>
+                    <FormattedMessage id="account.shares.table.id" />
+                  </th>
+                  <th>
+                    <FormattedMessage id="account.shares.table.name" />
+                  </th>
+                  <th>
+                    <FormattedMessage id="account.received-shares.table.from" />
+                  </th>
+                  <th>
+                    <FormattedMessage id="account.shares.table.expiresAt" />
+                  </th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Paper>
+              </thead>
+              <tbody>
+                {receivedShares.map(({ share }) => (
+                  <tr key={share.id}>
+                    <td>{share.id}</td>
+                    <td>{share.name}</td>
+                    <td>{share.creator?.username ?? "—"}</td>
+                    <td>
+                      {moment(share.expiration).unix() === 0 ? (
+                        <FormattedMessage id="account.shares.table.expiry-never" />
+                      ) : (
+                        moment(share.expiration).format("LLL")
+                      )}
+                    </td>
+                    <td>
+                      <Group position="right">
+                        <Button
+                          component={Link}
+                          href={`/share/${share.id}`}
+                          variant="light"
+                          size="xs"
+                        >
+                          <FormattedMessage id="account.received-shares.button.open" />
+                        </Button>
+                      </Group>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Paper>
+        </MantineProvider>
       )}
     </>
   );

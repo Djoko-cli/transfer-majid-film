@@ -1,6 +1,7 @@
 import {
   Button,
   Center,
+  Loader,
   Stack,
   Text,
   Title,
@@ -51,8 +52,7 @@ const FilePreview = ({
         target="_blank"
         href={`/api/shares/${shareId}/files/${fileId}?download=false`}
       >
-        View original file
-        {/* Add translation? */}
+        <FormattedMessage id="share.modal.file-preview.view-original" />
       </Button>
     </Stack>
   );
@@ -159,11 +159,58 @@ const TextPreview = () => {
 };
 
 const PdfPreview = () => {
-  const { shareId, fileId } = React.useContext(FilePreviewContext);
-  if (typeof window !== "undefined") {
-    window.location.href = `/api/shares/${shareId}/files/${fileId}?download=false`;
+  const { shareId, fileId, setIsNotSupported } =
+    React.useContext(FilePreviewContext);
+  const [blobUrl, setBlobUrl] = useState("");
+
+  useEffect(() => {
+    let objectUrl = "";
+    api
+      .get(`/shares/${shareId}/files/${fileId}?download=false`, {
+        responseType: "blob",
+      })
+      .then((res) => {
+        // Loaded as a blob and re-typed as application/pdf here rather than
+        // pointed at the API URL directly: the file endpoint always answers
+        // with `Content-Security-Policy: sandbox` (an anti-XSS measure for
+        // arbitrary inline-served uploads), and that header disables
+        // plugins in the framed document — which is exactly how Chrome
+        // implements its built-in PDF viewer, so the iframe rendered blank.
+        // A blob: URL carries no such header, so the viewer loads normally
+        // while the original endpoint keeps its sandboxing for any other,
+        // untrusted way of reaching it (e.g. the "view original" link).
+        objectUrl = URL.createObjectURL(
+          new Blob([res.data], { type: "application/pdf" }),
+        );
+        setBlobUrl(objectUrl);
+      })
+      .catch(() => setIsNotSupported(true));
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [shareId, fileId, setIsNotSupported]);
+
+  // A slow connection otherwise sees a blank gray box for as long as the
+  // blob fetch takes, with nothing to distinguish "still loading" from
+  // "this preview is broken".
+  if (!blobUrl) {
+    return (
+      <Center style={{ height: 600 }}>
+        <Loader />
+      </Center>
+    );
   }
-  return null;
+
+  return (
+    <iframe
+      src={blobUrl}
+      title={`${fileId}_preview`}
+      width="100%"
+      height="600"
+      style={{ border: "none" }}
+    />
+  );
 };
 
 const UnSupportedFile = () => {

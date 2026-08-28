@@ -10,6 +10,7 @@ import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
 import { NextPageWithLayout } from "../../types/page.type";
 import { MyShare } from "../../types/share.type";
+import { glassModalStyles } from "../../components/upload/glassModalTheme";
 import toast from "../../utils/toast.util";
 
 const Shares: NextPageWithLayout = () => {
@@ -32,6 +33,7 @@ const Shares: NextPageWithLayout = () => {
       title: t("admin.shares.edit.delete.title", {
         id: share.id,
       }),
+      styles: glassModalStyles,
       children: (
         <Text size="sm">
           <FormattedMessage id="admin.shares.edit.delete.description" />

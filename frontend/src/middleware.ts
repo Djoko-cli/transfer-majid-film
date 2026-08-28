@@ -73,10 +73,15 @@ export async function middleware(request: NextRequest) {
     routes.disabled.routes.push("/auth/signUp");
   }
 
+  // Anonymous uploads and site-wide visibility are the same decision here —
+  // if signed-out visitors can create shares, they need to see the site to
+  // do it; if they can't, there's nothing for them to see. One flag for
+  // both (see share.allowUnauthenticatedShares) rather than a second,
+  // separately-configurable "is the site public" toggle that only ever
+  // mattered in the narrow, currently-unused case of shares being anonymous
+  // but the site not being public.
   if (getConfig("share.allowUnauthenticatedShares")) {
     routes.public.routes = ["*"];
-  } else if (getConfig("general.showHomePage")) {
-    routes.public.routes.push("/");
   }
 
   if (!getConfig("smtp.enabled")) {

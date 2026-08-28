@@ -1,4 +1,4 @@
-import { Button, Stack, Collapse } from "@mantine/core";
+import { Button, MantineProvider, Stack, Collapse } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
 import { FormattedMessage } from "react-intl";
@@ -6,6 +6,8 @@ import { useState } from "react";
 import { translateOutsideContext } from "../../../hooks/useTranslate.hook";
 import CopyTextField from "../../upload/CopyTextField";
 import QRCode from "../../share/QRCode";
+import glassFormTheme from "../../upload/glassFormTheme";
+import { glassModalStyles } from "../../upload/glassModalTheme";
 
 const showCompletedReverseShareModal = (
   modals: ModalsContextProps,
@@ -18,7 +20,12 @@ const showCompletedReverseShareModal = (
     withCloseButton: false,
     closeOnEscape: false,
     title: t("account.reverseShares.modal.reverse-share-link"),
-    children: <Body link={link} getReverseShares={getReverseShares} />,
+    styles: glassModalStyles,
+    children: (
+      <MantineProvider inherit theme={glassFormTheme}>
+        <Body link={link} getReverseShares={getReverseShares} />
+      </MantineProvider>
+    ),
   });
 };
 

@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a problem with Pingvin Share X
+description: Report a problem with Transfer
 body:
   - type: textarea
     id: subject
@@ -14,7 +14,7 @@ body:
     attributes:
       label: Your environment
       placeholder: |
-        - which version of Pingvin Share X
+        - which version of Transfer
         - which browser and its version
     validations:
       required: true

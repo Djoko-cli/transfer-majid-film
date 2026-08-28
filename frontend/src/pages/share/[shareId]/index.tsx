@@ -13,9 +13,10 @@ import { useModals } from "@mantine/modals";
 import { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import moment from "moment";
 import { useEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
-import { TbEdit, TbPlusMinus } from "react-icons/tb";
+import { TbDownload, TbEdit, TbFiles } from "react-icons/tb";
 import Meta from "../../../components/Meta";
 import DownloadAllButton from "../../../components/share/DownloadAllButton";
 import FileList from "../../../components/share/FileList";
@@ -180,7 +181,7 @@ const Share = ({ shareId }: { shareId: string }) => {
         <MantineProvider inherit theme={glassFormTheme}>
           <Center>
             <Stack align="center" spacing="md">
-              <Title order={3}>
+              <Title order={2}>
                 <FormattedMessage id="share.error.restricted.title" />
               </Title>
               <Text color="dimmed" align="center">
@@ -210,7 +211,7 @@ const Share = ({ shareId }: { shareId: string }) => {
         <MantineProvider inherit theme={glassFormTheme}>
           <Group position="apart" mb="lg" noWrap align="flex-start">
             <Box style={{ minWidth: 0 }}>
-              <Title order={3}>{share?.name || share?.id}</Title>
+              <Title order={2}>{share?.name || share?.id}</Title>
               <Text size="sm">{share?.description}</Text>
               {share?.files?.length > 0 && (
                 <Text size="sm" color="dimmed" mt={5}>
@@ -229,38 +230,93 @@ const Share = ({ shareId }: { shareId: string }) => {
                   />
                 </Text>
               )}
+              {
+                // The recipient — the actual point of this page — previously
+                // had no way to know when their link stops working.
+                share?.expiration &&
+                  (moment(share.expiration).unix() === 0 ? (
+                    <Text size="sm" color="dimmed">
+                      <FormattedMessage id="upload.modal.completed.never-expires" />
+                    </Text>
+                  ) : (
+                    <Text size="sm" color="dimmed">
+                      <FormattedMessage
+                        id="upload.modal.completed.expires-on"
+                        values={{
+                          expiration: moment(share.expiration).format("LLL"),
+                        }}
+                      />
+                    </Text>
+                  ))
+              }
             </Box>
 
             <Group spacing="xs" noWrap>
               {isOwner && (
                 <HoverTip label={t("account.shares.button.edit")}>
-                  <Link href={`/share/${shareId}/edit`}>
-                    <ActionIcon variant="light" color="orange" size="lg">
-                      <TbPlusMinus />
-                    </ActionIcon>
-                  </Link>
+                  <ActionIcon
+                    component={Link}
+                    href={`/share/${shareId}/edit`}
+                    variant="light"
+                    color="orange"
+                    size="lg"
+                    aria-label={t("account.shares.button.edit")}
+                  >
+                    <TbFiles />
+                  </ActionIcon>
                 </HoverTip>
               )}
               {isOwnerOrAdmin && (
-                <HoverTip label={t("common.button.edit")}>
+                <HoverTip label={t("share.button.edit-details")}>
                   <ActionIcon
                     variant="light"
                     color="blue"
                     size="lg"
                     onClick={handleEditClick}
+                    aria-label={t("share.button.edit-details")}
                   >
                     <TbEdit />
                   </ActionIcon>
                 </HoverTip>
               )}
-              {share?.files.length > 1 && (
-                <DownloadAllButton
-                  shareId={shareId}
-                  recipientId={recipientId}
-                />
-              )}
             </Group>
           </Group>
+
+          {
+            // A primary, unconditional download action — previously this
+            // only appeared (as DownloadAllButton) for shares with more
+            // than one file, so the common single-file case left the
+            // recipient with nothing but a 25px row icon to find. A single
+            // file downloads directly rather than through the zip
+            // pipeline, so it doesn't wait on isZipReady either.
+          }
+          {share?.files?.length === 1 && (
+            <Button
+              fullWidth
+              size="md"
+              mb="lg"
+              leftIcon={<TbDownload />}
+              onClick={() =>
+                shareService.downloadFile(
+                  shareId,
+                  share.files[0].id,
+                  recipientId,
+                )
+              }
+            >
+              <FormattedMessage id="common.button.download" />
+            </Button>
+          )}
+          {share?.files?.length > 1 && (
+            <Box mb="lg">
+              <DownloadAllButton
+                shareId={shareId}
+                recipientId={recipientId}
+                fullWidth
+                size="md"
+              />
+            </Box>
+          )}
 
           <FileList
             files={share?.files}

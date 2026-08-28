@@ -1,12 +1,16 @@
 import {
+  ActionIcon,
   Anchor,
   Box,
+  Group,
   Text,
   createStyles,
   useMantineTheme,
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
+import { TbPlayerPause, TbPlayerPlay } from "react-icons/tb";
+import useTranslate from "../../hooks/useTranslate.hook";
 
 const SLIDE_DURATION_MS = 10000;
 const TRANSITION_MS = 900;
@@ -218,10 +222,17 @@ const useStyles = createStyles((theme) => ({
     overflow: "hidden",
     backgroundColor: theme.colors.dark[8],
 
+    // Was a 240px inline banner the visitor scrolled past in one flick,
+    // never to see again — the one thing that sets this app apart from a
+    // generic file-transfer tool was effectively invisible on mobile. Fixed
+    // full-screen instead, same
+    // as desktop's own `position: absolute` base above, just switched to
+    // `fixed` since `.bleed` is back in normal document flow at this size
+    // (position:fixed pins to the viewport regardless of the parent).
     [theme.fn.smallerThan("sm")]: {
-      position: "relative",
-      inset: "auto",
-      height: 240,
+      position: "fixed",
+      inset: 0,
+      height: "100dvh",
     },
   },
 
@@ -269,6 +280,16 @@ const useStyles = createStyles((theme) => ({
   // where the link re-enables itself below, so the rest of the caption
   // never blocks the card's own controls just because it now paints above.
   caption: {
+    // Rendered as a sibling of `.panel`, not nested inside it (see
+    // BrandPanel's return) — `position: fixed` on `.panel` for the mobile
+    // backdrop always creates its own stacking context (unlike absolute/
+    // relative without an explicit z-index, which don't), so a caption
+    // nested inside it would have its z-index:3 trapped there, comparable
+    // only to other things inside `.panel` and never able to outrank the
+    // card sitting outside it — this is the same stacking-context
+    // constraint the comment above (on the wrapper this used to sit in)
+    // already worked around for the desktop case, just reintroduced by
+    // `.panel` switching to `fixed`.
     position: "absolute",
     left: 0,
     right: 0,
@@ -284,22 +305,47 @@ const useStyles = createStyles((theme) => ({
     textAlign: "right",
     // A text-shadow (inherited by the Text/Anchor children) keeps the
     // credit legible against a busy photo without painting a visible dark
-    // rectangle behind it the way a background scrim would.
-    textShadow: "0 1px 3px rgba(0, 0, 0, 0.8), 0 1px 12px rgba(0, 0, 0, 0.5)",
+    // rectangle behind it the way a background scrim would. A third, tight
+    // layer added on top of the original two — measured contrast against a
+    // bright slide was still marginal with just the outer glow alone.
+    textShadow:
+      "0 1px 2px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8), 0 1px 12px rgba(0, 0, 0, 0.5)",
+
+    // Mobile isn't where this product shows off the photography — that's
+    // desktop's job; on mobile the images are purely atmospheric variety
+    // behind the glass. Dropped entirely below "sm" rather than kept
+    // visible-but-inert: on a screen this narrow the card spans nearly
+    // the full width, so the credit (and the carousel pause control that
+    // lived next to it) would sit right where the submit button lands the
+    // moment a visitor scrolls down to reach it — not worth the layout
+    // gymnastics for something that isn't the point on this surface.
+    [theme.fn.smallerThan("sm")]: {
+      display: "none",
+    },
   },
 
   captionLink: {
     pointerEvents: "auto",
+  },
+
+  pauseButton: {
+    pointerEvents: "auto",
+    color: theme.white,
+    filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6))",
   },
 }));
 
 const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
   const { classes, cx } = useStyles();
   const theme = useMantineTheme();
+  const t = useTranslate();
 
   const [order, setOrder] = useState(SLIDES);
   const [current, setCurrent] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  // Lets any visitor stop the rotation, not just reduced-motion users —
+  // see the interval effect below, which is also gated on this.
+  const [isPaused, setIsPaused] = useState(false);
   // `order` starts as the unshuffled SLIDES array so the server-rendered
   // HTML and the client's first render agree (Math.random() at render time
   // would desync them, since the server and the client's first pass would
@@ -324,18 +370,24 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
   }, []);
 
   useEffect(() => {
-    if (order.length <= 1) return;
+    // Reduced-motion users previously still got the interval — only the
+    // CSS transition/animation were gated — so the slide still hard
+    // jump-cut every 10s instead of actually stopping. Gating the
+    // interval itself (and letting anyone pause it via isPaused) fixes
+    // both that and WCAG 2.2.2 (no way to pause an auto-updating carousel).
+    if (order.length <= 1 || prefersReducedMotion || isPaused) return;
 
     const interval = setInterval(() => {
       setCurrent((index) => (index + 1) % order.length);
     }, SLIDE_DURATION_MS);
 
     return () => clearInterval(interval);
-  }, [order.length]);
+  }, [order.length, prefersReducedMotion, isPaused]);
 
   const activeSlide = order[current];
 
   return (
+    <>
     <Box className={classes.panel}>
       {isReady && (
         <Box
@@ -405,39 +457,72 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
               </Box>
             );
           })}
-
-          {activeSlide && showCaption && (
-            <Box className={classes.caption}>
-              <Text size="sm" color="gray.3">
-                <FormattedMessage
-                  id="upload.brand.caption"
-                  values={{
-                    title: (
-                      <Anchor
-                        href={`https://majid.film/projects/${activeSlide.slug}/`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        fw={600}
-                        className={classes.captionLink}
-                        sx={{
-                          color:
-                            theme.colors[theme.primaryColor][
-                              theme.colorScheme === "dark" ? 4 : 6
-                            ],
-                        }}
-                      >
-                        {activeSlide.title}
-                      </Anchor>
-                    ),
-                    year: activeSlide.year,
-                  }}
-                />
-              </Text>
-            </Box>
-          )}
         </Box>
       )}
     </Box>
+    {
+      // Sibling of `.panel` on purpose, not nested inside it — see
+      // `.caption`'s own styles for why.
+    }
+    {isReady && activeSlide && showCaption && (
+      <Box className={classes.caption}>
+        <Group position="right" spacing="xs" noWrap align="center">
+          {order.length > 1 && (
+            <ActionIcon
+              // A 44px hit area (WCAG 2.5.8) around a 14px glyph —
+              // `size` controls the button's own box, independent of
+              // the icon size passed to the child below, so this
+              // doesn't change how the control looks, just how easy
+              // it is to actually hit on a touch screen.
+              size={44}
+              variant="transparent"
+              className={classes.pauseButton}
+              onClick={() => setIsPaused((paused) => !paused)}
+              aria-label={t(
+                isPaused ? "upload.brand.play" : "upload.brand.pause",
+              )}
+            >
+              {isPaused ? (
+                <TbPlayerPlay size={14} />
+              ) : (
+                <TbPlayerPause size={14} />
+              )}
+            </ActionIcon>
+          )}
+          <Text size="sm" color="gray.3">
+            <FormattedMessage
+              id="upload.brand.caption"
+              values={{
+                title: (
+                  <Anchor
+                    href={`https://majid.film/projects/${activeSlide.slug}/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    fw={600}
+                    className={classes.captionLink}
+                    // Reverted to the original single accent tone —
+                    // a lighter shade was tried here to raise
+                    // contrast, but swapping the brand's one
+                    // consistent hue for a paler tint broke the DA
+                    // more than the contrast gain was worth.
+                    sx={{
+                      color:
+                        theme.colors[theme.primaryColor][
+                          theme.colorScheme === "dark" ? 4 : 6
+                        ],
+                    }}
+                  >
+                    {activeSlide.title}
+                  </Anchor>
+                ),
+                year: activeSlide.year,
+              }}
+            />
+          </Text>
+        </Group>
+      </Box>
+    )}
+    </>
   );
 };
 

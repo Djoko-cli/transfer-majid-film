@@ -7,6 +7,7 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useRef } from "react";
+import { APP_NAME } from "../../constants";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 
@@ -21,8 +22,8 @@ const useStyles = createStyles((theme) => {
   return {
     root: {
       background: dark
-        ? "linear-gradient(160deg, rgba(255, 255, 255, 0.1) 0%, rgba(18, 18, 18, 0.45) 55%, rgba(255, 255, 255, 0.04) 100%)"
-        : "linear-gradient(160deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.28) 55%, rgba(255, 255, 255, 0.4) 100%)",
+        ? "linear-gradient(160deg, rgba(10, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0.6) 55%, rgba(10, 10, 10, 0.54) 100%)"
+        : "linear-gradient(160deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.6) 55%, rgba(255, 255, 255, 0.54) 100%)",
       backdropFilter: "blur(18px) saturate(160%)",
       WebkitBackdropFilter: "blur(18px) saturate(160%)",
       borderTop: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
@@ -90,7 +91,7 @@ const Footer = () => {
     >
       {!config.get("legal.enabled") && (
         <Text size="xs" color="dimmed" align="center">
-          {config.get("general.appName")} ·{" "}
+          {APP_NAME} ·{" "}
           <Anchor size="xs" href="https://majid.film" target="_blank">
             majid.film
           </Anchor>
@@ -100,7 +101,7 @@ const Footer = () => {
         <SimpleGrid cols={isMobile ? 2 : 3} m={0}>
           {!isMobile && <div></div>}
           <Text size="xs" color="dimmed" align={isMobile ? "left" : "center"}>
-            {config.get("general.appName")} ·{" "}
+            {APP_NAME} ·{" "}
             <Anchor size="xs" href="https://majid.film" target="_blank">
               majid.film
             </Anchor>

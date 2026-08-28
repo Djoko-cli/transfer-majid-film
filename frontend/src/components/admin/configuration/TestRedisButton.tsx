@@ -1,4 +1,4 @@
-import { Button, Stack, Text, Textarea } from "@mantine/core";
+import { Button, MantineProvider, Stack, Text, Textarea } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { useState } from "react";
 import { FormattedMessage } from "react-intl";
@@ -6,6 +6,8 @@ import configService from "../../../services/config.service";
 import { getApiErrorMessage } from "../../../utils/error.util";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import toast from "../../../utils/toast.util";
+import glassFormTheme from "../../upload/glassFormTheme";
+import { glassModalStyles } from "../../upload/glassModalTheme";
 
 const TestRedisButton = ({
   configVariablesChanged,
@@ -44,17 +46,22 @@ const TestRedisButton = ({
                 title: (
                   <FormattedMessage id="admin.config.cache.test-redis.modal.error.title" />
                 ),
+                styles: glassModalStyles,
                 children: (
-                  <Stack spacing="xs">
-                    <Text size="sm">
-                      <FormattedMessage id="admin.config.cache.test-redis.modal.error.description" />
-                    </Text>
-                    <Textarea
-                      minRows={4}
-                      readOnly
-                      value={getApiErrorMessage(e) ?? t("common.error.unknown")}
-                    />
-                  </Stack>
+                  <MantineProvider inherit theme={glassFormTheme}>
+                    <Stack spacing="xs">
+                      <Text size="sm">
+                        <FormattedMessage id="admin.config.cache.test-redis.modal.error.description" />
+                      </Text>
+                      <Textarea
+                        minRows={4}
+                        readOnly
+                        value={
+                          getApiErrorMessage(e) ?? t("common.error.unknown")
+                        }
+                      />
+                    </Stack>
+                  </MantineProvider>
                 ),
               }),
             )
@@ -62,6 +69,7 @@ const TestRedisButton = ({
         } else {
           modals.openConfirmModal({
             title: t("admin.config.cache.test-redis.modal.save.title"),
+            styles: glassModalStyles,
             children: (
               <Text size="sm">
                 <FormattedMessage id="admin.config.cache.test-redis.modal.save.description" />
@@ -80,19 +88,22 @@ const TestRedisButton = ({
                     title: (
                       <FormattedMessage id="admin.config.cache.test-redis.modal.error.title" />
                     ),
+                    styles: glassModalStyles,
                     children: (
-                      <Stack spacing="xs">
-                        <Text size="sm">
-                          <FormattedMessage id="admin.config.cache.test-redis.modal.error.description" />
-                        </Text>
-                        <Textarea
-                          minRows={4}
-                          readOnly
-                          value={
-                            getApiErrorMessage(e) ?? t("common.error.unknown")
-                          }
-                        />
-                      </Stack>
+                      <MantineProvider inherit theme={glassFormTheme}>
+                        <Stack spacing="xs">
+                          <Text size="sm">
+                            <FormattedMessage id="admin.config.cache.test-redis.modal.error.description" />
+                          </Text>
+                          <Textarea
+                            minRows={4}
+                            readOnly
+                            value={
+                              getApiErrorMessage(e) ?? t("common.error.unknown")
+                            }
+                          />
+                        </Stack>
+                      </MantineProvider>
                     ),
                   }),
                 )

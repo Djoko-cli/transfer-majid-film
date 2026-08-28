@@ -16,7 +16,7 @@ const glassFieldStyles = (theme: any) => {
       color: dark ? theme.white : theme.black,
 
       "&::placeholder": {
-        color: dark ? "rgba(255, 255, 255, 0.42)" : "rgba(0, 0, 0, 0.4)",
+        color: dark ? "rgba(255, 255, 255, 0.62)" : "rgba(0, 0, 0, 0.58)",
       },
 
       "&:focus, &:focus-within": {
@@ -39,7 +39,7 @@ const glassFieldStyles = (theme: any) => {
     innerInput: {
       color: dark ? theme.white : theme.black,
       "&::placeholder": {
-        color: dark ? "rgba(255, 255, 255, 0.42)" : "rgba(0, 0, 0, 0.4)",
+        color: dark ? "rgba(255, 255, 255, 0.62)" : "rgba(0, 0, 0, 0.58)",
       },
     },
     label: {
@@ -72,6 +72,55 @@ const glassFieldStyles = (theme: any) => {
 
 const glassFormTheme: MantineThemeOverride = {
   components: {
+    // Every card this theme wraps (transfer, auth, the public share page)
+    // renders its <Title> with no explicit color — Mantine's own default
+    // (near-black/near-white) — directly over BrandPanel's unpredictable
+    // photo brightness. Same halo technique as Header's nav links and
+    // PageDropOverlay's title (see Header.tsx): real-world margin against
+    // a photo's texture on top of the card's own tint (see
+    // SplitTransferLayout.tsx/AuthGlassLayout.tsx). One override here
+    // covers every current and future Title inside a glass card, rather
+    // than repeating it per page.
+    Title: {
+      styles: (theme: any) => {
+        const dark = theme.colorScheme === "dark";
+        return {
+          root: {
+            textShadow: dark
+              ? "0 1px 3px rgba(0, 0, 0, 0.7)"
+              : "0 1px 3px rgba(255, 255, 255, 0.7)",
+          },
+        };
+      },
+    },
+
+    // Every other slot here (label/input/control/etc.) is covered, but
+    // `color="dimmed"` prose — the dropzone description, the anonymous
+    // notice, the expiration preview — fell through: Mantine's own
+    // "dimmed" resolves to a fixed grey meant for an opaque background,
+    // which computes to ~1.9:1 against a bright backdrop slide. Scoped to
+    // just the dimmed variant (via the `color` style param) rather than
+    // every Text, so explicit colors elsewhere are left alone. Same halo
+    // technique as the Title override above.
+    Text: {
+      styles: (theme: any, params: any) => {
+        const dark = theme.colorScheme === "dark";
+        return {
+          root:
+            params?.color === "dimmed"
+              ? {
+                  color: dark
+                    ? "rgba(255, 255, 255, 0.72)"
+                    : "rgba(0, 0, 0, 0.68)",
+                  textShadow: dark
+                    ? "0 1px 3px rgba(0, 0, 0, 0.7)"
+                    : "0 1px 3px rgba(255, 255, 255, 0.7)",
+                }
+              : {},
+        };
+      },
+    },
+
     // MantineProvider's `inherit` merge replaces the parent's whole
     // `components` object rather than deep-merging it key by key, so the
     // root theme's Button override (see styles/mantine.style.ts) never
@@ -120,7 +169,7 @@ const glassFormTheme: MantineThemeOverride = {
           searchInput: {
             color: dark ? theme.white : theme.black,
             "&::placeholder": {
-              color: dark ? "rgba(255, 255, 255, 0.42)" : "rgba(0, 0, 0, 0.4)",
+              color: dark ? "rgba(255, 255, 255, 0.62)" : "rgba(0, 0, 0, 0.58)",
             },
           },
           defaultValue: {
@@ -139,6 +188,49 @@ const glassFormTheme: MantineThemeOverride = {
     Textarea: { styles: glassFieldStyles },
     PinInput: { styles: glassFieldStyles },
 
+    // MantineProvider's `inherit` replaces the parent's whole `components`
+    // object rather than deep-merging it (same note as the Button override
+    // above) — the app-level Menu glass styling (mantine.style.ts) doesn't
+    // reach a Menu nested inside a glass card without repeating it here.
+    // Identical recipe to that root override.
+    Menu: {
+      styles: (theme: any) => {
+        const dark = theme.colorScheme === "dark";
+        return {
+          dropdown: {
+            backgroundColor: dark
+              ? "rgba(18, 18, 18, 0.6)"
+              : "rgba(255, 255, 255, 0.55)",
+            backdropFilter: "blur(22px) saturate(160%)",
+            WebkitBackdropFilter: "blur(22px) saturate(160%)",
+            border: `1px solid ${dark ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.5)"}`,
+            boxShadow: dark
+              ? "0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)"
+              : "0 24px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+          },
+          item: {
+            color: dark ? theme.white : theme.black,
+            "&:hover": {
+              backgroundColor: dark
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(255, 255, 255, 0.35)",
+            },
+          },
+          itemIcon: {
+            color: dark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)",
+          },
+          divider: {
+            borderColor: dark
+              ? "rgba(255, 255, 255, 0.12)"
+              : "rgba(0, 0, 0, 0.1)",
+          },
+          label: {
+            color: dark ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.45)",
+          },
+        };
+      },
+    },
+
     // Generic translucent surface for chrome outside the transfer card
     // itself — account-settings sections and admin panel cards. Not used
     // by the transfer card (it builds its own glass box directly in
@@ -149,7 +241,7 @@ const glassFormTheme: MantineThemeOverride = {
         return {
           root: {
             background: dark
-              ? "linear-gradient(160deg, rgba(255, 255, 255, 0.12) 0%, rgba(18, 18, 18, 0.55) 60%, rgba(255, 255, 255, 0.05) 100%)"
+              ? "linear-gradient(160deg, rgba(255, 255, 255, 0.12) 0%, rgba(18, 18, 18, 0.26) 60%, rgba(255, 255, 255, 0.05) 100%)"
               : "linear-gradient(160deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.3) 60%, rgba(255, 255, 255, 0.4) 100%)",
             backdropFilter: "blur(18px) saturate(160%)",
             WebkitBackdropFilter: "blur(18px) saturate(160%)",

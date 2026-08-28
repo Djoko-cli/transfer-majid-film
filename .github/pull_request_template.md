@@ -13,7 +13,7 @@ What kind of change does this PR introduce?
 - [ ] Other
 
 ## AI Usage
-Have you read and does your submission follow the project's [AI Usage Policy](https://github.com/smp46/pingvin-share-x/blob/main/AI_USAGE_POLICY.md)?
+Have you read and does your submission follow the project's [AI Usage Policy](../AI_USAGE_POLICY.md)?
 
 - [ ] Yes
 - [ ] No

@@ -8,6 +8,7 @@ import * as moment from "moment";
 import * as nodemailer from "nodemailer";
 import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
+import { APP_NAME } from "src/constants";
 
 @Injectable()
 export class EmailService {
@@ -48,9 +49,7 @@ export class EmailService {
 
     await this.getTransporter()
       .sendMail({
-        from: `"${this.config.get("general.appName")}" <${this.config.get(
-          "smtp.email",
-        )}>`,
+        from: `"${APP_NAME}" <${this.config.get("smtp.email")}>`,
         to: email,
         subject: subject,
         [isHtml ? "html" : "text"]: text,
@@ -149,6 +148,38 @@ export class EmailService {
     );
   }
 
+  // An anonymous sender only ever sees their own link once, in a modal that
+  // now closes on click-outside — with no account and no "Mes partages" to
+  // fall back to, a mis-click loses the transfer permanently even though it
+  // still exists and counts against storage. Emailing the same link to the
+  // address the OTP step already verified is the only durable backstop.
+  async sendShareLinkToSender(
+    recipientEmail: string,
+    shareId: string,
+    shareName: string | undefined,
+    expiration: Date,
+  ) {
+    const shareUrl = `${this.config.get("general.appUrl")}/s/${shareId}`;
+    const lang = this.config.get("general.defaultLanguage");
+    const locale = this.i18n.translate("email.locale", { lang });
+
+    await this.sendMail(
+      recipientEmail,
+      this.config.get("email.anonymousSenderLinkSubject"),
+      this.config
+        .get("email.anonymousSenderLinkMessage")
+        .replaceAll("\\n", "\n")
+        .replaceAll("{name}", shareName ? ` « ${shareName} »` : "")
+        .replaceAll("{shareUrl}", shareUrl)
+        .replaceAll(
+          "{expires}",
+          moment(expiration).unix() != 0
+            ? moment(expiration).locale(locale).fromNow()
+            : this.i18n.t("email.shareRecipientsExpiresNeverFallback"),
+        ),
+    );
+  }
+
   async sendResetPasswordEmail(recipientEmail: string, token: string) {
     const resetPasswordUrl = `${this.config.get(
       "general.appUrl",
@@ -209,9 +240,7 @@ export class EmailService {
     const text = this.i18n.t("email.testText");
     await this.getTransporter()
       .sendMail({
-        from: `"${this.config.get("general.appName")}" <${this.config.get(
-          "smtp.email",
-        )}>`,
+        from: `"${APP_NAME}" <${this.config.get("smtp.email")}>`,
         to: recipientEmail,
         subject,
         text,

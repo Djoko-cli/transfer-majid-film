@@ -59,12 +59,17 @@ const useStyles = createStyles((theme) => {
       justifyContent: "center",
       padding: "48px 20px",
 
+      // Matches SplitTransferLayout's own mobile margin exactly (see its
+      // more detailed comment) — 16px sides, 40px top/bottom to match a
+      // pre-existing 40px spacer above the header that a plain top margin
+      // would otherwise collapse into and appear to have no effect at all.
       [theme.fn.smallerThan("sm")]: {
         position: "relative",
         top: "auto",
         bottom: "auto",
         display: "block",
         padding: 0,
+        margin: "40px 16px",
       },
     },
 
@@ -87,35 +92,35 @@ const useStyles = createStyles((theme) => {
       padding: theme.spacing.xl,
       borderRadius: CARD_RADIUS,
       border: `1px solid ${dark ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.5)"}`,
+      // Same tint recipe as Header/Footer/PageDropOverlay/SplitTransferLayout
+      // (see Header.tsx) — this card sits directly over BrandPanel's photo
+      // too, holding every form label the visitor actually reads.
       background: dark
-        ? "linear-gradient(160deg, rgba(255, 255, 255, 0.14) 0%, rgba(18, 18, 18, 0.55) 55%, rgba(255, 255, 255, 0.06) 100%)"
-        : "linear-gradient(160deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.32) 55%, rgba(255, 255, 255, 0.45) 100%)",
+        ? "linear-gradient(160deg, rgba(10, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0.6) 55%, rgba(10, 10, 10, 0.54) 100%)"
+        : "linear-gradient(160deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.6) 55%, rgba(255, 255, 255, 0.54) 100%)",
       backdropFilter: "blur(22px) saturate(160%)",
       WebkitBackdropFilter: "blur(22px) saturate(160%)",
       boxShadow: dark
         ? "0 24px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25)"
         : "0 24px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
 
+      // Was flat opaque here — matches the same fix in SplitTransferLayout:
+      // now that the photo behind it is a fixed backdrop (BrandPanel) that
+      // no longer scrolls away, the same translucent recipe above reads
+      // correctly at this size too.
       [theme.fn.smallerThan("sm")]: {
         maxHeight: "none",
-        borderRadius: 0,
-        border: "none",
-        background: dark ? theme.colors.dark[7] : theme.white,
-        backdropFilter: "none",
-        WebkitBackdropFilter: "none",
-        boxShadow: "none",
         padding: theme.spacing.md,
       },
     },
 
+    // Used to be hidden below "sm" back when the mobile card was flat
+    // opaque with no real glass edge to catch — see the matching comment
+    // in SplitTransferLayout.
     glint: {
       position: "absolute",
       inset: 0,
       borderRadius: CARD_RADIUS,
-
-      [theme.fn.smallerThan("sm")]: {
-        display: "none",
-      },
     },
   };
 });

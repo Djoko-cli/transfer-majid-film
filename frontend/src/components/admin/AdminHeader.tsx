@@ -8,7 +8,7 @@ import {
 } from "@mantine/core";
 import Link from "next/link";
 import { Dispatch, SetStateAction } from "react";
-import useConfig from "../../hooks/config.hook";
+import { APP_NAME } from "../../constants";
 import ActionAvatar from "../header/ActionAvatar";
 import Logo from "../Logo";
 
@@ -19,7 +19,6 @@ const AdminHeader = ({
   isMobileNavBarOpened: boolean;
   setIsMobileNavBarOpened: Dispatch<SetStateAction<boolean>>;
 }) => {
-  const config = useConfig();
   const theme = useMantineTheme();
   const dark = theme.colorScheme === "dark";
 
@@ -43,7 +42,7 @@ const AdminHeader = ({
           <Link href="/" passHref>
             <Group>
               <Logo height={35} width={35} />
-              <Text weight={600}>{config.get("general.appName")}</Text>
+              <Text weight={600}>{APP_NAME}</Text>
             </Group>
           </Link>
           <ActionAvatar />

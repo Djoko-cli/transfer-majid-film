@@ -16,6 +16,19 @@ const CARD_RADIUS = 28;
 // .card's maxHeight below) so the two visible gaps are always equal,
 // independent of window size or how tall the card's content is.
 const CARD_VERTICAL_MARGIN = 24;
+// Breathing room around the card on mobile, now that it floats over a
+// fixed photo backdrop instead of sitting flush opaque against the page —
+// edge-to-edge left the photo fully covered by the card with nothing
+// visible around it.
+const CARD_MOBILE_SIDE_MARGIN = 16;
+// A plain 16px top margin here doesn't actually render as 16px: there's a
+// pre-existing 40px spacer above Header/Container (unrelated to this
+// component — a Mantine layout artifact present on every page) whose own
+// margin-bottom collapses with this one, and adjoining margins collapse
+// to the larger of the two, not their sum. Matching it here (rather than
+// fighting it with a negative margin tied to an unrelated element's exact
+// value) is what actually makes the visible top and bottom gaps equal.
+const CARD_MOBILE_VERTICAL_MARGIN = 40;
 
 const useStyles = createStyles((theme, { width }: { width: number }) => {
   const dark = theme.colorScheme === "dark";
@@ -80,10 +93,11 @@ const useStyles = createStyles((theme, { width }: { width: number }) => {
         top: "auto",
         bottom: "auto",
         left: "auto",
-        width: "100%",
+        width: "auto",
         maxWidth: "none",
         display: "block",
         padding: 0,
+        margin: `${CARD_MOBILE_VERTICAL_MARGIN}px ${CARD_MOBILE_SIDE_MARGIN}px`,
       },
     },
 
@@ -110,39 +124,47 @@ const useStyles = createStyles((theme, { width }: { width: number }) => {
       padding: theme.spacing.xl,
       borderRadius: CARD_RADIUS,
       border: `1px solid ${dark ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.5)"}`,
+      // Same tint recipe as Header/Footer/PageDropOverlay (see Header.tsx)
+      // — this card sits directly over BrandPanel's photo too, holding
+      // every form label the visitor actually reads. Left at its original
+      // opacity by explicit request — two passes at raising it (0.82/0.9/
+      // 0.84, then a smaller 0.56/0.68/0.6 bump) both read as too opaque
+      // and lost the glass identity. Legibility for dimmed/placeholder
+      // text now leans entirely on their own halo/color treatment
+      // (glassFormTheme.ts) instead of the card's own tint.
       background: dark
-        ? "linear-gradient(160deg, rgba(255, 255, 255, 0.14) 0%, rgba(18, 18, 18, 0.55) 55%, rgba(255, 255, 255, 0.06) 100%)"
-        : "linear-gradient(160deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.32) 55%, rgba(255, 255, 255, 0.45) 100%)",
+        ? "linear-gradient(160deg, rgba(10, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0.6) 55%, rgba(10, 10, 10, 0.54) 100%)"
+        : "linear-gradient(160deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.6) 55%, rgba(255, 255, 255, 0.54) 100%)",
       backdropFilter: "blur(22px) saturate(160%)",
       WebkitBackdropFilter: "blur(22px) saturate(160%)",
       boxShadow: dark
         ? "0 24px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25)"
         : "0 24px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
 
+      // Was flat opaque here — the glass identity (and the photo it's
+      // meant to sit over) simply didn't exist on mobile. Now that the
+      // photo is a fixed backdrop (see BrandPanel.tsx) rather than a
+      // banner that scrolls away, the same translucent recipe above reads
+      // correctly at this size too — only the internal-scroll cap and
+      // padding still need to differ, since the whole page scrolls here
+      // instead of the card scrolling internally.
       [theme.fn.smallerThan("sm")]: {
         height: "auto",
         maxHeight: "none",
-        borderRadius: 0,
-        border: "none",
-        background: dark ? theme.colors.dark[7] : theme.white,
-        backdropFilter: "none",
-        WebkitBackdropFilter: "none",
-        boxShadow: "none",
         padding: theme.spacing.md,
       },
     },
 
     // Sits exactly over .card's own box (same parent, same size) so the
     // traced outline coincides with the card's real border instead of
-    // floating as a separate ring.
+    // floating as a separate ring. Used to be hidden below "sm" back when
+    // the mobile card was flat opaque with no real glass edge to catch —
+    // now that it's glass again (with room around it to actually see the
+    // edge), the comet reads the same way it does on desktop.
     glint: {
       position: "absolute",
       inset: 0,
       borderRadius: CARD_RADIUS,
-
-      [theme.fn.smallerThan("sm")]: {
-        display: "none",
-      },
     },
   };
 });

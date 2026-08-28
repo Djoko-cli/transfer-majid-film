@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Older versions of Pingvin Share do not receive security updates. To ensure your system remains secure, we strongly recommend updating Pingvin Share X regularly. You can automate these updates using tools like [Watchtower](https://github.com/containrrr/watchtower).
+Older versions of Transfer do not receive security updates. To ensure your system remains secure, we strongly recommend updating Transfer regularly. You can automate these updates using tools like [Watchtower](https://github.com/containrrr/watchtower).
 
 ## Reporting a Vulnerability
 

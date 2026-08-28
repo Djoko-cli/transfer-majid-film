@@ -1,7 +1,5 @@
 # Translating
 
-You can help to translate Pingvin Share X into your language.
-On [Crowdin](https://crowdin.com/project/pingvin-share-x) you can easily translate Pingvin Share X online.
+This fork only maintains English and French — every other language Pingvin Share shipped upstream was a partial, aging translation that drifted out of sync with the app's actual text, so it's been dropped rather than left half-broken.
 
-Is your language not on Crowdin? Feel free to [Request it](https://github.com/smp46/pingvin-share-x/issues/new?assignees=&labels=language-request&projects=&template=language-request.yml&title=%F0%9F%8C%90+Language+request%3A+%3Clanguage+name+in+english%3E).
-
+Translations live directly in the repo, in [`frontend/src/i18n/translations`](https://github.com/Djoko-cli/transfer-majid-film/tree/main/frontend/src/i18n/translations).

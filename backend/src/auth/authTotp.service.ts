@@ -14,7 +14,7 @@ import {
 } from "otplib";
 import * as qrcode from "qrcode-svg";
 import { I18nService } from "nestjs-i18n";
-import { ConfigService } from "src/config/config.service";
+import { APP_NAME } from "src/constants";
 import { PrismaService } from "src/prisma/prisma.service";
 import { AuthService } from "./auth.service";
 import { AuthSignInTotpDTO } from "./dto/authSignInTotp.dto";
@@ -27,7 +27,6 @@ const legacyGuardrails = createGuardrails({
 export class AuthTotpService {
   constructor(
     private prisma: PrismaService,
-    private configService: ConfigService,
     private authService: AuthService,
     private readonly i18n: I18nService,
   ) {}
@@ -97,7 +96,7 @@ export class AuthTotpService {
       throw new BadRequestException(this.i18n.t("auth.totpAlreadyEnabled"));
     }
 
-    const issuer = this.configService.get("general.appName");
+    const issuer = APP_NAME;
     const secret = generateSecret();
 
     const otpURL = generateURI({

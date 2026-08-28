@@ -24,6 +24,7 @@ import LanguagePicker from "../../components/account/LanguagePicker";
 import showEnableTotpModal from "../../components/account/showEnableTotpModal";
 import GlassPageBackdrop from "../../components/core/GlassPageBackdrop";
 import glassFormTheme from "../../components/upload/glassFormTheme";
+import { glassModalStyles } from "../../components/upload/glassModalTheme";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import useUser from "../../hooks/user.hook";
@@ -141,7 +142,7 @@ const Account = () => {
       <GlassPageBackdrop />
       <MantineProvider inherit theme={glassFormTheme}>
         <Container size="sm">
-          <Title order={3} mb="xs">
+          <Title order={3} mt="xl" mb="xs">
             <FormattedMessage id="account.title" />
           </Title>
           <Paper p="xl">
@@ -257,6 +258,7 @@ const Account = () => {
                           onClick={() => {
                             modals.openConfirmModal({
                               title: t("account.modal.unlink.title"),
+                              styles: glassModalStyles,
                               children: (
                                 <Text>
                                   {t("account.modal.unlink.description")}
@@ -409,6 +411,7 @@ const Account = () => {
                 onClick={() =>
                   modals.openConfirmModal({
                     title: t("account.modal.delete.title"),
+                    styles: glassModalStyles,
                     children: (
                       <Text size="sm">
                         <FormattedMessage id="account.modal.delete.description" />

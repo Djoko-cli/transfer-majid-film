@@ -12,6 +12,7 @@ import useTranslate from "../../hooks/useTranslate.hook";
 import userService from "../../services/user.service";
 import { NextPageWithLayout } from "../../types/page.type";
 import User from "../../types/user.type";
+import { glassModalStyles } from "../../components/upload/glassModalTheme";
 import toast from "../../utils/toast.util";
 
 const Users: NextPageWithLayout = () => {
@@ -35,6 +36,7 @@ const Users: NextPageWithLayout = () => {
       title: t("admin.users.edit.delete.title", {
         username: user.username,
       }),
+      styles: glassModalStyles,
       children: (
         <Text size="sm">
           <FormattedMessage id="admin.users.edit.delete.description" />

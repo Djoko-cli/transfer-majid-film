@@ -139,7 +139,7 @@ export default {
   "account.notify.totp.enable": "TOTP activé avec succès",
   "account.card.language.title": "Langue",
   "account.card.language.description":
-    "Le projet est traduit par la communauté. Certaines traductions peuvent être incomplètes.",
+    "Anglais et français sont les deux seules langues maintenues.",
   "account.card.color.title": "Thème de couleurs",
   // ThemeSwitcher.tsx
   "account.theme.dark": "Sombre",
@@ -181,7 +181,7 @@ export default {
     "Supprimer la protection par mot de passe",
   "account.shares.modal.delete.title": "Supprimer le partage : {share}",
   "account.shares.modal.delete.description":
-    "Voulez-vous vraiment supprimer ce partage ?",
+    "Le lien cessera de fonctionner immédiatement. Cette action est irréversible.",
   // END /account/shares
 
   // /account/received
@@ -278,9 +278,9 @@ export default {
     "Personnaliser la limite de taille de partage",
   "admin.users.edit.update.custom-share-size-limit.description":
     "Remplacer la limite globale de téléversement pour cet utilisateur",
-  "admin.users.edit.update.custom-storage-quota-limit": "Custom storage quota",
+  "admin.users.edit.update.custom-storage-quota-limit": "Quota de stockage personnalisé",
   "admin.users.edit.update.custom-storage-quota-limit.description":
-    "Limit the user's total storage usage across active shares",
+    "Limite l'espace de stockage total de cet utilisateur, tous partages actifs confondus",
   "admin.users.edit.update.change-password.title": "Changer le mot de passe",
   "admin.users.edit.update.change-password.field": "Nouveau mot de passe",
   "admin.users.edit.update.change-password.button":
@@ -303,9 +303,9 @@ export default {
     "Personnaliser la limite de taille de partage",
   "admin.users.modal.create.custom-share-size-limit.description":
     "Remplacer la limite globale de téléversement pour cet utilisateur",
-  "admin.users.modal.create.custom-storage-quota-limit": "Custom storage quota",
+  "admin.users.modal.create.custom-storage-quota-limit": "Quota de stockage personnalisé",
   "admin.users.modal.create.custom-storage-quota-limit.description":
-    "Limit the user's total storage usage across active shares",
+    "Limite l'espace de stockage total de cet utilisateur, tous partages actifs confondus",
   "admin.users.modal.create.admin": "Privilèges d’admin",
   "admin.users.modal.create.admin.description":
     "Si coché, l’utilisateur pourra accéder au panneau d'administration.",
@@ -322,7 +322,7 @@ export default {
   "admin.shares.table.deletes": "Sera supprimé le",
   "admin.shares.edit.delete.title": "Supprimer le partage : {id}",
   "admin.shares.edit.delete.description":
-    "Voulez-vous vraiment supprimer ce partage ?",
+    "Le lien cessera de fonctionner immédiatement. Cette action est irréversible.",
   // END /admin/shares
 
   // /upload
@@ -332,7 +332,8 @@ export default {
   "upload.notify.generic-error":
     "Une erreur est survenue durant le traitement de votre partage.",
   "upload.notify.count-failed":
-    "{count} fichier(s) n’a(ont) pas pu être envoyé(s). Veuillez réessayer.",
+    "{count} fichier(s) n’a(ont) pas pu être envoyé(s) après plusieurs tentatives.",
+  "upload.notify.cancelled": "Envoi annulé.",
   "upload.notify.duplicate-skipped": "Fichier dupliqué ignoré : {name}",
   "upload.reverse-share.error.invalid.title":
     "Lien de partage inversé invalide",
@@ -356,26 +357,41 @@ export default {
   // TransferCard.tsx
   "upload.transfer.mode.email": "E-mail",
   "upload.transfer.mode.link": "Lien",
-  "upload.transfer.recipient.name.label": "Destinataire",
-  "upload.transfer.recipient.name.placeholder": "Nom du destinataire",
+  "upload.transfer.share-name.label": "Nom du partage",
+  "upload.transfer.share-name.placeholder":
+    "Optionnel — nom du fichier utilisé par défaut",
+  "upload.transfer.name.default-multiple": "{count} fichiers",
+  "upload.transfer.name.default-generic": "Nouveau partage",
   "upload.transfer.recipient.email.label": "E-mail du destinataire",
   "upload.transfer.recipient.email.placeholder": "nom@exemple.com",
+  "upload.transfer.recipient.email.required":
+    "Ajoutez au moins un destinataire, ou repassez en mode Lien.",
   "upload.transfer.sender.label": "Votre e-mail",
+  "upload.transfer.sender.otp-description":
+    "Nous vous enverrons un code pour confirmer l'envoi.",
   "upload.transfer.sender.placeholder": "vous@exemple.com",
   "upload.transfer.submit": "Transférer",
+  "upload.transfer.submit.link": "Obtenir un lien",
   "upload.transfer.options": "Options avancées",
   "upload.transfer.message.label": "Message",
   "upload.transfer.expires.label": "Expiration (jours)",
+  "upload.transfer.expires.increase": "Augmenter l'expiration",
+  "upload.transfer.expires.decrease": "Diminuer l'expiration",
 
   // BrandPanel.tsx
   "upload.brand.caption": "{title}, {year}",
+  "upload.brand.pause": "Mettre le diaporama en pause",
+  "upload.brand.play": "Reprendre le diaporama",
 
   // Dropzone.tsx
   "upload.dropzone.title": "Téléverser des fichiers",
+  "upload.dropzone.title.compact": "Ajouter d'autres fichiers",
   "upload.dropzone.description":
-    "Glissez-déposez vos fichiers ou dossiers ici pour commencer le partage ou utilisez « Ctrl+V » pour importer du texte depuis le presse-papiers. Nous acceptons un maximum de {maxSize} fichiers au total.",
+    "Glissez-déposez vos fichiers ou dossiers ici pour commencer le partage.\nJusqu'à {maxSize}.",
   "upload.dropzone.notify.file-too-big":
     "Vos fichiers dépassent la taille maximale de {maxSize}.",
+  "upload.page-drop-overlay.title": "Déposez vos fichiers n'importe où",
+  "upload.text-editor.title": "Modification de {fileName}",
   "upload.button.folder": "Importer un dossier",
   "upload.button.folder.append": "Ajouter un dossier",
   "upload.button.add": "Ajouter au téléversement",
@@ -384,6 +400,7 @@ export default {
   "upload.filelist.size": "Taille",
   "upload.filelist.estimating": "Estimation...",
   "upload.filelist.remaining": "{time} restant",
+  "upload.filelist.aggregate-progress": "{uploaded} sur {total} envoyés",
   // showCreateUploadModal.tsx
   "upload.modal.title": "Créer un partage",
   "upload.modal.link.error.invalid":
@@ -395,6 +412,8 @@ export default {
   "upload.modal.not-signed-in": "Vous n'êtes pas connecté",
   "upload.modal.not-signed-in-description":
     "Vous ne pourrez pas supprimer votre partage manuellement et afficher le nombre de visiteurs.",
+  "upload.transfer.anonymous-notice":
+    "Sans compte, vous ne pourrez pas supprimer ce partage ni voir son nombre de vues après l'envoi.",
   "upload.modal.expires.never": "jamais",
   "upload.modal.expires.never-long": "Partage permanent",
   "upload.modal.expires.error.too-long":
@@ -429,14 +448,23 @@ export default {
   "upload.modal.accordion.security.password.placeholder": "Aucun mot de passe",
   "upload.modal.accordion.security.max-views.label": "Nombre de vues maximum",
   "upload.modal.accordion.security.max-views.placeholder": "Aucune limite",
+  "upload.modal.accordion.security.max-views.increase":
+    "Augmenter le nombre de vues maximum",
+  "upload.modal.accordion.security.max-views.decrease":
+    "Diminuer le nombre de vues maximum",
   // showCompletedUploadModal.tsx
   "upload.modal.completed.never-expires": "Ce partage n’expirera jamais.",
   "upload.modal.completed.expires-on": "Ce partage expirera le {expiration}.",
   "upload.modal.completed.create-account":
     "Créez un compte pour retrouver vos liens",
   "upload.modal.completed.share-ready": "Partage prêt",
+  "upload.modal.completed.share-ready-named": "« {name} » est prêt !",
+  "upload.modal.completed.summary.singular": "{count} fichier · {size}",
+  "upload.modal.completed.summary.plural": "{count} fichiers · {size}",
   "upload.modal.completed.notified-reverse-share-creator":
     "Nous avons notifié le créateur du partage inverse. Vous pouvez également partager manuellement ce lien avec eux par d'autres moyens.",
+  "upload.modal.completed.sender-emailed":
+    "Nous vous avons aussi envoyé ce lien par e-mail, au cas où.",
   // END /upload
 
   // /share/[id]
@@ -466,6 +494,7 @@ export default {
   "share.modal.password": "Mot de passe",
   "share.modal.error.invalid-password": "Mot de passe incorrect",
   "share.button.download-all": "Télécharger tout",
+  "share.button.edit-details": "Modifier les détails",
   "share.notify.download-all-preparing":
     "Le partage est en préparation. Réessayez dans quelques minutes.",
   "share.notify.copied-contents":
@@ -477,9 +506,12 @@ export default {
   "share.modal.file-link": "Lien du fichier",
   "share.table.name": "Nom",
   "share.table.size": "Taille",
+  "share.table.sort-ascending": "Trier par {label} (croissant)",
+  "share.table.sort-descending": "Trier par {label} (décroissant)",
   "share.modal.file-preview.error.not-supported.title": "Aperçu non supporté",
   "share.modal.file-preview.error.not-supported.description":
     "Les aperçus ne sont pas pris en charge pour ce type de fichiers. Veuillez télécharger le fichier pour le voir.",
+  "share.modal.file-preview.view-original": "Voir le fichier original",
   // END /share/[id]
 
   // /share/[id]/edit
@@ -504,67 +536,40 @@ export default {
     "Puisqu'un fichier de configuration est présent, vous ne pouvez pas modifier la configuration via l'interface utilisateur.",
   "admin.config.title": "Paramètres",
   "admin.config.category.general": "Général",
-  "admin.config.category.appearance": "Apparence",
   "admin.config.category.share": "Partage",
   "admin.config.category.verification": "Vérification",
   "admin.config.category.cache": "Cache",
+  "admin.config.category.clamav": "ClamAV",
   "admin.config.category.email": "Courriel",
   "admin.config.category.smtp": "SMTP",
   "admin.config.category.oauth": "Identifiant social",
-  "admin.config.general.app-name": "Nom de l’appli",
-  "admin.config.general.app-name.description": "Le nom de l’application",
   "admin.config.general.default-language": "Langue par défaut",
   "admin.config.general.default-language.description":
     "Ceci s'applique à tous les utilisateurs, chaque utilisateur peut toujours personnaliser sa langue dans son profil.",
-  "admin.config.appearance.theme-primary-color": "Couleur principale du thème",
-  "admin.config.appearance.theme-primary-color.description":
-    "Couleur principale pour les boutons, liens et accents. Choisissez personnalisé pour utiliser une couleur de remplacement.",
-  "admin.config.appearance.theme-primary-color-override":
-    "Couleur principale personnalisée",
-  "admin.config.appearance.theme-primary-color-override.description":
-    "Couleur hex de remplacement lorsque la couleur principale est définie sur personnalisé.",
-  "admin.config.appearance.theme-font-preset": "Préréglage de police",
-  "admin.config.appearance.theme-font-preset.description":
-    "Préréglage de police chargé à la compilation. Choisissez système ou une police Google incluse.",
-  "admin.config.appearance.theme-color-scheme":
-    "Schéma de couleurs par défaut (invités)",
-  "admin.config.appearance.theme-color-scheme.description":
-    "Mode clair/sombre par défaut pour les utilisateurs non connectés. Les utilisateurs connectés utilisent les préférences de leur compte.",
-  "admin.config.appearance.theme-radius": "Rayon des bordures du thème",
-  "admin.config.appearance.theme-radius.description":
-    "Rayon de bordure par défaut des composants Mantine.",
-  "admin.config.appearance.custom-css": "CSS personnalisé",
-  "admin.config.appearance.custom-css.description":
-    "CSS global appliqué au frontend. À utiliser avec précaution: un CSS invalide peut affecter l'interface.",
-  "admin.config.appearance.upload-progress-style":
-    "Style de progression du téléversement",
-  "admin.config.appearance.upload-progress-style.description":
-    "Choisir comment la progression du téléversement est affichée dans la liste de fichiers.",
-  "admin.config.appearance.upload-progress-style.circle":
-    "Indicateur circulaire",
-  "admin.config.appearance.upload-progress-style.circle-percentage":
-    "Cercle avec des pourcentages",
-  "admin.config.appearance.upload-progress-style.percentage-time":
-    "Pourcentage et temps restant",
   "admin.config.general.app-url": "URL de l’appli",
   "admin.config.general.app-url.description":
     "Depuis quelle URL l'application est disponible",
   "admin.config.general.secure-cookies": "Cookies sécurisés",
   "admin.config.general.secure-cookies.description":
     "Définir ou non le marquage sécurisé sur les cookies. Si activé, le site ne fonctionnera pas lorsqu'il est accédé via HTTP.",
-  "admin.config.general.show-home-page": "Afficher la page d’accueil",
-  "admin.config.general.show-home-page.description":
-    "Afficher ou non la page d’accueil",
   "admin.config.general.session-duration": "Durée de la session",
   "admin.config.general.session-duration.description":
     "Temps après lequel un utilisateur doit se reconnecter (par défaut : 3 mois).",
-  "admin.config.general.logo": "Logo",
-  "admin.config.general.logo.description":
-    "Changez de logo en envoyant une nouvelle image. L’image doit être au format PNG et doit avoir un ratio 1:1.",
-  "admin.config.general.logo-dark": "Logo du mode sombre",
-  "admin.config.general.logo-dark.description":
-    "Veuillez téléverser un logo distinct pour le mode sombre. L'image doit être au format PNG et avoir les proportions 1:1.",
-  "admin.config.general.logo.placeholder": "Sélectionner une image",
+  "admin.config.clamav.enabled": "Analyser les envois avec ClamAV",
+  "admin.config.clamav.enabled.description":
+    "Analyse chaque partage envoyé à la recherche de fichiers malveillants avant de le conserver. Les partages infectés sont supprimés automatiquement. Nécessite une instance ClamAV joignable (voir la doc des intégrations).",
+  "admin.clamav.status.title": "État de ClamAV",
+  "admin.clamav.status.connected": "Connecté",
+  "admin.clamav.status.disconnected": "Non connecté",
+  "admin.clamav.scans.title": "Historique des analyses",
+  "admin.clamav.scans.empty": "Aucune analyse pour l'instant.",
+  "admin.clamav.scans.column.date": "Date",
+  "admin.clamav.scans.column.share": "Partage",
+  "admin.clamav.scans.column.files": "Fichiers",
+  "admin.clamav.scans.column.status": "Statut",
+  "admin.clamav.scans.status.clean": "Sain",
+  "admin.clamav.scans.status.infected": "Infecté",
+  "admin.clamav.scans.status.error": "Erreur",
   "admin.config.cache.ttl": "DDV",
   "admin.config.cache.ttl.description":
     "Durée de vie des informations conservées en cache.",
@@ -656,7 +661,7 @@ export default {
   "admin.config.share.allow-unauthenticated-shares":
     "Autoriser les partages anonymes",
   "admin.config.share.allow-unauthenticated-shares.description":
-    "Permet aux visiteurs de créer des partages",
+    "Permet aux visiteurs non connectés de créer des partages et rend le site public. Désactivé, le site exige une connexion pour tout, y compris la page d'accueil.",
   "admin.config.share.require-email-verification-for-anonymous-shares":
     "Vérification par e-mail pour les partages anonymes",
   "admin.config.share.require-email-verification-for-anonymous-shares.description":
@@ -856,8 +861,6 @@ export default {
   "admin.config.ldap.field-name-email.description":
     "Nom d'attribut LDAP pour l'e-mail d'un utilisateur.",
   "admin.config.notify.success": "Configuration mise à jour avec succès.",
-  "admin.config.notify.logo-success":
-    "Logo mis à jour avec succès. La mise à jour sur le site peut prendre quelques minutes.",
   "admin.config.notify.no-changes": "Aucune modification à enregistrer.",
   "admin.config.category.s3": "S3",
   "admin.config.s3.enabled": "Activé",
@@ -936,6 +939,7 @@ export default {
   // Common translations
   "common.button.info": "Infos",
   "common.button.undo": "Annuler",
+  "common.button.retry": "Réessayer",
   "common.button.download": "Télécharger",
   "common.button.copy": "Copier",
   "common.button.copy-link": "Copier le lien",
@@ -950,11 +954,16 @@ export default {
   "common.button.delete": "Supprimer",
   "common.button.cancel": "Annuler",
   "common.button.close": "Fermer",
+  "common.button.refresh": "Actualiser",
   "common.button.confirm": "Confirmer",
   "common.button.disable": "Désactiver",
   "common.button.share": "Partager",
   "common.button.generate": "Générer",
   "common.button.done": "Terminer",
+  "common.button.menu": "Menu",
+  "common.button.back": "Retour",
+  "common.button.toggle-password-visibility":
+    "Afficher/masquer le mot de passe",
   "common.text.link": "Lien",
   "common.text.navigate-to-link": "Visiter le lien",
   "common.text.or": "ou",

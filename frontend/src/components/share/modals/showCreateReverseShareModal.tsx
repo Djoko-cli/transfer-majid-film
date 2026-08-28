@@ -3,6 +3,7 @@ import {
   Col,
   Grid,
   Group,
+  MantineProvider,
   NumberInput,
   Select,
   Stack,
@@ -26,6 +27,8 @@ import { byteToHumanSizeString } from "../../../utils/fileSize.util";
 import { generateShareId } from "../../../utils/share.util";
 import toast from "../../../utils/toast.util";
 import FileSizeInput from "../../core/FileSizeInput";
+import glassFormTheme from "../../upload/glassFormTheme";
+import { glassModalStyles } from "../../upload/glassModalTheme";
 import CustomUrlInput from "../CustomUrlInput";
 import showCompletedReverseShareModal from "./showCompletedReverseShareModal";
 
@@ -45,18 +48,21 @@ const showCreateReverseShareModal = (
 
   return modals.openModal({
     title: t("account.reverseShares.modal.title"),
+    styles: glassModalStyles,
     children: (
-      <Body
-        showSendEmailNotificationOption={showSendEmailNotificationOption}
-        getReverseShares={getReverseShares}
-        maxExpiration={maxExpiration}
-        defaultExpiration={defaultExpiration}
-        reverseShareSimpleOnly={reverseShareSimpleOnly}
-        appUrl={appUrl}
-        defaultAppUrl={defaultAppUrl}
-        maxShareSize={maxShareSize}
-        shareIdLength={shareIdLength}
-      />
+      <MantineProvider inherit theme={glassFormTheme}>
+        <Body
+          showSendEmailNotificationOption={showSendEmailNotificationOption}
+          getReverseShares={getReverseShares}
+          maxExpiration={maxExpiration}
+          defaultExpiration={defaultExpiration}
+          reverseShareSimpleOnly={reverseShareSimpleOnly}
+          appUrl={appUrl}
+          defaultAppUrl={defaultAppUrl}
+          maxShareSize={maxShareSize}
+          shareIdLength={shareIdLength}
+        />
+      </MantineProvider>
     ),
   });
 };

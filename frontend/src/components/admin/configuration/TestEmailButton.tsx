@@ -1,4 +1,4 @@
-import { Button, Stack, Text, Textarea } from "@mantine/core";
+import { Button, MantineProvider, Stack, Text, Textarea } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { useState } from "react";
 import { FormattedMessage } from "react-intl";
@@ -6,6 +6,8 @@ import useUser from "../../../hooks/user.hook";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import configService from "../../../services/config.service";
 import toast from "../../../utils/toast.util";
+import glassFormTheme from "../../upload/glassFormTheme";
+import { glassModalStyles } from "../../upload/glassModalTheme";
 
 const TestEmailButton = ({
   configVariablesChanged,
@@ -27,13 +29,20 @@ const TestEmailButton = ({
       .catch((e) =>
         modals.openModal({
           title: t("admin.config.smtp.test-email.error.title"),
+          styles: glassModalStyles,
           children: (
-            <Stack spacing="xs">
-              <Text size="sm">
-                {t("admin.config.smtp.test-email.error.description")}
-              </Text>
-              <Textarea minRows={4} readOnly value={e.response.data.message} />
-            </Stack>
+            <MantineProvider inherit theme={glassFormTheme}>
+              <Stack spacing="xs">
+                <Text size="sm">
+                  {t("admin.config.smtp.test-email.error.description")}
+                </Text>
+                <Textarea
+                  minRows={4}
+                  readOnly
+                  value={e.response.data.message}
+                />
+              </Stack>
+            </MantineProvider>
           ),
         }),
       );
@@ -51,6 +60,7 @@ const TestEmailButton = ({
         } else {
           modals.openConfirmModal({
             title: t("admin.config.smtp.test-email.save.title"),
+            styles: glassModalStyles,
             children: (
               <Text size="sm">
                 {t("admin.config.smtp.test-email.save.description")}

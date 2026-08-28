@@ -32,7 +32,7 @@ const showEmailVerificationModal = (
   modals.openModal({
     title: t("upload.verification.title"),
     closeOnClickOutside: false,
-    closeOnEscape: false,
+    closeOnEscape: true,
     styles: glassModalStyles,
     children: (
       <MantineProvider inherit theme={glassFormTheme}>
@@ -73,7 +73,11 @@ const Body = ({
   }, [cooldown]);
 
   const emailForm = useForm({
-    initialValues: { email: "" },
+    // Seeded from the already-known email (not a hardcoded blank) so that
+    // clicking "change email" from the code step — the only way to reach
+    // this step once knownEmail is set — starts from the address being
+    // corrected instead of discarding it.
+    initialValues: { email: knownEmail || "" },
     validate: {
       email: (value) =>
         /^\S+@\S+\.\S+$/.test(value) ? null : t("common.error.invalid-email"),
@@ -166,6 +170,8 @@ const Body = ({
             size="sm"
             onClick={() => cooldown <= 0 && requestCode(email)}
             color={cooldown > 0 ? "dimmed" : undefined}
+            aria-disabled={cooldown > 0}
+            sx={cooldown > 0 ? { cursor: "default" } : undefined}
           >
             {cooldown > 0 ? (
               <FormattedMessage

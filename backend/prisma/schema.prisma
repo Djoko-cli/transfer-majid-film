@@ -209,3 +209,23 @@ model AnonymousShareVerification {
 
   @@index([email])
 }
+
+// One row per share ClamAV actually attempted to scan (i.e. clamav.enabled
+// was on and clamd was reachable) — the admin's "analyses" history. A share
+// can be deleted or expire long after it was scanned, so shareId/shareName
+// are plain denormalized fields rather than a relation: the log survives
+// the share.
+model ClamavScan {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  shareId           String?
+  shareName         String?
+  status            String // "clean" | "infected" | "error"
+  fileCount         Int     @default(0)
+  infectedCount     Int     @default(0)
+  infectedFileNames String?
+  errorMessage      String?
+
+  @@index([createdAt])
+}

@@ -12,13 +12,12 @@ import Link from "next/link";
 import Logo from "../../components/Logo";
 import Meta from "../../components/Meta";
 import glassFormTheme from "../../components/upload/glassFormTheme";
-import useConfig from "../../hooks/config.hook";
+import { APP_NAME } from "../../constants";
 import useTranslate from "../../hooks/useTranslate.hook";
 
 const Intro = () => {
-  const config = useConfig();
   const t = useTranslate();
-  const appName = config.get("general.appName");
+  const appName = APP_NAME;
 
   return (
     <>

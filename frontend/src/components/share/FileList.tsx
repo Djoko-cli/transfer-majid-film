@@ -2,6 +2,7 @@ import {
   ActionIcon,
   Box,
   Group,
+  MantineProvider,
   Skeleton,
   Stack,
   Table,
@@ -23,6 +24,8 @@ import TableSortIcon, { TableSort } from "../core/SortIcon";
 import showFilePreviewModal from "./modals/showFilePreviewModal";
 import { HoverTip } from "../core/HoverTip";
 import api from "../../services/api.service";
+import glassFormTheme from "../upload/glassFormTheme";
+import { glassModalStyles } from "../upload/glassModalTheme";
 
 // Geometry of one row's action buttons, used to derive the actions column's
 // width below. Kept next to each other so they stay in sync with the
@@ -117,10 +120,13 @@ const FileList = ({
     } else {
       modals.openModal({
         title: t("share.modal.file-link"),
+        styles: glassModalStyles,
         children: (
-          <Stack align="stretch">
-            <TextInput variant="filled" value={link} />
-          </Stack>
+          <MantineProvider inherit theme={glassFormTheme}>
+            <Stack align="stretch">
+              <TextInput variant="filled" value={link} />
+            </Stack>
+          </MantineProvider>
         ),
       });
     }
@@ -159,7 +165,12 @@ const FileList = ({
             <th>
               <Group spacing="xs" noWrap>
                 <FormattedMessage id="share.table.name" />
-                <TableSortIcon sort={sort} setSort={setSort} property="name" />
+                <TableSortIcon
+                  sort={sort}
+                  setSort={setSort}
+                  property="name"
+                  label={t("share.table.name")}
+                />
               </Group>
             </th>
             {/* Left-aligned like "Nom": 90px is this column's real minimum
@@ -170,7 +181,12 @@ const FileList = ({
             <th style={{ width: 90 }}>
               <Group spacing="xs" noWrap>
                 <FormattedMessage id="share.table.size" />
-                <TableSortIcon sort={sort} setSort={setSort} property="size" />
+                <TableSortIcon
+                  sort={sort}
+                  setSort={setSort}
+                  property="size"
+                  label={t("share.table.size")}
+                />
               </Group>
             </th>
             <th style={{ width: actionsColumnWidth(maxActionIcons) }}></th>
@@ -201,6 +217,7 @@ const FileList = ({
                             color="blue"
                             variant="light"
                             size={ACTION_ICON_SIZE}
+                            aria-label={t("share.copy-text-contents")}
                             onClick={() => {
                               api
                                 .get(
@@ -230,6 +247,7 @@ const FileList = ({
                             color="green"
                             variant="light"
                             size={ACTION_ICON_SIZE}
+                            aria-label={t("common.button.preview")}
                             onClick={() =>
                               showFilePreviewModal(share.id, file, modals)
                             }
@@ -241,9 +259,9 @@ const FileList = ({
                       {!share.hasPassword && (
                         <HoverTip label={t("common.button.copy-link")}>
                           <ActionIcon
-                            color="victoria"
                             variant="light"
                             size={ACTION_ICON_SIZE}
+                            aria-label={t("common.button.copy-link")}
                             onClick={() => copyFileLink(file)}
                           >
                             <TbLink />
@@ -256,6 +274,7 @@ const FileList = ({
                           color="cyan"
                           variant="light"
                           size={ACTION_ICON_SIZE}
+                          aria-label={t("common.button.download")}
                           onClick={async () => {
                             await shareService.downloadFile(
                               share.id,

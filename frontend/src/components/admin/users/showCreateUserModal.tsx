@@ -11,7 +11,9 @@ import { useForm, yupResolver } from "@mantine/form";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
-import useTranslate from "../../../hooks/useTranslate.hook";
+import useTranslate, {
+  translateOutsideContext,
+} from "../../../hooks/useTranslate.hook";
 import userService from "../../../services/user.service";
 import toast from "../../../utils/toast.util";
 import FileSizeInput from "../../core/FileSizeInput";
@@ -23,8 +25,9 @@ const showCreateUserModal = (
   smtpEnabled: boolean,
   getUsers: () => void,
 ) => {
+  const t = translateOutsideContext();
   return modals.openModal({
-    title: "Create user",
+    title: t("admin.users.modal.create.title"),
     styles: glassModalStyles,
     children: (
       <Body modals={modals} smtpEnabled={smtpEnabled} getUsers={getUsers} />

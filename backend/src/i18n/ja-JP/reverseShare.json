@@ -1,5 +1,0 @@
-{
-  "notFound": "リバース共有トークンが見つかりません",
-  "maxShareSizeExceeded": "最大共有サイズは {maxSize} バイトを超えることはできません。",
-  "tokenInUse": "Reverse share token already in use"
-}
