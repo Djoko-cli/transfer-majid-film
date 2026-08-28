@@ -62,7 +62,7 @@ export default {
   "signup.button.submit": "Commençons",
   "signup.onboarding.title": "Bienvenue sur Transfer",
   "signup.onboarding.description":
-    "Aucun compte n'existe encore sur cette instance. Le compte que tu crées ici devient automatiquement administrateur.",
+    "Aucun compte n'existe encore sur cette instance. Le compte créé ici devient automatiquement administrateur.",
   "signup.onboarding.button.submit": "Créer le compte administrateur",
   // /auth/verify
   "verify.title": "Vérifier le compte",
