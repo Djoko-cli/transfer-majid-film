@@ -12,6 +12,10 @@ import {
   UpdateShare,
 } from "../types/share.type";
 import { generateUUID } from "../utils/crypto.util";
+import {
+  type UploadProgressHandler,
+  withUploadInactivityTimeout,
+} from "../utils/upload.util";
 import api from "./api.service";
 
 const isValidId = (id: string) => {
@@ -183,7 +187,7 @@ const uploadFileDirectS3 = async (
   file: { id?: string; name: string },
   chunkIndex: number,
   totalChunks: number,
-  onUploadProgress?: (progressEvent: any) => void,
+  onUploadProgress?: UploadProgressHandler,
 ): Promise<FileUploadResponse> => {
   const fileId = file.id || generateUUID();
   const sessionKey = `${shareId}:${file.name}`;
@@ -217,10 +221,15 @@ const uploadFileDirectS3 = async (
     }
 
     const url = session.urls[chunkIndex];
-    const response = await axios.put(url, chunk, {
-      headers: { "Content-Type": "application/octet-stream" },
+    const response = await withUploadInactivityTimeout(
+      (signal, handleUploadProgress) =>
+        axios.put(url, chunk, {
+          signal,
+          headers: { "Content-Type": "application/octet-stream" },
+          onUploadProgress: handleUploadProgress,
+        }),
       onUploadProgress,
-    });
+    );
 
     const etag = response.headers["etag"];
     if (!etag) {
@@ -275,20 +284,24 @@ const uploadFileProxied = async (
   file: { id?: string; name: string },
   chunkIndex: number,
   totalChunks: number,
-  onUploadProgress?: (progressEvent: any) => void,
+  onUploadProgress?: UploadProgressHandler,
 ): Promise<FileUploadResponse> => {
-  return (
-    await api.post(`shares/${shareId}/files`, chunk, {
-      headers: { "Content-Type": "application/octet-stream" },
-      params: {
-        id: file.id,
-        name: file.name,
-        chunkIndex,
-        totalChunks,
-      },
-      onUploadProgress,
-    })
-  ).data;
+  const response = await withUploadInactivityTimeout(
+    (signal, handleUploadProgress) =>
+      api.post(`shares/${shareId}/files`, chunk, {
+        signal,
+        headers: { "Content-Type": "application/octet-stream" },
+        params: {
+          id: file.id,
+          name: file.name,
+          chunkIndex,
+          totalChunks,
+        },
+        onUploadProgress: handleUploadProgress,
+      }),
+    onUploadProgress,
+  );
+  return response.data;
 };
 
 const uploadFile = async (
@@ -300,7 +313,7 @@ const uploadFile = async (
   },
   chunkIndex: number,
   totalChunks: number,
-  onUploadProgress?: (progressEvent: any) => void,
+  onUploadProgress?: UploadProgressHandler,
 ): Promise<FileUploadResponse> => {
   if (!isValidId(shareId))
     throw new Error(
@@ -408,26 +421,33 @@ const uploadContributionFile = async (
   file: { id?: string; name: string },
   chunkIndex: number,
   totalChunks: number,
-  onUploadProgress?: (progressEvent: any) => void,
+  onUploadProgress?: UploadProgressHandler,
 ): Promise<FileUploadResponse> => {
   if (!isValidId(shareId) || !isValidId(contributionId))
     throw new Error("Invalid ID");
-  return (
-    await api.post(
-      `shares/${shareId}/contributions/${contributionId}/files`,
-      chunk,
-      {
-        headers: { "Content-Type": "application/octet-stream" },
-        params: {
-          id: file.id,
-          name: file.name,
-          chunkIndex,
-          totalChunks,
+  // The same inactivity timeout as uploadFileProxied: a chunk whose
+  // connection stalls never errors on its own, so CollectionDropzone's
+  // retry loop would wait on it forever.
+  const response = await withUploadInactivityTimeout(
+    (signal, handleUploadProgress) =>
+      api.post(
+        `shares/${shareId}/contributions/${contributionId}/files`,
+        chunk,
+        {
+          signal,
+          headers: { "Content-Type": "application/octet-stream" },
+          params: {
+            id: file.id,
+            name: file.name,
+            chunkIndex,
+            totalChunks,
+          },
+          onUploadProgress: handleUploadProgress,
         },
-        onUploadProgress,
-      },
-    )
-  ).data;
+      ),
+    onUploadProgress,
+  );
+  return response.data;
 };
 
 const completeContribution = async (
