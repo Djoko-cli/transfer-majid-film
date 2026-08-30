@@ -21,7 +21,7 @@ import useTranslate from "../../hooks/useTranslate.hook";
 import useUser from "../../hooks/user.hook";
 import shareService from "../../services/share.service";
 import { FileUpload } from "../../types/File.type";
-import { CreateShare, Share } from "../../types/share.type";
+import { CreateShare, Mode, Share } from "../../types/share.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
 import {
@@ -48,7 +48,6 @@ const Upload = ({
   const [files, setFiles] = useState<FileUpload[]>([]);
   const [isUploading, setisUploading] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
 
   const requiresEmailVerification =
     !user &&
@@ -66,6 +65,13 @@ const Upload = ({
   // previous approach here) — a fresh pair every time this component mounts.
   const createdShareRef = useRef<Share | null>(null);
   const cancelledRef = useRef(false);
+  // The request payload never round-trips back through the completion
+  // response (ShareDTO deliberately doesn't echo senderEmail — see
+  // ShareService.complete()'s reasoning), so the modal that reacts to that
+  // response reads these instead: what was actually submitted, kept
+  // entirely client-side.
+  const submittedSenderEmailRef = useRef<string | null>(null);
+  const submittedModeRef = useRef<Mode>("link");
 
   maxShareSize ??= user?.shareSizeLimit
     ? parseInt(user.shareSizeLimit)
@@ -225,10 +231,14 @@ const Upload = ({
     toast.success(t("upload.notify.cancelled"));
   };
 
-  // Gates the actual upload behind the anonymous email-OTP check when required.
-  // knownEmail is set when the sender already typed their email into the
-  // TransferCard's "email" mode, so we only need to ask for the code.
-  const startUpload = (share: CreateShare, knownEmail?: string | null) => {
+  // Gates the actual upload behind the anonymous email-OTP check when
+  // required. share.senderEmail is already populated whenever the sender
+  // typed their email into TransferCard (any mode, not just "email"), so
+  // the OTP modal only needs to ask for the code, not the address again.
+  const startUpload = (share: CreateShare, mode: Mode = "link") => {
+    submittedSenderEmailRef.current = share.senderEmail || null;
+    submittedModeRef.current = mode;
+
     if (!requiresEmailVerification || isEmailVerified) {
       uploadFiles(share, files);
       return;
@@ -238,10 +248,14 @@ const Upload = ({
       modals,
       (email) => {
         setIsEmailVerified(true);
-        setVerifiedEmail(email);
-        uploadFiles(share, files);
+        // The confirmed address can differ from share.senderEmail if the
+        // sender used "change email" inside the OTP modal — keep both the
+        // outgoing request and our own record of what was submitted in
+        // sync with whatever was actually verified.
+        submittedSenderEmailRef.current = email;
+        uploadFiles({ ...share, senderEmail: email }, files);
       },
-      knownEmail || undefined,
+      share.senderEmail || undefined,
     );
   };
 
@@ -457,8 +471,13 @@ const Upload = ({
             share,
             config.get("general.appUrl"),
             config.get("general.appUrl", true),
-            !user && verifiedEmail ? verifiedEmail : undefined,
+            !user && submittedSenderEmailRef.current
+              ? submittedSenderEmailRef.current
+              : undefined,
             !isReverseShare,
+            submittedModeRef.current,
+            config.get("smtp.enabled") &&
+              config.get("email.enableShareDownloadNotifications"),
           );
           setFiles([]);
         })

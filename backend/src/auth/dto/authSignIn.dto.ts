@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsEmail, IsOptional, IsString } from "class-validator";
 
 export class AuthSignInDTO {
   @IsEmail()
@@ -11,4 +11,8 @@ export class AuthSignInDTO {
 
   @IsString()
   password: string;
+
+  @IsBoolean()
+  @IsOptional()
+  rememberDevice?: boolean;
 }

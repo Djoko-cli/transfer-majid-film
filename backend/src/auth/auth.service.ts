@@ -11,6 +11,7 @@ import { JwtService } from "@nestjs/jwt";
 import { Prisma, User } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import * as argon from "argon2";
+import * as crypto from "crypto";
 import { Request, Response } from "express";
 import * as moment from "moment";
 import { I18nService } from "nestjs-i18n";
@@ -23,6 +24,10 @@ import { UserSevice } from "../user/user.service";
 import { AuthRegisterDTO } from "./dto/authRegister.dto";
 import { AuthSignInDTO } from "./dto/authSignIn.dto";
 import { LdapService } from "./ldap.service";
+
+const TRUSTED_DEVICE_COOKIE = "trusted_device";
+const TRUSTED_DEVICE_PURPOSE = "trusted-device";
+const TRUSTED_DEVICE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 @Injectable()
 export class AuthService {
@@ -42,6 +47,13 @@ export class AuthService {
     return (await this.prisma.user.count()) == 0;
   }
 
+  // Doubles as both the /auth/verify/:token link's last path segment and a
+  // human-typeable code — see signUp()'s comment for the entropy tradeoff
+  // this implies.
+  private generateActivationCode(): string {
+    return crypto.randomInt(100000, 1000000).toString();
+  }
+
   async signUp(
     dto: AuthRegisterDTO,
     ip: string,
@@ -55,63 +67,79 @@ export class AuthService {
     const email = dto.email.toLowerCase().trim();
 
     const hash = dto.password ? await argon.hash(dto.password) : null;
-    try {
-      const needsVerification =
-        !isFirstUser && !skipVerification && enableEmailVerification;
+    const needsVerification =
+      !isFirstUser && !skipVerification && enableEmailVerification;
 
-      return await this.prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: {
-            email,
-            username: dto.username,
-            password: hash,
-            isAdmin: isAdmin ?? isFirstUser,
-            isActivated: !needsVerification,
-            activationToken: needsVerification ? crypto.randomUUID() : null,
-            activationTokenExpiresAt: needsVerification
-              ? moment().add(1, "day").toDate()
-              : null,
-          },
-        });
+    // The verification token is a 6-digit code now (see
+    // generateActivationCode), not a UUID — sent as both a clickable link
+    // and a typeable code (EmailService.sendVerificationEmail). That's only
+    // 900,000 combinations, so two pending signups can rarely land on the
+    // same code and collide on the column's unique constraint; retried
+    // once with a fresh code rather than surfacing a confusing "field
+    // already exists" error to a brand-new signup. A second collision in a
+    // row is treated as a real error instead of retried again.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await this.prisma.$transaction(async (tx) => {
+          const user = await tx.user.create({
+            data: {
+              email,
+              username: dto.username,
+              password: hash,
+              isAdmin: isAdmin ?? isFirstUser,
+              isActivated: !needsVerification,
+              activationToken: needsVerification
+                ? this.generateActivationCode()
+                : null,
+              activationTokenExpiresAt: needsVerification
+                ? moment().add(60, "minutes").toDate()
+                : null,
+            },
+          });
 
-        if (user.activationToken) {
-          await this.emailService.sendVerificationEmail(
-            user.email,
-            user.activationToken,
+          if (user.activationToken) {
+            await this.emailService.sendVerificationEmail(
+              user.email,
+              user.activationToken,
+            );
+            return { verificationRequired: true };
+          }
+
+          const { refreshToken, refreshTokenId } =
+            await this.createRefreshToken(user.id, undefined, tx);
+          const accessToken = await this.createAccessToken(
+            user,
+            refreshTokenId,
           );
-          return { verificationRequired: true };
-        }
 
-        const { refreshToken, refreshTokenId } = await this.createRefreshToken(
-          user.id,
-          undefined,
-          tx,
-        );
-        const accessToken = await this.createAccessToken(user, refreshTokenId);
-
-        this.logger.log(`User ${user.email} signed up from IP ${ip}`);
-        return { accessToken, refreshToken, user };
-      });
-    } catch (e) {
-      if (e instanceof PrismaClientKnownRequestError) {
-        if (e.code == "P2002") {
+          this.logger.log(`User ${user.email} signed up from IP ${ip}`);
+          return { accessToken, refreshToken, user };
+        });
+      } catch (e) {
+        if (e instanceof PrismaClientKnownRequestError && e.code == "P2002") {
           const duplicatedField: string = e.meta.target[0];
+          if (duplicatedField === "activationToken" && attempt === 0) {
+            continue;
+          }
           throw new BadRequestException(
             this.i18n.t("auth.userAlreadyExists", {
               args: { field: duplicatedField },
             }),
           );
         }
+        throw e;
       }
     }
   }
 
-  async signIn(dto: AuthSignInDTO, ip: string) {
+  async signIn(dto: AuthSignInDTO, ip: string, response?: Response) {
     if (!dto.email && !dto.username) {
       throw new BadRequestException(
         this.i18n.t("auth.emailOrUsernameRequired"),
       );
     }
+
+    const tokenOptions = { response, rememberDevice: dto.rememberDevice };
 
     if (!this.config.get("oauth.disablePassword")) {
       const email = dto.email?.toLowerCase().trim();
@@ -130,7 +158,7 @@ export class AuthService {
         this.logger.log(
           `Successful password login for user ${user.email} from IP ${ip}`,
         );
-        return this.generateToken(user);
+        return this.generateToken(user, undefined, tokenOptions);
       }
     }
 
@@ -152,7 +180,7 @@ export class AuthService {
         this.logger.log(
           `Successful LDAP login for user ${ldapUsername} (${user.id}) from IP ${ip}`,
         );
-        return this.generateToken(user);
+        return this.generateToken(user, undefined, tokenOptions);
       }
     }
 
@@ -162,13 +190,25 @@ export class AuthService {
     throw new UnauthorizedException(this.i18n.t("auth.wrongCredentials"));
   }
 
-  async generateToken(user: User, oauth?: { idToken?: string }) {
+  async generateToken(
+    user: User,
+    oauth?: { idToken?: string },
+    tokenOptions?: { response?: Response; rememberDevice?: boolean },
+  ) {
     // TODO: Make all old loginTokens invalid when a new one is created
     // Check if the user has TOTP enabled
     if (user.totpVerified && !(oauth && this.config.get("oauth.ignoreTotp"))) {
       const loginToken = await this.createLoginToken(user.id);
 
       return { loginToken };
+    }
+
+    // Only reached once a *real* session is about to be issued below — a
+    // TOTP loginToken above isn't a session yet, and must never mark a
+    // device trusted on password alone (see AuthTotpService.signInTotp,
+    // which sets this same cookie after TOTP actually succeeds).
+    if (tokenOptions?.response && tokenOptions?.rememberDevice) {
+      this.setTrustedDeviceCookie(tokenOptions.response, user.id);
     }
 
     const { refreshToken, refreshTokenId } = await this.createRefreshToken(
@@ -243,6 +283,18 @@ export class AuthService {
     });
   }
 
+  private async activateUser(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActivated: true,
+        activationToken: null,
+        activationTokenExpiresAt: null,
+        activationAttempts: 0,
+      },
+    });
+  }
+
   async verifyAccount(token: string) {
     const user = await this.prisma.user.findUnique({
       where: { activationToken: token },
@@ -256,14 +308,43 @@ export class AuthService {
       throw new BadRequestException(this.i18n.t("auth.tokenInvalidOrExpired"));
     }
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        isActivated: true,
-        activationToken: null,
-        activationTokenExpiresAt: null,
-      },
+    await this.activateUser(user.id);
+  }
+
+  // The code-entry counterpart to verifyAccount(token) above — same
+  // underlying token (see generateActivationCode), but scoped to a known
+  // email so wrong guesses are attributable to one account and rate
+  // limited, unlike the link-click endpoint's global token lookup (which
+  // only has the IP throttle to lean on).
+  async verifyAccountByCode(emailInput: string, code: string) {
+    const email = emailInput.toLowerCase().trim();
+    const user = await this.prisma.user.findUnique({
+      where: { email },
     });
+
+    if (
+      !user ||
+      user.isActivated ||
+      !user.activationToken ||
+      (user.activationTokenExpiresAt &&
+        user.activationTokenExpiresAt < new Date())
+    ) {
+      throw new BadRequestException(this.i18n.t("auth.tokenInvalidOrExpired"));
+    }
+
+    if (user.activationAttempts >= 5) {
+      throw new BadRequestException(this.i18n.t("verification.tooManyAttempts"));
+    }
+
+    if (user.activationToken !== code) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { activationAttempts: { increment: 1 } },
+      });
+      throw new BadRequestException(this.i18n.t("auth.invalidCode"));
+    }
+
+    await this.activateUser(user.id);
   }
 
   async resendVerification(emailInput: string) {
@@ -278,8 +359,8 @@ export class AuthService {
       throw new BadRequestException(this.i18n.t("auth.userAlreadyActivated"));
     }
 
-    const activationToken = crypto.randomUUID();
-    const activationTokenExpiresAt = moment().add(1, "day").toDate();
+    const activationToken = this.generateActivationCode();
+    const activationTokenExpiresAt = moment().add(60, "minutes").toDate();
 
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
@@ -287,6 +368,8 @@ export class AuthService {
         data: {
           activationToken,
           activationTokenExpiresAt,
+          // A fresh code deserves a fresh attempt budget.
+          activationAttempts: 0,
         },
       });
 
@@ -462,6 +545,91 @@ export class AuthService {
         maxAge,
       });
     }
+  }
+
+  // Set only once a real session is actually issued (see generateToken) —
+  // never on a bare TOTP loginToken, which isn't a session yet. Survives a
+  // normal signOut() on purpose: signOut only ever clears access_token/
+  // refresh_token, never this one — recognizing a returning device is
+  // meant to work again right after logging out, not just before it.
+  setTrustedDeviceCookie(response: Response, userId: string) {
+    const token = this.jwtService.sign(
+      { sub: userId, purpose: TRUSTED_DEVICE_PURPOSE },
+      { secret: this.config.get("internal.jwtSecret"), expiresIn: "30d" },
+    );
+    response.cookie(TRUSTED_DEVICE_COOKIE, token, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: this.config.get("general.secureCookies"),
+      maxAge: TRUSTED_DEVICE_MAX_AGE_MS,
+    });
+  }
+
+  clearTrustedDeviceCookie(response: Response) {
+    response.cookie(TRUSTED_DEVICE_COOKIE, "", {
+      path: "/",
+      maxAge: -1,
+      secure: this.config.get("general.secureCookies"),
+    });
+  }
+
+  // Read-only: never mutates anything, never issues a session. Only tells
+  // the sign-in page whether to offer "Welcome back {username}" instead of
+  // the normal form. username only — no email, no other fields — since
+  // this is the one endpoint that answers before any authentication at all.
+  async getTrustedDeviceInfo(
+    request: Request,
+  ): Promise<{ recognized: false } | { recognized: true; username: string }> {
+    const token = request.cookies?.[TRUSTED_DEVICE_COOKIE];
+    if (!token) return { recognized: false };
+
+    try {
+      const claims = await this.jwtService.verifyAsync(token, {
+        secret: this.config.get("internal.jwtSecret"),
+      });
+      if (claims.purpose !== TRUSTED_DEVICE_PURPOSE) return { recognized: false };
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: claims.sub },
+        select: { username: true, isActivated: true },
+      });
+      if (!user?.isActivated) return { recognized: false };
+
+      return { recognized: true, username: user.username };
+    } catch {
+      return { recognized: false };
+    }
+  }
+
+  // The actual sign-in triggered by the "Welcome back" button — re-verifies
+  // the cookie server-side (never trusts that the earlier read-only check
+  // already ran) and hands off to the exact same generateToken() every
+  // other sign-in path uses, so a TOTP-enabled account still hits the TOTP
+  // wall even from a trusted device: a leaked cookie alone can't fully
+  // bypass a deliberately-configured second factor.
+  async signInTrusted(request: Request) {
+    const token = request.cookies?.[TRUSTED_DEVICE_COOKIE];
+    if (!token) throw new UnauthorizedException(this.i18n.t("auth.tokenInvalidOrExpired"));
+
+    let claims: { sub?: string; purpose?: string };
+    try {
+      claims = await this.jwtService.verifyAsync(token, {
+        secret: this.config.get("internal.jwtSecret"),
+      });
+    } catch {
+      throw new UnauthorizedException(this.i18n.t("auth.tokenInvalidOrExpired"));
+    }
+    if (claims.purpose !== TRUSTED_DEVICE_PURPOSE)
+      throw new UnauthorizedException(this.i18n.t("auth.tokenInvalidOrExpired"));
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: claims.sub },
+    });
+    if (!user?.isActivated)
+      throw new UnauthorizedException(this.i18n.t("auth.tokenInvalidOrExpired"));
+
+    return this.generateToken(user);
   }
 
   /**

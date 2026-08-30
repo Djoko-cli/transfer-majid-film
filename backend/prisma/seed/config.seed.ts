@@ -214,6 +214,18 @@ export const configVariables = {
       defaultValue:
         "Bonjour !\n\n{recipientEmail} a téléchargé {fileName} depuis votre partage : {shareUrl}",
     },
+    // Same notification as above, for a share with no named recipient to
+    // report (a Link-mode share, anonymous or signed-in) — no
+    // {recipientEmail} to substitute, since there isn't one.
+    ownerDownloadNotificationSubject: {
+      type: "string",
+      defaultValue: "Votre fichier a été téléchargé",
+    },
+    ownerDownloadNotificationMessage: {
+      type: "text",
+      defaultValue:
+        "Bonjour !\n\n{fileName} a été téléchargé depuis votre partage : {shareUrl}",
+    },
     enableEmailVerification: {
       type: "boolean",
       defaultValue: "false",
@@ -226,7 +238,7 @@ export const configVariables = {
     verificationMessage: {
       type: "text",
       defaultValue:
-        "Bonjour !\n\nVous venez de vous inscrire. Cliquez sur ce lien pour vérifier votre compte : {url}\n\nCe lien expire dans 24 heures.",
+        "Bonjour !\n\nVous venez de vous inscrire. Saisissez le code {code} pour vérifier votre compte, ou cliquez simplement sur ce lien : {url}\n\nCe code expire dans 60 minutes.",
     },
   },
   smtp: {

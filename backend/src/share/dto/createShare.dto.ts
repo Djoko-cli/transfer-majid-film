@@ -34,6 +34,12 @@ export class CreateShareDTO {
   @IsEmail({}, { each: true })
   recipients: string[];
 
+  // Self-reported by an anonymous (not signed-in) sender — ignored server
+  // side for a signed-in requester, see ShareService.create().
+  @IsEmail()
+  @IsOptional()
+  senderEmail?: string;
+
   @ValidateNested()
   @Type(() => ShareSecurityDTO)
   security: ShareSecurityDTO;

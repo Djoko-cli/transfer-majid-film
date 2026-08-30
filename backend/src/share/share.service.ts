@@ -138,6 +138,12 @@ export class ShareService {
     const shareTuple = await this.prisma.share.create({
       data: {
         ...shareData,
+        // A signed-in creator's identity is already the `creator` relation
+        // below — never persist a second, potentially-stale copy of their
+        // email here. Only meaningful for an anonymous sender.
+        senderEmail: user
+          ? null
+          : share.senderEmail?.toLowerCase().trim() || null,
         expiration: expirationDate,
         creator: { connect: user ? { id: user.id } : undefined },
         security: { create: share.security },
@@ -186,11 +192,7 @@ export class ShareService {
     await archive.finalize();
   }
 
-  async complete(
-    id: string,
-    reverseShareToken?: string,
-    anonymousSenderEmail?: string | null,
-  ) {
+  async complete(id: string, reverseShareToken?: string) {
     const share = await this.prisma.share.findUnique({
       where: { id },
       include: {
@@ -260,18 +262,17 @@ export class ShareService {
     }
 
     // An anonymous sender (no account, so no "Mes partages" to fall back
-    // to) only ever sees this link once — email it to the address the OTP
-    // step already verified, as a backstop against a lost/mis-clicked link.
-    // Caught rather than awaited-to-fail: a courtesy backup email should
-    // never block the completion response the upload itself is waiting on.
-    if (
-      !share.creator &&
-      anonymousSenderEmail &&
-      this.config.get("smtp.enabled")
-    ) {
+    // to) only ever sees this link once — email it to the self-reported
+    // address stored at creation time (ShareService.create()), as a
+    // backstop against a lost/mis-clicked link. Unconditional on OTP
+    // verification having run: senderEmail is always collected for an
+    // anonymous share regardless of whether that toggle is on. Caught
+    // rather than awaited-to-fail: a courtesy backup email should never
+    // block the completion response the upload itself is waiting on.
+    if (!share.creator && share.senderEmail && this.config.get("smtp.enabled")) {
       await this.emailService
         .sendShareLinkToSender(
-          anonymousSenderEmail,
+          share.senderEmail,
           share.id,
           share.name,
           share.expiration,

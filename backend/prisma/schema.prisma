@@ -36,6 +36,7 @@ model User {
   isActivated              Boolean   @default(true)
   activationToken          String?   @unique
   activationTokenExpiresAt DateTime?
+  activationAttempts       Int       @default(0)
 
   oAuthUsers OAuthUser[]
 }
@@ -98,6 +99,13 @@ model Share {
 
   creatorId String?
   creator   User?   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Self-reported at creation time by an anonymous (not signed-in) sender —
+  // never set for a signed-in creator, whose identity is already the
+  // `creator` relation above. Lets us always email an anonymous sender their
+  // own link/download notification, regardless of whether OTP verification
+  // (share.requireEmailVerificationForAnonymousShares) is even enabled.
+  senderEmail String?
 
   reverseShareId String?
   reverseShare   ReverseShare? @relation(fields: [reverseShareId], references: [id], onDelete: Cascade)

@@ -36,9 +36,13 @@ function TotpForm({ redirectPath }: { redirectPath: string }) {
     if (loading) return;
     setLoading(true);
     try {
+      // Carried through SignInForm's redirect the same way `redirect` is —
+      // one checkbox on the sign-in form covers both the password and TOTP
+      // steps, instead of asking twice.
       await authService.signInTotp(
         form.values.code,
         router.query.loginToken as string,
+        router.query.rememberDevice === "true",
       );
       await refreshUser();
       await router.replace(safeRedirectPath(redirectPath));

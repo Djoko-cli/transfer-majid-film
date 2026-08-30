@@ -38,6 +38,10 @@ export default {
   "signin.input.password": "Mot de passe",
   "signin.input.password.placeholder": "Votre mot de passe",
   "signin.button.submit": "Se connecter",
+  "signin.remember-device": "Se souvenir de moi sur cet appareil",
+  "signin.trusted.welcome-back": "Rebonjour {username}",
+  "signin.trusted.button.submit": "Se connecter",
+  "signin.trusted.not-you": "Ce n'est pas vous ?",
   "signIn.notify.totp-required.title":
     "Une authentification à deux facteurs est requise",
   "signIn.notify.totp-required.description":
@@ -72,10 +76,14 @@ export default {
   "verify.button.signin": "Aller à la connexion",
   "verify.info.title": "Vérification du compte",
   "verify.info.description":
-    "L'email de vérification est activé. Nous avons envoyé un lien de vérification à votre adresse email. Veuillez cliquer sur le lien pour activer votre compte.",
+    "Nous avons envoyé un code de vérification à votre adresse email. Saisissez-le ci-dessous, ou cliquez directement sur le lien contenu dans cet e-mail.",
   "verify.info.note":
     "Si vous ne recevez pas l'e-mail d’ici quelques minutes, vérifiez votre dossier de spam.",
+  "verify.info.code.ariaLabel": "Code de vérification",
+  "verify.info.code.button": "Vérifier",
   "verify.info.resend.button": "Renvoyer l'email de vérification",
+  "verify.info.resend.button.cooldown":
+    "Renvoyer l'email de vérification ({seconds}s)",
   "verify.info.resend.success": "Email de vérification renvoyé avec succès.",
   "verify.info.resend.error": "Échec du renvoi de l'email de vérification.",
   // END /auth/signup
@@ -463,6 +471,11 @@ export default {
     "Créez un compte pour retrouver vos liens",
   "upload.modal.completed.share-ready": "Partage prêt",
   "upload.modal.completed.share-ready-named": "« {name} » est prêt !",
+  "upload.modal.completed.link-mode.title": "Hop, c'est envoyé !",
+  "upload.modal.completed.link-mode.description":
+    "Votre transfert a été envoyé avec succès.",
+  "upload.modal.completed.link-mode.download-notification":
+    "Nous vous préviendrons par e-mail dès que votre destinataire l'aura téléchargé.",
   "upload.modal.completed.summary.singular": "{count} fichier · {size}",
   "upload.modal.completed.summary.plural": "{count} fichiers · {size}",
   "upload.modal.completed.notified-reverse-share-creator":
@@ -648,15 +661,23 @@ export default {
   "admin.config.email.enable-share-download-notifications":
     "Activer les notifications de téléchargement",
   "admin.config.email.enable-share-download-notifications.description":
-    "S'il faut envoyer un e-mail au créateur du partage lorsqu'un destinataire télécharge un fichier. Cela nécessite un protocole SMTP et le partage par e-mail.",
+    "S'il faut envoyer un e-mail au créateur ou à l'expéditeur du partage lorsqu'un fichier est téléchargé. Nécessite un protocole SMTP.",
   "admin.config.email.share-download-notification-subject":
-    "Sujet de notification de téléchargement",
+    "Sujet de notification de téléchargement (destinataire nommé)",
   "admin.config.email.share-download-notification-subject.description":
-    "Objet de l'e-mail envoyé au créateur du partage lorsqu'un destinataire télécharge un fichier.",
+    "Objet de l'e-mail envoyé au créateur du partage lorsqu'un destinataire nommé télécharge un fichier (mode E-mail).",
   "admin.config.email.share-download-notification-message":
-    "Message de notification de téléchargement",
+    "Message de notification de téléchargement (destinataire nommé)",
   "admin.config.email.share-download-notification-message.description":
-    "Message envoyé au créateur du partage lorsqu'un destinataire télécharge un fichier. Variables disponibles :\n {recipientEmail} - Adresse e-mail du destinataire\n {fileName} - Nom du fichier téléchargé\n {shareUrl} - URL du partage",
+    "Message envoyé au créateur du partage lorsqu'un destinataire nommé télécharge un fichier (mode E-mail). Variables disponibles :\n {recipientEmail} - Adresse e-mail du destinataire\n {fileName} - Nom du fichier téléchargé\n {shareUrl} - URL du partage",
+  "admin.config.email.owner-download-notification-subject":
+    "Sujet de notification de téléchargement (lien)",
+  "admin.config.email.owner-download-notification-subject.description":
+    "Objet de l'e-mail envoyé au créateur ou à l'expéditeur d'un partage sans destinataire nommé (mode Lien) lorsqu'un fichier est téléchargé.",
+  "admin.config.email.owner-download-notification-message":
+    "Message de notification de téléchargement (lien)",
+  "admin.config.email.owner-download-notification-message.description":
+    "Message envoyé au créateur ou à l'expéditeur d'un partage sans destinataire nommé (mode Lien) lorsqu'un fichier est téléchargé. Variables disponibles :\n {fileName} - Nom du fichier téléchargé\n {shareUrl} - URL du partage",
   "admin.config.email.enable-email-verification":
     "Activer l'email de vérification",
   "admin.config.email.enable-email-verification.description":
@@ -666,7 +687,7 @@ export default {
     "Sujet des emails envoyé aux utilisateurs lors de leur inscription.",
   "admin.config.email.verification-message": "Message de vérification",
   "admin.config.email.verification-message.description":
-    "Message qui sera envoyé aux utilisateurs lors de leur inscription. {url} sera remplacé avec l'URL de vérification.",
+    "Message qui sera envoyé aux utilisateurs lors de leur inscription. {code} sera remplacé par le code à 6 chiffres à saisir, {url} par le lien cliquable équivalent — les deux mènent à la même vérification.",
   "admin.config.share.allow-registration": "Autoriser les inscriptions",
   "admin.config.share.allow-registration.description":
     "Permet aux visiteurs de créer un compte",

@@ -20,7 +20,7 @@ import { FormattedMessage } from "react-intl";
 import useTranslate, {
   translateOutsideContext,
 } from "../../../hooks/useTranslate.hook";
-import { CompletedShare } from "../../../types/share.type";
+import { CompletedShare, Mode } from "../../../types/share.type";
 import { byteToHumanSizeString } from "../../../utils/fileSize.util";
 import CopyTextField from "../CopyTextField";
 import QRCode from "../../share/QRCode";
@@ -38,6 +38,16 @@ const showCompletedUploadModal = (
   // step for the legacy reverse-share flow, which has no brand image
   // behind it and stays on its plain opaque styling.
   glass = false,
+  // "link" hides the raw share URL entirely — declutters the confirmation
+  // and, for an anonymous sender, relies on the (now unconditional) email
+  // backstop instead. Undefined (the legacy reverse-share call site, which
+  // never set this) behaves exactly like "email" — link shown, unchanged.
+  mode?: Mode,
+  // Whether a download-notification email is actually possible right now
+  // (smtp.enabled && email.enableShareDownloadNotifications) — only shown
+  // as a promise in link-mode's copy when both are true, so it's never a
+  // false claim.
+  canNotifyOnDownload = false,
 ) => {
   const t = translateOutsideContext();
   return modals.openModal({
@@ -58,9 +68,12 @@ const showCompletedUploadModal = (
     // that naming isn't hidden behind a mode toggle — see TransferCard) so
     // the moment right after sending someone's own work confirms *what*
     // shipped, not just that "a" share exists somewhere.
-    title: share.name
-      ? t("upload.modal.completed.share-ready-named", { name: share.name })
-      : t("upload.modal.completed.share-ready"),
+    title:
+      mode === "link"
+        ? t("upload.modal.completed.link-mode.title")
+        : share.name
+          ? t("upload.modal.completed.share-ready-named", { name: share.name })
+          : t("upload.modal.completed.share-ready"),
     styles: (theme: Parameters<typeof glassModalStyles>[0]) => {
       const base: Record<string, Record<string, unknown>> = glass
         ? glassModalStyles(theme)
@@ -91,6 +104,8 @@ const showCompletedUploadModal = (
         defaultAppUrl={defaultAppUrl}
         anonymousEmail={anonymousEmail}
         glass={glass}
+        mode={mode}
+        canNotifyOnDownload={canNotifyOnDownload}
       />
     ),
   });
@@ -102,12 +117,16 @@ const Body = ({
   defaultAppUrl,
   anonymousEmail,
   glass,
+  mode,
+  canNotifyOnDownload,
 }: {
   share: CompletedShare;
   appUrl: string;
   defaultAppUrl: string;
   anonymousEmail?: string;
   glass: boolean;
+  mode?: Mode;
+  canNotifyOnDownload: boolean;
 }) => {
   const modals = useModals();
   const router = useRouter();
@@ -196,10 +215,25 @@ const Body = ({
           </Group>
         )}
 
-        <CopyTextField link={link} toggleQR={handleToggleQR} />
-        <Collapse in={showQR}>
-          <QRCode link={link} />
-        </Collapse>
+        {mode === "link" ? (
+          <Stack spacing={4}>
+            <Text size="sm">
+              {t("upload.modal.completed.link-mode.description")}
+            </Text>
+            {canNotifyOnDownload && (
+              <Text size="sm" color="dimmed">
+                {t("upload.modal.completed.link-mode.download-notification")}
+              </Text>
+            )}
+          </Stack>
+        ) : (
+          <>
+            <CopyTextField link={link} toggleQR={handleToggleQR} />
+            <Collapse in={showQR}>
+              <QRCode link={link} />
+            </Collapse>
+          </>
+        )}
         {share.notifyReverseShareCreator === true && (
           <Text
             size="sm"
@@ -216,12 +250,13 @@ const Body = ({
         {
           // An anonymous sender has no account and no "Mes partages" to
           // fall back to — this link is the only trace of the transfer,
-          // shown exactly once. The backend now also emails it to the
-          // address the OTP step already verified; naming that here turns
-          // a silent safety net into visible reassurance at the one moment
-          // losing the link would otherwise feel catastrophic.
+          // shown exactly once. The backend also emails it to the address
+          // they typed; naming that here turns a silent safety net into
+          // visible reassurance at the one moment losing the link would
+          // otherwise feel catastrophic. Suppressed in link-mode: the copy
+          // above already covers it, this would just repeat itself.
         }
-        {anonymousEmail && (
+        {mode !== "link" && anonymousEmail && (
           <Text
             size="sm"
             sx={(theme) => ({

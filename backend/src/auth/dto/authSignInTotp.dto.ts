@@ -1,4 +1,4 @@
-import { IsString } from "class-validator";
+import { IsBoolean, IsOptional, IsString } from "class-validator";
 
 export class AuthSignInTotpDTO {
   @IsString()
@@ -6,4 +6,8 @@ export class AuthSignInTotpDTO {
 
   @IsString()
   loginToken: string;
+
+  @IsBoolean()
+  @IsOptional()
+  rememberDevice?: boolean;
 }

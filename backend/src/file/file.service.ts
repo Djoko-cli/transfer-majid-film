@@ -190,17 +190,31 @@ export class FileService {
     return await storageService.getZip(shareId);
   }
 
-  async notifyRecipientDownload(
+  // recipientId present: a named Email-mode recipient downloaded — notify
+  // the signed-in creator, as before. recipientId absent: a share with no
+  // named recipient was downloaded (an anonymous or signed-in Link-mode
+  // share) — notify whoever owns it instead. The two are mutually
+  // exclusive by construction, so there's no double-notification risk.
+  async notifyDownload(shareId: string, fileName: string, recipientId?: string) {
+    if (!this.configService.get("email.enableShareDownloadNotifications"))
+      return;
+
+    if (recipientId) {
+      await this.notifyRecipientDownload(shareId, fileName, recipientId);
+    } else {
+      await this.notifyOwnerDownload(shareId, fileName);
+    }
+  }
+
+  private async notifyRecipientDownload(
     shareId: string,
     fileName: string,
-    recipientId?: string,
+    recipientId: string,
   ) {
     try {
       if (
-        !recipientId ||
         !this.configService.get("smtp.enabled") ||
-        !this.configService.get("email.enableShareEmailRecipients") ||
-        !this.configService.get("email.enableShareDownloadNotifications")
+        !this.configService.get("email.enableShareEmailRecipients")
       )
         return;
 
@@ -237,6 +251,49 @@ export class FileService {
     } catch (e) {
       this.logger.error(
         `Failed to notify recipient download for share ${shareId}`,
+        e instanceof Error ? e.stack : String(e),
+      );
+    }
+  }
+
+  // Link-mode shares have no named recipient to key a per-recipient cooldown
+  // on, and no email.enableShareEmailRecipients dependency — deliberately
+  // not checked here, since this path exists precisely for shares that have
+  // none. The owner is either a signed-in creator or the sender's own
+  // self-reported email (Share.senderEmail, see ShareService.create()).
+  private async notifyOwnerDownload(shareId: string, fileName: string) {
+    try {
+      if (!this.configService.get("smtp.enabled")) return;
+
+      const notificationKey = `share-download-notification:${shareId}:owner`;
+      if (await this.cache.get<true>(notificationKey)) return;
+
+      const share = await this.prisma.share.findUnique({
+        where: { id: shareId },
+        select: {
+          id: true,
+          senderEmail: true,
+          creator: { select: { email: true } },
+        },
+      });
+
+      const ownerEmail = share?.creator?.email || share?.senderEmail;
+      if (!ownerEmail) return;
+
+      await this.cache.set(
+        notificationKey,
+        true,
+        DOWNLOAD_NOTIFICATION_COOLDOWN_MS,
+      );
+
+      await this.emailService.sendOwnerDownloadNotification(
+        ownerEmail,
+        shareId,
+        fileName,
+      );
+    } catch (e) {
+      this.logger.error(
+        `Failed to notify owner download for share ${shareId}`,
         e instanceof Error ? e.stack : String(e),
       );
     }

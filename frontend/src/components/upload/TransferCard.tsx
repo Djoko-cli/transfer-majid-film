@@ -27,15 +27,13 @@ import AnimatedHeight from "../core/AnimatedHeight";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import { FileUpload } from "../../types/File.type";
-import { CreateShare } from "../../types/share.type";
+import { CreateShare, Mode } from "../../types/share.type";
 import { Timespan } from "../../types/timespan.type";
 import { getExpirationPreview } from "../../utils/date.util";
 import { getDefaultShareName } from "../../utils/file.util";
 import { generateAvailableShareId } from "../../utils/share.util";
 import Dropzone from "./Dropzone";
 import FileList from "./FileList";
-
-type Mode = "email" | "link";
 
 // Press-and-hold repeat for a stepper button pair: one immediate step on
 // press, then repeating every 80ms after an initial 400ms delay, until
@@ -153,7 +151,7 @@ const TransferCard = ({
   currentFilesSize: number;
   onFilesChanged: (files: FileUpload[]) => void;
   setFiles: React.Dispatch<React.SetStateAction<FileUpload[]>>;
-  onSubmit: (createShare: CreateShare, senderEmail: string | null) => void;
+  onSubmit: (createShare: CreateShare, mode: Mode) => void;
   isUserSignedIn: boolean;
   // Pre-fills the sender field for a signed-in user (still editable — they
   // may want a different reply-to for a given transfer) instead of asking
@@ -385,6 +383,7 @@ const TransferCard = ({
         name: values.name || getDefaultShareName(files, t) || undefined,
         expiration: expirationString,
         recipients: values.recipients,
+        senderEmail: !isUserSignedIn ? values.senderEmail || undefined : undefined,
         description: values.description,
         security: {
           password: values.restrictToRecipients
@@ -394,7 +393,7 @@ const TransferCard = ({
           restrictToRecipients: values.restrictToRecipients || undefined,
         },
       },
-      !isUserSignedIn ? values.senderEmail : null,
+      mode,
     );
   });
 

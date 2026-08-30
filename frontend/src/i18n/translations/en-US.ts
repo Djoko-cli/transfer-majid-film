@@ -41,6 +41,10 @@ export default {
   "signin.input.password": "Password",
   "signin.input.password.placeholder": "Your password",
   "signin.button.submit": "Sign in",
+  "signin.remember-device": "Remember me on this device",
+  "signin.trusted.welcome-back": "Welcome back {username}",
+  "signin.trusted.button.submit": "Sign in",
+  "signin.trusted.not-you": "Not you?",
   "signIn.notify.totp-required.title": "Two-factor authentication required",
   "signIn.notify.totp-required.description":
     "Please enter your two-factor authentication code",
@@ -76,10 +80,13 @@ export default {
   "verify.button.signin": "Go to Sign In",
   "verify.info.title": "Account Verification",
   "verify.info.description":
-    "Email verification is enabled. We've sent a verification link to your email address. Please click the link to activate your account.",
+    "We've sent a verification code to your email address. Enter it below, or just click the link in that email.",
   "verify.info.note":
     "If you don't receive the email within a few minutes, please check your spam folder.",
+  "verify.info.code.ariaLabel": "Verification code",
+  "verify.info.code.button": "Verify",
   "verify.info.resend.button": "Resend verification email",
+  "verify.info.resend.button.cooldown": "Resend verification email ({seconds}s)",
   "verify.info.resend.success": "Verification email resent successfully.",
   "verify.info.resend.error": "Failed to resend verification email.",
 
@@ -493,6 +500,11 @@ export default {
     "Create an account to keep track of your links",
   "upload.modal.completed.share-ready": "Share ready",
   "upload.modal.completed.share-ready-named": "“{name}” is ready!",
+  "upload.modal.completed.link-mode.title": "All done!",
+  "upload.modal.completed.link-mode.description":
+    "Your transfer was sent successfully.",
+  "upload.modal.completed.link-mode.download-notification":
+    "We'll email you as soon as your recipient downloads it.",
   "upload.modal.completed.summary.singular": "{count} file · {size}",
   "upload.modal.completed.summary.plural": "{count} files · {size}",
   "upload.modal.completed.notified-reverse-share-creator":
@@ -678,15 +690,23 @@ export default {
   "admin.config.email.enable-share-download-notifications":
     "Enable download notifications",
   "admin.config.email.enable-share-download-notifications.description":
-    "Whether to send an email to the share creator when an email recipient downloads a file. This requires SMTP and email recipient sharing.",
+    "Whether to send an email to the share's creator or sender when a file is downloaded. Requires SMTP.",
   "admin.config.email.share-download-notification-subject":
-    "Download notification subject",
+    "Download notification subject (named recipient)",
   "admin.config.email.share-download-notification-subject.description":
-    "Subject of the email which gets sent to the share creator when a recipient downloads a file.",
+    "Subject of the email which gets sent to the share creator when a named recipient downloads a file (Email mode).",
   "admin.config.email.share-download-notification-message":
-    "Download notification message",
+    "Download notification message (named recipient)",
   "admin.config.email.share-download-notification-message.description":
-    "Message which gets sent to the share creator when a recipient downloads a file. Available variables:\n {recipientEmail} - The email of the recipient\n {fileName} - The downloaded file name\n {shareUrl} - The URL of the share",
+    "Message which gets sent to the share creator when a named recipient downloads a file (Email mode). Available variables:\n {recipientEmail} - The email of the recipient\n {fileName} - The downloaded file name\n {shareUrl} - The URL of the share",
+  "admin.config.email.owner-download-notification-subject":
+    "Download notification subject (link)",
+  "admin.config.email.owner-download-notification-subject.description":
+    "Subject of the email sent to the creator or sender of a share with no named recipient (Link mode) when a file is downloaded.",
+  "admin.config.email.owner-download-notification-message":
+    "Download notification message (link)",
+  "admin.config.email.owner-download-notification-message.description":
+    "Message sent to the creator or sender of a share with no named recipient (Link mode) when a file is downloaded. Available variables:\n {fileName} - The downloaded file name\n {shareUrl} - The URL of the share",
   "admin.config.email.enable-email-verification": "Enable email verification",
   "admin.config.email.enable-email-verification.description":
     "Whether to require users to verify their email address before being able to sign in. This can only be enabled if SMTP is activated.",
@@ -695,7 +715,7 @@ export default {
     "Subject of the email which gets sent to the user when they sign up.",
   "admin.config.email.verification-message": "Verification message",
   "admin.config.email.verification-message.description":
-    "Message which gets sent to the user when they sign up. {url} will be replaced with the verification URL.",
+    "Message which gets sent to the user when they sign up. {code} will be replaced with the 6-digit code to type in, {url} with the equivalent clickable link — both lead to the same verification.",
   "admin.config.share.allow-registration": "Allow registration",
   "admin.config.share.allow-registration.description":
     "Whether registration is allowed",

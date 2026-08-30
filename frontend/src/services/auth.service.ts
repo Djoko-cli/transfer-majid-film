@@ -2,7 +2,11 @@ import { getCookie } from "cookies-next";
 import * as jose from "jose";
 import api from "./api.service";
 
-const signIn = async (emailOrUsername: string, password: string) => {
+const signIn = async (
+  emailOrUsername: string,
+  password: string,
+  rememberDevice = false,
+) => {
   const emailOrUsernameBody = emailOrUsername.includes("@")
     ? { email: emailOrUsername }
     : { username: emailOrUsername };
@@ -10,16 +14,38 @@ const signIn = async (emailOrUsername: string, password: string) => {
   const response = await api.post("auth/signIn", {
     ...emailOrUsernameBody,
     password,
+    rememberDevice,
   });
 
   return response;
 };
 
-const signInTotp = (totp: string, loginToken: string) => {
+const signInTotp = (
+  totp: string,
+  loginToken: string,
+  rememberDevice = false,
+) => {
   return api.post("auth/signIn/totp", {
     totp,
     loginToken,
+    rememberDevice,
   });
+};
+
+// Read-only recognition check — a sign-in page mount effect, never mutates
+// anything. See signInTrusted below for the actual one-click sign-in.
+const getTrustedDevice = async (): Promise<
+  { recognized: false } | { recognized: true; username: string }
+> => {
+  return (await api.get("/auth/trustedDevice")).data;
+};
+
+const signInTrusted = () => {
+  return api.post("/auth/signIn/trusted");
+};
+
+const forgetTrustedDevice = async () => {
+  await api.post("/auth/trustedDevice/forget");
 };
 
 const signUp = async (email: string, username: string, password: string) => {
@@ -62,6 +88,13 @@ const resetPassword = async (token: string, password: string) => {
 
 const verifyAccount = async (token: string) => {
   await api.post(`/auth/verify`, { token });
+};
+
+// The link-click endpoint above and this one activate via the same
+// underlying token — this one just takes it as a typed code, scoped to the
+// email it was sent to, so a wrong guess is rate-limited per account.
+const verifyAccountByCode = async (email: string, code: string) => {
+  await api.post("/auth/verify/code", { email, code });
 };
 
 const resendVerification = async (email: string) => {
@@ -111,6 +144,9 @@ const getOAuthStatus = () => {
 export default {
   signIn,
   signInTotp,
+  getTrustedDevice,
+  signInTrusted,
+  forgetTrustedDevice,
   signUp,
   signOut,
   refreshAccessToken,
@@ -118,6 +154,7 @@ export default {
   requestResetPassword,
   resetPassword,
   verifyAccount,
+  verifyAccountByCode,
   resendVerification,
   enableTOTP,
   verifyTOTP,

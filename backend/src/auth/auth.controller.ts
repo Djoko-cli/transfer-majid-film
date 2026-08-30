@@ -25,6 +25,7 @@ import { AuthSignInDTO } from "./dto/authSignIn.dto";
 import { AuthSignInTotpDTO } from "./dto/authSignInTotp.dto";
 import { EnableTotpDTO } from "./dto/enableTotp.dto";
 import { VerifyAccountDTO } from "./dto/verifyAccount.dto";
+import { VerifyAccountCodeDTO } from "./dto/verifyAccountCode.dto";
 import { ResendVerificationDTO } from "./dto/resendVerification.dto";
 import { ResetPasswordDTO } from "./dto/resetPassword.dto";
 import { TokenDTO } from "./dto/token.dto";
@@ -90,7 +91,7 @@ export class AuthController {
     @Req() { ip }: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.authService.signIn(dto, ip);
+    const result = await this.authService.signIn(dto, ip, response);
 
     if (result.accessToken && result.refreshToken) {
       this.authService.addTokensToResponse(
@@ -101,6 +102,54 @@ export class AuthController {
     }
 
     return result;
+  }
+
+  // Public and unguarded — the sign-in page needs to know, before any
+  // authentication at all, whether to offer "Welcome back {username}"
+  // instead of the normal email/password form. Read-only: never mutates
+  // anything, never issues a session (see signInTrusted below for that).
+  @Get("trustedDevice")
+  @SkipThrottle()
+  async getTrustedDevice(@Req() request: Request) {
+    return this.authService.getTrustedDeviceInfo(request);
+  }
+
+  // The actual sign-in behind the "Welcome back" button's single click —
+  // deliberately never triggered on page load, only by that explicit
+  // action, since a trusted device should offer a one-click return, not a
+  // silent auto-login a family member could be surprised by.
+  @Post("signIn/trusted")
+  @Throttle({
+    default: {
+      limit: 20,
+      ttl: 5 * 60 * 1000,
+    },
+  })
+  @HttpCode(200)
+  async signInTrusted(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.signInTrusted(request);
+
+    if (result.accessToken && result.refreshToken) {
+      this.authService.addTokensToResponse(
+        response,
+        result.refreshToken,
+        result.accessToken,
+      );
+    }
+
+    return result;
+  }
+
+  // "Ce n'est pas vous ?" — clears the cookie server-side immediately so a
+  // fresh page load on this device no longer recognizes the previous user,
+  // rather than only flipping local UI state.
+  @Post("trustedDevice/forget")
+  @HttpCode(204)
+  async forgetTrustedDevice(@Res({ passthrough: true }) response: Response) {
+    this.authService.clearTrustedDeviceCookie(response);
   }
 
   @Post("signIn/totp")
@@ -115,7 +164,7 @@ export class AuthController {
     @Body() dto: AuthSignInTotpDTO,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.authTotpService.signInTotp(dto);
+    const result = await this.authTotpService.signInTotp(dto, response);
 
     this.authService.addTokensToResponse(
       response,
@@ -160,6 +209,21 @@ export class AuthController {
   @HttpCode(204)
   async verifyAccount(@Body() dto: VerifyAccountDTO) {
     await this.authService.verifyAccount(dto.token);
+  }
+
+  // The same underlying code, entered by hand instead of clicked as a link
+  // — see AuthService.verifyAccountByCode for why this is scoped to an
+  // email (attempt-limited) rather than a bare token lookup like above.
+  @Post("verify/code")
+  @Throttle({
+    default: {
+      limit: 20,
+      ttl: 5 * 60 * 1000,
+    },
+  })
+  @HttpCode(204)
+  async verifyAccountByCode(@Body() dto: VerifyAccountCodeDTO) {
+    await this.authService.verifyAccountByCode(dto.email, dto.code);
   }
 
   @Post("verify/resend")

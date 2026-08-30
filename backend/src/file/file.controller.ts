@@ -129,7 +129,7 @@ export class FileController {
       "Content-Disposition": contentDisposition(`${shareId}.zip`),
     });
 
-    void this.fileService.notifyRecipientDownload(
+    void this.fileService.notifyDownload(
       shareId,
       `${shareId}.zip`,
       getValidRecipientId(recipientId),
@@ -158,7 +158,7 @@ export class FileController {
       );
       const fileName = await this.fileService.getFileName(shareId, fileId);
       if (isDownload) {
-        void this.fileService.notifyRecipientDownload(
+        void this.fileService.notifyDownload(
           shareId,
           fileName,
           getValidRecipientId(recipientId),
@@ -184,7 +184,7 @@ export class FileController {
     res.set(headers);
 
     if (isDownload) {
-      void this.fileService.notifyRecipientDownload(
+      void this.fileService.notifyDownload(
         shareId,
         file.metaData.name,
         getValidRecipientId(recipientId),

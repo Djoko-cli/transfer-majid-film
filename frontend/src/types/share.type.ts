@@ -25,10 +25,19 @@ export type CreateShare = {
   name?: string;
   description?: string;
   recipients: string[];
+  // Self-reported by an anonymous (not signed-in) sender only — ignored
+  // server side for a signed-in requester (ShareService.create()).
+  senderEmail?: string;
   expiration: string;
   security: ShareSecurity;
   size?: number;
 };
+
+// How the sender chose to deliver the transfer: a plain shareable link, or
+// direct emails to named recipients. Shared across TransferCard (where it's
+// picked), UploadPage (where it's threaded to the completion modal), and
+// showCompletedUploadModal (where it decides whether to show the raw link).
+export type Mode = "email" | "link";
 
 export type UpdateShare = {
   name?: string | null;

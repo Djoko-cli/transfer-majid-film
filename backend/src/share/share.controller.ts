@@ -37,14 +37,12 @@ import { ShareTokenSecurity } from "./guard/shareTokenSecurity.guard";
 import { IdValidation } from "./guard/shareIdValidation.guard";
 import { ShareService } from "./share.service";
 import { CompletedShareDTO } from "./dto/shareComplete.dto";
-import { VerificationService } from "src/verification/verification.service";
 @Controller("shares")
 export class ShareController {
   constructor(
     private shareService: ShareService,
     private jwtService: JwtService,
     private config: ConfigService,
-    private verificationService: VerificationService,
   ) {}
 
   @Get("all")
@@ -118,14 +116,8 @@ export class ShareController {
   @UseGuards(IdValidation, CreateShareGuard, StrictShareOwnerGuard)
   async complete(@Param("id") id: string, @Req() request: Request) {
     const { reverse_share_token } = request.cookies;
-    const anonymousSenderEmail =
-      this.verificationService.getVerifiedEmail(request);
     return new CompletedShareDTO().from(
-      await this.shareService.complete(
-        id,
-        reverse_share_token,
-        anonymousSenderEmail,
-      ),
+      await this.shareService.complete(id, reverse_share_token),
     );
   }
 

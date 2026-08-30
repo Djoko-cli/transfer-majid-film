@@ -7,5 +7,6 @@
   "testSubject": "Email de test",
   "testText": "Ceci est un email de test",
   "sendFailed": "Échec de l'envoi de l'email",
-  "locale": "fr-FR"
+  "locale": "fr-FR",
+  "templateCtaButton": "Ouvrir"
 }

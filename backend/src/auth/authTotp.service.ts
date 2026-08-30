@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { User } from "@prisma/client";
+import { Response } from "express";
 import {
   generateSecret,
   generateURI,
@@ -31,7 +32,7 @@ export class AuthTotpService {
     private readonly i18n: I18nService,
   ) {}
 
-  async signInTotp(dto: AuthSignInTotpDTO) {
+  async signInTotp(dto: AuthSignInTotpDTO, response?: Response) {
     const token = await this.prisma.loginToken.findFirst({
       where: {
         token: dto.loginToken,
@@ -71,6 +72,13 @@ export class AuthTotpService {
       where: { token: token.token },
       data: { used: true },
     });
+
+    // Only reached after TOTP actually succeeds above — unlike a plain
+    // password sign-in, a device is never marked trusted on the strength
+    // of a password alone for a TOTP-enabled account.
+    if (dto.rememberDevice && response) {
+      this.authService.setTrustedDeviceCookie(response, token.user.id);
+    }
 
     const { refreshToken, refreshTokenId } =
       await this.authService.createRefreshToken(token.user.id);

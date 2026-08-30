@@ -9,6 +9,7 @@ import * as nodemailer from "nodemailer";
 import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
 import { APP_NAME } from "src/constants";
+import { renderEmailEnvelope } from "./email.template";
 
 @Injectable()
 export class EmailService {
@@ -39,21 +40,48 @@ export class EmailService {
     });
   }
 
+  // Shared by sendMail and sendTestMail so the admin's "Test SMTP" button
+  // previews the exact same branded envelope real emails go out in, not a
+  // simplified stand-in. When HTML is off, returns `text` byte-for-byte —
+  // unchanged from this method's behavior before the envelope existed.
+  private buildContent(
+    text: string,
+    options?: { code?: string; ctaUrl?: string },
+  ): string {
+    if (!this.config.get("email.sendHtmlEmails")) return text;
+
+    const appUrl = this.config.get("general.appUrl");
+    return renderEmailEnvelope({
+      appName: APP_NAME,
+      appUrl,
+      logoUrl: `${appUrl}/img/logo.png`,
+      bodyText: text,
+      code: options?.code,
+      ctaUrl: options?.ctaUrl,
+      ctaLabel: options?.ctaUrl
+        ? this.i18n.t("email.templateCtaButton", {
+            lang: this.config.get("general.defaultLanguage"),
+          })
+        : undefined,
+    });
+  }
+
   private async sendMail(
     email: string,
     subject: string,
     text: string,
-    replyTo?: string,
+    options?: { replyTo?: string; code?: string; ctaUrl?: string },
   ) {
     const isHtml = this.config.get("email.sendHtmlEmails");
+    const content = this.buildContent(text, options);
 
     await this.getTransporter()
       .sendMail({
         from: `"${APP_NAME}" <${this.config.get("smtp.email")}>`,
         to: email,
         subject: subject,
-        [isHtml ? "html" : "text"]: text,
-        ...(replyTo && { replyTo }),
+        [isHtml ? "html" : "text"]: content,
+        ...(options?.replyTo && { replyTo: options.replyTo }),
       })
       .catch((e) => {
         this.logger.error(e);
@@ -111,7 +139,7 @@ export class EmailService {
             ? moment(expiration).locale(locale).fromNow()
             : this.i18n.t("email.shareRecipientsExpiresNeverFallback"),
         ),
-      replyTo,
+      { replyTo, ctaUrl: shareUrl },
     );
   }
 
@@ -132,6 +160,28 @@ export class EmailService {
         .replaceAll("{recipientEmail}", recipientEmail)
         .replaceAll("{fileName}", fileName)
         .replaceAll("{shareUrl}", shareUrl),
+      { ctaUrl: shareUrl },
+    );
+  }
+
+  // Same notification, for a share with no named recipient to report (a
+  // Link-mode share, anonymous or signed-in) — see FileService.notifyDownload.
+  async sendOwnerDownloadNotification(
+    ownerEmail: string,
+    shareId: string,
+    fileName: string,
+  ) {
+    const shareUrl = `${this.config.get("general.appUrl")}/s/${shareId}`;
+
+    await this.sendMail(
+      ownerEmail,
+      this.config.get("email.ownerDownloadNotificationSubject"),
+      this.config
+        .get("email.ownerDownloadNotificationMessage")
+        .replaceAll("\\n", "\n")
+        .replaceAll("{fileName}", fileName)
+        .replaceAll("{shareUrl}", shareUrl),
+      { ctaUrl: shareUrl },
     );
   }
 
@@ -145,6 +195,7 @@ export class EmailService {
         .get("email.reverseShareMessage")
         .replaceAll("\\n", "\n")
         .replaceAll("{shareUrl}", shareUrl),
+      { ctaUrl: shareUrl },
     );
   }
 
@@ -152,7 +203,7 @@ export class EmailService {
   // now closes on click-outside — with no account and no "Mes partages" to
   // fall back to, a mis-click loses the transfer permanently even though it
   // still exists and counts against storage. Emailing the same link to the
-  // address the OTP step already verified is the only durable backstop.
+  // address they typed at creation time is the only durable backstop.
   async sendShareLinkToSender(
     recipientEmail: string,
     shareId: string,
@@ -177,6 +228,7 @@ export class EmailService {
             ? moment(expiration).locale(locale).fromNow()
             : this.i18n.t("email.shareRecipientsExpiresNeverFallback"),
         ),
+      { ctaUrl: shareUrl },
     );
   }
 
@@ -192,6 +244,7 @@ export class EmailService {
         .get("email.resetPasswordMessage")
         .replaceAll("\\n", "\n")
         .replaceAll("{url}", resetPasswordUrl),
+      { ctaUrl: resetPasswordUrl },
     );
   }
 
@@ -206,9 +259,13 @@ export class EmailService {
         .replaceAll("{url}", loginUrl)
         .replaceAll("{password}", password)
         .replaceAll("{email}", recipientEmail),
+      { ctaUrl: loginUrl },
     );
   }
 
+  // token doubles as both the /auth/verify/:token link's last path segment
+  // and a human-typeable 6-digit code (see AuthService.signUp) — the email
+  // offers both ways in, hence both {url} and {code} substituted here.
   async sendVerificationEmail(recipientEmail: string, token: string) {
     const verificationUrl = `${this.config.get(
       "general.appUrl",
@@ -220,7 +277,9 @@ export class EmailService {
       this.config
         .get("email.verificationMessage")
         .replaceAll("\\n", "\n")
-        .replaceAll("{url}", verificationUrl),
+        .replaceAll("{url}", verificationUrl)
+        .replaceAll("{code}", token),
+      { code: token, ctaUrl: verificationUrl },
     );
   }
 
@@ -232,18 +291,27 @@ export class EmailService {
         .get("verification.codeMessage")
         .replaceAll("\\n", "\n")
         .replaceAll("{code}", code),
+      { code },
     );
   }
 
   async sendTestMail(recipientEmail: string) {
+    const isHtml = this.config.get("email.sendHtmlEmails");
     const subject = this.i18n.t("email.testSubject");
-    const text = this.i18n.t("email.testText");
+    const content = this.buildContent(this.i18n.t("email.testText"));
+
+    // Deliberately doesn't go through the shared sendMail() above — that
+    // method swallows the real transport error behind a generic translated
+    // message, but the admin's "Test SMTP" button is a diagnostic tool: it
+    // needs to surface the actual failure (bad host, auth rejected, TLS
+    // mismatch...), not "failed to send". buildContent() is still shared,
+    // so this previews the exact same branded envelope a real email uses.
     await this.getTransporter()
       .sendMail({
         from: `"${APP_NAME}" <${this.config.get("smtp.email")}>`,
         to: recipientEmail,
         subject,
-        text,
+        [isHtml ? "html" : "text"]: content,
       })
       .catch((e) => {
         this.logger.error(e);

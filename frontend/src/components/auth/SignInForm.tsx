@@ -2,6 +2,7 @@ import {
   Anchor,
   Box,
   Button,
+  Checkbox,
   createStyles,
   Group,
   Loader,
@@ -68,6 +69,8 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
+type TrustedDevice = { recognized: false } | { recognized: true; username: string };
+
 const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
   const config = useConfig();
   const router = useRouter();
@@ -78,6 +81,17 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
   const [oauthProviders, setOauthProviders] = useState<string[] | null>(null);
   const [isRedirectingToOauthProvider, setIsRedirectingToOauthProvider] =
     useState(false);
+  // null while the read-only recognition check is still in flight — kept
+  // separate from the standard form's own loading state so both mount
+  // effects can gate the same "don't flash the wrong view" render below.
+  const [trustedDevice, setTrustedDevice] = useState<TrustedDevice | null>(
+    null,
+  );
+  // "Ce n'est pas vous ?" forces the standard form back even when the
+  // device is still recognized — doesn't wait on forgetTrustedDevice()'s
+  // network round trip, that call just fires alongside it.
+  const [showStandardForm, setShowStandardForm] = useState(false);
+  const [signingInTrusted, setSigningInTrusted] = useState(false);
 
   const validationSchema = yup.object().shape({
     emailOrUsername: yup.string().required(t("common.error.field-required")),
@@ -88,13 +102,18 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
     initialValues: {
       emailOrUsername: "",
       password: "",
+      rememberDevice: false,
     },
     validate: yupResolver(validationSchema),
   });
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (
+    email: string,
+    password: string,
+    rememberDevice: boolean,
+  ) => {
     await authService
-      .signIn(email.trim(), password.trim())
+      .signIn(email.trim(), password.trim(), rememberDevice)
       .then(async (response) => {
         if (response.data["loginToken"]) {
           // Prompt the user to enter their totp code
@@ -108,7 +127,7 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
           router.push(
             `/auth/totp/${
               response.data["loginToken"]
-            }?redirect=${encodeURIComponent(redirectPath)}`,
+            }?redirect=${encodeURIComponent(redirectPath)}&rememberDevice=${rememberDevice}`,
           );
         } else {
           await refreshUser();
@@ -116,6 +135,41 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
         }
       })
       .catch(toast.axiosError);
+  };
+
+  // The one-click "Welcome back" button. Re-verifies the cookie server
+  // side (the GET check below is read-only and proves nothing on its
+  // own) and still runs through the same TOTP branching a normal sign-in
+  // does — a trusted device doesn't bypass a second factor, so this can
+  // land on the TOTP screen too, just already carrying rememberDevice
+  // forward (no checkbox exists on that screen to ask again).
+  const signInTrusted = async () => {
+    setSigningInTrusted(true);
+    try {
+      const response = await authService.signInTrusted();
+      if (response.data["loginToken"]) {
+        router.push(
+          `/auth/totp/${
+            response.data["loginToken"]
+          }?redirect=${encodeURIComponent(redirectPath)}&rememberDevice=true`,
+        );
+      } else {
+        await refreshUser();
+        router.replace(safeRedirectPath(redirectPath));
+      }
+    } catch {
+      // Should essentially never happen — the recognition check just
+      // passed moments earlier — so this falls back quietly to the
+      // standard form rather than an alarming error toast.
+      setShowStandardForm(true);
+    } finally {
+      setSigningInTrusted(false);
+    }
+  };
+
+  const forgetDevice = () => {
+    setShowStandardForm(true);
+    authService.forgetTrustedDevice().catch(() => {});
   };
 
   useEffect(() => {
@@ -138,7 +192,14 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
       .catch(toast.axiosError);
   }, []);
 
-  if (!oauthProviders) return null;
+  useEffect(() => {
+    authService
+      .getTrustedDevice()
+      .then(setTrustedDevice)
+      .catch(() => setTrustedDevice({ recognized: false }));
+  }, []);
+
+  if (!oauthProviders || trustedDevice === null) return null;
 
   if (isRedirectingToOauthProvider)
     return (
@@ -149,6 +210,33 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
         </Text>
       </Group>
     );
+
+  if (trustedDevice.recognized && !showStandardForm) {
+    return (
+      <AuthGlassLayout>
+        <Title order={2} align="center" weight={900}>
+          <FormattedMessage
+            id="signin.trusted.welcome-back"
+            values={{ username: trustedDevice.username }}
+          />
+        </Title>
+        <Stack mt={30}>
+          <Button fullWidth onClick={signInTrusted} loading={signingInTrusted}>
+            <FormattedMessage id="signin.trusted.button.submit" />
+          </Button>
+          <Anchor
+            component="button"
+            type="button"
+            size="sm"
+            align="center"
+            onClick={forgetDevice}
+          >
+            <FormattedMessage id="signin.trusted.not-you" />
+          </Anchor>
+        </Stack>
+      </AuthGlassLayout>
+    );
+  }
 
   return (
     <AuthGlassLayout>
@@ -167,7 +255,11 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
         {config.get("oauth.disablePassword") || (
           <form
             onSubmit={form.onSubmit((values) => {
-              signIn(values.emailOrUsername, values.password);
+              signIn(
+                values.emailOrUsername,
+                values.password,
+                values.rememberDevice,
+              );
             })}
           >
             <TextInput
@@ -181,13 +273,18 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
               mt="md"
               {...form.getInputProps("password")}
             />
-            {config.get("smtp.enabled") && (
-              <Group position="right" mt="xs">
+            <Group position="apart" mt="xs">
+              <Checkbox
+                label={t("signin.remember-device")}
+                size="sm"
+                {...form.getInputProps("rememberDevice", { type: "checkbox" })}
+              />
+              {config.get("smtp.enabled") && (
                 <Anchor component={Link} href="/auth/resetPassword" size="xs">
                   <FormattedMessage id="resetPassword.title" />
                 </Anchor>
-              </Group>
-            )}
+              )}
+            </Group>
             <Button fullWidth mt="xl" type="submit">
               <FormattedMessage id="signin.button.submit" />
             </Button>
@@ -221,7 +318,7 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
                   fullWidth
                 >
                   {getOAuthIcon(provider)}
-                  {"\u2002" + t(`signIn.oauth.${provider}`)}
+                  {" " + t(`signIn.oauth.${provider}`)}
                 </Button>
               ))}
             </Group>
