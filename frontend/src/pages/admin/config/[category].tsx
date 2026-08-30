@@ -3,10 +3,12 @@ import {
   Anchor,
   Box,
   Button,
+  Card,
   Container,
   Group,
   Stack,
   Text,
+  ThemeIcon,
   Title,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
@@ -28,6 +30,7 @@ import configService from "../../../services/config.service";
 import { AdminConfig, UpdateConfig } from "../../../types/config.type";
 import { NextPageWithLayout } from "../../../types/page.type";
 import { camelToKebab } from "../../../utils/string.util";
+import { getOAuthIcon } from "../../../utils/oauth.util";
 import toast from "../../../utils/toast.util";
 
 const categories = [
@@ -43,6 +46,28 @@ const categories = [
   "Cache",
   "Clamav",
 ];
+
+// Every OAuth provider this app supports (see oauth.util.tsx's own
+// getOAuthIcon, and the backend's oauth config seed, which is the actual
+// source of truth for what "<provider>-*" keys can exist) — used only to
+// visually group the OAuth category's config rows below, one card per
+// provider, instead of one long undifferentiated list. Order here is the
+// order the cards render in.
+const OAUTH_PROVIDERS = ["github", "google", "microsoft", "discord", "oidc"];
+
+// A config key arrives as the full dotted key (e.g. "oauth.github-enabled",
+// "oauth.allowRegistration") — this maps it to the provider it belongs to,
+// or undefined for the category's own general settings (allowRegistration,
+// ignoreTotp, disablePassword) that aren't tied to any one provider.
+// Matches on the key's local part (after the category prefix) rather than
+// a hardcoded per-provider field list, so a provider gaining or losing a
+// field on the backend never needs a matching update here.
+const getOAuthProviderForKey = (key: string): string | undefined => {
+  const localKey = key.split(".").slice(1).join(".");
+  return OAUTH_PROVIDERS.find((provider) =>
+    localKey.startsWith(`${provider}-`),
+  );
+};
 
 const AdminConfigPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -111,6 +136,51 @@ const AdminConfigPage: NextPageWithLayout = () => {
   const sanitizeUrl = (url: string): string => {
     return url.endsWith("/") ? url.slice(0, -1) : url;
   };
+
+  // One config field's row (label + description on the left, its input on
+  // the right) — factored out so the OAuth category below can reuse the
+  // exact same row inside its per-provider cards instead of duplicating
+  // this layout, while every other category keeps rendering it flat,
+  // unchanged from before this function existed.
+  const renderConfigRow = (
+    configVariable: AdminConfig,
+    allConfigVariables: AdminConfig[],
+  ) => (
+    <Group key={configVariable.key} position="apart">
+      <Stack style={{ maxWidth: isMobile ? "100%" : "40%" }} spacing={0}>
+        <Title order={6}>
+          <FormattedMessage
+            id={`admin.config.${camelToKebab(configVariable.key)}`}
+          />
+        </Title>
+
+        <Text
+          sx={{
+            whiteSpace: "pre-line",
+          }}
+          color="dimmed"
+          size="sm"
+          mb="xs"
+        >
+          <FormattedMessage
+            id={`admin.config.${camelToKebab(configVariable.key)}.description`}
+            values={{ br: <br /> }}
+          />
+        </Text>
+      </Stack>
+      <Stack></Stack>
+      <Box style={{ width: isMobile ? "100%" : "50%" }}>
+        <AdminConfigInput
+          key={configVariable.key}
+          configVariable={configVariable}
+          updateConfigVariable={updateConfigVariable}
+          allConfigVariables={allConfigVariables}
+          updatedConfigVariables={updatedConfigVariables}
+          optionalConfigVariables={optionalConfigVariables}
+        />
+      </Box>
+    </Group>
+  );
 
   useEffect(() => {
     configService.getByCategory(categoryId).then((configVariables) => {
@@ -195,51 +265,70 @@ const AdminConfigPage: NextPageWithLayout = () => {
                         />
                       </Text>
                     )}
-                    {configVariables.map((configVariable) => {
-                      return (
-                        <Group key={configVariable.key} position="apart">
-                          <Stack
-                            style={{ maxWidth: isMobile ? "100%" : "40%" }}
-                            spacing={0}
-                          >
-                            <Title order={6}>
-                              <FormattedMessage
-                                id={`admin.config.${camelToKebab(
-                                  configVariable.key,
-                                )}`}
-                              />
-                            </Title>
+                    {categoryId.toLowerCase() === "oauth"
+                      ? (() => {
+                          // Every field here used to render as one flat,
+                          // undifferentiated list — general settings and
+                          // five providers' worth of enabled/clientId/
+                          // clientSecret/etc. fields all in a row with
+                          // nothing to tell an admin where one provider's
+                          // settings end and the next begin. Splitting into
+                          // the category's own general settings (unchanged,
+                          // flat) plus one bordered, icon-labeled card per
+                          // provider gives each provider real visual
+                          // identity instead.
+                          const globalFields = configVariables.filter(
+                            (cv) => !getOAuthProviderForKey(cv.key),
+                          );
+                          const providerGroups = OAUTH_PROVIDERS.map(
+                            (provider) => ({
+                              provider,
+                              fields: configVariables.filter(
+                                (cv) =>
+                                  getOAuthProviderForKey(cv.key) === provider,
+                              ),
+                            }),
+                          ).filter((group) => group.fields.length > 0);
 
-                            <Text
-                              sx={{
-                                whiteSpace: "pre-line",
-                              }}
-                              color="dimmed"
-                              size="sm"
-                              mb="xs"
-                            >
-                              <FormattedMessage
-                                id={`admin.config.${camelToKebab(
-                                  configVariable.key,
-                                )}.description`}
-                                values={{ br: <br /> }}
-                              />
-                            </Text>
-                          </Stack>
-                          <Stack></Stack>
-                          <Box style={{ width: isMobile ? "100%" : "50%" }}>
-                            <AdminConfigInput
-                              key={configVariable.key}
-                              configVariable={configVariable}
-                              updateConfigVariable={updateConfigVariable}
-                              allConfigVariables={configVariables}
-                              updatedConfigVariables={updatedConfigVariables}
-                              optionalConfigVariables={optionalConfigVariables}
-                            />
-                          </Box>
-                        </Group>
-                      );
-                    })}
+                          return (
+                            <>
+                              {globalFields.map((configVariable) =>
+                                renderConfigRow(
+                                  configVariable,
+                                  configVariables,
+                                ),
+                              )}
+                              {providerGroups.map(({ provider, fields }) => (
+                                <Card
+                                  key={provider}
+                                  withBorder
+                                  radius="md"
+                                  p="md"
+                                >
+                                  <Stack>
+                                    <Group spacing="xs">
+                                      <ThemeIcon variant="light">
+                                        {getOAuthIcon(provider)}
+                                      </ThemeIcon>
+                                      <Title order={5}>
+                                        {t(`signIn.oauth.${provider}`)}
+                                      </Title>
+                                    </Group>
+                                    {fields.map((configVariable) =>
+                                      renderConfigRow(
+                                        configVariable,
+                                        configVariables,
+                                      ),
+                                    )}
+                                  </Stack>
+                                </Card>
+                              ))}
+                            </>
+                          );
+                        })()
+                      : configVariables.map((configVariable) =>
+                          renderConfigRow(configVariable, configVariables),
+                        )}
                     {categoryId == "clamav" && <ClamavPanel />}
                   </Stack>
                 </Box>
