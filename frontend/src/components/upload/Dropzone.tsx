@@ -18,72 +18,94 @@ import { FileUpload } from "../../types/File.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
 
-const useStyles = createStyles((theme) => {
-  const dark = theme.colorScheme === "dark";
-  const accent = theme.colors[theme.primaryColor][dark ? 4 : 6];
+const useStyles = createStyles(
+  (
+    theme,
+    {
+      compact,
+      tightenWhenEmpty,
+    }: { compact: boolean; tightenWhenEmpty: boolean },
+  ) => {
+    const dark = theme.colorScheme === "dark";
+    const accent = theme.colors[theme.primaryColor][dark ? 4 : 6];
 
-  return {
-    wrapper: {
-      position: "relative",
-      marginBottom: 30,
-    },
+    return {
+      // Reserves room for the floating "add a folder" button below
+      // (control, further down), which hangs outside the dropzone's own box
+      // via `bottom: -20`. 30 — the original, unconditional value — unless
+      // both compact is false (nothing has narrowed this to the slim bar
+      // yet) *and* the caller opted into tightenWhenEmpty: with
+      // files.length === 0 in TransferCard specifically, this dropzone
+      // usually *is* the entire visible card, so any slack here stacks
+      // directly on top of the card's own bottom padding — the top of the
+      // dropzone has no equivalent floating element eating into its own
+      // margin, and the mismatch reads as an off-center card. Opt-in rather
+      // than unconditional: the only other caller (UploadPage's
+      // reverse-share flow) puts a file table directly below with no
+      // padded container absorbing the difference, where the original 30
+      // is still the right amount of breathing room.
+      wrapper: {
+        position: "relative",
+        marginBottom: !compact && tightenWhenEmpty ? 20 : 30,
+      },
 
-    dropzone: {
-      borderWidth: 1,
-      paddingBottom: 50,
-    },
+      dropzone: {
+        borderWidth: 1,
+        paddingBottom: 50,
+      },
 
-    // Once files are already selected, the full "how to drop files"
-    // instructions are redundant with the file list right below it —
-    // this shrinks the dropzone to a slim "add more" bar instead of
-    // keeping ~120px of onboarding copy a visitor no longer needs.
-    dropzoneCompact: {
-      borderWidth: 1,
-      paddingTop: 14,
-      paddingBottom: 34,
-    },
+      // Once files are already selected, the full "how to drop files"
+      // instructions are redundant with the file list right below it —
+      // this shrinks the dropzone to a slim "add more" bar instead of
+      // keeping ~120px of onboarding copy a visitor no longer needs.
+      dropzoneCompact: {
+        borderWidth: 1,
+        paddingTop: 14,
+        paddingBottom: 34,
+      },
 
-    // Reuses liquidGlassKeyframes' global @keyframes (see TransferCard,
-    // where this same pulse used to live on the submit button — moved here
-    // since the dropzone is the element a waiting user actually needs to
-    // act on). Glow lives on a pseudo-element with a fixed (unanimated)
-    // box-shadow, animating only its opacity — box-shadow itself isn't a
-    // compositable property, so animating its blur/spread radius directly
-    // forces a repaint on every frame and reads as stuttery rather than a
-    // smooth breath.
-    waitingPulse: {
-      position: "relative",
+      // Reuses liquidGlassKeyframes' global @keyframes (see TransferCard,
+      // where this same pulse used to live on the submit button — moved here
+      // since the dropzone is the element a waiting user actually needs to
+      // act on). Glow lives on a pseudo-element with a fixed (unanimated)
+      // box-shadow, animating only its opacity — box-shadow itself isn't a
+      // compositable property, so animating its blur/spread radius directly
+      // forces a repaint on every frame and reads as stuttery rather than a
+      // smooth breath.
+      waitingPulse: {
+        position: "relative",
 
-      "&::after": {
-        content: "''",
+        "&::after": {
+          content: "''",
+          position: "absolute",
+          // Flush with the dropzone's own edge, not offset outward from it —
+          // a box-shadow already radiates outward from wherever this box's
+          // own boundary sits, so an inset here just pushes that boundary
+          // out and leaves a visible gap of nothing in between.
+          inset: 0,
+          borderRadius: "inherit",
+          boxShadow: `0 0 18px 4px ${accent}66`,
+          opacity: 0,
+          animation: "waitingPulse 2.8s ease-in-out infinite",
+          pointerEvents: "none",
+        },
+
+        "@media (prefers-reduced-motion: reduce)": {
+          "&::after": { animation: "none" },
+        },
+      },
+
+      icon: {
+        color: dark ? theme.colors.dark[3] : theme.colors.gray[4],
+      },
+
+      control: {
         position: "absolute",
-        // Flush with the dropzone's own edge, not offset outward from it —
-        // a box-shadow already radiates outward from wherever this box's
-        // own boundary sits, so an inset here just pushes that boundary
-        // out and leaves a visible gap of nothing in between.
-        inset: 0,
-        borderRadius: "inherit",
-        boxShadow: `0 0 18px 4px ${accent}66`,
-        opacity: 0,
-        animation: "waitingPulse 2.8s ease-in-out infinite",
-        pointerEvents: "none",
+        bottom: -20,
       },
-
-      "@media (prefers-reduced-motion: reduce)": {
-        "&::after": { animation: "none" },
-      },
-    },
-
-    icon: {
-      color: dark ? theme.colors.dark[3] : theme.colors.gray[4],
-    },
-
-    control: {
-      position: "absolute",
-      bottom: -20,
-    },
-  };
-});
+    };
+  },
+);
 
 const traverseDirectory = async (entry: any, path = ""): Promise<File[]> => {
   if (entry.isFile) {
@@ -178,6 +200,7 @@ const Dropzone = ({
   glass = false,
   waiting = false,
   compact = false,
+  tightenWhenEmpty = false,
 }: {
   title?: string;
   isUploading: boolean;
@@ -193,9 +216,14 @@ const Dropzone = ({
   // Shrinks the instructional copy down to a slim bar — set once files
   // already exist, when the full onboarding text is no longer needed.
   compact?: boolean;
+  // Off by default (unconditional 30px reserve below the box, same as
+  // always) — set only by TransferCard, the one caller where this dropzone
+  // can be the entire visible card with nothing padded around it to absorb
+  // the extra. See wrapper's own comment in useStyles for the full reasoning.
+  tightenWhenEmpty?: boolean;
 }) => {
   const t = useTranslate();
-  const { classes, cx } = useStyles();
+  const { classes, cx } = useStyles({ compact, tightenWhenEmpty });
   const openRef = useRef<() => void>();
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [isMounted, setIsMounted] = useState(false);

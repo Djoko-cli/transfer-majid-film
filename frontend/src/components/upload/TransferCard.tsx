@@ -423,6 +423,7 @@ const TransferCard = ({
             isUploading={isUploading}
             waiting={files.length === 0}
             compact={files.length > 0}
+            tightenWhenEmpty
             glass
           />
           {
