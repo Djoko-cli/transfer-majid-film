@@ -2,9 +2,17 @@
 name: Docker Security
 
 "on":
-  push:
-    branches:
-      - main
+  # Not on every push to main — this does a full, no-cache Docker build
+  # (no-cache: true below, deliberately, so the Trivy scan sees genuinely
+  # current OS package versions rather than stale cached layers) purely to
+  # scan it, and that's slow (~5 minutes) for a check nothing else in this
+  # repo's workflow actually gates on. Runs instead exactly when
+  # docker-build-push.yml's own real, pushed image would (release
+  # published), plus a weekly sweep so a newly-disclosed CVE in an
+  # unchanged base image still gets caught between releases, and
+  # workflow_dispatch for an on-demand check any time.
+  release:
+    types: [published]
   pull_request:
     branches:
       - main
