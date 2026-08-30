@@ -7,7 +7,7 @@ import {
   createStyles,
   useMantineTheme,
 } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import { TbPlayerPause, TbPlayerPlay } from "react-icons/tb";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -16,11 +16,8 @@ const SLIDE_DURATION_MS = 10000;
 const TRANSITION_MS = 900;
 // How long the settled slide's own slow zoom-in takes — sized to the
 // remaining dwell time (total minus the slide transition itself) so it
-// reads as reaching its target right as that slide's turn ends, not
-// visibly rushing or idling. Not load-bearing for correctness the way it
-// once was: see slideImageWrap's own style comment below for why being
-// interrupted mid-zoom (e.g. a visitor pausing/resuming at an odd moment)
-// is now handled gracefully either way.
+// reads as reaching (and then holding, see .living below) its target right
+// as that slide's turn ends, not visibly rushing or idling.
 const LIVING_DURATION_MS = SLIDE_DURATION_MS - TRANSITION_MS;
 
 // Standard breakpoint set derived (and downloaded, both avif+webp) from
@@ -263,6 +260,30 @@ const useStyles = createStyles((theme) => ({
     objectPosition: "center",
   },
 
+  // Unconditional on isActive (only reduced-motion turns it off, in the
+  // Slide component below) — deliberately not removed the instant a slide
+  // stops being current. The previous version did remove it then, which
+  // stopped the animation from controlling `transform` and snapped it
+  // straight back to scale(1) with nothing to ease the change: a real,
+  // visible "de-zoom" flash on the outgoing slide, right as it started
+  // sliding away.
+  //
+  // The fix isn't reversing the zoom on exit at all — it's not needing to.
+  // Once a slide stops being current, this box is simply never touched
+  // again until Slide's own key bumps on its *next* activation and mounts
+  // a fresh instance: it keeps whatever scale it last reached (held
+  // indefinitely by fill: forwards below, all the way through sliding
+  // off-screen and however long it sits inactive after that), and the new
+  // instance for the *next* slide starts its own animation from a clean
+  // scale(1) simply by virtue of being a brand new element — a @keyframes
+  // animation applied to a freshly-mounted node always plays from its own
+  // `from` state, no extra reset step required the way a transition would
+  // need one (nothing to interpolate *from* on a node that didn't exist a
+  // moment ago).
+  living: {
+    animation: `gentleZoom ${LIVING_DURATION_MS}ms linear ${TRANSITION_MS}ms forwards`,
+  },
+
   // On tall content the transfer card (z-index 2, see SplitTransferLayout)
   // can reach far enough down to visually and functionally sit over this
   // bottom-left corner of the image, swallowing clicks meant for the credit
@@ -329,6 +350,87 @@ const useStyles = createStyles((theme) => ({
     filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6))",
   },
 }));
+
+// One instance per slide, mounted once and never torn down for the whole
+// session — only its own zoom wrapper (see `activation` below) remounts,
+// on activation, which is the one moment that needs a clean slate.
+const Slide = ({
+  slide,
+  delta,
+  isActive,
+  prefersReducedMotion,
+}: {
+  slide: (typeof SLIDES)[number];
+  delta: number;
+  isActive: boolean;
+  prefersReducedMotion: boolean;
+}) => {
+  const { classes, cx } = useStyles();
+
+  // Bumped only the instant this slide transitions from inactive to
+  // active (including the very first time, for whichever slide starts
+  // active on mount) — its own value doesn't matter beyond that, it's used
+  // purely as a key to force slideImageWrap to remount right then. That
+  // remount is what gives gentleZoom a clean scale(1) start every cycle;
+  // deliberately NOT bumped on the reverse transition — see .living's own
+  // comment for why deactivating shouldn't touch this box at all.
+  //
+  // Also gates .living itself (0 means "never activated yet"): with 106+
+  // slides all mounted from the start but only one active at a time, most
+  // sit off-screen for minutes before their first turn — applying the
+  // animation unconditionally from mount would let it run (and, held by
+  // fill: forwards, finish) invisibly in the background for every slide
+  // waiting its turn, so by the time each one actually became active for
+  // the first time it'd already be sitting at scale(1.07) instead of
+  // starting the zoom fresh.
+  //
+  // useLayoutEffect rather than useEffect specifically so the bump (and
+  // the remount + class it triggers) happen before the browser paints the
+  // frame where isActive just became true, not after — Slide only ever
+  // renders client-side (see BrandPanel's isReady gate), so there's no SSR
+  // mismatch risk in skipping useEffect's until-after-paint deferral here.
+  const [activation, setActivation] = useState(0);
+  useLayoutEffect(() => {
+    if (isActive) setActivation((a) => a + 1);
+  }, [isActive]);
+
+  return (
+    <Box
+      className={classes.slide}
+      style={{
+        transform: `translateX(${delta * 100}%)`,
+        transition: prefersReducedMotion ? "none" : undefined,
+      }}
+    >
+      <Box
+        key={activation}
+        className={cx(classes.slideImageWrap, {
+          [classes.living]: activation > 0 && !prefersReducedMotion,
+        })}
+      >
+        <picture>
+          <source
+            type="image/avif"
+            srcSet={buildSrcSet(slide.slug, slide.still, slide.widths, "avif")}
+            sizes={SIZES}
+          />
+          <source
+            type="image/webp"
+            srcSet={buildSrcSet(slide.slug, slide.still, slide.widths, "webp")}
+            sizes={SIZES}
+          />
+          <img
+            className={classes.slideImage}
+            src={`/img/brand/derived/${slide.slug}-s${slide.still}-${slide.widths[1]}.webp`}
+            alt=""
+            loading={isActive ? "eager" : "lazy"}
+            decoding="async"
+          />
+        </picture>
+      </Box>
+    </Box>
+  );
+};
 
 const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
   const { classes } = useStyles();
@@ -398,97 +500,15 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
                 : "brandPanelFadeIn 500ms ease",
             }}
           >
-            {order.map((slide, index) => {
-              const delta = cyclicDelta(current, index, order.length);
-              const isActive = index === current;
-              const slideKey = `${slide.slug}-s${slide.still}`;
-              return (
-                <Box
-                  key={slideKey}
-                  className={classes.slide}
-                  style={{
-                    transform: `translateX(${delta * 100}%)`,
-                    transition: prefersReducedMotion ? "none" : undefined,
-                  }}
-                >
-                  <Box
-                    className={classes.slideImageWrap}
-                    style={{
-                      // A slow, linear 7% zoom across the settled slide's
-                      // full dwell time — subtle on purpose, enough to read
-                      // as "not a static photo" without fighting looking at
-                      // the image itself.
-                      //
-                      // A plain two-state transition rather than a
-                      // @keyframes animation (this used to be `animation:
-                      // gentleZoom … forwards`, applied via a `.living`
-                      // class) specifically so reversing it eases smoothly
-                      // instead of snapping: a *transition* interpolates
-                      // from wherever the value currently is toward its new
-                      // target, on the same DOM node, in either direction —
-                      // an *animation* being removed (which is what the old
-                      // class-toggle did the instant a slide stopped being
-                      // current) has no such fallback, it just stops
-                      // applying and the property snaps straight back to
-                      // its unanimated base value. That was a real, visible
-                      // "de-zoom" flash on the outgoing slide, right as it
-                      // started sliding away — reported by the user, not
-                      // theoretical.
-                      //
-                      // This also means the old key={isActive ? … : …}
-                      // remount trick is gone: it existed only to force
-                      // gentleZoom to restart cleanly from scale(1) instead
-                      // of resuming mid-keyframe, which a transition doesn't
-                      // need — retargeting it (isActive flipping) already
-                      // restarts the interpolation cleanly from its current
-                      // value every time, active or not, first cycle or
-                      // fifth.
-                      transform: `scale(${isActive && !prefersReducedMotion ? 1.07 : 1})`,
-                      transition: prefersReducedMotion
-                        ? "none"
-                        : isActive
-                          ? `transform ${LIVING_DURATION_MS}ms linear ${TRANSITION_MS}ms`
-                          : // Matches .slide's own translateX transition
-                            // (duration and easing) so the zoom-out finishes
-                            // exactly as the slide finishes sliding away —
-                            // timed to hide inside that motion rather than
-                            // read as a separate shrink.
-                            `transform ${TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`,
-                    }}
-                  >
-                    <picture>
-                      <source
-                        type="image/avif"
-                        srcSet={buildSrcSet(
-                          slide.slug,
-                          slide.still,
-                          slide.widths,
-                          "avif",
-                        )}
-                        sizes={SIZES}
-                      />
-                      <source
-                        type="image/webp"
-                        srcSet={buildSrcSet(
-                          slide.slug,
-                          slide.still,
-                          slide.widths,
-                          "webp",
-                        )}
-                        sizes={SIZES}
-                      />
-                      <img
-                        className={classes.slideImage}
-                        src={`/img/brand/derived/${slide.slug}-s${slide.still}-${slide.widths[1]}.webp`}
-                        alt=""
-                        loading={isActive ? "eager" : "lazy"}
-                        decoding="async"
-                      />
-                    </picture>
-                  </Box>
-                </Box>
-              );
-            })}
+            {order.map((slide, index) => (
+              <Slide
+                key={`${slide.slug}-s${slide.still}`}
+                slide={slide}
+                delta={cyclicDelta(current, index, order.length)}
+                isActive={index === current}
+                prefersReducedMotion={prefersReducedMotion}
+              />
+            ))}
           </Box>
         )}
       </Box>
