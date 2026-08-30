@@ -491,7 +491,6 @@ const TransferCard = ({
                 <TextInput
                   variant="filled"
                   label={t("upload.transfer.share-name.label")}
-                  placeholder={t("upload.transfer.share-name.placeholder")}
                   {...form.getInputProps("name")}
                 />
 

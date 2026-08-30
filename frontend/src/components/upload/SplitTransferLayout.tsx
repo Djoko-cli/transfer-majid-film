@@ -1,6 +1,6 @@
 import { Box, createStyles } from "@mantine/core";
 import { ReactNode } from "react";
-import { HEADER_HEIGHT } from "../header/Header";
+import { HEADER_HEIGHT, MOBILE_MENU_SPACER_HEIGHT } from "../header/Header";
 import BrandPanel from "./BrandPanel";
 import GlintBorder from "./GlintBorder";
 import LiquidGlassKeyframes from "./liquidGlassKeyframes";
@@ -106,7 +106,20 @@ const useStyles = createStyles((theme, { width }: { width: number }) => {
         maxWidth: "none",
         display: "flex",
         alignItems: "center",
-        minHeight: `calc(100vh - ${HEADER_HEIGHT}px - var(--footer-height, 40px))`,
+        // 100dvh, not 100vh: on mobile, 100vh is defined against the
+        // *largest* possible viewport (browser chrome collapsed), not the
+        // one actually visible on load (address bar still showing) — so
+        // this band came out taller than the real visible area. 100dvh
+        // tracks the real, current visible viewport instead.
+        //
+        // MOBILE_MENU_SPACER_HEIGHT: Header renders its own real (not
+        // transformed) spacer box directly below itself on mobile — see
+        // Header.tsx's mobileSpacer — genuine flow height this band sits
+        // below, on top of the header bar itself. Omitting it (as a first
+        // pass at this centering band did) left the total page a full
+        // MOBILE_MENU_SPACER_HEIGHT taller than the real viewport, i.e.
+        // exactly that much pointless scroll even at rest, compact card.
+        minHeight: `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px))`,
         padding: `${CARD_MOBILE_VERTICAL_MARGIN}px ${CARD_MOBILE_SIDE_MARGIN}px`,
       },
     },

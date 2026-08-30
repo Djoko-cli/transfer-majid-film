@@ -402,8 +402,6 @@ export default {
   "upload.transfer.mode.email": "Email",
   "upload.transfer.mode.link": "Link",
   "upload.transfer.share-name.label": "Share name",
-  "upload.transfer.share-name.placeholder":
-    "Optional — defaults to the file name",
   "upload.transfer.name.default-multiple": "{count} files",
   "upload.transfer.name.default-generic": "New share",
   "upload.transfer.recipient.email.label": "Recipient's email",
@@ -432,6 +430,8 @@ export default {
   "upload.dropzone.title.compact": "Add more files",
   "upload.dropzone.description":
     "Drag'n'drop files or folders here to start your share.\nUp to {maxSize}.",
+  "upload.dropzone.description.mobile":
+    "Select files or folders to start your share.\nUp to {maxSize}.",
   "upload.dropzone.notify.file-too-big":
     "Your files exceed the maximum share size of {maxSize}.",
   "upload.page-drop-overlay.title": "Drop your files anywhere",

@@ -99,6 +99,20 @@ const useStyles = createStyles(
         color: dark ? theme.colors.dark[3] : theme.colors.gray[4],
       },
 
+      // Both description variants render unconditionally, CSS breakpoint
+      // picking which one is visible — not a JS/useMediaQuery branch, which
+      // has no real viewport info during SSR and would render the wrong
+      // one (with a corrective flash) on every mobile first paint (see
+      // Footer.tsx, which hit exactly this and now uses the same
+      // display:none idiom). "Glissez-déposez" is genuinely misleading
+      // copy on a touch device with no drag-and-drop gesture at all.
+      descDesktop: {
+        [theme.fn.smallerThan("sm")]: { display: "none" },
+      },
+      descMobile: {
+        [theme.fn.largerThan("sm")]: { display: "none" },
+      },
+
       control: {
         position: "absolute",
         bottom: -20,
@@ -384,10 +398,18 @@ const Dropzone = ({
               color="dimmed"
               sx={{ whiteSpace: "pre-line" }}
             >
-              <FormattedMessage
-                id="upload.dropzone.description"
-                values={{ maxSize: byteToHumanSizeString(maxShareSize) }}
-              />
+              <span className={classes.descDesktop}>
+                <FormattedMessage
+                  id="upload.dropzone.description"
+                  values={{ maxSize: byteToHumanSizeString(maxShareSize) }}
+                />
+              </span>
+              <span className={classes.descMobile}>
+                <FormattedMessage
+                  id="upload.dropzone.description.mobile"
+                  values={{ maxSize: byteToHumanSizeString(maxShareSize) }}
+                />
+              </span>
             </Text>
           </Collapse>
         </div>

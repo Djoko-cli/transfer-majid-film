@@ -54,6 +54,16 @@ const LanguageToggle = ({ className }: { className?: string }) => {
 
 export const HEADER_HEIGHT = 60;
 
+// Real, always-in-flow height of the collapsed mobile-menu spacer below
+// (see mobileSpacer/Collapse further down) — exported so anything that
+// needs to know the true vertical space between the header and a mobile
+// page's own content (currently just SplitTransferLayout's centering
+// band) can subtract it explicitly instead of leaning on margin collapse
+// to absorb it silently, which is exactly what broke the last time this
+// box's neighbor switched from a margin to a padding for unrelated
+// reasons — margins collapse into overlap, paddings never do.
+export const MOBILE_MENU_SPACER_HEIGHT = 40;
+
 // Shared by the mobile menu's own reveal and the page-content push it
 // drives (see pushContentRef) — kept as one constant so the two always
 // stay visually in lockstep; was 200 as separate literals on each
@@ -119,10 +129,14 @@ const useStyles = createStyles((theme) => {
     // to the page content directly (see the effect below), so the visual
     // "push" is also compositor-only, not a second real layout animation
     // standing in for the first. mobileSpacer below is deliberately left
-    // exactly as it was — a small, fixed-size (40px) real Collapse, not
+    // exactly as it was — a small, fixed-size real Collapse, not
     // content-dependent, cheap enough that converting it too wasn't worth
-    // the added complexity, and SplitTransferLayout's own mobile spacing
-    // relies on it staying a real, margin-collapsing box.
+    // the added complexity. Its height is real, uncollapsed flow space
+    // sitting between the header and every page's own content (see
+    // MOBILE_MENU_SPACER_HEIGHT — SplitTransferLayout's mobile centering
+    // band subtracts it explicitly, having previously relied on a plain
+    // margin quietly collapsing with this box instead, which broke the
+    // instant that margin was replaced with padding for unrelated reasons).
     mobileMenuReveal: {
       position: "absolute",
       top: "100%",
@@ -163,16 +177,15 @@ const useStyles = createStyles((theme) => {
     // Reserves a little breathing room below the fixed header specifically
     // for the collapsed mobile menu (see the Collapse pair below) — it
     // must not render past the "sm" breakpoint like `mobilePanel` above,
-    // otherwise it silently adds an unaccounted-for 40px gap under the
-    // header on every desktop page too, throwing off any layout (e.g. the
-    // upload card, auth cards) that centers its content symmetrically
-    // between the header and the viewport/footer. Height rather than the
-    // old `mb` prop (margin) — Collapse measures the wrapped element's own
-    // box height to animate it, and margin isn't part of that box, so a
-    // margin-only spacer would always measure ~0 and never visibly
-    // collapse.
+    // otherwise it silently adds an unaccounted-for gap under the header on
+    // every desktop page too, throwing off any layout (e.g. the upload
+    // card, auth cards) that centers its content symmetrically between the
+    // header and the viewport/footer. Height rather than the old `mb` prop
+    // (margin) — Collapse measures the wrapped element's own box height to
+    // animate it, and margin isn't part of that box, so a margin-only
+    // spacer would always measure ~0 and never visibly collapse.
     mobileSpacer: {
-      height: 40,
+      height: MOBILE_MENU_SPACER_HEIGHT,
 
       [theme.fn.largerThan("sm")]: {
         display: "none",
