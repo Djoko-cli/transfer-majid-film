@@ -316,7 +316,7 @@ const Account = () => {
             <Tabs defaultValue="totp">
               <Tabs.List>
                 <Tabs.Tab value="totp" icon={<TbAuth2Fa size={14} />}>
-                  TOTP
+                  <FormattedMessage id="account.card.security.totp.tab" />
                 </Tabs.Tab>
               </Tabs.List>
 

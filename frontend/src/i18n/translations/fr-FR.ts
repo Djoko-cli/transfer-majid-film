@@ -89,7 +89,7 @@ export default {
   // END /auth/signup
 
   // /auth/totp
-  "totp.title": "Authentification TOTP",
+  "totp.title": "Authentification à deux facteurs",
   "totp.input.code.ariaLabel": "Code à usage unique",
   "totp.button.signIn": "Se connecter",
   // END /auth/totp
@@ -133,12 +133,13 @@ export default {
     "Délier vos réseaux sociaux peut vous faire perdre votre compte si vous ne vous souvenez pas de vos identifiants de connexion",
   "account.notify.oauth.unlinked.success": "Dissocié avec succès",
   "account.card.security.title": "Sécurité",
+  "account.card.security.totp.tab": "Authentification à deux facteurs",
   "account.card.security.totp.enable.description":
-    "Entrez votre mot de passe actuel pour activer TOTP",
+    "Entrez votre mot de passe actuel pour activer l'authentification à deux facteurs",
   "account.card.security.totp.disable.description":
-    "Entrez votre mot de passe actuel pour désactiver TOTP",
+    "Entrez votre mot de passe actuel pour désactiver l'authentification à deux facteurs",
   "account.card.security.totp.button.start": "Démarrer",
-  "account.modal.totp.title": "Activer la double authentification",
+  "account.modal.totp.title": "Activer l'authentification à deux facteurs",
   "account.modal.totp.step1": "Étape 1 : Ajouter votre authentification",
   "account.modal.totp.step2": "Étape 2 : Valider votre code",
   "account.modal.totp.enterManually": "Saisir manuellement",
@@ -147,8 +148,8 @@ export default {
   "common.button.showQRCode": "Afficher le QR Code",
   "account.modal.totp.verify": "Vérifier",
   "account.notify.totp.disable":
-    "Double authentification (TOTP) désactivé avec succès",
-  "account.notify.totp.enable": "TOTP activé avec succès",
+    "Authentification à deux facteurs désactivée avec succès",
+  "account.notify.totp.enable": "Authentification à deux facteurs activée avec succès",
   "account.card.notifications.title": "Notifications",
   "account.card.notifications.expiring-shares.label":
     "M'avertir avant l'expiration de mes partages",
@@ -814,9 +815,9 @@ export default {
   "admin.config.oauth.allow-registration": "Autoriser l’inscription",
   "admin.config.oauth.allow-registration.description":
     "Permettre aux utilisateurs de s’inscrire via leur identifiant social",
-  "admin.config.oauth.ignore-totp": "Ignorer double authentification TOTP",
+  "admin.config.oauth.ignore-totp": "Ignorer l’authentification à deux facteurs",
   "admin.config.oauth.ignore-totp.description":
-    "Ignorer la double-authentification (TOTP) lorsque l’utilisateur utilise un identifiant social",
+    "Ignorer l’authentification à deux facteurs lorsque l’utilisateur utilise un identifiant social",
   "admin.config.oauth.disable-password":
     "Désactiver la connexion par mot de passe",
   "admin.config.oauth.disable-password.description":

@@ -93,7 +93,7 @@ export default {
   // END /auth/signup
 
   // /auth/totp
-  "totp.title": "TOTP Authentication",
+  "totp.title": "Two-factor authentication",
   "totp.input.code.ariaLabel": "One time code",
   "totp.button.signIn": "Sign in",
 
@@ -141,12 +141,13 @@ export default {
   "account.notify.oauth.unlinked.success": "Unlinked successfully",
 
   "account.card.security.title": "Security",
+  "account.card.security.totp.tab": "Two-factor authentication",
   "account.card.security.totp.enable.description":
-    "Enter your current password to start enabling TOTP",
+    "Enter your current password to start enabling two-factor authentication",
   "account.card.security.totp.disable.description":
-    "Enter your current password to disable TOTP",
+    "Enter your current password to disable two-factor authentication",
   "account.card.security.totp.button.start": "Start",
-  "account.modal.totp.title": "Enable TOTP",
+  "account.modal.totp.title": "Enable two-factor authentication",
   "account.modal.totp.step1": "Step 1: Add your authenticator",
   "account.modal.totp.step2": "Step 2: Validate your code",
   "account.modal.totp.enterManually": "Enter manually",
@@ -154,8 +155,8 @@ export default {
   "common.button.clickToCopy": "Click to copy",
   "common.button.showQRCode": "Show QR code",
   "account.modal.totp.verify": "Verify",
-  "account.notify.totp.disable": "TOTP disabled successfully",
-  "account.notify.totp.enable": "TOTP enabled successfully",
+  "account.notify.totp.disable": "Two-factor authentication disabled successfully",
+  "account.notify.totp.enable": "Two-factor authentication enabled successfully",
   "account.card.notifications.title": "Notifications",
   "account.card.notifications.expiring-shares.label":
     "Notify me before my shares expire",
@@ -840,9 +841,9 @@ export default {
   "admin.config.oauth.allow-registration": "Allow registration",
   "admin.config.oauth.allow-registration.description":
     "Allow users to register via social login",
-  "admin.config.oauth.ignore-totp": "Ignore TOTP",
+  "admin.config.oauth.ignore-totp": "Ignore two-factor authentication",
   "admin.config.oauth.ignore-totp.description":
-    "Whether to ignore TOTP when user using social login",
+    "Whether to ignore two-factor authentication when user using social login",
   "admin.config.oauth.disable-password": "Disable password login",
   "admin.config.oauth.disable-password.description":
     "Whether to disable password login\nMake sure that an OAuth provider is properly configured before activating this configuration to avoid being locked out.",
