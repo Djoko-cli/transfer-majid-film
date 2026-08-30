@@ -9,6 +9,7 @@ export type Share = {
   expiration: Date;
   size: number;
   hasPassword: boolean;
+  hasNasImportedFiles: boolean;
 };
 
 export type CompletedShare = Share & {
@@ -53,6 +54,7 @@ export type UpdateShare = {
 export type ShareMetaData = {
   id: string;
   isZipReady: boolean;
+  hasNasImportedFiles: boolean;
 };
 
 export type MyShare = Omit<Share, "hasPassword"> & {

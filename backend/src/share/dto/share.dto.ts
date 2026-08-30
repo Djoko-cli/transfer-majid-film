@@ -29,6 +29,9 @@ export class ShareDTO {
   @Expose()
   size: number;
 
+  @Expose()
+  hasNasImportedFiles: boolean;
+
   from(partial: Partial<ShareDTO>) {
     return plainToClass(ShareDTO, partial, { excludeExtraneousValues: true });
   }

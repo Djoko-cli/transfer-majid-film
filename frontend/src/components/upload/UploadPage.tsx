@@ -1,4 +1,4 @@
-import { Button, Group } from "@mantine/core";
+import { Button, Group, Progress, Stack, Text } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { cleanNotifications } from "@mantine/notifications";
 import { AxiosError } from "axios";
@@ -15,12 +15,15 @@ import TransferCard from "./TransferCard";
 import showCompletedUploadModal from "./modals/showCompletedUploadModal";
 import showCreateUploadModal from "./modals/showCreateUploadModal";
 import showEmailVerificationModal from "./modals/showEmailVerificationModal";
+import showNasImportModal from "./modals/showNasImportModal";
 import useConfig from "../../hooks/config.hook";
 import useConfirmLeave from "../../hooks/confirm-leave.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import useUser from "../../hooks/user.hook";
+import nasImportService from "../../services/nasImport.service";
 import shareService from "../../services/share.service";
 import { FileUpload } from "../../types/File.type";
+import { NasImportPreview } from "../../types/nasImport.type";
 import { CreateShare, Mode, Share } from "../../types/share.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
@@ -48,6 +51,13 @@ const Upload = ({
   const [files, setFiles] = useState<FileUpload[]>([]);
   const [isUploading, setisUploading] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
+  // Separate from `files`/setFileProgress above — a NAS import has no real
+  // per-file upload to track (nothing is uploaded, see importFromNas), just
+  // an overall count from the server-side batched commit loop.
+  const [nasImportProgress, setNasImportProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
 
   const requiresEmailVerification =
     !user &&
@@ -281,6 +291,119 @@ const Upload = ({
       files,
       uploadFiles,
     );
+  };
+
+  // Mirrors uploadFiles above (create → wait → complete → show the same
+  // completion modal), but there's no byte upload at all: the share is
+  // created without `size` (ShareService.create() skips its disk-space/
+  // quota pre-check entirely when it's omitted — correct here, since a
+  // symlinked import consumes ~0 real local disk regardless of the NAS
+  // content's actual size), and instead of uploadOneFile's chunk loop this
+  // repeatedly calls the resumable nas-import commit endpoint until it
+  // reports done, updating nasImportProgress from each batch's count.
+  const importFromNas = async (
+    share: CreateShare,
+    paths: string[],
+    preview: NasImportPreview,
+  ) => {
+    setisUploading(true);
+    setNasImportProgress({ done: 0, total: preview.fileCount });
+
+    try {
+      createdShareRef.current = await shareService.create(
+        share,
+        isReverseShare,
+      );
+    } catch (e) {
+      toast.axiosError(e);
+      setisUploading(false);
+      setNasImportProgress(null);
+      return;
+    }
+
+    let cursor: number | undefined;
+    let importedSoFar = 0;
+    try {
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const result = await nasImportService.commit(
+          createdShareRef.current!.id,
+          paths,
+          cursor,
+        );
+        importedSoFar += result.importedThisBatch;
+        setNasImportProgress({ done: importedSoFar, total: preview.fileCount });
+        if (result.skippedCollisions.length > 0) {
+          toast.error(
+            t("upload.nasImport.notify.collisions", {
+              count: result.skippedCollisions.length,
+            }),
+          );
+        }
+        if (result.done) break;
+        cursor = result.cursor!;
+      }
+    } catch (e) {
+      toast.axiosError(e);
+      setisUploading(false);
+      setNasImportProgress(null);
+      return;
+    }
+
+    try {
+      const completedShare = await shareService.completeShare(
+        createdShareRef.current!.id,
+      );
+      setisUploading(false);
+      setNasImportProgress(null);
+      showCompletedUploadModal(
+        modals,
+        completedShare,
+        config.get("general.appUrl"),
+        config.get("general.appUrl", true),
+        undefined,
+        !isReverseShare,
+        "link",
+        config.get("smtp.enabled") &&
+          config.get("email.enableShareDownloadNotifications"),
+      );
+    } catch {
+      toast.error(t("upload.notify.generic-error"));
+      setisUploading(false);
+      setNasImportProgress(null);
+    }
+  };
+
+  const openNasImportModal = () => {
+    showNasImportModal(modals, (paths, preview) => {
+      const syntheticFiles = paths.map((p) => ({
+        name: p.split("/").pop() || p,
+        size: preview.totalSize,
+      }));
+      showCreateUploadModal(
+        modals,
+        {
+          isUserSignedIn: user ? true : false,
+          isReverseShare,
+          allowUnauthenticatedShares: config.get(
+            "share.allowUnauthenticatedShares",
+          ),
+          enableEmailRecepients: config.get(
+            "email.enableShareEmailRecipients",
+          ),
+          enableUserRecipients: config.get("share.enableUserRecipients"),
+          maxExpiration:
+            user?.isAdmin || user?.canCreatePermanentShares
+              ? { value: 0, unit: "days" }
+              : config.get("share.maxExpiration"),
+          defaultExpiration: config.get("share.defaultExpiration"),
+          shareIdLength: config.get("share.shareIdLength"),
+          simplified: false,
+        },
+        syntheticFiles,
+        (share) => importFromNas(share, paths, preview),
+      );
+    });
   };
 
   const handleDropzoneFilesChanged = (newFiles: FileUpload[]) => {
@@ -529,6 +652,39 @@ const Upload = ({
     <>
       <Meta title={t("upload.title")} />
       <PageDropOverlay visible={isDraggingFileOverPage} />
+      {user?.isAdmin && config.get("share.enableNasImport") && (
+        <Stack spacing={4} mb="sm">
+          <Group position="right">
+            <Button
+              variant="subtle"
+              size="xs"
+              disabled={isUploading}
+              onClick={openNasImportModal}
+            >
+              <FormattedMessage id="upload.nasImport.button" />
+            </Button>
+          </Group>
+          {nasImportProgress && (
+            <Stack spacing={2}>
+              <Text size="xs" color="dimmed" align="right">
+                {t("upload.nasImport.progress", {
+                  done: nasImportProgress.done,
+                  total: nasImportProgress.total,
+                })}
+              </Text>
+              <Progress
+                value={
+                  nasImportProgress.total > 0
+                    ? (nasImportProgress.done / nasImportProgress.total) * 100
+                    : 0
+                }
+                size="sm"
+                animate
+              />
+            </Stack>
+          )}
+        </Stack>
+      )}
       <SplitTransferLayout>
         <TransferCard
           files={files}

@@ -39,6 +39,12 @@ export function getDefaultConfig(): Config[] {
       type: "boolean",
     },
     {
+      key: "share.enableNasImport",
+      value: "false",
+      defaultValue: "false",
+      type: "boolean",
+    },
+    {
       key: "share.maxExpiration",
       value: "30 days",
       defaultValue: "30 days",

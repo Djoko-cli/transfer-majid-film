@@ -447,6 +447,20 @@ export default {
   "upload.filelist.remaining": "{time} remaining",
   "upload.filelist.aggregate-progress": "{uploaded} of {total} uploaded",
 
+  // NasImportBrowser.tsx / showNasImportModal.tsx — admin-only, see
+  // share.enableNasImport
+  "upload.nasImport.button": "Import from NAS",
+  "upload.nasImport.browser.root": "NAS",
+  "upload.nasImport.browser.empty": "This folder is empty",
+  "upload.nasImport.modal.title": "Import from NAS",
+  "upload.nasImport.modal.selected-count": "{count} selected",
+  "upload.nasImport.modal.preview-button": "Preview",
+  "upload.nasImport.modal.preview-result": "{count} files, {size}",
+  "upload.nasImport.modal.empty-selection": "The selection is empty",
+  "upload.nasImport.notify.collisions":
+    "{count} file(s) skipped (already in this share)",
+  "upload.nasImport.progress": "{done} / {total} files imported",
+
   // showCreateUploadModal.tsx
   "upload.modal.title": "Create Share",
   "upload.modal.link.error.invalid":
@@ -553,6 +567,8 @@ export default {
   "share.button.edit-details": "Edit details",
   "share.notify.download-all-preparing":
     "The share is being prepared. Please try again in a few minutes.",
+  "share.nasImport.download-individually":
+    "This transfer contains files already on the server — download them individually below.",
 
   "share.notify.copied-contents": "File contents copied to clipboard",
   "share.notify.copy-too-big-error": "File is too big to copy to clipboard",

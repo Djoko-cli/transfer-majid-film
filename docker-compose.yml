@@ -9,6 +9,12 @@ services:
       - PUID=1026
       - PGID=100
       - DATABASE_URL=file:/db/transfer.db?connection_limit=1
+      # Admin-only "import from NAS" (share.enableNasImport in the admin
+      # panel, off by default) — lets a share reference a file already on
+      # the NAS via a symlink instead of duplicating it into the volume
+      # below. Fixed container-side path; only the host-side mount below
+      # decides what it actually points at.
+      - NAS_IMPORT_ROOT=/opt/app/backend/nas-import
 
     volumes:
       - /volume2/docker/transfer/db:/db
@@ -29,6 +35,16 @@ services:
       # config.yaml above:
       #   cp secrets.env.example secrets.env && chmod 600 secrets.env
       - /volume2/docker/transfer/secrets.env:/opt/app/secrets.env
+      # Mounted read-only: the app only ever reads from here (creates
+      # symlinks *into* the volume above, never writes here) — :ro makes
+      # that true at the filesystem level too, so even a bug in the
+      # listing/import code could never touch anything under this path.
+      # The path has spaces, so the quoting matters. Confirm PUID 1026
+      # actually has read access to this Synology shared folder's ACL
+      # before relying on this — it's a different identity than whatever
+      # already owns the folder, unlike the Transfer volume above which
+      # was set up for this app from the start.
+      - "/volume1/Archives Photos et Video:/opt/app/backend/nas-import:ro"
 
     # Transfer's own Caddy listens internally on port 3000 and fronts both
     # the frontend and the backend (splitting /api/* to the backend) — it

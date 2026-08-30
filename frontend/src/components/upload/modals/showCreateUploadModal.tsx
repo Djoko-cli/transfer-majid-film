@@ -27,7 +27,6 @@ import * as yup from "yup";
 import useTranslate, {
   translateOutsideContext,
 } from "../../../hooks/useTranslate.hook";
-import { FileUpload } from "../../../types/File.type";
 import { CreateShare } from "../../../types/share.type";
 import {
   stringToTimespan,
@@ -40,7 +39,14 @@ import { generateAvailableShareId } from "../../../utils/share.util";
 import glassFormTheme from "../glassFormTheme";
 import { glassModalStyles } from "../glassModalTheme";
 
-const showCreateUploadModal = (
+// Generic over the file shape rather than fixed to FileUpload: called both
+// from the real drag-and-drop upload flow (real FileUpload[], with
+// uploadingProgress/slice()/...) and from the NAS-import flow (plain
+// {name, size} entries with nothing else — see showNasImportModal.tsx).
+// This form only ever needs name/size (getDefaultShareName below, and the
+// count for the header) and forwards the list straight back to whichever
+// uploadCallback was passed in for that same call — never mixes the two.
+const showCreateUploadModal = <T extends { name: string; size: number }>(
   modals: ModalsContextProps,
   options: {
     isUserSignedIn: boolean;
@@ -53,8 +59,8 @@ const showCreateUploadModal = (
     shareIdLength: number;
     simplified: boolean;
   },
-  files: FileUpload[],
-  uploadCallback: (createShare: CreateShare, files: FileUpload[]) => void,
+  files: T[],
+  uploadCallback: (createShare: CreateShare, files: T[]) => void,
 ) => {
   const t = translateOutsideContext();
 
@@ -89,13 +95,13 @@ const showCreateUploadModal = (
   });
 };
 
-const CreateUploadModalBody = ({
+const CreateUploadModalBody = <T extends { name: string; size: number }>({
   uploadCallback,
   files,
   options,
 }: {
-  files: FileUpload[];
-  uploadCallback: (createShare: CreateShare, files: FileUpload[]) => void;
+  files: T[];
+  uploadCallback: (createShare: CreateShare, files: T[]) => void;
   options: {
     isUserSignedIn: boolean;
     isReverseShare: boolean;
@@ -451,13 +457,15 @@ const CreateUploadModalBody = ({
   );
 };
 
-const SimplifiedCreateUploadModalModal = ({
+const SimplifiedCreateUploadModalModal = <
+  T extends { name: string; size: number },
+>({
   uploadCallback,
   files,
   options,
 }: {
-  files: FileUpload[];
-  uploadCallback: (createShare: CreateShare, files: FileUpload[]) => void;
+  files: T[];
+  uploadCallback: (createShare: CreateShare, files: T[]) => void;
   options: {
     isUserSignedIn: boolean;
     isReverseShare: boolean;

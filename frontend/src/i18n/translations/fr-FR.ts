@@ -421,6 +421,21 @@ export default {
   "upload.filelist.estimating": "Estimation...",
   "upload.filelist.remaining": "{time} restant",
   "upload.filelist.aggregate-progress": "{uploaded} sur {total} envoyés",
+
+  // NasImportBrowser.tsx / showNasImportModal.tsx — admin uniquement, voir
+  // share.enableNasImport
+  "upload.nasImport.button": "Importer depuis le NAS",
+  "upload.nasImport.browser.root": "NAS",
+  "upload.nasImport.browser.empty": "Ce dossier est vide",
+  "upload.nasImport.modal.title": "Importer depuis le NAS",
+  "upload.nasImport.modal.selected-count": "{count} sélectionné(s)",
+  "upload.nasImport.modal.preview-button": "Aperçu",
+  "upload.nasImport.modal.preview-result": "{count} fichiers, {size}",
+  "upload.nasImport.modal.empty-selection": "La sélection est vide",
+  "upload.nasImport.notify.collisions":
+    "{count} fichier(s) ignoré(s) (déjà présents dans ce partage)",
+  "upload.nasImport.progress": "{done} / {total} fichiers importés",
+
   // showCreateUploadModal.tsx
   "upload.modal.title": "Créer un partage",
   "upload.modal.link.error.invalid":
@@ -522,6 +537,8 @@ export default {
   "share.button.edit-details": "Modifier les détails",
   "share.notify.download-all-preparing":
     "Le partage est en préparation. Réessayez dans quelques minutes.",
+  "share.nasImport.download-individually":
+    "Ce transfert contient des fichiers déjà présents sur le serveur — téléchargez-les individuellement ci-dessous.",
   "share.notify.copied-contents":
     "Contenu du fichier copié dans le presse-papiers",
   "share.notify.copy-too-big-error":

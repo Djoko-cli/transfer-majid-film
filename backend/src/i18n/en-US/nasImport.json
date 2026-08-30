@@ -1,0 +1,5 @@
+{
+  "notConfigured": "NAS import isn't configured on this instance",
+  "pathEscapesRoot": "That path isn't inside the configured NAS import folder",
+  "pathNotFound": "That path doesn't exist on the NAS"
+}

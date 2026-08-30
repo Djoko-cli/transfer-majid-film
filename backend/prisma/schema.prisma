@@ -120,6 +120,15 @@ model Share {
   // every time that job's cron tick runs.
   expiryReminderSentAt DateTime?
 
+  // True if at least one of this share's files was imported from the NAS
+  // (NasImportService) rather than uploaded — a symlink into
+  // SHARE_DIRECTORY, not a real copy. Gates two things: complete() skips
+  // zip generation entirely for these shares (creating archive.zip would
+  // duplicate the imported content onto disk, the exact thing this
+  // feature exists to avoid), and getUserActiveStorageUsage() excludes
+  // them from quota accounting (a symlink consumes ~0 real disk).
+  hasNasImportedFiles Boolean @default(false)
+
   reverseShareId String?
   reverseShare   ReverseShare? @relation(fields: [reverseShareId], references: [id], onDelete: Cascade)
 

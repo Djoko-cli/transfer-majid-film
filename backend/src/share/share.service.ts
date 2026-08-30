@@ -218,8 +218,16 @@ export class ShareService {
       size: parseInt(file.size),
     }));
 
-    // Asynchronously create a zip of all files
-    if (share.files.length > 1)
+    // Asynchronously create a zip of all files. Skipped entirely for a
+    // share with NAS-imported files: those are symlinks into
+    // SHARE_DIRECTORY specifically to avoid a real second copy on disk,
+    // and createZip() would read every one of them into a genuine
+    // archive.zip, undoing that. The whole attempt is skipped here rather
+    // than making createZip() itself a no-op, so isZipReady never flips
+    // true for a zip that doesn't exist — DownloadAllButton.tsx polls
+    // isZipReady every 5s until it's true, which would otherwise spin
+    // forever the moment it did.
+    if (share.files.length > 1 && !share.hasNasImportedFiles)
       this.createZip(id).then(() =>
         this.prisma.share.update({ where: { id }, data: { isZipReady: true } }),
       );

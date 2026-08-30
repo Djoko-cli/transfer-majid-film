@@ -95,6 +95,15 @@ export const configVariables = {
       defaultValue: "false",
       secret: false,
     },
+    // Lets an admin create a share from files already on the NAS
+    // (NasImportService) instead of uploading a duplicate copy — see
+    // NAS_IMPORT_ROOT in constants.ts, which must also be set (a mounted
+    // directory) for this to actually do anything even when true.
+    enableNasImport: {
+      type: "boolean",
+      defaultValue: "false",
+      secret: false,
+    },
     fileRetentionPeriod: {
       type: "timespan",
       defaultValue: "0 days",

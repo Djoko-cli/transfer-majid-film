@@ -14,6 +14,13 @@ export const CONFIG_FILE = process.env.CONFIG_FILE || "../config.yaml";
 // to it — see loadSecretsFile's own comment.
 export const SECRETS_FILE = process.env.SECRETS_FILE || "../secrets.env";
 
+// Root directory an admin can import existing files from (NasImportService)
+// instead of uploading a duplicate copy — a deploy-time infra decision like
+// CONFIG_FILE/SECRETS_FILE, not admin-editable at runtime. null (unset)
+// means the feature is structurally unavailable regardless of the
+// share.enableNasImport config toggle, even if that's accidentally on.
+export const NAS_IMPORT_ROOT = process.env.NAS_IMPORT_ROOT || null;
+
 export const DATA_DIRECTORY = process.env.DATA_DIRECTORY || "./data";
 export const SHARE_DIRECTORY = `${DATA_DIRECTORY}/uploads/shares`;
 export const DATABASE_URL =

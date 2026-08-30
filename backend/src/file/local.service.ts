@@ -171,7 +171,26 @@ export class LocalFileService {
     if (!fileMetaData)
       throw new NotFoundException(this.i18n.t("file.notFound"));
 
-    const file = createReadStream(`${SHARE_DIRECTORY}/${shareId}/${fileId}`);
+    // Confirmed openable *before* returning, same pattern as getZip()
+    // below — FileController.getFile() sets response headers (status,
+    // Content-Length) right after this call returns, so any failure has
+    // to surface here to become a clean 404 instead of a broken/truncated
+    // download after headers are already committed. This used to be a
+    // exotic case (someone hand-deleting an uploaded file); a NAS-import
+    // file is a symlink to something outside the app's control, so its
+    // target going missing (moved, renamed, deleted on the NAS side) is a
+    // routine possibility now, not just a theoretical one.
+    const file = await new Promise<ReturnType<typeof createReadStream>>(
+      (resolve, reject) => {
+        const stream = createReadStream(
+          `${SHARE_DIRECTORY}/${shareId}/${fileId}`,
+        );
+        stream.on("open", () => resolve(stream));
+        stream.on("error", () =>
+          reject(new NotFoundException(this.i18n.t("file.notFound"))),
+        );
+      },
+    );
 
     return {
       metaData: {
