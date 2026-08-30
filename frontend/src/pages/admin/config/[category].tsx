@@ -66,10 +66,6 @@ const AdminConfigPage: NextPageWithLayout = () => {
   const [optionalConfigVariables, setOptionalConfigVariables] =
     useState<AdminConfig[]>();
 
-  const isEditingAllowed = (): boolean => {
-    return !configVariables || configVariables[0].allowEdit;
-  };
-
   const saveConfigVariables = async () => {
     if (updatedConfigVariables.length > 0) {
       await configService
@@ -153,15 +149,15 @@ const AdminConfigPage: NextPageWithLayout = () => {
                   }}
                 >
                   <Stack>
-                    {!isEditingAllowed() && (
+                    {configVariables[0]?.mirroredToFile && (
                       <Alert
                         mb={"lg"}
                         variant="light"
                         color="primary"
-                        title={t("admin.config.config-file-warning.title")}
+                        title={t("admin.config.config-file-sync.title")}
                         icon={<TbInfoCircle />}
                       >
-                        <FormattedMessage id="admin.config.config-file-warning.description" />
+                        <FormattedMessage id="admin.config.config-file-sync.description" />
                       </Alert>
                     )}
                     <Title

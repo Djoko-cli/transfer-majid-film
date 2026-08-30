@@ -17,6 +17,7 @@ export type AdminConfig = Config & {
   description: string;
   obscured: boolean;
   allowEdit: boolean;
+  mirroredToFile: boolean;
 };
 
 export type AdminConfigGroupedByCategory = {

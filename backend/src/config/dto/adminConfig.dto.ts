@@ -20,6 +20,9 @@ export class AdminConfigDTO extends ConfigDTO {
   @Expose()
   allowEdit: boolean;
 
+  @Expose()
+  mirroredToFile: boolean;
+
   from(partial: Partial<AdminConfigDTO>) {
     return plainToClass(AdminConfigDTO, partial, {
       excludeExtraneousValues: true,

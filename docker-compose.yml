@@ -13,6 +13,14 @@ services:
     volumes:
       - /volume2/docker/transfer/db:/db
       - /volume1/Transfer:/opt/app/backend/data
+      # Mirrors the admin config panel: a change on either side (the file
+      # or the panel) is written to the other, live, no restart needed.
+      # /opt/app/config.yaml is where CONFIG_FILE resolves to by default
+      # (../config.yaml from the backend's own working directory) — the
+      # host file must already exist before `docker compose up` (a single-
+      # file bind mount over a path that doesn't exist yet gets created as
+      # a directory instead), and be writable by PUID:PGID above.
+      - /volume2/docker/transfer/config.yaml:/opt/app/config.yaml
 
     # Transfer's own Caddy listens internally on port 3000 and fronts both
     # the frontend and the backend (splitting /api/* to the backend) — it

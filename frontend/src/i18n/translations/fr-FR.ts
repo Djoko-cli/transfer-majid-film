@@ -548,9 +548,9 @@ export default {
   // END /privacy
 
   // /admin/config
-  "admin.config.config-file-warning.title": "Fichier de configuration présent",
-  "admin.config.config-file-warning.description":
-    "Puisqu'un fichier de configuration est présent, vous ne pouvez pas modifier la configuration via l'interface utilisateur.",
+  "admin.config.config-file-sync.title": "Synchronisé avec config.yaml",
+  "admin.config.config-file-sync.description":
+    "Un fichier config.yaml est monté sur cette instance. Les modifications faites ici sont aussi écrites dans le fichier, et inversement — les deux restent synchronisés.",
   "admin.config.title": "Paramètres",
   "admin.config.category.general": "Général",
   "admin.config.category.share": "Partage",

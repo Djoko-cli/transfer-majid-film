@@ -9,9 +9,10 @@ import { Config } from "@prisma/client";
 import * as argon from "argon2";
 import { EventEmitter } from "events";
 import * as fs from "fs";
+import * as path from "path";
 import { PrismaService } from "src/prisma/prisma.service";
 import { stringToTimespan } from "src/utils/date.util";
-import { parse as yamlParse } from "yaml";
+import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 import { I18nContext } from "nestjs-i18n";
 import { YamlConfig } from "../../prisma/seed/config.seed";
 import { CONFIG_FILE } from "src/constants";
@@ -24,6 +25,14 @@ import { CONFIG_FILE } from "src/constants";
 export class ConfigService extends EventEmitter {
   yamlConfig?: YamlConfig;
   logger = new Logger(ConfigService.name);
+
+  // Guards the write<->watch loop below: writeYamlConfig() remembers the
+  // exact content it last put on disk, and the fs.watch handler in
+  // startYamlWatcher() compares against it before reacting — so the file
+  // rewriting itself (e.g. into canonical formatting right after a hand
+  // edit) never gets mistaken for a second external change and reprocessed.
+  private lastWrittenYaml: string | null = null;
+  private yamlWatchDebounce: ReturnType<typeof setTimeout>;
 
   constructor(
     @Inject("CONFIG_VARIABLES") private configVariables: Config[],
@@ -38,29 +47,34 @@ export class ConfigService extends EventEmitter {
 
     if (this.yamlConfig) {
       await this.migrateInitUser();
+      this.startYamlWatcher();
     }
   }
 
+  // Config.yaml and the admin panel are two sides of the same state now —
+  // this brings the DB up to date with whatever's on disk at boot, exactly
+  // like a value changed through the admin panel would be (see update()),
+  // rather than the old approach of layering yaml values in memory only.
+  // writeYamlConfig() at the end backfills the file with any config key
+  // it didn't have yet (a fresh install, or a key added since — this
+  // session added several), so a minimal or even empty file, once
+  // mounted, grows into a full mirror on its own.
   private async loadYamlConfig() {
-    let configFile: string = "";
+    let raw: string;
     try {
-      configFile = fs.readFileSync(CONFIG_FILE, "utf8");
+      raw = fs.readFileSync(CONFIG_FILE, "utf8");
     } catch {
       this.logger.log(
         "Config.yaml is not set. Falling back to UI configuration.",
       );
+      return;
     }
     try {
-      this.yamlConfig = yamlParse(configFile);
-
-      if (this.yamlConfig) {
-        for (const configVariable of this.configVariables) {
-          const category = this.yamlConfig[configVariable.category];
-          if (!category) continue;
-          configVariable.value = category[configVariable.name];
-          this.emit("update", configVariable.name, configVariable.value);
-        }
-      }
+      const parsed = yamlParse(raw) || {};
+      this.yamlConfig = parsed;
+      this.lastWrittenYaml = raw;
+      await this.applyYamlToConfig(parsed);
+      await this.writeYamlConfig();
     } catch (e) {
       this.logger.error(
         "Failed to parse config.yaml. Falling back to UI configuration: ",
@@ -69,8 +83,155 @@ export class ConfigService extends EventEmitter {
     }
   }
 
+  // Shared by the initial boot-time load above and every live reload
+  // triggered by startYamlWatcher() below — applies each key present in a
+  // parsed config.yaml through the exact same path an admin panel edit
+  // takes (update(), a few lines down), so a value set via the file is
+  // indistinguishable from one set via the UI: persisted, validated, and
+  // immediately live. A key the file doesn't mention is left exactly as
+  // the DB already had it — only present keys are authoritative.
+  private async applyYamlToConfig(parsed: YamlConfig) {
+    for (const variable of this.configVariables) {
+      if (variable.locked) continue;
+      const category = (parsed as any)[variable.category];
+      if (!category || !(variable.name in category)) continue;
+
+      const newValue = category[variable.name];
+      const currentValue = variable.value ?? variable.defaultValue;
+      if (String(newValue) === String(currentValue)) continue;
+
+      try {
+        await this.update(
+          `${variable.category}.${variable.name}`,
+          this.coerceYamlValue(variable.type, newValue),
+        );
+      } catch (e) {
+        this.logger.warn(
+          `Skipped invalid value for ${variable.category}.${variable.name} from ${CONFIG_FILE}: ${e.message || e}`,
+        );
+      }
+    }
+  }
+
+  // update()'s own type check (below) only tolerates a JS type that
+  // matches `type` exactly for number/filesize/boolean — the admin panel
+  // always sends one, since Mantine's NumberInput/Switch produce a real
+  // number/boolean in JS. A YAML value doesn't reliably arrive that way:
+  // config.example.yaml quotes every value (`shareIdLength: "8"`), as does
+  // writeYamlConfig()'s own output, and yamlParse() dutifully hands those
+  // back as strings — which update() would otherwise reject outright.
+  // string/text/timespan already accept a bare string with no coercion.
+  private coerceYamlValue(
+    type: string,
+    rawValue: unknown,
+  ): string | number | boolean {
+    if (type === "number" || type === "filesize") return parseInt(String(rawValue));
+    if (type === "boolean") return rawValue === true || rawValue === "true";
+    return String(rawValue);
+  }
+
+  // Regenerates the whole file from the current DB-backed state whenever
+  // it changes (called from update() below) — the write-through half of
+  // the mirror. Only does anything once a config.yaml was actually found
+  // at boot (this.yamlConfig set): installs that never mount one are
+  // completely unaffected, no file appears out of nowhere. Locked fields
+  // are left out, matching them being hidden from the admin panel too —
+  // neither surface is meant to touch them.
+  //
+  // This rewrites the entire file, not just the changed key, so any
+  // comments or hand formatting in a manually edited file get replaced by
+  // this canonical layout the first time anything changes after that edit
+  // — an accepted tradeoff of true two-way sync rather than a partial,
+  // structure-preserving patch.
+  private async writeYamlConfig() {
+    if (!this.yamlConfig) return;
+
+    const grouped: Record<string, Record<string, string>> = {};
+    for (const variable of this.configVariables) {
+      if (variable.locked) continue;
+      grouped[variable.category] ??= {};
+      grouped[variable.category][variable.name] =
+        variable.value ?? variable.defaultValue;
+    }
+
+    const content = yamlStringify(grouped, { lineWidth: 0 });
+    if (content === this.lastWrittenYaml) return;
+
+    try {
+      fs.writeFileSync(CONFIG_FILE, content);
+      this.lastWrittenYaml = content;
+    } catch (e) {
+      this.logger.error(
+        `Failed to write ${CONFIG_FILE} — the change above is still saved to the database and live, just not mirrored to the file until this is fixed (check the mounted file's permissions): `,
+        e,
+      );
+    }
+  }
+
+  // The read-through half of the mirror: picks up an external hand edit to
+  // config.yaml without a restart. fs.watch can fire more than once per
+  // save (most editors write in several steps), hence the debounce; the
+  // lastWrittenYaml comparison in reloadFromYamlFile() is what actually
+  // prevents this from reacting to writeYamlConfig()'s own writes (a plain
+  // "did the event fire" guard can't tell those apart, content can).
+  //
+  // Watches the containing directory, not the file itself: many editors
+  // (vim, nano's default, `sed -i` on macOS/BSD) save by writing a temp
+  // file and renaming it over the original rather than editing in place.
+  // A watch on the file's own path survives that fine on Linux (inotify
+  // re-resolves the path), but on some platforms/filesystems a handle
+  // bound to the original inode goes silently stale the moment it's
+  // replaced — confirmed while testing this locally. A directory watch,
+  // filtered to this one filename, doesn't have that failure mode.
+  private startYamlWatcher() {
+    try {
+      fs.watch(
+        path.dirname(CONFIG_FILE),
+        { persistent: false },
+        (_eventType, filename) => {
+          if (filename && filename !== path.basename(CONFIG_FILE)) return;
+          clearTimeout(this.yamlWatchDebounce);
+          this.yamlWatchDebounce = setTimeout(
+            () => this.reloadFromYamlFile(),
+            300,
+          );
+        },
+      );
+    } catch (e) {
+      this.logger.error(
+        `Failed to watch ${path.dirname(CONFIG_FILE)} for changes to ${CONFIG_FILE}: `,
+        e,
+      );
+    }
+  }
+
+  private async reloadFromYamlFile() {
+    let raw: string;
+    try {
+      raw = fs.readFileSync(CONFIG_FILE, "utf8");
+    } catch (e) {
+      this.logger.warn(`Could not read ${CONFIG_FILE} after a change event: `, e);
+      return;
+    }
+    if (raw === this.lastWrittenYaml) return; // Our own write echoing back.
+
+    let parsed: YamlConfig;
+    try {
+      parsed = yamlParse(raw) || {};
+    } catch (e) {
+      this.logger.error(
+        `${CONFIG_FILE} is no longer valid YAML — ignoring it until it's fixed: `,
+        e,
+      );
+      return;
+    }
+
+    this.yamlConfig = parsed;
+    await this.applyYamlToConfig(parsed);
+  }
+
   private async migrateInitUser(): Promise<void> {
-    if (!this.yamlConfig.initUser.enabled) return;
+    if (!this.yamlConfig.initUser?.enabled) return;
 
     const userCount = await this.prisma.user.count({
       where: { isAdmin: true },
@@ -120,7 +281,13 @@ export class ConfigService extends EventEmitter {
         ...variable,
         key: `${variable.category}.${variable.name}`,
         value: variable.value ?? variable.defaultValue,
-        allowEdit: this.isEditAllowed(),
+        // Editing used to be locked out entirely once a config.yaml was
+        // present — now the file and the admin panel mirror each other
+        // (see writeYamlConfig/applyYamlToConfig), so both stay editable.
+        allowEdit: true,
+        // Lets the admin UI show an informational note (not a lock, see
+        // above) when a config.yaml is actually mounted and being synced.
+        mirroredToFile: !!this.yamlConfig,
       };
     });
   }
@@ -138,14 +305,6 @@ export class ConfigService extends EventEmitter {
   }
 
   async updateMany(data: { key: string; value: string | number | boolean }[]) {
-    if (!this.isEditAllowed())
-      throw new BadRequestException(
-        this.t(
-          "config.editNotAllowed",
-          "You are only allowed to update config variables via the config.yaml file",
-        ),
-      );
-
     const response: Config[] = [];
 
     for (const variable of data) {
@@ -156,14 +315,6 @@ export class ConfigService extends EventEmitter {
   }
 
   async update(key: string, value: string | number | boolean) {
-    if (!this.isEditAllowed())
-      throw new BadRequestException(
-        this.t(
-          "config.editNotAllowed",
-          "You are only allowed to update config variables via the config.yaml file",
-        ),
-      );
-
     const configVariable = await this.prisma.config.findUnique({
       where: {
         name_category: {
@@ -209,6 +360,9 @@ export class ConfigService extends EventEmitter {
 
     this.emit("update", key, value);
 
+    // No-op unless a config.yaml is actually mounted — see its own comment.
+    await this.writeYamlConfig();
+
     return updatedVariable;
   }
 
@@ -237,10 +391,6 @@ export class ConfigService extends EventEmitter {
     if (validation && !validation.condition(value as any)) {
       throw new BadRequestException(validation.message);
     }
-  }
-
-  isEditAllowed(): boolean {
-    return this.yamlConfig === undefined || this.yamlConfig === null;
   }
 
   private t(
