@@ -7,5 +7,6 @@
   "variableNotFound": "Variable de configuration non trouvée",
   "invalidType": "La variable de configuration doit être de type {type}",
   "shareIdLengthValidation": "La longueur de l'ID de partage doit être comprise entre 2 et 50",
-  "zipCompressionLevelValidation": "Le niveau de compression Zip doit être compris entre 0 et 9"
+  "zipCompressionLevelValidation": "Le niveau de compression Zip doit être compris entre 0 et 9",
+  "envManaged": "{key} est défini via la variable d'environnement {envVar} et ne peut pas être modifié ici"
 }

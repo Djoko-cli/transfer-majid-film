@@ -28,6 +28,7 @@ backend/server.log
 # env file
 .env
 !/backend/prisma/.env
+/secrets.env
 
 # vercel
 .vercel

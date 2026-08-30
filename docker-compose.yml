@@ -10,6 +10,18 @@ services:
       - PGID=100
       - DATABASE_URL=file:/db/transfer.db?connection_limit=1
 
+    # Secrets (SMTP/LDAP/S3/OAuth passwords and keys) — deliberately NOT in
+    # config.yaml below, which is a plain, live-synced, casually-readable
+    # file. `required: false` means a missing file is just "no overrides",
+    # same as any single variable left unset inside it — see
+    # secrets.env.example at the repo root for the full list and setup:
+    #   cp secrets.env.example secrets.env && chmod 600 secrets.env
+    # Unlike config.yaml, read once at container start — no live watcher,
+    # so a change here needs a restart (`docker compose up -d`) to apply.
+    env_file:
+      - path: /volume2/docker/transfer/secrets.env
+        required: false
+
     volumes:
       - /volume2/docker/transfer/db:/db
       - /volume1/Transfer:/opt/app/backend/data

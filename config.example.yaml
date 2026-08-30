@@ -162,8 +162,10 @@ smtp:
   email: ""
   #Username of the SMTP server
   username: ""
-  #Password of the SMTP server
-  password: ""
+  #Password of the SMTP server. Not set here — this and every other secret
+  #(LDAP bind password, OAuth client secrets, S3 key/secret) live outside
+  #config.yaml entirely, in a separate environment file. See secrets.env.example
+  #at the repo root: set SMTP_PASSWORD there instead.
 ldap:
   #Use LDAP authentication for user login
   enabled: "false"
@@ -171,8 +173,8 @@ ldap:
   url: ""
   #Default user used to perform the user search
   bindDn: ""
-  #Password used to perform the user search
-  bindPassword: ""
+  #Password used to perform the user search. See secrets.env.example —
+  #set LDAP_BIND_PASSWORD there instead.
   #Base location, where the user search will be performed
   searchBase: ""
   #The user query will be used to search the 'User base' for the LDAP user. %username% can be used as the placeholder for the user given input.
@@ -195,14 +197,14 @@ oauth:
   github-enabled: "false"
   #Client ID of the GitHub OAuth app
   github-clientId: ""
-  #Client secret of the GitHub OAuth app
-  github-clientSecret: ""
+  #Client secret of the GitHub OAuth app. See secrets.env.example —
+  #set OAUTH_GITHUB_CLIENT_SECRET there instead.
   #Whether Google login is enabled
   google-enabled: "false"
   #Client ID of the Google OAuth app
   google-clientId: ""
-  #Client secret of the Google OAuth app
-  google-clientSecret: ""
+  #Client secret of the Google OAuth app. See secrets.env.example —
+  #set OAUTH_GOOGLE_CLIENT_SECRET there instead.
   #Whether Microsoft login is enabled
   microsoft-enabled: "false"
   #Tenant ID of the Microsoft OAuth app
@@ -212,8 +214,8 @@ oauth:
   microsoft-tenant: common
   #Client ID of the Microsoft OAuth app
   microsoft-clientId: ""
-  #Client secret of the Microsoft OAuth app
-  microsoft-clientSecret: ""
+  #Client secret of the Microsoft OAuth app. See secrets.env.example —
+  #set OAUTH_MICROSOFT_CLIENT_SECRET there instead.
   #Whether Discord login is enabled
   discord-enabled: "false"
   #Limit signing in to users in a specific server. Leave it blank to disable.
@@ -222,8 +224,8 @@ oauth:
   discord-limitedUsers: ""
   #Client ID of the Discord OAuth app
   discord-clientId: ""
-  #Client secret of the Discord OAuth app
-  discord-clientSecret: ""
+  #Client secret of the Discord OAuth app. See secrets.env.example —
+  #set OAUTH_DISCORD_CLIENT_SECRET there instead.
   #Whether OpenID Connect login is enabled
   oidc-enabled: "false"
   #Discovery URI of the OpenID Connect OAuth app
@@ -242,8 +244,8 @@ oauth:
   oidc-roleAdminAccess: ""
   #Client ID of the OpenID Connect OAuth app
   oidc-clientId: ""
-  #Client secret of the OpenID Connect OAuth app
-  oidc-clientSecret: ""
+  #Client secret of the OpenID Connect OAuth app. See secrets.env.example —
+  #set OAUTH_OIDC_CLIENT_SECRET there instead.
 s3:
   #Whether S3 should be used to store the shared files instead of the local file system. WARNING: If ClamAV is active, files will be temporarily downloaded from S3 to be checked.
   enabled: "false"
@@ -255,10 +257,10 @@ s3:
   bucketName: ""
   #The default path which should be used to store the files in the S3 bucket.
   bucketPath: ""
-  #The key which allows you to access the S3 bucket.
-  key: ""
-  #The secret which allows you to access the S3 bucket.
-  secret: ""
+  #The key which allows you to access the S3 bucket. See secrets.env.example —
+  #set S3_KEY there instead.
+  #The secret which allows you to access the S3 bucket. See secrets.env.example —
+  #set S3_SECRET there instead.
   #Turn off for backends that do not support checksum (e.g. B2).
   useChecksum: "true"
 legal:

@@ -160,6 +160,17 @@ const AdminConfigPage: NextPageWithLayout = () => {
                         <FormattedMessage id="admin.config.config-file-sync.description" />
                       </Alert>
                     )}
+                    {configVariables.some((cv) => cv.envManaged) && (
+                      <Alert
+                        mb={"lg"}
+                        variant="light"
+                        color="yellow"
+                        title={t("admin.config.env-managed-secrets.title")}
+                        icon={<TbInfoCircle />}
+                      >
+                        <FormattedMessage id="admin.config.env-managed-secrets.description" />
+                      </Alert>
+                    )}
                     <Title
                       mb={categoryId.toLowerCase() === "s3" ? "xs" : "md"}
                       order={3}

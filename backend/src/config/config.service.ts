@@ -41,6 +41,31 @@ export class ConfigService extends EventEmitter {
     super();
   }
 
+  // The env-var-secrets escape hatch, alongside config.yaml above: a
+  // secret-shaped field (obscured: true — smtp.password, ldap.bindPassword,
+  // s3.key/secret, oauth.*-clientSecret) can be set via a real environment
+  // variable instead of ever being persisted in a casually-readable form.
+  // Deliberately NOT wired into the yaml mirror at all (writeYamlConfig/
+  // applyYamlToConfig below both skip every obscured field, whether or not
+  // an env var is actually set for it) — the whole point is that a secret
+  // never has to sit in that flat, easily-`cat`-able file. Naming mirrors
+  // this app's own pre-DB-config history (SMTP_PASSWORD, JWT_SECRET, ...):
+  // CATEGORY_NAME, name's own camelCase/dashes turned into more underscores.
+  private envVarNameFor(category: string, name: string): string {
+    const snake = name
+      .replace(/-/g, "_")
+      .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+      .toUpperCase();
+    return `${category.toUpperCase()}_${snake}`;
+  }
+
+  // undefined (not "") when unset, so callers can `??` past it cleanly.
+  private envValueFor(variable: Config): string | undefined {
+    if (!variable.obscured) return undefined;
+    const raw = process.env[this.envVarNameFor(variable.category, variable.name)];
+    return raw ? raw : undefined;
+  }
+
   // Initialize gets called by the ConfigModule
   async initialize() {
     await this.loadYamlConfig();
@@ -92,7 +117,12 @@ export class ConfigService extends EventEmitter {
   // the DB already had it — only present keys are authoritative.
   private async applyYamlToConfig(parsed: YamlConfig) {
     for (const variable of this.configVariables) {
-      if (variable.locked) continue;
+      // Secrets never round-trip through the file in either direction —
+      // see the constructor's envVarNameFor comment. Enforced here too,
+      // not just by writeYamlConfig() never emitting the key: a hand-typed
+      // secret pasted into an otherwise-legitimate config.yaml (e.g. from
+      // an old example file) must not get quietly picked up either.
+      if (variable.locked || variable.obscured) continue;
       const category = (parsed as any)[variable.category];
       if (!category || !(variable.name in category)) continue;
 
@@ -148,7 +178,9 @@ export class ConfigService extends EventEmitter {
 
     const grouped: Record<string, Record<string, string>> = {};
     for (const variable of this.configVariables) {
-      if (variable.locked) continue;
+      // See applyYamlToConfig's comment just above — same exclusion, same
+      // reason, kept symmetric on the write-out side.
+      if (variable.locked || variable.obscured) continue;
       grouped[variable.category] ??= {};
       grouped[variable.category][variable.name] =
         variable.value ?? variable.defaultValue;
@@ -261,7 +293,10 @@ export class ConfigService extends EventEmitter {
 
     if (!configVariable) throw new Error(`Config variable ${key} not found`);
 
-    const value = configVariable.value ?? configVariable.defaultValue;
+    const value =
+      this.envValueFor(configVariable) ??
+      configVariable.value ??
+      configVariable.defaultValue;
 
     if (configVariable.type == "number" || configVariable.type == "filesize")
       return parseInt(value);
@@ -277,17 +312,29 @@ export class ConfigService extends EventEmitter {
       .sort((a, b) => a.order - b.order);
 
     return configVariables.map((variable) => {
+      const envValue = this.envValueFor(variable);
       return {
         ...variable,
         key: `${variable.category}.${variable.name}`,
-        value: variable.value ?? variable.defaultValue,
+        // An env-managed secret is never sent to the browser at all, even
+        // the admin's — there's nothing to prefill an edit form with when
+        // editing is disabled anyway (see allowEdit below), so it's simply
+        // withheld rather than echoed back the way every other field's
+        // current value already is.
+        value: envValue !== undefined ? "" : (variable.value ?? variable.defaultValue),
         // Editing used to be locked out entirely once a config.yaml was
         // present — now the file and the admin panel mirror each other
         // (see writeYamlConfig/applyYamlToConfig), so both stay editable.
-        allowEdit: true,
+        // An env-managed secret is the one exception: the environment
+        // variable is authoritative, so an admin-panel edit would just be
+        // silently overridden by it again on the next read via get().
+        allowEdit: envValue === undefined,
         // Lets the admin UI show an informational note (not a lock, see
         // above) when a config.yaml is actually mounted and being synced.
         mirroredToFile: !!this.yamlConfig,
+        // Same idea, for the env-var escape hatch on secret fields — lets
+        // the admin UI explain *why* the field above is disabled.
+        envManaged: envValue !== undefined,
       };
     });
   }
@@ -327,6 +374,21 @@ export class ConfigService extends EventEmitter {
     if (!configVariable || configVariable.locked)
       throw new NotFoundException(
         this.t("config.variableNotFound", "Config variable not found"),
+      );
+
+    if (this.envValueFor(configVariable) !== undefined)
+      throw new BadRequestException(
+        this.t(
+          "config.envManaged",
+          "{key} is set via the {envVar} environment variable and can't be edited here",
+          {
+            key,
+            envVar: this.envVarNameFor(
+              configVariable.category,
+              configVariable.name,
+            ),
+          },
+        ),
       );
 
     if (value === "") {
