@@ -5,7 +5,6 @@ import {
   Text,
   createStyles,
 } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useRef } from "react";
 import { APP_NAME } from "../../constants";
 import useConfig from "../../hooks/config.hook";
@@ -27,6 +26,38 @@ const useStyles = createStyles((theme) => {
       backdropFilter: "blur(18px) saturate(160%)",
       WebkitBackdropFilter: "blur(18px) saturate(160%)",
       borderTop: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
+    },
+
+    // Hidden below 700px rather than conditionally not rendered (this used
+    // to be `{!isMobile && <div></div>}`, isMobile from useMediaQuery) —
+    // useMediaQuery can't know the real viewport during SSR (no `window`),
+    // so it rendered every visitor's *first* paint as if desktop, mobile
+    // devices included, then corrected itself once the client hydrated and
+    // read the real width — a real, visible layout jump on every mobile
+    // load with legal links enabled, reported by the user on their own
+    // instance. display:none is decided by the browser evaluating a CSS
+    // media query at paint time, using the actual viewport, the same on
+    // the server-rendered first paint and every one after — nothing to
+    // correct after the fact. A display:none grid child doesn't consume a
+    // grid cell, so this still leaves exactly 2 real columns for
+    // SimpleGrid's own mobile breakpoint below to fill.
+    spacer: {
+      [theme.fn.smallerThan(700)]: {
+        display: "none",
+      },
+    },
+
+    // Same reasoning as spacer above — was `align={isMobile ? "left" :
+    // "center"}` on the Text itself. theme.fn.smallerThan(700) here matches
+    // SimpleGrid's own breakpoints prop (below) exactly: both resolve
+    // through the same theme.fn.smallerThan, so the column count and this
+    // alignment always flip at precisely the same width, never one frame
+    // or one pixel apart.
+    brandText: {
+      textAlign: "center",
+      [theme.fn.smallerThan(700)]: {
+        textAlign: "left",
+      },
     },
   };
 });
@@ -77,8 +108,6 @@ const Footer = () => {
       config.get("legal.privacyPolicyUrl")) ||
     "/privacy";
 
-  const isMobile = useMediaQuery("(max-width: 700px)");
-
   return (
     <MFooter
       ref={footerRef}
@@ -98,9 +127,9 @@ const Footer = () => {
         </Text>
       )}
       {config.get("legal.enabled") && (
-        <SimpleGrid cols={isMobile ? 2 : 3} m={0}>
-          {!isMobile && <div></div>}
-          <Text size="xs" color="dimmed" align={isMobile ? "left" : "center"}>
+        <SimpleGrid cols={3} breakpoints={[{ maxWidth: 700, cols: 2 }]} m={0}>
+          <div className={classes.spacer}></div>
+          <Text size="xs" color="dimmed" className={classes.brandText}>
             {APP_NAME} ·{" "}
             <Anchor size="xs" href="https://majid.film" target="_blank">
               majid.film
