@@ -51,9 +51,21 @@ services:
     # must stay enabled even behind the NAS's own reverse proxy, which is
     # exactly what TRUST_PROXY=true is for (it tells Caddy to trust the
     # forwarded headers from that proxy instead of replacing internal Caddy).
+    #
+    # No network_mode here (used to be `bridge`, Docker's own raw default
+    # network) — that put this container on a *different* network than
+    # clamav below, which gets no network_mode and so joins Compose's own
+    # auto-created project network instead. Only Compose-managed networks
+    # run the embedded DNS server that resolves a service name (`clamav`,
+    # what CLAMAV_HOST defaults to below) to that service's container —
+    # the plain "bridge" network doesn't do this at all. transfer could
+    # never have reached clamav by name while this stayed set, however
+    # long clamav itself took to become ready: a permanent, not transient,
+    # "not reachable". Host port publishing (ports: below) works exactly
+    # the same on Compose's own network as it did on the raw bridge one,
+    # so removing this loses nothing.
     ports:
       - "6100:3000"
-    network_mode: bridge
 
     # Scans every uploaded share with ClamAV before it's kept. Needs real
     # resources (see the integrations docs).
@@ -64,3 +76,19 @@ services:
   clamav:
     restart: unless-stopped
     image: clamav/clamav
+    volumes:
+      # Without this, every container restart (NAS reboot, Docker daemon
+      # restart, an OOM kill, a manual restart — not just a fresh install)
+      # throws away the entire signature database and re-downloads it
+      # from scratch on next start: several hundred MB, from freshclam's
+      # own update mirrors. Until that finishes, clamd isn't listening
+      # yet — every scan attempt in that window reports the exact "ClamAV
+      # is enabled but not reachable" error this was seeing. The image's
+      # own healthcheck (baked into clamav/clamav's Dockerfile, so no
+      # explicit `healthcheck:` block is needed here — Compose picks it
+      # up from the image) already grants a 6-minute grace period before
+      # `depends_on: condition: service_healthy` above gives up waiting,
+      # specifically to cover this: a slow connection could still exceed
+      # that on a *first* boot, but every boot after this volume exists
+      # only needs an incremental signature diff, not a full re-fetch.
+      - /volume2/docker/transfer/clamav-db:/var/lib/clamav
