@@ -387,9 +387,25 @@ const Header = ({
     // transform value the browser discarded outright, leaving the
     // previous (0) one in place. calc() lets the browser do the unit math
     // instead, correct regardless of what unit spacing.md is in.
+    //
+    // "" (clearing the inline style, falling back to the stylesheet's own
+    // `transform: none`) rather than the literal string "translateY(0px)"
+    // when closed — visually identical (both are a no-op offset), but
+    // *any* transform value other than none, including a literal
+    // translateY(0px), makes this element a new CSS containing block for
+    // position:fixed/absolute descendants, which resolve against it
+    // instead of the true viewport from then on. This element is
+    // _app.tsx's own page-content Container, wrapping every page — with a
+    // stray transform sitting on it at rest (the default, far more common
+    // state than "menu open"), BrandPanel's mobile position:fixed photo
+    // backdrop (SplitTransferLayout) silently stopped reaching the true
+    // top of the viewport, showing as a black band under the header on
+    // every mobile page load. The transition still animates smoothly
+    // toward "" exactly as it did toward "translateY(0px)" — browsers
+    // treat a missing/none transform as the identity for interpolation.
     pushEl.style.transform = openedRef.current
       ? `translateY(calc(${menuHeightRef.current}px + ${menuGapRef.current}))`
-      : "translateY(0px)";
+      : "";
   };
 
   useEffect(() => {
@@ -415,9 +431,11 @@ const Header = ({
       // Leaving mid-animation (e.g. a route change while open — the
       // pathname effect above already calls close(), but that only starts
       // this same transition, it doesn't wait for it) shouldn't strand the
-      // next page's content pushed down with no menu to justify it.
+      // next page's content pushed down with no menu to justify it. ""
+      // rather than "translateY(0px)" — see applyPush's own comment above
+      // for why a literal zero transform is never actually harmless here.
       pushEl.style.transition = "none";
-      pushEl.style.transform = "translateY(0px)";
+      pushEl.style.transform = "";
     };
     // pushContentRef's identity is stable for the component's lifetime
     // (owned by _app.tsx, created once) — this intentionally only runs

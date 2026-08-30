@@ -21,13 +21,12 @@ const CARD_VERTICAL_MARGIN = 24;
 // edge-to-edge left the photo fully covered by the card with nothing
 // visible around it.
 const CARD_MOBILE_SIDE_MARGIN = 16;
-// A plain 16px top margin here doesn't actually render as 16px: there's a
-// pre-existing 40px spacer above Header/Container (unrelated to this
-// component — a Mantine layout artifact present on every page) whose own
-// margin-bottom collapses with this one, and adjoining margins collapse
-// to the larger of the two, not their sum. Matching it here (rather than
-// fighting it with a negative margin tied to an unrelated element's exact
-// value) is what actually makes the visible top and bottom gaps equal.
+// Mobile's own equivalent of CARD_VERTICAL_MARGIN above: not a fixed
+// offset, but the *guaranteed minimum* top/bottom gap once cardSlot
+// centers the card within the header-to-footer band (see cardSlot's
+// mobile rule below) — only visibly binds when the card is tall enough
+// (post file-selection) to nearly fill that band; a compact at-rest card
+// gets a much larger gap for free from the centering itself.
 const CARD_MOBILE_VERTICAL_MARGIN = 40;
 
 const useStyles = createStyles((theme, { width }: { width: number }) => {
@@ -88,6 +87,16 @@ const useStyles = createStyles((theme, { width }: { width: number }) => {
       alignItems: "center",
       padding: `${CARD_VERTICAL_MARGIN}px 0`,
 
+      // Desktop centers the card by sizing this box to exactly the visible
+      // header-to-footer band via absolute top/bottom, then flex-centering
+      // within it. Mobile can't use absolute positioning here (the page
+      // needs to scroll normally once the card grows taller than the
+      // viewport), so it reproduces the same band as a min-height instead:
+      // still flex-centered, but free to grow past it when content needs
+      // more room. Was a fixed top/bottom margin with no centering at all
+      // — invisible while the card was tall enough to fill most of the
+      // screen on its own, but left it sitting high once the at-rest card
+      // became compact (see TransferCard's progressive disclosure).
       [theme.fn.smallerThan("sm")]: {
         position: "relative",
         top: "auto",
@@ -95,9 +104,10 @@ const useStyles = createStyles((theme, { width }: { width: number }) => {
         left: "auto",
         width: "auto",
         maxWidth: "none",
-        display: "block",
-        padding: 0,
-        margin: `${CARD_MOBILE_VERTICAL_MARGIN}px ${CARD_MOBILE_SIDE_MARGIN}px`,
+        display: "flex",
+        alignItems: "center",
+        minHeight: `calc(100vh - ${HEADER_HEIGHT}px - var(--footer-height, 40px))`,
+        padding: `${CARD_MOBILE_VERTICAL_MARGIN}px ${CARD_MOBILE_SIDE_MARGIN}px`,
       },
     },
 
