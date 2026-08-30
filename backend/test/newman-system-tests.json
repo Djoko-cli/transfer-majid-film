@@ -432,7 +432,7 @@
 											"    const responseBody = pm.response.json();",
 											"    pm.expect(responseBody).to.have.property(\"id\")",
 											"    pm.expect(responseBody).to.have.property(\"expiration\")",
-											"    pm.expect(Object.keys(responseBody).length).be.equal(4)",
+											"    pm.expect(Object.keys(responseBody).length).be.equal(5)",
 											"});",
 											""
 										],
@@ -626,7 +626,7 @@
 											"    const responseBody = pm.response.json();",
 											"    pm.expect(responseBody).to.have.property(\"id\")",
 											"    pm.expect(responseBody).to.have.property(\"expiration\")",
-											"    pm.expect(Object.keys(responseBody).length).be.equal(6)",
+											"    pm.expect(Object.keys(responseBody).length).be.equal(7)",
 											"});",
 											""
 										],
