@@ -10,11 +10,12 @@ import {
   Stack,
   Text,
   UnstyledButton,
+  useMantineTheme,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, RefObject, useEffect, useRef, useState } from "react";
 import { TbChevronLeft } from "react-icons/tb";
 import { useIntl } from "react-intl";
 import { APP_NAME } from "../../constants";
@@ -52,6 +53,12 @@ const LanguageToggle = ({ className }: { className?: string }) => {
 };
 
 export const HEADER_HEIGHT = 60;
+
+// Shared by the mobile menu's own reveal and the page-content push it
+// drives (see pushContentRef) — kept as one constant so the two always
+// stay visually in lockstep; was 200 as separate literals on each
+// Collapse before this file's GPU-only rewrite.
+const MOBILE_MENU_DURATION = 200;
 
 type NavLink = {
   link?: string;
@@ -92,19 +99,44 @@ const useStyles = createStyles((theme) => {
       borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
     },
 
-    mobilePanel: {
-      // Needs an explicit position + z-index, or both are ignored:
-      // z-index has no effect on a statically-positioned element, and
-      // without one this sits at stacking-order 0 same as everything
-      // else in normal flow — which used to be harmless when nothing
-      // else on the page had its own stacking context, but BrandPanel's
-      // mobile backdrop is now `position: fixed` (its own context,
-      // painted after this in DOM order), so without this the open menu
-      // renders completely hidden behind the photo.
-      position: "relative",
+    // Outer wrapper for the mobile dropdown — owns positioning and the
+    // GPU-only reveal (transform: scaleY, set inline alongside opacity/
+    // transition since both are dynamic on `opened`, same pattern as the
+    // inner Paper's own pop effect below). Nested inside MantineHeader
+    // (`root` above, `position: fixed`) so `top: 100%` anchors it flush
+    // under the header bar without needing to know HEADER_HEIGHT.
+    //
+    // Absolutely positioned rather than the previous `position: relative`
+    // + Collapse-driven height specifically so opening/closing the menu
+    // never touches layout: a real height animation (Collapse, like
+    // AnimatedHeight elsewhere in this app) forces the browser to recompute
+    // layout every frame, which is what showed up as visible jank on iOS.
+    // Taking this out of flow means its own reveal is pure transform +
+    // opacity — compositor-only, no per-frame layout — and it can no
+    // longer push page content down by *being bigger*, which is what
+    // pushContentRef exists for instead: Header measures this box's real
+    // height via ResizeObserver and applies that as a translateY transform
+    // to the page content directly (see the effect below), so the visual
+    // "push" is also compositor-only, not a second real layout animation
+    // standing in for the first. mobileSpacer below is deliberately left
+    // exactly as it was — a small, fixed-size (40px) real Collapse, not
+    // content-dependent, cheap enough that converting it too wasn't worth
+    // the added complexity, and SplitTransferLayout's own mobile spacing
+    // relies on it staying a real, margin-collapsing box.
+    mobileMenuReveal: {
+      position: "absolute",
+      top: "100%",
+      right: 16,
       zIndex: 100,
-      marginBottom: theme.spacing.md,
       overflow: "hidden",
+      transformOrigin: "top",
+
+      [theme.fn.largerThan("sm")]: {
+        display: "none",
+      },
+    },
+
+    mobilePanel: {
       // Was width:100% with square top corners flush under the header —
       // full viewport width for 2-3 short text links (or an empty state
       // with just "Accueil"/"Se connecter") reads as far bigger than its
@@ -115,8 +147,6 @@ const useStyles = createStyles((theme) => {
       width: "fit-content",
       minWidth: 220,
       maxWidth: "calc(100vw - 32px)",
-      marginLeft: "auto",
-      marginRight: 16,
       borderRadius: theme.radius.md,
       // Same tint/blur recipe as `root` above (the header bar itself) —
       // Mantine's own Paper default is a flat opaque fill from this app's
@@ -128,10 +158,6 @@ const useStyles = createStyles((theme) => {
       backdropFilter: "blur(18px) saturate(160%)",
       WebkitBackdropFilter: "blur(18px) saturate(160%)",
       border: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
-
-      [theme.fn.largerThan("sm")]: {
-        display: "none",
-      },
     },
 
     // Reserves a little breathing room below the fixed header specifically
@@ -272,11 +298,22 @@ const useStyles = createStyles((theme) => {
   };
 });
 
-const Header = () => {
+const Header = ({
+  pushContentRef,
+}: {
+  // The page-content element to shift down while the mobile menu is open —
+  // _app.tsx owns it (Header doesn't render its own page content) and
+  // passes it down. Absent, this degrades to "menu still opens/closes
+  // correctly, page content just doesn't move" rather than throwing —
+  // pages with their own getLayout don't render Header at all, but this
+  // stays optional rather than assumed-always-present on principle.
+  pushContentRef?: RefObject<HTMLDivElement>;
+} = {}) => {
   const { user } = useUser();
   const router = useRouter();
   const config = useConfig();
   const t = useTranslate();
+  const theme = useMantineTheme();
 
   const [opened, { toggle, close }] = useDisclosure(false);
   const [currentRoute, setCurrentRoute] = useState("");
@@ -287,6 +324,113 @@ const Header = () => {
     close();
     setMobileMenuView("root");
   }, [close, router.pathname]);
+
+  // Measures the mobile menu's real (unmounted-from-flow) height
+  // continuously — its content can change size while open (the "shares"/
+  // "profile" sub-views under mobileMenuView have different link counts
+  // than the root view), not just once on open — and applies that as a
+  // translateY transform to pushContentRef, transitioned exactly like the
+  // menu's own reveal so page content visually tracks the menu opening/
+  // closing/switching views, without either side ever animating a layout
+  // property. menuGapRef holds theme.spacing.md — the same breathing room
+  // mobilePanel used to reserve below itself via a real marginBottom, now
+  // folded into the JS-computed push amount instead, since an absolutely
+  // positioned box's own margin no longer affects anything after it.
+  const menuBoxRef = useRef<HTMLDivElement>(null);
+  const menuGapRef = useRef(theme.spacing.md);
+  menuGapRef.current = theme.spacing.md;
+  // Read by applyPush below instead of closing over `opened` directly —
+  // the ResizeObserver effect intentionally only runs once (see its own
+  // comment), so a closure formed inside it would freeze `opened` at
+  // whatever it was on that first run forever. This kept re-zeroing the
+  // push back to 0 every time the menu's real height changed while it
+  // stayed open (e.g. switching between its "root" and "shares" sub-views
+  // — different link counts, different heights) — the resize fired,
+  // correctly, but ran a still-mounted-time `opened === false` closure.
+  const openedRef = useRef(opened);
+  openedRef.current = opened;
+
+  // One reduced-motion check shared by the push effect below and the two
+  // inline-styled transitions in the JSX (the menu reveal Box and its
+  // Paper) — computed per render rather than a live-updating listener:
+  // this only needs to be right the next time the menu opens/closes, not
+  // mid-animation, and every other reduced-motion check in this app
+  // (AnimatedHeight, Dropzone's waiting pulse) is a plain media query
+  // re-evaluated by the browser itself on every style recalculation, which
+  // this — being inline `style`, not `sx` — can't use directly.
+  const reducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const mobileMenuDuration = reducedMotion ? 0.01 : MOBILE_MENU_DURATION;
+
+  // Cached separately from reading menuBoxRef directly at apply time:
+  // menuBoxRef's own element is what's being scaleY'd for its reveal, so
+  // getBoundingClientRect() on it mid-transition (or right as `opened`
+  // flips, before the browser has painted the new transform) reports the
+  // currently-*rendered*, transform-shrunk size, not its real one — this
+  // stayed silently near-0 on every open past the first, since the box's
+  // real content never changes size from opening/closing alone, so
+  // ResizeObserver's own callback (correctly reporting real, layout —
+  // transform-blind — size below) only ever fires once, on mount.
+  const menuHeightRef = useRef(0);
+
+  // Reads only refs and pushContentRef (both stable) — safe to call from
+  // any effect below regardless of that effect's own dependency array,
+  // since nothing here is captured stale.
+  const applyPush = () => {
+    const pushEl = pushContentRef?.current;
+    if (!pushEl) return;
+    // calc(), not pre-added in JS: theme.spacing.md is "1rem" (a CSS
+    // length string, Mantine v6's own default unit for spacing tokens),
+    // not a number — `menuHeightRef.current + menuGapRef.current` was
+    // silently string-concatenating "155.375" + "1rem" into an invalid
+    // transform value the browser discarded outright, leaving the
+    // previous (0) one in place. calc() lets the browser do the unit math
+    // instead, correct regardless of what unit spacing.md is in.
+    pushEl.style.transform = openedRef.current
+      ? `translateY(calc(${menuHeightRef.current}px + ${menuGapRef.current}))`
+      : "translateY(0px)";
+  };
+
+  useEffect(() => {
+    const pushEl = pushContentRef?.current;
+    const node = menuBoxRef.current;
+    if (!pushEl || !node) return;
+
+    pushEl.style.transition = `transform ${mobileMenuDuration}ms ease-out`;
+
+    const observer = new ResizeObserver((entries) => {
+      // contentRect: real, transform-blind layout size — see menuHeightRef's
+      // own comment above for why getBoundingClientRect() on this same
+      // element would be wrong. Fires once on mount, and again whenever the
+      // menu's real content height changes — e.g. switching between its
+      // "root" and "shares"/"profile" sub-views while staying open.
+      menuHeightRef.current = entries[0].contentRect.height;
+      applyPush();
+    });
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+      // Leaving mid-animation (e.g. a route change while open — the
+      // pathname effect above already calls close(), but that only starts
+      // this same transition, it doesn't wait for it) shouldn't strand the
+      // next page's content pushed down with no menu to justify it.
+      pushEl.style.transition = "none";
+      pushEl.style.transform = "translateY(0px)";
+    };
+    // pushContentRef's identity is stable for the component's lifetime
+    // (owned by _app.tsx, created once) — this intentionally only runs
+    // once (mount) rather than re-observing on every `opened` flip;
+    // applyPush reads openedRef.current fresh on every call regardless of
+    // when this effect itself last ran.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pushContentRef]);
+
+  // The ResizeObserver above only fires on an actual size change, not on
+  // `opened` itself flipping with the menu's size unchanged (the common
+  // case) — this applies the transform for that transition directly.
+  useEffect(applyPush, [opened, pushContentRef]);
 
   const authenticatedLinks: NavLink[] = [
     {
@@ -491,52 +635,57 @@ const Header = () => {
             />
           </Group>
         </Container>
-      </MantineHeader>
-      {
-        // `<Transition mounted={opened}>` only animated the Paper's own
-        // opacity/transform — it mounts at its full natural height the
-        // instant `opened` flips, so the page content sitting after it in
-        // normal flow (the card) got shoved down/up in one frame,
-        // independent of how smooth the pop-in itself looked. Collapse
-        // instead animates the *height* this occupies, so whatever comes
-        // after it in flow moves in step with the menu instead of
-        // teleporting the moment it mounts. `animateOpacity={false}`
-        // because the pop effect below already handles fade/scale itself
-        // — letting Collapse's own opacity animation run too would just
-        // restate the same fade on a different timeline.
-      }
-      <Collapse
-        in={opened}
-        transitionDuration={200}
-        transitionTimingFunction="ease-out"
-        animateOpacity={false}
-      >
-        <Paper
-          className={classes.mobilePanel}
-          withBorder
+        {
+          // GPU-only reveal: transform + opacity only, nothing here or on
+          // the Paper inside ever animates a layout property (see
+          // mobileMenuReveal's own comment in useStyles for the full
+          // reasoning, and menuBoxRef's effect above for how page content
+          // still visually tracks this opening/closing). scaleY(0) rather
+          // than unmounting while closed — same reason as everywhere else
+          // in this app that keeps a collapsed region mounted: something
+          // has to still be there for the *next* open to animate from.
+          // No opacity here (only on the Paper below) deliberately: opacity
+          // is multiplicative across nested elements, so fading both would
+          // combine into a slower, non-linear curve instead of the single
+          // clean fade this had before.
+        }
+        <Box
+          ref={menuBoxRef}
+          className={classes.mobileMenuReveal}
           style={{
-            transform: opened ? "scale(1)" : "scale(0.94)",
-            opacity: opened ? 1 : 0,
-            transformOrigin: "top right",
-            transition: "transform 200ms ease-out, opacity 200ms ease-out",
+            transform: opened ? "scaleY(1)" : "scaleY(0)",
+            transition: `transform ${mobileMenuDuration}ms ease-out`,
+            pointerEvents: opened ? "auto" : "none",
           }}
+          aria-hidden={!opened}
         >
-          <Stack spacing={0}>
-            {mobileMenuView !== "root" && (
-              <UnstyledButton
-                className={classes.mobileMenuButton}
-                onClick={() => setMobileMenuView("root")}
-                aria-label={t("common.button.back")}
-              >
-                <span className={classes.mobileMenuButtonContent}>
-                  <TbChevronLeft size={18} />
-                </span>
-              </UnstyledButton>
-            )}
-            {currentMobileLinks.map((link) => renderMobileEntry(link))}
-          </Stack>
-        </Paper>
-      </Collapse>
+          <Paper
+            className={classes.mobilePanel}
+            withBorder
+            style={{
+              transform: opened ? "scale(1)" : "scale(0.94)",
+              opacity: opened ? 1 : 0,
+              transformOrigin: "top right",
+              transition: `transform ${mobileMenuDuration}ms ease-out, opacity ${mobileMenuDuration}ms ease-out`,
+            }}
+          >
+            <Stack spacing={0}>
+              {mobileMenuView !== "root" && (
+                <UnstyledButton
+                  className={classes.mobileMenuButton}
+                  onClick={() => setMobileMenuView("root")}
+                  aria-label={t("common.button.back")}
+                >
+                  <span className={classes.mobileMenuButtonContent}>
+                    <TbChevronLeft size={18} />
+                  </span>
+                </UnstyledButton>
+              )}
+              {currentMobileLinks.map((link) => renderMobileEntry(link))}
+            </Stack>
+          </Paper>
+        </Box>
+      </MantineHeader>
       {
         // Shrinks in step with the menu's own growth (same duration)
         // rather than vanishing the instant `opened` flips — same
