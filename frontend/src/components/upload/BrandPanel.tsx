@@ -14,9 +14,13 @@ import useTranslate from "../../hooks/useTranslate.hook";
 
 const SLIDE_DURATION_MS = 10000;
 const TRANSITION_MS = 900;
-// How long the "living" drift takes to loop back to its starting point once
-// a slide has settled — kept below the remaining dwell time so it never gets
-// cut off mid-motion by the next slide transition.
+// How long the settled slide's own slow zoom-in takes — sized to the
+// remaining dwell time (total minus the slide transition itself) so it
+// reads as reaching its target right as that slide's turn ends, not
+// visibly rushing or idling. Not load-bearing for correctness the way it
+// once was: see slideImageWrap's own style comment below for why being
+// interrupted mid-zoom (e.g. a visitor pausing/resuming at an odd moment)
+// is now handled gracefully either way.
 const LIVING_DURATION_MS = SLIDE_DURATION_MS - TRANSITION_MS;
 
 // Standard breakpoint set derived (and downloaded, both avif+webp) from
@@ -259,15 +263,6 @@ const useStyles = createStyles((theme) => ({
     objectPosition: "center",
   },
 
-  // Only the currently-settled slide gets this — a slow, linear 7% zoom
-  // across the full dwell time. Subtle on purpose: enough to read as "not a
-  // static photo" without fighting looking at the image itself. Delayed by
-  // the slide transition so it only starts once the scroll has settled, and
-  // holds its end state (fill: forwards) instead of snapping back.
-  living: {
-    animation: `gentleZoom ${LIVING_DURATION_MS}ms linear ${TRANSITION_MS}ms forwards`,
-  },
-
   // On tall content the transfer card (z-index 2, see SplitTransferLayout)
   // can reach far enough down to visually and functionally sit over this
   // bottom-left corner of the image, swallowing clicks meant for the credit
@@ -336,7 +331,7 @@ const useStyles = createStyles((theme) => ({
 }));
 
 const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
-  const { classes, cx } = useStyles();
+  const { classes } = useStyles();
   const theme = useMantineTheme();
   const t = useTranslate();
 
@@ -388,140 +383,177 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
 
   return (
     <>
-    <Box className={classes.panel}>
-      {isReady && (
-        <Box
-          // Fades the whole reveal in once there's something real to show,
-          // rather than popping in the instant the shuffle resolves (which
-          // can be before the chosen image has actually loaded) — a beat
-          // of the panel's own dark background reads as an intentional
-          // transition, not a stall.
-          style={{
-            opacity: 1,
-            animation: prefersReducedMotion
-              ? undefined
-              : "brandPanelFadeIn 500ms ease",
-          }}
-        >
-          {order.map((slide, index) => {
-            const delta = cyclicDelta(current, index, order.length);
-            const isActive = index === current;
-            const slideKey = `${slide.slug}-s${slide.still}`;
-            return (
-              <Box
-                key={slideKey}
-                className={classes.slide}
-                style={{
-                  transform: `translateX(${delta * 100}%)`,
-                  transition: prefersReducedMotion ? "none" : undefined,
-                }}
-              >
+      <Box className={classes.panel}>
+        {isReady && (
+          <Box
+            // Fades the whole reveal in once there's something real to show,
+            // rather than popping in the instant the shuffle resolves (which
+            // can be before the chosen image has actually loaded) — a beat
+            // of the panel's own dark background reads as an intentional
+            // transition, not a stall.
+            style={{
+              opacity: 1,
+              animation: prefersReducedMotion
+                ? undefined
+                : "brandPanelFadeIn 500ms ease",
+            }}
+          >
+            {order.map((slide, index) => {
+              const delta = cyclicDelta(current, index, order.length);
+              const isActive = index === current;
+              const slideKey = `${slide.slug}-s${slide.still}`;
+              return (
                 <Box
-                  // Remounts the animation fresh each time this slide
-                  // becomes active again, instead of resuming mid-phase.
-                  key={isActive ? `${slideKey}-active` : slideKey}
-                  className={cx(classes.slideImageWrap, {
-                    [classes.living]: isActive && !prefersReducedMotion,
-                  })}
+                  key={slideKey}
+                  className={classes.slide}
+                  style={{
+                    transform: `translateX(${delta * 100}%)`,
+                    transition: prefersReducedMotion ? "none" : undefined,
+                  }}
                 >
-                  <picture>
-                    <source
-                      type="image/avif"
-                      srcSet={buildSrcSet(
-                        slide.slug,
-                        slide.still,
-                        slide.widths,
-                        "avif",
-                      )}
-                      sizes={SIZES}
-                    />
-                    <source
-                      type="image/webp"
-                      srcSet={buildSrcSet(
-                        slide.slug,
-                        slide.still,
-                        slide.widths,
-                        "webp",
-                      )}
-                      sizes={SIZES}
-                    />
-                    <img
-                      className={classes.slideImage}
-                      src={`/img/brand/derived/${slide.slug}-s${slide.still}-${slide.widths[1]}.webp`}
-                      alt=""
-                      loading={isActive ? "eager" : "lazy"}
-                      decoding="async"
-                    />
-                  </picture>
-                </Box>
-              </Box>
-            );
-          })}
-        </Box>
-      )}
-    </Box>
-    {
-      // Sibling of `.panel` on purpose, not nested inside it — see
-      // `.caption`'s own styles for why.
-    }
-    {isReady && activeSlide && showCaption && (
-      <Box className={classes.caption}>
-        <Group position="right" spacing="xs" noWrap align="center">
-          {order.length > 1 && (
-            <ActionIcon
-              // A 44px hit area (WCAG 2.5.8) around a 14px glyph —
-              // `size` controls the button's own box, independent of
-              // the icon size passed to the child below, so this
-              // doesn't change how the control looks, just how easy
-              // it is to actually hit on a touch screen.
-              size={44}
-              variant="transparent"
-              className={classes.pauseButton}
-              onClick={() => setIsPaused((paused) => !paused)}
-              aria-label={t(
-                isPaused ? "upload.brand.play" : "upload.brand.pause",
-              )}
-            >
-              {isPaused ? (
-                <TbPlayerPlay size={14} />
-              ) : (
-                <TbPlayerPause size={14} />
-              )}
-            </ActionIcon>
-          )}
-          <Text size="sm" color="gray.3">
-            <FormattedMessage
-              id="upload.brand.caption"
-              values={{
-                title: (
-                  <Anchor
-                    href={`https://majid.film/projects/${activeSlide.slug}/`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    fw={600}
-                    className={classes.captionLink}
-                    // Reverted to the original single accent tone —
-                    // a lighter shade was tried here to raise
-                    // contrast, but swapping the brand's one
-                    // consistent hue for a paler tint broke the DA
-                    // more than the contrast gain was worth.
-                    sx={{
-                      color:
-                        theme.colors[theme.primaryColor][
-                          theme.colorScheme === "dark" ? 4 : 6
-                        ],
+                  <Box
+                    className={classes.slideImageWrap}
+                    style={{
+                      // A slow, linear 7% zoom across the settled slide's
+                      // full dwell time — subtle on purpose, enough to read
+                      // as "not a static photo" without fighting looking at
+                      // the image itself.
+                      //
+                      // A plain two-state transition rather than a
+                      // @keyframes animation (this used to be `animation:
+                      // gentleZoom … forwards`, applied via a `.living`
+                      // class) specifically so reversing it eases smoothly
+                      // instead of snapping: a *transition* interpolates
+                      // from wherever the value currently is toward its new
+                      // target, on the same DOM node, in either direction —
+                      // an *animation* being removed (which is what the old
+                      // class-toggle did the instant a slide stopped being
+                      // current) has no such fallback, it just stops
+                      // applying and the property snaps straight back to
+                      // its unanimated base value. That was a real, visible
+                      // "de-zoom" flash on the outgoing slide, right as it
+                      // started sliding away — reported by the user, not
+                      // theoretical.
+                      //
+                      // This also means the old key={isActive ? … : …}
+                      // remount trick is gone: it existed only to force
+                      // gentleZoom to restart cleanly from scale(1) instead
+                      // of resuming mid-keyframe, which a transition doesn't
+                      // need — retargeting it (isActive flipping) already
+                      // restarts the interpolation cleanly from its current
+                      // value every time, active or not, first cycle or
+                      // fifth.
+                      transform: `scale(${isActive && !prefersReducedMotion ? 1.07 : 1})`,
+                      transition: prefersReducedMotion
+                        ? "none"
+                        : isActive
+                          ? `transform ${LIVING_DURATION_MS}ms linear ${TRANSITION_MS}ms`
+                          : // Matches .slide's own translateX transition
+                            // (duration and easing) so the zoom-out finishes
+                            // exactly as the slide finishes sliding away —
+                            // timed to hide inside that motion rather than
+                            // read as a separate shrink.
+                            `transform ${TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`,
                     }}
                   >
-                    {activeSlide.title}
-                  </Anchor>
-                ),
-                year: activeSlide.year,
-              }}
-            />
-          </Text>
-        </Group>
+                    <picture>
+                      <source
+                        type="image/avif"
+                        srcSet={buildSrcSet(
+                          slide.slug,
+                          slide.still,
+                          slide.widths,
+                          "avif",
+                        )}
+                        sizes={SIZES}
+                      />
+                      <source
+                        type="image/webp"
+                        srcSet={buildSrcSet(
+                          slide.slug,
+                          slide.still,
+                          slide.widths,
+                          "webp",
+                        )}
+                        sizes={SIZES}
+                      />
+                      <img
+                        className={classes.slideImage}
+                        src={`/img/brand/derived/${slide.slug}-s${slide.still}-${slide.widths[1]}.webp`}
+                        alt=""
+                        loading={isActive ? "eager" : "lazy"}
+                        decoding="async"
+                      />
+                    </picture>
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        )}
       </Box>
-    )}
+      {
+        // Sibling of `.panel` on purpose, not nested inside it — see
+        // `.caption`'s own styles for why.
+      }
+      {isReady && activeSlide && showCaption && (
+        <Box className={classes.caption}>
+          <Group position="right" spacing="xs" noWrap align="center">
+            {order.length > 1 && (
+              <ActionIcon
+                // A 44px hit area (WCAG 2.5.8) around a 14px glyph —
+                // `size` controls the button's own box, independent of
+                // the icon size passed to the child below, so this
+                // doesn't change how the control looks, just how easy
+                // it is to actually hit on a touch screen.
+                size={44}
+                variant="transparent"
+                className={classes.pauseButton}
+                onClick={() => setIsPaused((paused) => !paused)}
+                aria-label={t(
+                  isPaused ? "upload.brand.play" : "upload.brand.pause",
+                )}
+              >
+                {isPaused ? (
+                  <TbPlayerPlay size={14} />
+                ) : (
+                  <TbPlayerPause size={14} />
+                )}
+              </ActionIcon>
+            )}
+            <Text size="sm" color="gray.3">
+              <FormattedMessage
+                id="upload.brand.caption"
+                values={{
+                  title: (
+                    <Anchor
+                      href={`https://majid.film/projects/${activeSlide.slug}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      fw={600}
+                      className={classes.captionLink}
+                      // Reverted to the original single accent tone —
+                      // a lighter shade was tried here to raise
+                      // contrast, but swapping the brand's one
+                      // consistent hue for a paler tint broke the DA
+                      // more than the contrast gain was worth.
+                      sx={{
+                        color:
+                          theme.colors[theme.primaryColor][
+                            theme.colorScheme === "dark" ? 4 : 6
+                          ],
+                      }}
+                    >
+                      {activeSlide.title}
+                    </Anchor>
+                  ),
+                  year: activeSlide.year,
+                }}
+              />
+            </Text>
+          </Group>
+        </Box>
+      )}
     </>
   );
 };

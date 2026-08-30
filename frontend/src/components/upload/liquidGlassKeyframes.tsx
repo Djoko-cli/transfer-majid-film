@@ -2,7 +2,7 @@
 // does not reliably turn a top-level `"@keyframes name": {...}` object key
 // into an actual global @keyframes rule — verified empirically: with that
 // pattern, `document.styleSheets` never contained the rule at all, so
-// `animation-name: gentleZoom` / `glintTravel` referenced a keyframes block
+// `animation-name: glintSpin` / `buttonShimmer` referenced a keyframes block
 // that didn't exist, and the animation silently did nothing (browsers treat
 // an unresolvable animation-name as inert rather than erroring).
 //
@@ -31,10 +31,6 @@ const CSS = `
   syntax: '<angle>';
   inherits: false;
   initial-value: 0deg;
-}
-@keyframes gentleZoom {
-  from { transform: scale(1); }
-  to   { transform: scale(1.07); }
 }
 @keyframes glintSpin {
   from { --glint-angle: 0deg; }
