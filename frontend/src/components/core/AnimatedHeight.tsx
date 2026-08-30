@@ -44,7 +44,22 @@ const AnimatedHeight = ({
       sx={{
         height,
         overflow: "hidden",
-        transition: `height ${duration}ms ease`,
+        // Natural deceleration ("confident arrival") rather than plain
+        // `ease` — this only ever grows or shrinks in one direction per
+        // transition, never both, so the symmetric ease-in-out most browsers
+        // give `ease` reads as a slight wobble where a settling-into-place
+        // curve reads as intentional.
+        transition: `height ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`,
+
+        "@media (prefers-reduced-motion: reduce)": {
+          // Still a real state change — content becomes visible/hidden and
+          // the layout still reflows — just without the animated grow/
+          // shrink, which is exactly the spatial movement reduced-motion
+          // visitors opt out of. Near-zero rather than `none`: a hard cut
+          // still reads as an intentional state change rather than a
+          // layout glitch.
+          transitionDuration: "0.01ms",
+        },
       }}
     >
       <div ref={contentRef}>{children}</div>
