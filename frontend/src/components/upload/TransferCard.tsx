@@ -400,7 +400,16 @@ const TransferCard = ({
   return (
     <MantineProvider inherit theme={glassFormTheme}>
       <form onSubmit={onFormSubmit}>
-        <Stack align="stretch">
+        {
+          // spacing={0}: this Stack's only two children now are the
+          // dropzone and the single AnimatedHeight below — gap between
+          // them is handled by that AnimatedHeight's own gapWhenOpen
+          // instead of a blanket Stack gap, specifically so a collapsed
+          // (files.length === 0) card doesn't pay for a gap next to
+          // content that isn't there. See that AnimatedHeight's own
+          // comment for the full reasoning.
+        }
+        <Stack align="stretch" spacing={0}>
           {
             // The dropzone leads — before asking anything about delivery,
             // naming, or recipients, there's nothing to make those
@@ -417,44 +426,41 @@ const TransferCard = ({
             glass
           />
           {
-            // AnimatedHeight rather than Collapse — Collapse only
-            // animates its own `in` toggle (the table's first appearance,
-            // its last disappearance), not the table growing or shrinking
-            // by a row as further files are added/removed while it's
-            // already open. AnimatedHeight's ResizeObserver catches every
-            // one of those the same way.
+            // Everything from here down — the file list, delivery mode,
+            // name, recipients, how long the transfer lives — is what
+            // there's nothing to decide about until a file exists. Hidden
+            // entirely (not just visually) rather than shown-but-inert, so
+            // the initial card is only ever the drop target: one clear
+            // thing to do, not a form's worth of fields with nowhere yet to
+            // apply them. AnimatedHeight rather than Collapse — Collapse
+            // only animates its own `in` toggle, not this region growing or
+            // shrinking further while already open (e.g. the file table
+            // gaining a row), which ResizeObserver-driven AnimatedHeight
+            // catches the same way regardless of what caused it. Re-hides
+            // just as readily if every file is removed again: nothing is
+            // lost when it does, since useForm's state lives in this
+            // component, not in the unmounted fields below.
+            //
+            // One AnimatedHeight for the file list *and* everything below
+            // it, not two — both are gated on the exact same condition and
+            // always reveal together, so a single measured region avoids
+            // reserving gap twice for what is visually one event. That
+            // reservation is real: the Stack above sets its own spacing to
+            // 0 and this passes gapWhenOpen instead, so a collapsed card
+            // has zero dead space below the dropzone's floating "add a
+            // folder" button — a plain Stack gap would otherwise be spent
+            // on this region whether it has anything to show or not.
           }
-          <AnimatedHeight>
-            {files.length > 0 ? (
-              <FileList<FileUpload>
-                files={files}
-                setFiles={setFiles}
-                isUploading={isUploading}
-                onCancel={onCancelUpload}
-                onRetry={onRetryFile}
-              />
-            ) : null}
-          </AnimatedHeight>
-
-          {
-            // Everything from here down is what there's nothing to decide
-            // about until a file exists — delivery mode, name, recipients,
-            // how long the transfer lives. Hidden entirely (not just
-            // visually) rather than shown-but-inert, so the initial card is
-            // only ever the drop target: one clear thing to do, not a
-            // form's worth of fields with nowhere yet to apply them.
-            // AnimatedHeight rather than Collapse for the same reason as
-            // FileList just above (see its own comment) — same pattern, and
-            // it re-hides just as readily if every file is removed again:
-            // nothing is lost when it does, since useForm's state lives in
-            // this component, not in the unmounted fields below. A touch
-            // slower than FileList's own default (300ms vs. 200) — this is
-            // the one moment on the page that earns a deliberate "opening
-            // up" rather than a routine adjustment.
-          }
-          <AnimatedHeight duration={300}>
+          <AnimatedHeight duration={300} gapWhenOpen={16}>
             {files.length > 0 ? (
               <Stack align="stretch">
+                <FileList<FileUpload>
+                  files={files}
+                  setFiles={setFiles}
+                  isUploading={isUploading}
+                  onCancel={onCancelUpload}
+                  onRetry={onRetryFile}
+                />
                 {
                   // Moved below the dropzone (it used to open the card) —
                   // asking how a transfer will be delivered before a single

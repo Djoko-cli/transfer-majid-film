@@ -20,9 +20,18 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 const AnimatedHeight = ({
   children,
   duration = 200,
+  gapWhenOpen = 0,
 }: {
   children: ReactNode;
   duration?: number;
+  // Top margin to apply once there's real content, animated in lockstep
+  // with height — 0 while collapsed. Exists because a flex container's own
+  // `gap` charges every child equally regardless of its measured size: a
+  // 0-height AnimatedHeight still "costs" a full gap on each side, which
+  // reads as dead space once there's nothing after it to visually justify
+  // the reservation (see TransferCard, which sets its wrapping Stack's own
+  // spacing to 0 and passes this instead, for exactly that reason).
+  gapWhenOpen?: number;
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
@@ -43,13 +52,16 @@ const AnimatedHeight = ({
     <Box
       sx={{
         height,
+        marginTop: height > 0 ? gapWhenOpen : 0,
         overflow: "hidden",
         // Natural deceleration ("confident arrival") rather than plain
         // `ease` — this only ever grows or shrinks in one direction per
         // transition, never both, so the symmetric ease-in-out most browsers
         // give `ease` reads as a slight wobble where a settling-into-place
-        // curve reads as intentional.
-        transition: `height ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`,
+        // curve reads as intentional. margin-top rides the same transition
+        // so the gap eases in/out together with the height, not as a
+        // separate jump.
+        transition: `height ${duration}ms cubic-bezier(0.16, 1, 0.3, 1), margin-top ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`,
 
         "@media (prefers-reduced-motion: reduce)": {
           // Still a real state change — content becomes visible/hidden and
