@@ -154,19 +154,27 @@ export const configVariables = {
       type: "string",
       defaultValue: "Des fichiers ont été partagés avec vous",
     },
+    // The creator, link, and expiry are now shown structurally (headline,
+    // meta line, download-link section) in the branded HTML envelope — see
+    // EmailService.sendMailToShareRecipients — so the admin-editable
+    // message itself is just the note, not a restatement of those facts.
+    // {creator}/{creatorEmail}/{shareUrl}/{expires} remain available
+    // substitutions for anyone who customizes this text.
     shareRecipientsMessage: {
       type: "text",
-      defaultValue:
-        "Bonjour !\n\n{creator} ({creatorEmail}) a partagé des fichiers avec vous. Vous pouvez les consulter ou les télécharger via ce lien : {shareUrl}\n\nCe partage expirera {expires}.\n\nNote : {desc}",
+      defaultValue: "{desc}",
     },
     anonymousSenderLinkSubject: {
       type: "string",
       defaultValue: "Votre lien de transfert",
     },
+    // Same reasoning as shareRecipientsMessage above — the link and expiry
+    // are now shown structurally, so the default message is just the one
+    // fact that isn't: this is the only copy of the link.
     anonymousSenderLinkMessage: {
       type: "text",
       defaultValue:
-        "Bonjour !\n\nVoici le lien de votre transfert{name} : {shareUrl}\n\nGardez cet e-mail : c'est le seul moyen de retrouver ce lien si vous le perdez. Ce partage expirera {expires}.",
+        "Gardez cet e-mail : c'est le seul moyen de retrouver ce lien si vous le perdez.",
     },
     reverseShareSubject: {
       type: "string",

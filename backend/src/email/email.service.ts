@@ -9,7 +9,26 @@ import * as nodemailer from "nodemailer";
 import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
 import { APP_NAME } from "src/constants";
+import { byteToHumanSizeString } from "src/utils/fileSize.util";
 import { renderEmailEnvelope } from "./email.template";
+
+export interface TransferFile {
+  name: string;
+  /** Raw byte count as stored on File.size — formatted for display inside sendMail/buildContent. */
+  size: number;
+}
+
+interface SendMailOptions {
+  replyTo?: string;
+  code?: string;
+  ctaUrl?: string;
+  /** Overrides the generic "Open" button label — e.g. "Download your files". */
+  ctaLabel?: string;
+  headline?: string;
+  metaLine?: string;
+  downloadUrl?: string;
+  files?: TransferFile[];
+}
 
 @Injectable()
 export class EmailService {
@@ -44,10 +63,7 @@ export class EmailService {
   // previews the exact same branded envelope real emails go out in, not a
   // simplified stand-in. When HTML is off, returns `text` byte-for-byte —
   // unchanged from this method's behavior before the envelope existed.
-  private buildContent(
-    text: string,
-    options?: { code?: string; ctaUrl?: string },
-  ): string {
+  private buildContent(text: string, options?: SendMailOptions): string {
     if (!this.config.get("email.sendHtmlEmails")) return text;
 
     const appUrl = this.config.get("general.appUrl");
@@ -59,9 +75,33 @@ export class EmailService {
       code: options?.code,
       ctaUrl: options?.ctaUrl,
       ctaLabel: options?.ctaUrl
-        ? this.i18n.t("email.templateCtaButton", {
+        ? options?.ctaLabel ||
+          this.i18n.t("email.templateCtaButton", {
             lang: this.config.get("general.defaultLanguage"),
           })
+        : undefined,
+      headline: options?.headline,
+      metaLine: options?.metaLine,
+      downloadUrl: options?.downloadUrl,
+      downloadUrlLabel: options?.downloadUrl
+        ? this.i18n.t("email.downloadLinkLabel", {
+            lang: this.config.get("general.defaultLanguage"),
+          })
+        : undefined,
+      files: options?.files?.map((file) => ({
+        name: file.name,
+        size: byteToHumanSizeString(file.size),
+      })),
+      filesLabel: options?.files?.length
+        ? this.i18n.t(
+            options.files.length === 1
+              ? "email.filesLabelSingular"
+              : "email.filesLabelPlural",
+            {
+              lang: this.config.get("general.defaultLanguage"),
+              args: { count: options.files.length },
+            },
+          )
         : undefined,
     });
   }
@@ -70,7 +110,7 @@ export class EmailService {
     email: string,
     subject: string,
     text: string,
-    options?: { replyTo?: string; code?: string; ctaUrl?: string },
+    options?: SendMailOptions,
   ) {
     const isHtml = this.config.get("email.sendHtmlEmails");
     const content = this.buildContent(text, options);
@@ -89,6 +129,27 @@ export class EmailService {
       });
   }
 
+  // {size} is already human-formatted (byteToHumanSizeString) by the caller
+  // — this only picks the singular/plural i18n key and formats the date,
+  // mirroring the frontend's own summary.singular/plural pattern for the
+  // completed-upload modal.
+  private buildMetaLine(fileCount: number, totalSize: string, expiration: Date) {
+    const lang = this.config.get("general.defaultLanguage");
+    const locale = this.i18n.translate("email.locale", { lang });
+    const expiresPhrase =
+      moment(expiration).unix() != 0
+        ? this.i18n.t("email.expiresOnLabel", {
+            lang,
+            args: { date: moment(expiration).locale(locale).format("LL") },
+          })
+        : this.i18n.t("email.neverExpiresLabel", { lang });
+
+    return this.i18n.t(
+      fileCount === 1 ? "email.metaLineSingular" : "email.metaLinePlural",
+      { lang, args: { count: fileCount, size: totalSize, expiresPhrase } },
+    );
+  }
+
   async sendMailToShareRecipients(
     recipientEmail: string,
     recipientId: string,
@@ -96,6 +157,7 @@ export class EmailService {
     creator?: User,
     description?: string,
     expiration?: Date,
+    files: TransferFile[] = [],
   ) {
     if (!this.config.get("email.enableShareEmailRecipients"))
       throw new InternalServerErrorException(
@@ -107,6 +169,8 @@ export class EmailService {
     )}/s/${shareId}?recipient=${encodeURIComponent(recipientId)}`;
     const lang = this.config.get("general.defaultLanguage");
     const locale = this.i18n.translate("email.locale", { lang });
+    const creatorName =
+      creator?.username ?? this.i18n.t("email.shareRecipientsCreatorFallback");
 
     let replyTo: string | undefined = undefined;
     if (
@@ -116,17 +180,17 @@ export class EmailService {
       replyTo = `"${creator.username}" <${creator.email}>`;
     }
 
+    const totalSize = byteToHumanSizeString(
+      files.reduce((sum, file) => sum + file.size, 0),
+    );
+
     await this.sendMail(
       recipientEmail,
       this.config.get("email.shareRecipientsSubject"),
       this.config
         .get("email.shareRecipientsMessage")
         .replaceAll("\\n", "\n")
-        .replaceAll(
-          "{creator}",
-          creator?.username ??
-            this.i18n.t("email.shareRecipientsCreatorFallback"),
-        )
+        .replaceAll("{creator}", creatorName)
         .replaceAll("{creatorEmail}", creator?.email ?? "")
         .replaceAll("{shareUrl}", shareUrl)
         .replaceAll(
@@ -139,7 +203,22 @@ export class EmailService {
             ? moment(expiration).locale(locale).fromNow()
             : this.i18n.t("email.shareRecipientsExpiresNeverFallback"),
         ),
-      { replyTo, ctaUrl: shareUrl },
+      {
+        replyTo,
+        ctaUrl: shareUrl,
+        ctaLabel: this.i18n.t("email.downloadButtonLabel", { lang }),
+        headline: this.i18n.t(
+          files.length === 1
+            ? "email.recipientHeadlineSingular"
+            : "email.recipientHeadlinePlural",
+          { lang, args: { creator: creatorName, fileName: files[0]?.name, count: files.length } },
+        ),
+        metaLine: files.length
+          ? this.buildMetaLine(files.length, totalSize, expiration)
+          : undefined,
+        downloadUrl: shareUrl,
+        files,
+      },
     );
   }
 
@@ -209,10 +288,14 @@ export class EmailService {
     shareId: string,
     shareName: string | undefined,
     expiration: Date,
+    files: TransferFile[] = [],
   ) {
     const shareUrl = `${this.config.get("general.appUrl")}/s/${shareId}`;
     const lang = this.config.get("general.defaultLanguage");
     const locale = this.i18n.translate("email.locale", { lang });
+    const totalSize = byteToHumanSizeString(
+      files.reduce((sum, file) => sum + file.size, 0),
+    );
 
     await this.sendMail(
       recipientEmail,
@@ -228,7 +311,23 @@ export class EmailService {
             ? moment(expiration).locale(locale).fromNow()
             : this.i18n.t("email.shareRecipientsExpiresNeverFallback"),
         ),
-      { ctaUrl: shareUrl },
+      {
+        // No CTA button here on purpose — unlike the recipient's email
+        // above, there's no urgent action to take on your own sent
+        // transfer; the link below is a reference copy, not a download
+        // prompt (see EmailEnvelopeOptions.downloadUrl vs ctaUrl).
+        // Mirrors the in-app completed-upload modal's own named/generic
+        // title split (share-ready-named vs share-ready) for consistency
+        // between the live confirmation and this backup email.
+        headline: shareName
+          ? this.i18n.t("email.senderHeadlineNamed", { lang, args: { name: shareName } })
+          : this.i18n.t("email.senderHeadline", { lang }),
+        metaLine: files.length
+          ? this.buildMetaLine(files.length, totalSize, expiration)
+          : undefined,
+        downloadUrl: shareUrl,
+        files,
+      },
     );
   }
 

@@ -8,5 +8,17 @@
   "testText": "Ceci est un email de test",
   "sendFailed": "Échec de l'envoi de l'email",
   "locale": "fr-FR",
-  "templateCtaButton": "Ouvrir"
+  "templateCtaButton": "Ouvrir",
+  "downloadButtonLabel": "Télécharger vos fichiers",
+  "downloadLinkLabel": "Lien de téléchargement",
+  "recipientHeadlineSingular": "{creator} vous a envoyé {fileName}",
+  "recipientHeadlinePlural": "{creator} vous a envoyé {count} fichiers",
+  "senderHeadline": "Hop, c'est envoyé !",
+  "senderHeadlineNamed": "« {name} » est envoyé !",
+  "metaLineSingular": "{count} élément, {size} au total · {expiresPhrase}",
+  "metaLinePlural": "{count} éléments, {size} au total · {expiresPhrase}",
+  "expiresOnLabel": "Expire {date}",
+  "neverExpiresLabel": "N'expire jamais",
+  "filesLabelSingular": "{count} élément",
+  "filesLabelPlural": "{count} éléments"
 }

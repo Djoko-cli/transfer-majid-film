@@ -8,5 +8,17 @@
   "testText": "This is a test email",
   "sendFailed": "Failed to send email",
   "locale": "en-US",
-  "templateCtaButton": "Open"
+  "templateCtaButton": "Open",
+  "downloadButtonLabel": "Download your files",
+  "downloadLinkLabel": "Download link",
+  "recipientHeadlineSingular": "{creator} sent you {fileName}",
+  "recipientHeadlinePlural": "{creator} sent you {count} files",
+  "senderHeadline": "All done!",
+  "senderHeadlineNamed": "“{name}” is on its way!",
+  "metaLineSingular": "{count} item, {size} total · {expiresPhrase}",
+  "metaLinePlural": "{count} items, {size} total · {expiresPhrase}",
+  "expiresOnLabel": "Expires {date}",
+  "neverExpiresLabel": "Never expires",
+  "filesLabelSingular": "{count} item",
+  "filesLabelPlural": "{count} items"
 }

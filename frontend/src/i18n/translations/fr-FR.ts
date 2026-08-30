@@ -625,7 +625,7 @@ export default {
     "Intitulé du courriel envoyé aux destinataires d’un partage.",
   "admin.config.email.share-recipients-message": "Message d’un partage",
   "admin.config.email.share-recipients-message.description":
-    "Contenu du courriel qui est envoyé aux destinataires du partage. Variables possibles :\n {creator} - Le nom d'utilisateur du créateur du partage\n {creatorEmail} - L'adresse mail du créateur du partage\n {shareUrl} - L'URL du partage\n {desc} - La description du partage\n {expires} - La date d'expiration du partage.\n Ces variables seront remplacées par leur valeur effective.",
+    "Contenu du courriel qui est envoyé aux destinataires du partage. Le créateur, le lien et l'expiration s'affichent déjà automatiquement en haut du courriel : ce message n'a besoin de contenir que le reste. Variables possibles :\n {creator} - Le nom d'utilisateur du créateur du partage\n {creatorEmail} - L'adresse mail du créateur du partage\n {shareUrl} - L'URL du partage\n {desc} - La description du partage\n {expires} - La date d'expiration du partage.\n Ces variables seront remplacées par leur valeur effective.",
   "admin.config.email.anonymous-sender-link-subject":
     "Sujet du lien pour l’expéditeur anonyme",
   "admin.config.email.anonymous-sender-link-subject.description":
@@ -633,7 +633,7 @@ export default {
   "admin.config.email.anonymous-sender-link-message":
     "Message du lien pour l’expéditeur anonyme",
   "admin.config.email.anonymous-sender-link-message.description":
-    "Contenu du courriel envoyé à un visiteur non connecté après un dépôt anonyme, avec le lien vers son propre transfert. Variables possibles :\n {name} - Le nom du partage, s’il en a un\n {shareUrl} - L'URL du partage\n {expires} - La date d'expiration du partage.\n Ces variables seront remplacées par leur valeur effective.",
+    "Contenu du courriel envoyé à un visiteur non connecté après un dépôt anonyme, avec le lien vers son propre transfert. Le lien et l'expiration s'affichent déjà automatiquement en haut du courriel : ce message n'a besoin de contenir que le reste. Variables possibles :\n {name} - Le nom du partage, s’il en a un\n {shareUrl} - L'URL du partage\n {expires} - La date d'expiration du partage.\n Ces variables seront remplacées par leur valeur effective.",
   "admin.config.email.reverse-share-subject": "Sujet d’un partage inversé",
   "admin.config.email.reverse-share-subject.description":
     "Intitulé du courriel envoyé lorsque quelqu’un a partagé des fichiers depuis votre partage inversé.",

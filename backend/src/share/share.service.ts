@@ -211,6 +211,13 @@ export class ShareService {
         this.i18n.t("share.completionRequiresFile"),
       );
 
+    // File.size is stored as a string — shared by both email calls below,
+    // which show the transfer's actual contents (see EmailService.TransferFile).
+    const emailFiles = share.files.map((file) => ({
+      name: file.name,
+      size: parseInt(file.size),
+    }));
+
     // Asynchronously create a zip of all files
     if (share.files.length > 1)
       this.createZip(id).then(() =>
@@ -226,6 +233,7 @@ export class ShareService {
         share.creator || share.reverseShare?.creator,
         share.description,
         share.expiration,
+        emailFiles,
       );
     }
 
@@ -276,6 +284,7 @@ export class ShareService {
           share.id,
           share.name,
           share.expiration,
+          emailFiles,
         )
         .catch((e) => this.logger.error(e));
     }

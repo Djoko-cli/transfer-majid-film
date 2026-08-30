@@ -656,7 +656,7 @@ export default {
     "Subject of the email which gets sent to the share recipients.",
   "admin.config.email.share-recipients-message": "Share recipients message",
   "admin.config.email.share-recipients-message.description":
-    "Message which gets sent to the share recipients. Available variables:\n {creator} - The username of the creator of the share\n {creatorEmail} - The email of the creator of the share\n {shareUrl} - The URL of the share\n {desc} - The description of the share\n {expires} - The expiration date of the share\n These variables will be replaced with the actual value.",
+    "Message which gets sent to the share recipients. The creator, link, and expiration already appear automatically at the top of the email — this message only needs to cover the rest. Available variables:\n {creator} - The username of the creator of the share\n {creatorEmail} - The email of the creator of the share\n {shareUrl} - The URL of the share\n {desc} - The description of the share\n {expires} - The expiration date of the share\n These variables will be replaced with the actual value.",
   "admin.config.email.anonymous-sender-link-subject":
     "Anonymous sender link subject",
   "admin.config.email.anonymous-sender-link-subject.description":
@@ -664,7 +664,7 @@ export default {
   "admin.config.email.anonymous-sender-link-message":
     "Anonymous sender link message",
   "admin.config.email.anonymous-sender-link-message.description":
-    "Message sent to a signed-out visitor after an anonymous upload, with the link to their own transfer. Available variables:\n {name} - The name of the share, if it has one\n {shareUrl} - The URL of the share\n {expires} - The expiration date of the share\n These variables will be replaced with the actual value.",
+    "Message sent to a signed-out visitor after an anonymous upload, with the link to their own transfer. The link and expiration already appear automatically at the top of the email — this message only needs to cover the rest. Available variables:\n {name} - The name of the share, if it has one\n {shareUrl} - The URL of the share\n {expires} - The expiration date of the share\n These variables will be replaced with the actual value.",
   "admin.config.email.reverse-share-subject": "Reverse share subject",
   "admin.config.email.reverse-share-subject.description":
     "Subject of the sent email when someone created a share with your reverse share link.",
