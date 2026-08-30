@@ -423,7 +423,20 @@ const Slide = ({
             className={classes.slideImage}
             src={`/img/brand/derived/${slide.slug}-s${slide.still}-${slide.widths[1]}.webp`}
             alt=""
-            loading={isActive ? "eager" : "lazy"}
+            // Eager for the slide right after this one too (delta === 1),
+            // not just the active one — otherwise the *only* thing asking
+            // the browser to fetch it ahead of time is the native
+            // loading="lazy" heuristic, which decides "near enough to the
+            // viewport to bother" using the element's own transformed
+            // position (every slide sits at inset:0, translated off-screen
+            // by transform, not laid out off-screen) and — the part that
+            // actually matters here — narrows that distance on a detected
+            // slow connection specifically, the opposite of what a slow
+            // network needs. Eager removes the guesswork: from the moment
+            // a slide becomes "next", it has this slide's entire ~9s dwell
+            // time to finish fetching, not just whatever's left once the
+            // heuristic decides to start.
+            loading={isActive || delta === 1 ? "eager" : "lazy"}
             decoding="async"
           />
         </picture>
