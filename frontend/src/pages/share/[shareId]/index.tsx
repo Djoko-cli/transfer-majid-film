@@ -307,7 +307,7 @@ const Share = ({ shareId }: { shareId: string }) => {
               <FormattedMessage id="common.button.download" />
             </Button>
           )}
-          {share?.files?.length > 1 && !share?.hasNasImportedFiles && (
+          {share?.files?.length > 1 && (
             <Box mb="lg">
               <DownloadAllButton
                 shareId={shareId}
@@ -316,18 +316,6 @@ const Share = ({ shareId }: { shareId: string }) => {
                 size="md"
               />
             </Box>
-          )}
-          {
-            // NAS-imported shares never generate a real archive.zip (see
-            // ShareService.complete()'s hasNasImportedFiles guard) — a
-            // DownloadAllButton here would poll isZipReady forever and, if
-            // clicked, show the "still preparing" toast indefinitely. Files
-            // remain individually downloadable via FileList below.
-          }
-          {share?.files?.length > 1 && share?.hasNasImportedFiles && (
-            <Text size="sm" color="dimmed" mb="lg">
-              <FormattedMessage id="share.nasImport.download-individually" />
-            </Text>
           )}
 
           <FileList

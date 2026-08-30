@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
+import * as archiver from "archiver";
 import * as crypto from "crypto";
 import { createReadStream } from "fs";
 import * as fs from "fs/promises";
@@ -236,5 +237,42 @@ export class LocalFileService {
         resolve(zipStream);
       });
     });
+  }
+
+  // Live counterpart of getZip() above, for a share with NAS-imported
+  // files — see ShareService.complete()'s own comment on why those never
+  // get a cached archive.zip: generating one would read every symlinked
+  // file and write a real, second copy of the whole thing to local disk,
+  // exactly what importing instead of uploading was meant to avoid. This
+  // builds the same archiver instance createZip() does (same compression
+  // setting, same file list, same per-entry names) but never touches disk
+  // itself: the caller (FileController.getZip(), via StreamableFile) pipes
+  // the returned stream straight to the HTTP response, and archiver
+  // compresses each entry on demand as that consumer reads.
+  //
+  // finalize() is called here, not awaited by the caller, deliberately —
+  // it resolves once every appended entry has been fully read and queued
+  // into archiver's own internal buffer, not once a consumer has drained
+  // that buffer to the client. Awaiting it before anything pipes the
+  // stream would mean waiting on a promise nothing is around to unblock
+  // for a share of any real size, since finalize() and stream consumption
+  // are two independent processes that both need to run concurrently —
+  // the same reason ShareService.createZip() pipes to its write stream
+  // *before* awaiting finalize(), not after.
+  async streamZip(shareId: string): Promise<archiver.Archiver> {
+    const files = await this.prisma.file.findMany({ where: { shareId } });
+    const archive = archiver("zip", {
+      zlib: { level: this.config.get("share.zipCompressionLevel") },
+    });
+
+    for (const file of files) {
+      archive.append(
+        createReadStream(`${SHARE_DIRECTORY}/${shareId}/${file.id}`),
+        { name: file.name },
+      );
+    }
+
+    void archive.finalize();
+    return archive;
   }
 }

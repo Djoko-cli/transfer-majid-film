@@ -567,8 +567,6 @@ export default {
   "share.button.edit-details": "Edit details",
   "share.notify.download-all-preparing":
     "The share is being prepared. Please try again in a few minutes.",
-  "share.nasImport.download-individually":
-    "This transfer contains files already on the server — download them individually below.",
 
   "share.notify.copied-contents": "File contents copied to clipboard",
   "share.notify.copy-too-big-error": "File is too big to copy to clipboard",

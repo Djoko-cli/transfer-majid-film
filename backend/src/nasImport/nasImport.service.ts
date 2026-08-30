@@ -54,6 +54,16 @@ export class NasImportService {
       throw new ServiceUnavailableException(
         this.i18n.t("nasImport.notConfigured"),
       );
+    // A symlink into SHARE_DIRECTORY only means anything on local disk —
+    // ShareService.create()'s storageProvider always follows s3.enabled,
+    // so an S3-backed share here would have every existing S3 code path
+    // (download, zip, ClamAV) try to fetch these files from the S3 bucket
+    // instead of the filesystem, and fail. Blocked outright rather than
+    // silently producing broken shares.
+    if (this.config.get("s3.enabled"))
+      throw new ServiceUnavailableException(
+        this.i18n.t("nasImport.incompatibleWithS3"),
+      );
   }
 
   // Two-stage: a syntactic check against the *requested* path (cheap,

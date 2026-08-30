@@ -184,8 +184,17 @@ export class FileService {
   async getZip(shareId: string): Promise<Readable> {
     const share = await this.prisma.share.findFirst({
       where: { id: shareId },
-      select: { storageProvider: true },
+      select: { storageProvider: true, hasNasImportedFiles: true },
     });
+
+    // A NAS-import share is always local (NasImportService.ensureEnabled
+    // refuses to import while S3 is enabled) and never has a cached
+    // archive.zip on disk — see LocalFileService.streamZip's own comment
+    // for why generating one on completion would defeat the whole
+    // feature. Built live instead, straight into this response.
+    if (share?.hasNasImportedFiles)
+      return await this.localFileService.streamZip(shareId);
+
     const storageService = this.getStorageService(share?.storageProvider);
     return await storageService.getZip(shareId);
   }

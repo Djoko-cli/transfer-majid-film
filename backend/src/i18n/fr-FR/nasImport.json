@@ -1,5 +1,6 @@
 {
   "notConfigured": "L'import depuis le NAS n'est pas configuré sur cette instance",
+  "incompatibleWithS3": "L'import depuis le NAS n'est pas disponible tant que le stockage S3 est activé",
   "pathEscapesRoot": "Ce chemin n'est pas dans le dossier d'import NAS configuré",
   "pathNotFound": "Ce chemin n'existe pas sur le NAS"
 }

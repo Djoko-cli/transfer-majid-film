@@ -537,8 +537,6 @@ export default {
   "share.button.edit-details": "Modifier les détails",
   "share.notify.download-all-preparing":
     "Le partage est en préparation. Réessayez dans quelques minutes.",
-  "share.nasImport.download-individually":
-    "Ce transfert contient des fichiers déjà présents sur le serveur — téléchargez-les individuellement ci-dessous.",
   "share.notify.copied-contents":
     "Contenu du fichier copié dans le presse-papiers",
   "share.notify.copy-too-big-error":

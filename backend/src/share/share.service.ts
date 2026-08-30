@@ -218,19 +218,29 @@ export class ShareService {
       size: parseInt(file.size),
     }));
 
-    // Asynchronously create a zip of all files. Skipped entirely for a
-    // share with NAS-imported files: those are symlinks into
-    // SHARE_DIRECTORY specifically to avoid a real second copy on disk,
-    // and createZip() would read every one of them into a genuine
-    // archive.zip, undoing that. The whole attempt is skipped here rather
-    // than making createZip() itself a no-op, so isZipReady never flips
-    // true for a zip that doesn't exist — DownloadAllButton.tsx polls
-    // isZipReady every 5s until it's true, which would otherwise spin
-    // forever the moment it did.
-    if (share.files.length > 1 && !share.hasNasImportedFiles)
-      this.createZip(id).then(() =>
-        this.prisma.share.update({ where: { id }, data: { isZipReady: true } }),
-      );
+    // Asynchronously create a zip of all files — except for a share with
+    // NAS-imported files, where createZip() would read every symlinked
+    // file into a genuine cached archive.zip, physically duplicating the
+    // imported content onto disk (exactly what importing instead of
+    // uploading exists to avoid). Those get isZipReady set directly
+    // instead: FileService.getZip() builds their zip live, on demand, for
+    // every download rather than once up front, so there's nothing to
+    // wait on — it's "ready" the moment the share is.
+    if (share.files.length > 1) {
+      if (share.hasNasImportedFiles) {
+        await this.prisma.share.update({
+          where: { id },
+          data: { isZipReady: true },
+        });
+      } else {
+        this.createZip(id).then(() =>
+          this.prisma.share.update({
+            where: { id },
+            data: { isZipReady: true },
+          }),
+        );
+      }
+    }
 
     // Send email for each recipient
     for (const recipient of share.recipients) {

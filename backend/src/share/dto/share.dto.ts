@@ -29,8 +29,12 @@ export class ShareDTO {
   @Expose()
   size: number;
 
-  @Expose()
-  hasNasImportedFiles: boolean;
+  // Deliberately NOT @Expose()d — whether a share's files were imported
+  // from the NAS or uploaded normally must be invisible to whoever's
+  // downloading it, not just unstyled in the UI. FileService.getZip()
+  // and ShareService.complete() read the real Prisma field directly
+  // server-side; nothing recipient-facing should ever see it.
+  hasNasImportedFiles?: boolean;
 
   from(partial: Partial<ShareDTO>) {
     return plainToClass(ShareDTO, partial, { excludeExtraneousValues: true });
