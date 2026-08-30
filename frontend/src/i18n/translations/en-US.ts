@@ -567,6 +567,7 @@ export default {
   "share.button.edit-details": "Edit details",
   "share.notify.download-all-preparing":
     "The share is being prepared. Please try again in a few minutes.",
+  "share.notify.download-all-failed": "The download failed. Please try again.",
 
   "share.notify.copied-contents": "File contents copied to clipboard",
   "share.notify.copy-too-big-error": "File is too big to copy to clipboard",

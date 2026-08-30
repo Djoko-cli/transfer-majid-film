@@ -537,6 +537,8 @@ export default {
   "share.button.edit-details": "Modifier les détails",
   "share.notify.download-all-preparing":
     "Le partage est en préparation. Réessayez dans quelques minutes.",
+  "share.notify.download-all-failed":
+    "Le téléchargement a échoué. Veuillez réessayer.",
   "share.notify.copied-contents":
     "Contenu du fichier copié dans le presse-papiers",
   "share.notify.copy-too-big-error":

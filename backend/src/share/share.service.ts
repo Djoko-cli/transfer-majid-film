@@ -295,7 +295,11 @@ export class ShareService {
     // anonymous share regardless of whether that toggle is on. Caught
     // rather than awaited-to-fail: a courtesy backup email should never
     // block the completion response the upload itself is waiting on.
-    if (!share.creator && share.senderEmail && this.config.get("smtp.enabled")) {
+    if (
+      !share.creator &&
+      share.senderEmail &&
+      this.config.get("smtp.enabled")
+    ) {
       await this.emailService
         .sendShareLinkToSender(
           share.senderEmail,
@@ -397,6 +401,12 @@ export class ShareService {
     return {
       ...share,
       hasPassword: !!share.security?.password,
+      // ShareDTO declares size as always-@Expose()d, but it isn't a real
+      // column on Share (see schema.prisma) — every other read path
+      // computes it via transformShare(); this one predates DownloadAllButton
+      // needing it and never did, so it silently serialized as undefined.
+      size:
+        share.files?.reduce((acc, file) => acc + parseInt(file.size), 0) ?? 0,
     };
   }
 

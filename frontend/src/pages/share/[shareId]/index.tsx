@@ -314,6 +314,7 @@ const Share = ({ shareId }: { shareId: string }) => {
                 recipientId={recipientId}
                 fullWidth
                 size="md"
+                totalSize={share?.size}
               />
             </Box>
           )}

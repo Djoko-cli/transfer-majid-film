@@ -112,15 +112,22 @@ const isShareTextFile = (fileName: string) => {
   return mimeType.startsWith("text/");
 };
 
+// Shared by downloadFile below (plain navigation) and
+// DownloadAllButton's own streaming path (a fetch() to this same URL) —
+// one place computing the URL either one actually downloads.
+const getFileUrl = (shareId: string, fileId: string, recipientId?: string) => {
+  const recipientQuery = recipientId
+    ? `?recipient=${encodeURIComponent(recipientId)}`
+    : "";
+  return `${window.location.origin}/api/shares/${shareId}/files/${fileId}${recipientQuery}`;
+};
+
 const downloadFile = async (
   shareId: string,
   fileId: string,
   recipientId?: string,
 ) => {
-  const recipientQuery = recipientId
-    ? `?recipient=${encodeURIComponent(recipientId)}`
-    : "";
-  window.location.href = `${window.location.origin}/api/shares/${shareId}/files/${fileId}${recipientQuery}`;
+  window.location.href = getFileUrl(shareId, fileId, recipientId);
 };
 
 const removeFile = async (shareId: string, fileId: string) => {
@@ -410,6 +417,7 @@ export default {
   isShareIdAvailable,
   isReverseShareTokenAvailable,
   downloadFile,
+  getFileUrl,
   removeFile,
   uploadFile,
   setReverseShare,
