@@ -121,6 +121,18 @@ const useStyles = createStyles((theme, { width }: { width: number }) => {
         // exactly that much pointless scroll even at rest, compact card.
         minHeight: `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px))`,
         padding: `${CARD_MOBILE_VERTICAL_MARGIN}px ${CARD_MOBILE_SIDE_MARGIN}px`,
+        // The spacer subtracted above is invisible flow space, not a
+        // visual obstruction — BrandPanel's fixed photo backdrop shows
+        // straight through it. So centering the card *within* this
+        // (correctly shortened) box alone visually reads as centered in
+        // [header+spacer, footer], not the actually-visible
+        // [header, footer] band the eye judges it against — off by half
+        // the spacer's own height, downward. A transform (not a layout
+        // property — doesn't touch this box's real flow footprint, so
+        // the page-height fix above stays exactly intact) shifts the
+        // *painted* box up by that same half, with no dependency on
+        // header/footer height or the card's own (variable) size.
+        transform: `translateY(-${MOBILE_MENU_SPACER_HEIGHT / 2}px)`,
       },
     },
 
