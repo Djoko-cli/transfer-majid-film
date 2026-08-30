@@ -181,6 +181,15 @@ export class FileService {
     return storageService.deleteAllFiles(shareId);
   }
 
+  async quarantineAllFiles(shareId: string) {
+    const share = await this.prisma.share.findFirst({
+      where: { id: shareId },
+      select: { id: true, storageProvider: true },
+    });
+    const storageService = this.getStorageService(share?.storageProvider);
+    return storageService.quarantineAllFiles(shareId);
+  }
+
   async getZip(shareId: string): Promise<Readable> {
     const share = await this.prisma.share.findFirst({
       where: { id: shareId },
@@ -204,7 +213,11 @@ export class FileService {
   // named recipient was downloaded (an anonymous or signed-in Link-mode
   // share) — notify whoever owns it instead. The two are mutually
   // exclusive by construction, so there's no double-notification risk.
-  async notifyDownload(shareId: string, fileName: string, recipientId?: string) {
+  async notifyDownload(
+    shareId: string,
+    fileName: string,
+    recipientId?: string,
+  ) {
     // Recorded unconditionally, ahead of the notification toggle below —
     // JobsService.notifyExpiringRecipients() needs to know a named
     // recipient already picked this up regardless of whether download

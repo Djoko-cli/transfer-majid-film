@@ -603,18 +603,30 @@ export default {
   "admin.config.clamav.enabled": "Analyser les envois avec ClamAV",
   "admin.config.clamav.enabled.description":
     "Analyse chaque partage envoyé à la recherche de fichiers malveillants avant de le conserver. Les partages infectés sont supprimés automatiquement. Nécessite une instance ClamAV joignable (voir la doc des intégrations).",
+  "admin.config.clamav.infected-file-action": "Action en cas de fichier infecté",
+  "admin.config.clamav.infected-file-action.description":
+    "Ce qu'il advient d'un partage dont ClamAV a détecté un fichier malveillant : supprimé définitivement, ou mis de côté pour vérification.",
+  "admin.config.clamav.infected-file-action.delete": "Supprimer",
+  "admin.config.clamav.infected-file-action.quarantine":
+    "Mettre en quarantaine",
   "admin.clamav.status.title": "État de ClamAV",
   "admin.clamav.status.connected": "Connecté",
   "admin.clamav.status.disconnected": "Non connecté",
+  "admin.clamav.status.database": "Base virale : v{revision} · mise à jour {date}",
+  "admin.clamav.status.database.stale":
+    "Non mise à jour depuis {days} jours — vérifiez que ClamAV peut joindre ses miroirs de mise à jour.",
   "admin.clamav.scans.title": "Historique des analyses",
   "admin.clamav.scans.empty": "Aucune analyse pour l'instant.",
   "admin.clamav.scans.column.date": "Date",
   "admin.clamav.scans.column.share": "Partage",
   "admin.clamav.scans.column.files": "Fichiers",
   "admin.clamav.scans.column.status": "Statut",
+  "admin.clamav.scans.column.action": "Action",
   "admin.clamav.scans.status.clean": "Sain",
   "admin.clamav.scans.status.infected": "Infecté",
   "admin.clamav.scans.status.error": "Erreur",
+  "admin.clamav.scans.action.delete": "Supprimé",
+  "admin.clamav.scans.action.quarantine": "Mis en quarantaine",
   "admin.config.cache.ttl": "DDV",
   "admin.config.cache.ttl.description":
     "Durée de vie des informations conservées en cache.",

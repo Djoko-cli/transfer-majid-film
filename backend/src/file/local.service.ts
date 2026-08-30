@@ -17,7 +17,7 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { byteToHumanSizeString } from "src/utils/fileSize.util";
 import { getUserActiveStorageUsage } from "src/utils/storageQuota.util";
 import { validate as isValidUUID } from "uuid";
-import { SHARE_DIRECTORY } from "../constants";
+import { QUARANTINE_DIRECTORY, SHARE_DIRECTORY } from "../constants";
 import { Readable } from "stream";
 
 @Injectable()
@@ -221,6 +221,34 @@ export class LocalFileService {
       recursive: true,
       force: true,
     });
+  }
+
+  // Moves rather than deletes — used instead of deleteAllFiles when
+  // clamav.infectedFileAction is "quarantine", so an admin can inspect a
+  // flagged share (a false positive, or confirm a real one) before it's
+  // gone for good. fs.rename is a same-filesystem, effectively-instant,
+  // atomic move regardless of the share's size — and, for a NAS-imported
+  // share whose "files" are symlinks (see NasImportService), it moves
+  // the symlink *entry* itself without ever dereferencing it, so the
+  // real file on the NAS this app never copied in the first place stays
+  // completely untouched either way. Falls back to copy+delete only if
+  // QUARANTINE_DIRECTORY is ever reconfigured onto a different
+  // filesystem than SHARE_DIRECTORY, which rename() can't cross.
+  async quarantineAllFiles(shareId: string) {
+    await fs.mkdir(QUARANTINE_DIRECTORY, { recursive: true });
+    const source = `${SHARE_DIRECTORY}/${shareId}`;
+    const destination = `${QUARANTINE_DIRECTORY}/${shareId}`;
+
+    try {
+      await fs.rename(source, destination);
+    } catch (err: any) {
+      if (err?.code !== "EXDEV") throw err;
+      await fs.cp(source, destination, {
+        recursive: true,
+        verbatimSymlinks: true,
+      });
+      await fs.rm(source, { recursive: true, force: true });
+    }
   }
 
   async getZip(shareId: string): Promise<Readable> {

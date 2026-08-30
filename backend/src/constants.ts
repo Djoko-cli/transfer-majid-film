@@ -23,6 +23,15 @@ export const NAS_IMPORT_ROOT = process.env.NAS_IMPORT_ROOT || null;
 
 export const DATA_DIRECTORY = process.env.DATA_DIRECTORY || "./data";
 export const SHARE_DIRECTORY = `${DATA_DIRECTORY}/uploads/shares`;
+// Where a share's files land when clamav.infectedFileAction is
+// "quarantine" instead of "delete" — moved here rather than removed, so
+// an admin can inspect a false positive (or confirm a real one) before
+// it's gone for good, at the cost of leaving the bytes on disk until
+// someone manually clears this directory out. Same volume as
+// SHARE_DIRECTORY (both resolve under DATA_DIRECTORY), which matters:
+// quarantining moves rather than copies, and a same-filesystem rename is
+// what makes that atomic and cheap regardless of how large the share is.
+export const QUARANTINE_DIRECTORY = `${DATA_DIRECTORY}/uploads/quarantine`;
 export const DATABASE_URL =
   process.env.DATABASE_URL || "file:../data/transfer.db?connection_limit=1";
 export const CLAMAV_HOST =

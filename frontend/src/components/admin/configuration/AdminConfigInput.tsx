@@ -17,6 +17,7 @@ import { stringToTimespan, timespanToString } from "../../../utils/date.util";
 import FileSizeInput from "../../core/FileSizeInput";
 import TimespanInput from "../../core/TimespanInput";
 import { LOCALES } from "../../../i18n/locales";
+import useTranslate from "../../../hooks/useTranslate.hook";
 
 const AdminConfigInput = ({
   configVariable,
@@ -31,8 +32,11 @@ const AdminConfigInput = ({
   updatedConfigVariables?: UpdateConfig[];
   optionalConfigVariables?: AdminConfig[];
 }) => {
+  const t = useTranslate();
   const isDefaultLanguageConfig =
     configVariable.key === "general.defaultLanguage";
+  const isInfectedFileActionConfig =
+    configVariable.key === "clamav.infectedFileAction";
   const isEmailShareConfig =
     configVariable.key === "email.enableShareEmailRecipients";
   const isEmailVerificationConfig =
@@ -91,6 +95,27 @@ const AdminConfigInput = ({
             placeholder={configVariable.defaultValue}
             onChange={(value) => onValueChange(configVariable, value ?? "")}
             searchable
+            allowDeselect={false}
+          />
+        ) : isInfectedFileActionConfig ? (
+          <Select
+            style={{
+              width: "100%",
+            }}
+            disabled={!configVariable.allowEdit}
+            data={[
+              {
+                value: "delete",
+                label: t("admin.config.clamav.infected-file-action.delete"),
+              },
+              {
+                value: "quarantine",
+                label: t("admin.config.clamav.infected-file-action.quarantine"),
+              },
+            ]}
+            value={form.values.stringValue}
+            placeholder={configVariable.defaultValue}
+            onChange={(value) => onValueChange(configVariable, value ?? "")}
             allowDeselect={false}
           />
         ) : (

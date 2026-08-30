@@ -128,6 +128,15 @@ export const configVariables = {
       type: "boolean",
       defaultValue: "true",
     },
+    // "delete" preserves the exact behavior this app always had, for
+    // anyone who never visits this setting. "quarantine" moves the
+    // share's files aside (see QUARANTINE_DIRECTORY) instead of removing
+    // them, so a false positive can still be recovered — at the cost of
+    // an admin needing to clear that directory out themselves over time.
+    infectedFileAction: {
+      type: "string",
+      defaultValue: "delete",
+    },
   },
   cache: {
     "redis-enabled": {

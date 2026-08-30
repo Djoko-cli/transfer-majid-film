@@ -18,6 +18,42 @@ const clamscanConfig = {
 
 type ScanStatus = "clean" | "infected" | "error";
 
+type DatabaseInfo = { revision: number; builtAt: string } | null;
+
+// clamd's VERSION command replies with a single line shaped like
+// "ClamAV 1.3.1/27234/Fri Aug 29 08:14:00 2026" — engine version, then
+// the signature database's own revision number, then when that revision
+// was built. Parsed out here so the admin panel can show *when the
+// virus definitions were last updated* rather than just this opaque
+// string — the actual thing an admin checking "is ClamAV working"
+// wants to know, since a stale database (freshclam silently failing,
+// e.g. a NAS firewall blocking its update mirrors) still reports
+// `connected: true` above; a scan still runs, just against
+// signatures a scan a week or a month ago would have caught. Returns
+// nulls rather than throwing on an unexpected format — a parse miss
+// should never take down the status endpoint, only fall back to
+// showing the raw string.
+const parseClamdVersion = (
+  raw: string,
+): { engineVersion: string | null; database: DatabaseInfo } => {
+  const match = raw.trim().match(/^ClamAV\s+(\S+)\/(\d+)\/(.+)$/);
+  if (!match) return { engineVersion: null, database: null };
+
+  const [, engineVersion, revision, builtAtRaw] = match;
+  const builtAt = new Date(builtAtRaw.trim());
+  if (isNaN(builtAt.getTime())) {
+    return { engineVersion, database: null };
+  }
+
+  return {
+    engineVersion,
+    database: {
+      revision: parseInt(revision, 10),
+      builtAt: builtAt.toISOString(),
+    },
+  };
+};
+
 @Injectable()
 export class ClamScanService {
   private readonly logger = new Logger(ClamScanService.name);
@@ -54,17 +90,33 @@ export class ClamScanService {
     enabled: boolean;
     connected: boolean;
     version: string | null;
+    engineVersion: string | null;
+    database: DatabaseInfo;
   }> {
     const enabled = this.config.get("clamav.enabled");
     const clamScan = await this.getClamScan();
 
-    if (!clamScan) return { enabled, connected: false, version: null };
+    if (!clamScan)
+      return {
+        enabled,
+        connected: false,
+        version: null,
+        engineVersion: null,
+        database: null,
+      };
 
     try {
       const version = await clamScan.getVersion();
-      return { enabled, connected: true, version };
+      const { engineVersion, database } = parseClamdVersion(version);
+      return { enabled, connected: true, version, engineVersion, database };
     } catch {
-      return { enabled, connected: true, version: null };
+      return {
+        enabled,
+        connected: true,
+        version: null,
+        engineVersion: null,
+        database: null,
+      };
     }
   }
 
@@ -80,6 +132,11 @@ export class ClamScanService {
     return { scans, total };
   }
 
+  // Returns the created row's id (or null on write failure) so
+  // checkAndRemove can record which action was actually taken
+  // (deleted/quarantined) once it's known — that only happens *after*
+  // this log entry already exists, since it depends on check()'s own
+  // result.
   private async logScan(entry: {
     shareId?: string;
     shareName?: string;
@@ -88,9 +145,9 @@ export class ClamScanService {
     infectedCount?: number;
     infectedFileNames?: string;
     errorMessage?: string;
-  }) {
+  }): Promise<string | null> {
     try {
-      await this.prisma.clamavScan.create({
+      const scan = await this.prisma.clamavScan.create({
         data: {
           shareId: entry.shareId,
           shareName: entry.shareName,
@@ -101,31 +158,42 @@ export class ClamScanService {
           errorMessage: entry.errorMessage,
         },
       });
+      return scan.id;
     } catch (err: any) {
       this.logger.error(
         `Failed to write ClamAV scan log: ${err?.message || "unknown error"}`,
       );
+      return null;
     }
   }
 
-  async check(shareId: string) {
+  // scanId lets checkAndRemove attach which action it ended up taking
+  // (delete/quarantine) to the exact log row this call created, once
+  // that's decided — see logScan's own comment. null when disabled, or
+  // when there was nothing to attach it to in the first place (no share
+  // directory, or the log write itself failed).
+  async check(shareId: string): Promise<{
+    infectedFiles: { id: string; name: string }[];
+    scanId: string | null;
+  }> {
     const share = await this.prisma.share.findUnique({
       where: { id: shareId },
       select: { storageProvider: true, name: true },
     });
 
-    if (!this.config.get("clamav.enabled")) return [];
+    if (!this.config.get("clamav.enabled"))
+      return { infectedFiles: [], scanId: null };
 
     const clamScan = await this.getClamScan();
 
     if (!clamScan) {
-      await this.logScan({
+      const scanId = await this.logScan({
         shareId,
         shareName: share?.name,
         status: "error",
         errorMessage: "ClamAV is enabled but unreachable",
       });
-      return [];
+      return { infectedFiles: [], scanId };
     }
 
     const storageProvider = share?.storageProvider || "LOCAL";
@@ -167,7 +235,7 @@ export class ClamScanService {
           .filter((file) => file != "archive.zip");
       } catch (e) {
         void e;
-        return [];
+        return { infectedFiles: [], scanId: null };
       }
       fileCount = files.length;
 
@@ -198,7 +266,7 @@ export class ClamScanService {
       );
     }
 
-    await this.logScan({
+    const scanId = await this.logScan({
       shareId,
       shareName: share?.name,
       status: infectedFiles.length > 0 ? "infected" : "clean",
@@ -209,20 +277,29 @@ export class ClamScanService {
       errorMessage: scanError,
     });
 
-    return infectedFiles;
+    return { infectedFiles, scanId };
   }
 
   async checkAndRemove(shareId: string) {
     try {
-      const infectedFiles = await this.check(shareId);
+      const { infectedFiles, scanId } = await this.check(shareId);
 
       if (infectedFiles.length > 0) {
+        // "delete" if unset, matching this method's own behavior before
+        // the config existed — an admin who never visits this setting
+        // keeps getting exactly what they already had.
+        const action = this.config.get("clamav.infectedFileAction") || "delete";
+
         try {
-          await this.fileService.deleteAllFiles(shareId);
+          if (action === "quarantine") {
+            await this.fileService.quarantineAllFiles(shareId);
+          } else {
+            await this.fileService.deleteAllFiles(shareId);
+          }
           await this.prisma.file.deleteMany({ where: { shareId } });
         } catch (err: any) {
           this.logger.error(
-            `Failed to delete malicious share ${shareId}: ${err?.message || "unknown error"}`,
+            `Failed to ${action} malicious share ${shareId}: ${err?.message || "unknown error"}`,
           );
           return;
         }
@@ -236,8 +313,18 @@ export class ClamScanService {
           },
         });
 
+        if (scanId) {
+          await this.prisma.clamavScan
+            .update({ where: { id: scanId }, data: { action } })
+            .catch(() => {
+              // Non-critical — the share itself is already handled
+              // correctly above either way; this only affects what the
+              // admin's scan history table displays for this row.
+            });
+        }
+
         this.logger.warn(
-          `Share ${shareId} deleted because it contained ${infectedFiles.length} malicious file(s)`,
+          `Share ${shareId} ${action === "quarantine" ? "quarantined" : "deleted"} because it contained ${infectedFiles.length} malicious file(s)`,
         );
       }
     } catch (err: any) {

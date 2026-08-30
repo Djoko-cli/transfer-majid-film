@@ -330,6 +330,17 @@ export class S3FileService {
     }
   }
 
+  // No S3 equivalent of LocalFileService's rename-into-a-quarantine-
+  // directory yet — S3 has no rename, only copy-then-delete, and doing
+  // that safely (a distinct quarantine prefix or bucket, matching
+  // lifecycle/access policy, cleanup tooling) is real, separate scope
+  // nobody's asked for yet. Falls back to an outright delete so
+  // clamav.infectedFileAction = "quarantine" still does *something* safe
+  // for an S3 share instead of silently doing nothing or throwing.
+  async quarantineAllFiles(shareId: string) {
+    await this.deleteAllFiles(shareId);
+  }
+
   async getFileSize(shareId: string, fileName: string): Promise<number> {
     const key = `${this.getS3Path()}${shareId}/${fileName}`;
     const s3Instance = this.getS3Instance();

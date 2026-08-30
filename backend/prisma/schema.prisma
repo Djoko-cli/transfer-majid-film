@@ -167,7 +167,7 @@ model ShareRecipient {
   // toggle), since JobsService.notifyExpiringRecipients() needs to know
   // "did they ever pick this up" independently of whether that other
   // feature is even enabled.
-  downloadedAt DateTime?
+  downloadedAt         DateTime?
   // Same dedup role as Share.expiryReminderSentAt above, scoped to this
   // one recipient rather than the whole share — each named recipient on
   // an Email-mode share gets their own reminder and their own guard.
@@ -268,6 +268,12 @@ model ClamavScan {
   infectedCount     Int     @default(0)
   infectedFileNames String?
   errorMessage      String?
+  // Only set once infectedCount > 0 and the share was actually acted on
+  // — "deleted" | "quarantined", matching clamav.infectedFileAction at
+  // the time this scan ran (not necessarily what it's set to *now*).
+  // null for every clean/error scan, and for an infected scan whose
+  // own delete/quarantine attempt itself failed (see checkAndRemove).
+  action            String?
 
   @@index([createdAt])
 }

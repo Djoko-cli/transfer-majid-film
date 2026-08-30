@@ -79,6 +79,8 @@ const getClamavStatus = async (): Promise<{
   enabled: boolean;
   connected: boolean;
   version: string | null;
+  engineVersion: string | null;
+  database: { revision: number; builtAt: string } | null;
 }> => {
   return (await api.get("/configs/admin/clamav/status")).data;
 };
@@ -93,6 +95,10 @@ export type ClamavScan = {
   infectedCount: number;
   infectedFileNames: string | null;
   errorMessage: string | null;
+  // Matches clamav.infectedFileAction's own values ("delete"/"quarantine")
+  // exactly — this is that config's value at the time THIS scan ran, not
+  // necessarily what it's set to now.
+  action: "delete" | "quarantine" | null;
 };
 
 const getClamavScans = async (
