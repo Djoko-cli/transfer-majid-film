@@ -9,7 +9,14 @@
 // detect ("showSaveFilePicker" in window) before calling any of this.
 
 interface FileSystemWritableFileStream extends WritableStream {
-  write(data: BufferSource | Blob | string): Promise<void>;
+  // Spelled out as ArrayBufferView | ArrayBuffer rather than the DOM lib's
+  // own BufferSource alias: BufferSource is a type-only name with no
+  // runtime counterpart, which this project's ESLint config (no-undef,
+  // unaware of TS type space) flags as an undefined global in a .d.ts file.
+  // ArrayBufferView/ArrayBuffer are real runtime globals too, so they don't
+  // hit the same false positive — and a Uint8Array chunk (what this file's
+  // only caller actually passes) satisfies ArrayBufferView either way.
+  write(data: ArrayBufferView | ArrayBuffer | Blob | string): Promise<void>;
   close(): Promise<void>;
 }
 
