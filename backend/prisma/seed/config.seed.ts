@@ -110,7 +110,7 @@ export const configVariables = {
     codeMessage: {
       type: "text",
       defaultValue:
-        "Bonjour !\n\nVoici votre code de vérification : {code}\n\nIl expire dans 10 minutes. Saisissez-le pour continuer votre transfert.",
+        "Voici votre code de vérification : {code}\n\nIl expire dans 10 minutes. Saisissez-le pour continuer votre transfert.",
       secret: false,
     },
   },
@@ -183,7 +183,7 @@ export const configVariables = {
     reverseShareMessage: {
       type: "text",
       defaultValue:
-        "Bonjour !\n\nUn partage vient d'être créé avec votre lien de dépôt : {shareUrl}",
+        "Un partage vient d'être créé avec votre lien de dépôt : {shareUrl}",
     },
     resetPasswordSubject: {
       type: "string",
@@ -192,7 +192,7 @@ export const configVariables = {
     resetPasswordMessage: {
       type: "text",
       defaultValue:
-        "Bonjour !\n\nVous avez demandé une réinitialisation de mot de passe. Cliquez sur ce lien pour réinitialiser votre mot de passe : {url}\nCe lien expire dans une heure.",
+        "Vous avez demandé une réinitialisation de mot de passe. Cliquez sur ce lien pour réinitialiser votre mot de passe : {url}\nCe lien expire dans une heure.",
     },
     inviteSubject: {
       type: "string",
@@ -201,7 +201,7 @@ export const configVariables = {
     inviteMessage: {
       type: "text",
       defaultValue:
-        "Bonjour !\n\nVous avez été invité(e). Cliquez sur ce lien pour accepter l'invitation : {url}\n\nVous pouvez utiliser l'adresse e-mail « {email} » et le mot de passe « {password} » pour vous connecter.",
+        "Vous avez été invité(e). Cliquez sur ce lien pour accepter l'invitation : {url}\n\nVous pouvez utiliser l'adresse e-mail « {email} » et le mot de passe « {password} » pour vous connecter.",
     },
     enableShareDownloadNotifications: {
       type: "boolean",
@@ -220,7 +220,7 @@ export const configVariables = {
     shareDownloadNotificationMessage: {
       type: "text",
       defaultValue:
-        "Bonjour !\n\n{recipientEmail} a téléchargé {fileName} depuis votre partage : {shareUrl}",
+        "{recipientEmail} a téléchargé {fileName} depuis votre partage : {shareUrl}",
     },
     // Same notification as above, for a share with no named recipient to
     // report (a Link-mode share, anonymous or signed-in) — no
@@ -232,7 +232,7 @@ export const configVariables = {
     ownerDownloadNotificationMessage: {
       type: "text",
       defaultValue:
-        "Bonjour !\n\n{fileName} a été téléchargé depuis votre partage : {shareUrl}",
+        "{fileName} a été téléchargé depuis votre partage : {shareUrl}",
     },
     enableEmailVerification: {
       type: "boolean",
@@ -246,7 +246,7 @@ export const configVariables = {
     verificationMessage: {
       type: "text",
       defaultValue:
-        "Bonjour !\n\nVous venez de vous inscrire. Saisissez le code {code} pour vérifier votre compte, ou cliquez simplement sur ce lien : {url}\n\nCe code expire dans 60 minutes.",
+        "Vous venez de vous inscrire. Saisissez le code {code} pour vérifier votre compte, ou cliquez simplement sur ce lien : {url}\n\nCe code expire dans 60 minutes.",
     },
   },
   smtp: {

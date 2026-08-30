@@ -45,9 +45,6 @@ verification:
   codeSubject: Votre code de vérification
   #Message which gets sent with the verification code. {code} will be replaced with the actual code.
   codeMessage: >-
-    Bonjour !
-
-
     Voici votre code de vérification : {code}
 
 
@@ -71,54 +68,29 @@ email:
   enableShareEmailRecipients: "false"
   #Subject of the email which gets sent to the share recipients.
   shareRecipientsSubject: Des fichiers ont été partagés avec vous
-  #Message which gets sent to the share recipients. Available variables:
+  #Message which gets sent to the share recipients. The creator, link, and expiration already appear automatically at the top of the email — this message only needs to cover the rest. Available variables:
   # {creator} - The username of the creator of the share
   # {creatorEmail} - The email of the creator of the share
   # {shareUrl} - The URL of the share
   # {desc} - The description of the share
   # {expires} - The expiration date of the share
   # These variables will be replaced with the actual value.
-  shareRecipientsMessage: >-
-    Bonjour !
-
-
-    {creator} ({creatorEmail}) a partagé des fichiers avec vous. Vous pouvez
-    les consulter ou les télécharger via ce lien : {shareUrl}
-
-
-    Ce partage expirera {expires}.
-
-
-    Note : {desc}
+  shareRecipientsMessage: "{desc}"
   #Subject of the email sent to an anonymous (unauthenticated) sender confirming their own transfer link, so it isn't lost if the completion screen is closed before they copy it.
   anonymousSenderLinkSubject: Votre lien de transfert
-  #Message sent to an anonymous sender with their own transfer link. Available variables:
+  #Message sent to an anonymous sender with their own transfer link. The link and expiration already appear automatically at the top of the email — this message only needs to cover the rest. Available variables:
   # {name} - " « <share name> »" (with a leading space) when the share was named, otherwise empty
   # {shareUrl} - The URL of the share
   # {expires} - The expiration date of the share
-  anonymousSenderLinkMessage: >-
-    Bonjour !
-
-
-    Voici le lien de votre transfert{name} : {shareUrl}
-
-
-    Gardez cet e-mail : c'est le seul moyen de retrouver ce lien si vous le
-    perdez. Ce partage expirera {expires}.
+  anonymousSenderLinkMessage: "Gardez cet e-mail : c'est le seul moyen de retrouver ce lien si vous le perdez."
   #Subject of the sent email when someone created a share with your reverse share link.
   reverseShareSubject: Votre lien de dépôt a été utilisé
   #Message which gets sent when someone created a share with your reverse share link. {shareUrl} will be replaced with the creator's name and the share URL.
-  reverseShareMessage: |-
-    Bonjour !
-
-    Un partage vient d'être créé avec votre lien de dépôt : {shareUrl}
+  reverseShareMessage: "Un partage vient d'être créé avec votre lien de dépôt : {shareUrl}"
   #Subject of the sent email when a user requests a password reset.
   resetPasswordSubject: Réinitialisation du mot de passe
   #Message which gets sent when a user requests a password reset. {url} will be replaced with the reset password URL.
   resetPasswordMessage: >-
-    Bonjour !
-
-
     Vous avez demandé une réinitialisation de mot de passe. Cliquez sur ce
     lien pour réinitialiser votre mot de passe : {url}
 
@@ -127,43 +99,40 @@ email:
   inviteSubject: Vous avez été invité(e)
   #Message which gets sent when an admin invites a user. {url} will be replaced with the invite URL, {email} with the email and {password} with the users password.
   inviteMessage: >-
-    Bonjour !
-
-
     Vous avez été invité(e). Cliquez sur ce lien pour accepter l'invitation :
     {url}
 
 
     Vous pouvez utiliser l'adresse e-mail « {email} » et le mot de passe
     « {password} » pour vous connecter.
-  #Whether to send an email to the share creator when an email recipient downloads a file. This requires SMTP and email recipient sharing.
+  #Whether to send an email to the share's creator or sender when a file is downloaded. Requires SMTP.
   enableShareDownloadNotifications: "false"
   #Whether to set the Reply-To header to the email address of the user who created the share.
   shareRecipientsReplyToCreator: "false"
-  #Subject of the email which gets sent to the share creator when a recipient downloads a file.
+  #Subject of the email which gets sent to the share creator when a named recipient downloads a file (Email mode).
   shareDownloadNotificationSubject: Votre fichier a été téléchargé
-  #Message which gets sent to the share creator when a recipient downloads a file. Available variables:
+  #Message which gets sent to the share creator when a named recipient downloads a file (Email mode). Available variables:
   # {recipientEmail} - The email of the recipient
   # {fileName} - The downloaded file name
   # {shareUrl} - The URL of the share
-  shareDownloadNotificationMessage: |-
-    Bonjour !
-
-    {recipientEmail} a téléchargé {fileName} depuis votre partage : {shareUrl}
+  shareDownloadNotificationMessage: "{recipientEmail} a téléchargé {fileName} depuis votre partage : {shareUrl}"
+  #Subject of the email sent to the creator or sender of a share with no named recipient (Link mode) when a file is downloaded.
+  ownerDownloadNotificationSubject: Votre fichier a été téléchargé
+  #Message sent to the creator or sender of a share with no named recipient (Link mode) when a file is downloaded. Available variables:
+  # {fileName} - The downloaded file name
+  # {shareUrl} - The URL of the share
+  ownerDownloadNotificationMessage: "{fileName} a été téléchargé depuis votre partage : {shareUrl}"
   #Whether to require users to verify their email address before being able to sign in. This can only be enabled if SMTP is activated.
   enableEmailVerification: "false"
   #Subject of the email which gets sent to the user when they sign up.
   verificationSubject: Vérifiez votre compte
-  #Message which gets sent to the user when they sign up. {url} will be replaced with the verification URL.
+  #Message which gets sent to the user when they sign up. {code} will be replaced with the 6-digit code to type in, {url} with the equivalent clickable link — both lead to the same verification.
   verificationMessage: >-
-    Bonjour !
+    Vous venez de vous inscrire. Saisissez le code {code} pour vérifier votre
+    compte, ou cliquez simplement sur ce lien : {url}
 
 
-    Vous venez de vous inscrire. Cliquez sur ce lien pour vérifier votre
-    compte : {url}
-
-
-    Ce lien expire dans 24 heures.
+    Ce code expire dans 60 minutes.
 smtp:
   #Whether SMTP is enabled. Only set this to true if you entered the host, port, email, user and password of your SMTP server.
   enabled: "false"
