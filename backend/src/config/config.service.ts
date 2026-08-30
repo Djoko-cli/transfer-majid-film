@@ -218,6 +218,14 @@ export class ConfigService extends EventEmitter {
       if (!(varName in parsed)) continue;
 
       const newValue = parsed[varName];
+      // A blank value means "not set yet" (see secrets.env.example), same
+      // as the key being absent — never "explicitly clear this". Without
+      // this, a secrets.env freshly copied from the example (every line
+      // blank) would wipe every real secret already sitting in the DB the
+      // moment it's first mounted on an instance that predates this file.
+      // Confirmed live: without this guard, that's exactly what happens.
+      // To actually clear one, use the admin panel — unambiguous there.
+      if (newValue === "") continue;
       const currentValue = variable.value ?? variable.defaultValue;
       if (newValue === currentValue) continue;
 
@@ -287,6 +295,15 @@ export class ConfigService extends EventEmitter {
       if (!category || !(variable.name in category)) continue;
 
       const newValue = category[variable.name];
+      // Same reasoning as applySecretsToConfig's own guard: a blank
+      // string is "not filled in yet", never "explicitly clear this" —
+      // otherwise a config.yaml started from config.example.yaml (full of
+      // "" placeholders, e.g. smtp.host) would wipe real values already
+      // configured through the admin panel the moment it's first mounted
+      // on an instance that predates this file. No type value other than
+      // string/text ever legitimately serializes as "" in this app's
+      // convention, so this is safe unconditionally.
+      if (newValue === "") continue;
       const currentValue = variable.value ?? variable.defaultValue;
       if (String(newValue) === String(currentValue)) continue;
 
