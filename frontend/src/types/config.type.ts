@@ -18,7 +18,7 @@ export type AdminConfig = Config & {
   obscured: boolean;
   allowEdit: boolean;
   mirroredToFile: boolean;
-  envManaged: boolean;
+  mirroredToSecretsFile: boolean;
 };
 
 export type AdminConfigGroupedByCategory = {

@@ -160,15 +160,15 @@ const AdminConfigPage: NextPageWithLayout = () => {
                         <FormattedMessage id="admin.config.config-file-sync.description" />
                       </Alert>
                     )}
-                    {configVariables.some((cv) => cv.envManaged) && (
+                    {configVariables.some((cv) => cv.mirroredToSecretsFile) && (
                       <Alert
                         mb={"lg"}
                         variant="light"
-                        color="yellow"
-                        title={t("admin.config.env-managed-secrets.title")}
+                        color="primary"
+                        title={t("admin.config.secrets-file-sync.title")}
                         icon={<TbInfoCircle />}
                       >
-                        <FormattedMessage id="admin.config.env-managed-secrets.description" />
+                        <FormattedMessage id="admin.config.secrets-file-sync.description" />
                       </Alert>
                     )}
                     <Title

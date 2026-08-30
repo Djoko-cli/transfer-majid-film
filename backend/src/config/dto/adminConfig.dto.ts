@@ -24,7 +24,7 @@ export class AdminConfigDTO extends ConfigDTO {
   mirroredToFile: boolean;
 
   @Expose()
-  envManaged: boolean;
+  mirroredToSecretsFile: boolean;
 
   from(partial: Partial<AdminConfigDTO>) {
     return plainToClass(AdminConfigDTO, partial, {

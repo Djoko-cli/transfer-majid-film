@@ -17,7 +17,6 @@ import { stringToTimespan, timespanToString } from "../../../utils/date.util";
 import FileSizeInput from "../../core/FileSizeInput";
 import TimespanInput from "../../core/TimespanInput";
 import { LOCALES } from "../../../i18n/locales";
-import useTranslate from "../../../hooks/useTranslate.hook";
 
 const AdminConfigInput = ({
   configVariable,
@@ -38,7 +37,6 @@ const AdminConfigInput = ({
     configVariable.key === "email.enableShareEmailRecipients";
   const isEmailVerificationConfig =
     configVariable.key === "email.enableEmailVerification";
-  const t = useTranslate();
   let isSmtpEnabled = false;
 
   if (isEmailShareConfig || isEmailVerificationConfig) {
@@ -79,11 +77,6 @@ const AdminConfigInput = ({
               width: "100%",
             }}
             disabled={!configVariable.allowEdit}
-            placeholder={
-              configVariable.envManaged
-                ? t("admin.config.env-managed-placeholder")
-                : undefined
-            }
             {...form.getInputProps("stringValue")}
             onChange={(e) => onValueChange(configVariable, e.target.value)}
           />

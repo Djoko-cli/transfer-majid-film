@@ -34,11 +34,12 @@ export class ConfigService extends EventEmitter {
   private lastWrittenYaml: string | null = null;
 
   // null until a secrets.env is actually found (mirrors yamlConfig above) —
-  // envValueFor below treats null and "key genuinely absent from a found
-  // file" identically (both just fall through to process.env), so this
-  // only needs to distinguish "no file" for initialize()'s watcher gating.
+  // only needed to distinguish "no file" for initialize()'s watcher gating
+  // and getByCategory's mirroredToSecretsFile flag; the DB is what get()
+  // actually reads once applySecretsToConfig has run (see below), same as
+  // config.yaml. Same write<->watch echo-guard role as lastWrittenYaml.
   private secretsFromFile: Record<string, string> | null = null;
-  private lastLoadedSecretsRaw: string | null = null;
+  private lastSecretsRaw: string | null = null;
 
   constructor(
     @Inject("CONFIG_VARIABLES") private configVariables: Config[],
@@ -47,16 +48,15 @@ export class ConfigService extends EventEmitter {
     super();
   }
 
-  // The env-var-secrets escape hatch, alongside config.yaml above: a
-  // secret-shaped field (obscured: true — smtp.password, ldap.bindPassword,
-  // s3.key/secret, oauth.*-clientSecret) can be set via a real environment
-  // variable instead of ever being persisted in a casually-readable form.
-  // Deliberately NOT wired into the yaml mirror at all (writeYamlConfig/
-  // applyYamlToConfig below both skip every obscured field, whether or not
-  // an env var is actually set for it) — the whole point is that a secret
-  // never has to sit in that flat, easily-`cat`-able file. Naming mirrors
-  // this app's own pre-DB-config history (SMTP_PASSWORD, JWT_SECRET, ...):
-  // CATEGORY_NAME, name's own camelCase/dashes turned into more underscores.
+  // secrets.env mirrors every obscured: true field (smtp.password,
+  // ldap.bindPassword, s3.key/secret, oauth.*-clientSecret,
+  // cache.redis-url, ...) the same way config.yaml mirrors everything else
+  // (see loadSecretsFile/writeSecretsFile/applySecretsToConfig below) —
+  // just as its own file, serialized KEY=value, so it can be permissioned
+  // tighter (chmod 600) independently of the rest of the config. Naming
+  // mirrors this app's own pre-DB-config history (SMTP_PASSWORD,
+  // JWT_SECRET, ...): CATEGORY_NAME, name's own camelCase/dashes turned
+  // into more underscores.
   private envVarNameFor(category: string, name: string): string {
     const snake = name
       .replace(/-/g, "_")
@@ -65,16 +65,15 @@ export class ConfigService extends EventEmitter {
     return `${category.toUpperCase()}_${snake}`;
   }
 
-  // secrets.env takes priority over a bare process.env var — it's the
-  // documented, hot-reloadable path (secrets.env.example); a raw
-  // environment variable (set via `docker run -e`, a Kubernetes secret
-  // mounted as env, ...) still works underneath it for anyone not using
-  // the file, exactly as before this file mechanism existed.
-  // undefined (not "") when unset, so callers can `??` past it cleanly.
-  private envValueFor(variable: Config): string | undefined {
+  // Last-resort default for a secret field that's never been set through
+  // either the admin panel or secrets.env — lets a bare `docker run -e` /
+  // Kubernetes-secret-as-env-var still work for anyone not adopting the
+  // file. Once a real value exists in the DB (set via either surface),
+  // get()'s own `??` chain never reaches this again. undefined (not "")
+  // when unset, so callers can `??` past it cleanly.
+  private processEnvFallback(variable: Config): string | undefined {
     if (!variable.obscured) return undefined;
-    const varName = this.envVarNameFor(variable.category, variable.name);
-    const raw = this.secretsFromFile?.[varName] ?? process.env[varName];
+    const raw = process.env[this.envVarNameFor(variable.category, variable.name)];
     return raw ? raw : undefined;
   }
 
@@ -124,36 +123,33 @@ export class ConfigService extends EventEmitter {
     }
   }
 
-  // Read-only counterpart of loadYamlConfig above — same file-watch-for-
-  // hot-reload treatment (see startSecretsWatcher/reloadSecretsFile below),
-  // but deliberately no writeYamlConfig()-equivalent write-back: the entire
-  // reason a secret lives in this file instead of config.yaml is that
-  // config.yaml is a live, app-writable mirror — see envValueFor's comment.
-  // Making secrets.env writable too would just recreate the same exposure
-  // under a different filename. An admin-panel edit to an env-managed field
-  // is rejected outright (update() above) rather than silently accepted
-  // and then overridden again — same reasoning as `locked` fields.
+  // Bidirectional mirror for every obscured field, same idea as
+  // loadYamlConfig above — applySecretsToConfig pushes the file's values
+  // into the DB through the normal update() path (so a value set in the
+  // file is indistinguishable from one set via the admin panel), and
+  // writeSecretsFile at the end backfills the file with any obscured field
+  // it didn't have yet, so a minimal or empty file, once mounted, grows
+  // into a full mirror on its own — exactly like config.yaml does.
   private async loadSecretsFile() {
     let raw: string;
     try {
       raw = fs.readFileSync(SECRETS_FILE, "utf8");
     } catch {
       this.logger.log(
-        "secrets.env is not set. Secret fields fall back to the admin panel or a plain environment variable.",
+        "secrets.env is not set. Secret fields fall back to the admin panel.",
       );
       return;
     }
-    this.lastLoadedSecretsRaw = raw;
+    this.lastSecretsRaw = raw;
     this.secretsFromFile = this.parseSecretsFile(raw);
-    this.logger.log(
-      `Loaded ${Object.keys(this.secretsFromFile).length} secret(s) from ${SECRETS_FILE}.`,
-    );
+    await this.applySecretsToConfig(this.secretsFromFile);
+    await this.writeSecretsFile();
   }
 
   // Triggered by startSecretsWatcher() below on every change to
   // SECRETS_FILE. Never logs a value, only how many were found — same
   // spirit as never sending one to the admin panel in getByCategory below.
-  private reloadSecretsFile() {
+  private async reloadSecretsFile() {
     let raw: string;
     try {
       raw = fs.readFileSync(SECRETS_FILE, "utf8");
@@ -164,21 +160,22 @@ export class ConfigService extends EventEmitter {
       );
       return;
     }
-    if (raw === this.lastLoadedSecretsRaw) return; // Nothing actually changed.
+    if (raw === this.lastSecretsRaw) return; // Our own write echoing back.
 
-    this.lastLoadedSecretsRaw = raw;
     this.secretsFromFile = this.parseSecretsFile(raw);
-    this.logger.log(
-      `Reloaded ${SECRETS_FILE} — ${Object.keys(this.secretsFromFile).length} secret(s) now set.`,
-    );
+    await this.applySecretsToConfig(this.secretsFromFile);
   }
 
   // Deliberately minimal KEY=value parsing rather than pulling in a real
   // dotenv-style library: no multi-line values, no variable expansion, no
-  // `export` prefix. secrets.env.example only ever needs the simple form,
-  // and a parser this small has nowhere to hide a security bug. `#` starts
-  // a full-line comment, blank lines are ignored, and one malformed line
-  // is simply skipped rather than failing the whole file.
+  // `export` prefix — writeSecretsFile below is the only writer this file
+  // ever needs to round-trip through, and a parser this small has nowhere
+  // to hide a security bug. `#` starts a full-line comment, blank lines
+  // are ignored, and one malformed line is simply skipped rather than
+  // failing the whole file. Undoes escapeSecretValue's escaping for a
+  // double-quoted value; a single-quoted one is taken literally (no
+  // escaping) — convenient for a hand-typed value that itself contains a
+  // literal backslash.
   private parseSecretsFile(raw: string): Record<string, string> {
     const result: Record<string, string> = {};
     for (const line of raw.split("\n")) {
@@ -190,14 +187,85 @@ export class ConfigService extends EventEmitter {
 
       const key = trimmed.slice(0, eq).trim();
       let value = trimmed.slice(eq + 1).trim();
-      const isQuoted =
-        (value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"));
-      if (isQuoted && value.length >= 2) value = value.slice(1, -1);
+      if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
+        value = value.slice(1, -1).replace(/\\(.)/g, "$1");
+      } else if (
+        value.startsWith("'") &&
+        value.endsWith("'") &&
+        value.length >= 2
+      ) {
+        value = value.slice(1, -1);
+      }
 
       if (key) result[key] = value;
     }
     return result;
+  }
+
+  // Read-through half of the secrets.env mirror, same role as
+  // applyYamlToConfig below: a value present in the file is pushed into
+  // the DB via the normal update() path, so it's validated, persisted,
+  // and live immediately — indistinguishable from an admin-panel edit.
+  // Unlike applyYamlToConfig, this only ever looks at obscured fields; a
+  // key in the file with no matching one (a typo, or one left over from
+  // a field that no longer exists) is silently ignored rather than
+  // surfaced — there's no admin-panel-visible field it could sensibly
+  // warn against.
+  private async applySecretsToConfig(parsed: Record<string, string>) {
+    for (const variable of this.configVariables) {
+      if (!variable.obscured) continue;
+      const varName = this.envVarNameFor(variable.category, variable.name);
+      if (!(varName in parsed)) continue;
+
+      const newValue = parsed[varName];
+      const currentValue = variable.value ?? variable.defaultValue;
+      if (newValue === currentValue) continue;
+
+      try {
+        await this.update(`${variable.category}.${variable.name}`, newValue);
+      } catch (e) {
+        this.logger.warn(
+          `Skipped invalid value for ${variable.category}.${variable.name} from ${SECRETS_FILE}: ${e.message || e}`,
+        );
+      }
+    }
+  }
+
+  // Write-through half of the secrets.env mirror — same idea as
+  // writeYamlConfig below, scoped to just the obscured fields and
+  // serialized as KEY=value. Only does anything once a secrets.env was
+  // actually found at boot (this.secretsFromFile set), same gating as
+  // writeYamlConfig itself.
+  private async writeSecretsFile() {
+    if (!this.secretsFromFile) return;
+
+    const lines: string[] = [];
+    for (const variable of this.configVariables) {
+      if (!variable.obscured) continue;
+      const varName = this.envVarNameFor(variable.category, variable.name);
+      const value = variable.value ?? variable.defaultValue;
+      lines.push(`${varName}=${this.escapeSecretValue(value)}`);
+    }
+    const content = lines.join("\n") + (lines.length ? "\n" : "");
+    if (content === this.lastSecretsRaw) return;
+
+    try {
+      fs.writeFileSync(SECRETS_FILE, content);
+      this.lastSecretsRaw = content;
+    } catch (e) {
+      this.logger.error(
+        `Failed to write ${SECRETS_FILE} — the change above is still saved to the database and live, just not mirrored to the file until this is fixed (check the mounted file's permissions): `,
+        e,
+      );
+    }
+  }
+
+  // Always double-quoted, regardless of content — simpler and more
+  // robust than conditionally deciding whether a value "needs" it (a
+  // password with a leading/trailing space, or one that happens to start
+  // with #, would otherwise round-trip wrong or look like a comment).
+  private escapeSecretValue(value: string): string {
+    return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
   }
 
   // Shared by the initial boot-time load above and every live reload
@@ -398,8 +466,8 @@ export class ConfigService extends EventEmitter {
     if (!configVariable) throw new Error(`Config variable ${key} not found`);
 
     const value =
-      this.envValueFor(configVariable) ??
       configVariable.value ??
+      this.processEnvFallback(configVariable) ??
       configVariable.defaultValue;
 
     if (configVariable.type == "number" || configVariable.type == "filesize")
@@ -416,29 +484,21 @@ export class ConfigService extends EventEmitter {
       .sort((a, b) => a.order - b.order);
 
     return configVariables.map((variable) => {
-      const envValue = this.envValueFor(variable);
       return {
         ...variable,
         key: `${variable.category}.${variable.name}`,
-        // An env-managed secret is never sent to the browser at all, even
-        // the admin's — there's nothing to prefill an edit form with when
-        // editing is disabled anyway (see allowEdit below), so it's simply
-        // withheld rather than echoed back the way every other field's
-        // current value already is.
-        value: envValue !== undefined ? "" : (variable.value ?? variable.defaultValue),
-        // Editing used to be locked out entirely once a config.yaml was
-        // present — now the file and the admin panel mirror each other
-        // (see writeYamlConfig/applyYamlToConfig), so both stay editable.
-        // An env-managed secret is the one exception: the environment
-        // variable is authoritative, so an admin-panel edit would just be
-        // silently overridden by it again on the next read via get().
-        allowEdit: envValue === undefined,
-        // Lets the admin UI show an informational note (not a lock, see
-        // above) when a config.yaml is actually mounted and being synced.
+        value: variable.value ?? variable.defaultValue,
+        // Every field mirrors the DB in both directions now, config.yaml
+        // and secrets.env alike (see writeYamlConfig/applyYamlToConfig and
+        // writeSecretsFile/applySecretsToConfig) — nothing left that's
+        // admin-panel-locked besides the `locked` fields already filtered
+        // out above.
+        allowEdit: true,
+        // Lets the admin UI show an informational note when config.yaml
+        // is actually mounted and being synced.
         mirroredToFile: !!this.yamlConfig,
-        // Same idea, for the env-var escape hatch on secret fields — lets
-        // the admin UI explain *why* the field above is disabled.
-        envManaged: envValue !== undefined,
+        // Same idea, scoped to the obscured fields and secrets.env.
+        mirroredToSecretsFile: variable.obscured && !!this.secretsFromFile,
       };
     });
   }
@@ -480,21 +540,6 @@ export class ConfigService extends EventEmitter {
         this.t("config.variableNotFound", "Config variable not found"),
       );
 
-    if (this.envValueFor(configVariable) !== undefined)
-      throw new BadRequestException(
-        this.t(
-          "config.envManaged",
-          "{key} is set via the {envVar} environment variable and can't be edited here",
-          {
-            key,
-            envVar: this.envVarNameFor(
-              configVariable.category,
-              configVariable.name,
-            ),
-          },
-        ),
-      );
-
     if (value === "") {
       value = null;
     } else if (
@@ -526,8 +571,10 @@ export class ConfigService extends EventEmitter {
 
     this.emit("update", key, value);
 
-    // No-op unless a config.yaml is actually mounted — see its own comment.
+    // Both no-ops unless the respective file is actually mounted — see
+    // their own comments.
     await this.writeYamlConfig();
+    await this.writeSecretsFile();
 
     return updatedVariable;
   }

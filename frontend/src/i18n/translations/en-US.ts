@@ -591,10 +591,9 @@ export default {
   "admin.config.config-file-sync.title": "Synced with config.yaml",
   "admin.config.config-file-sync.description":
     "A config.yaml file is mounted on this instance. Changes made here are also written to the file, and the other way around — both stay in sync.",
-  "admin.config.env-managed-secrets.title": "Some fields are set outside this panel",
-  "admin.config.env-managed-secrets.description":
-    "A secret below is set through secrets.env or a plain environment variable, which always takes priority — it's never written to config.yaml, and can't be edited here. Remove it from there to manage it from this panel instead.",
-  "admin.config.env-managed-placeholder": "Set via environment variable",
+  "admin.config.secrets-file-sync.title": "Synced with secrets.env",
+  "admin.config.secrets-file-sync.description":
+    "A secrets.env file is mounted on this instance. Secret fields below are also written to it, and the other way around — both stay in sync, kept separate from config.yaml so it can be permissioned tighter.",
   "admin.config.title": "Configuration",
   "admin.config.category.general": "General",
   "admin.config.category.share": "Share",
