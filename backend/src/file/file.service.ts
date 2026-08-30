@@ -196,6 +196,25 @@ export class FileService {
   // share) — notify whoever owns it instead. The two are mutually
   // exclusive by construction, so there's no double-notification risk.
   async notifyDownload(shareId: string, fileName: string, recipientId?: string) {
+    // Recorded unconditionally, ahead of the notification toggle below —
+    // JobsService.notifyExpiringRecipients() needs to know a named
+    // recipient already picked this up regardless of whether download
+    // notifications are even enabled. Only the first download counts (the
+    // where clause no-ops on every download after that).
+    if (recipientId) {
+      await this.prisma.shareRecipient
+        .updateMany({
+          where: { id: recipientId, downloadedAt: null },
+          data: { downloadedAt: new Date() },
+        })
+        .catch((e) =>
+          this.logger.error(
+            `Failed to record download for recipient ${recipientId}`,
+            e,
+          ),
+        );
+    }
+
     if (!this.configService.get("email.enableShareDownloadNotifications"))
       return;
 

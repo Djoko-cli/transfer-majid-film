@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import * as fs from "fs";
 import * as moment from "moment";
+import { EmailService } from "src/email/email.service";
 import { FileService } from "src/file/file.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { ReverseShareService } from "src/reverseShare/reverseShare.service";
@@ -17,6 +18,7 @@ export class JobsService {
     private reverseShareService: ReverseShareService,
     private fileService: FileService,
     private configServer: ConfigService,
+    private emailService: EmailService,
   ) {}
 
   @Cron("* * * * *")
@@ -183,6 +185,136 @@ export class JobsService {
 
     if (unactivatedUsers.length > 0) {
       this.logger.log(`Deleted ${unactivatedUsers.length} unactivated users`);
+    }
+  }
+
+  // Every 15 min rather than hourly, matching deleteExpiredShares' own
+  // per-minute cadence more than the once-a-day jobs above — a short
+  // admin-configured window (expiringSenderNotificationWindow) could
+  // otherwise be missed entirely on a short-lived share.
+  @Cron("*/15 * * * *")
+  async notifyExpiringSenders() {
+    if (
+      !this.configServer.get("smtp.enabled") ||
+      !this.configServer.get("email.enableExpiringSenderNotification")
+    )
+      return;
+
+    const window = this.configServer.get(
+      "email.expiringSenderNotificationWindow",
+    );
+    const threshold = moment().add(window.value, window.unit).toDate();
+
+    const shares = await this.prisma.share.findMany({
+      where: {
+        expiryReminderSentAt: null,
+        expiration: { lte: threshold, gt: new Date() },
+        NOT: { expiration: moment(0).toDate() }, // "never expires" sentinel
+        OR: [{ creatorId: { not: null } }, { senderEmail: { not: null } }],
+      },
+      include: { creator: true, files: true },
+    });
+
+    let sent = 0;
+    for (const share of shares) {
+      // A registered creator can opt out from their own account settings;
+      // an anonymous sender (senderEmail, no account to opt out from) is
+      // always notified, same reasoning as the unconditional "here's your
+      // link" backstop email.
+      if (share.creator && !share.creator.notifyOnExpiringSentShares)
+        continue;
+
+      const ownerEmail = share.creator?.email || share.senderEmail;
+      if (!ownerEmail) continue;
+
+      try {
+        await this.emailService.sendSenderExpiryReminder(
+          ownerEmail,
+          share.id,
+          share.name,
+          share.expiration,
+          share.files.map((file) => ({
+            name: file.name,
+            size: parseInt(file.size),
+          })),
+        );
+        await this.prisma.share.update({
+          where: { id: share.id },
+          data: { expiryReminderSentAt: new Date() },
+        });
+        sent++;
+      } catch (e) {
+        this.logger.error(
+          `Failed to send expiry reminder for share ${share.id}`,
+          e instanceof Error ? e.stack : String(e),
+        );
+      }
+    }
+
+    if (sent > 0) {
+      this.logger.log(`Sent ${sent} sender expiry reminders`);
+    }
+  }
+
+  // Same idea as notifyExpiringSenders above, for a named Email-mode
+  // recipient who hasn't downloaded yet (ShareRecipient.downloadedAt,
+  // set by FileService.notifyDownload). No per-user opt-out to check —
+  // most recipients are plain email addresses with no account at all.
+  @Cron("*/15 * * * *")
+  async notifyExpiringRecipients() {
+    if (
+      !this.configServer.get("smtp.enabled") ||
+      !this.configServer.get("email.enableExpiringRecipientNotification") ||
+      !this.configServer.get("email.enableShareEmailRecipients")
+    )
+      return;
+
+    const window = this.configServer.get(
+      "email.expiringRecipientNotificationWindow",
+    );
+    const threshold = moment().add(window.value, window.unit).toDate();
+
+    const recipients = await this.prisma.shareRecipient.findMany({
+      where: {
+        downloadedAt: null,
+        expiryReminderSentAt: null,
+        share: {
+          expiration: { lte: threshold, gt: new Date() },
+          NOT: { expiration: moment(0).toDate() },
+        },
+      },
+      include: { share: { include: { creator: true, files: true } } },
+    });
+
+    let sent = 0;
+    for (const recipient of recipients) {
+      try {
+        await this.emailService.sendRecipientExpiryReminder(
+          recipient.email,
+          recipient.id,
+          recipient.share.id,
+          recipient.share.creator,
+          recipient.share.expiration,
+          recipient.share.files.map((file) => ({
+            name: file.name,
+            size: parseInt(file.size),
+          })),
+        );
+        await this.prisma.shareRecipient.update({
+          where: { id: recipient.id },
+          data: { expiryReminderSentAt: new Date() },
+        });
+        sent++;
+      } catch (e) {
+        this.logger.error(
+          `Failed to send expiry reminder to recipient ${recipient.id}`,
+          e instanceof Error ? e.stack : String(e),
+        );
+      }
+    }
+
+    if (sent > 0) {
+      this.logger.log(`Sent ${sent} recipient expiry reminders`);
     }
   }
 }

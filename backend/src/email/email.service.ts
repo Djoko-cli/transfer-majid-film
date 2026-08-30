@@ -170,7 +170,8 @@ export class EmailService {
     const lang = this.config.get("general.defaultLanguage");
     const locale = this.i18n.translate("email.locale", { lang });
     const creatorName =
-      creator?.username ?? this.i18n.t("email.shareRecipientsCreatorFallback");
+      creator?.username ??
+      this.i18n.t("email.shareRecipientsCreatorFallback", { lang });
 
     let replyTo: string | undefined = undefined;
     if (
@@ -195,13 +196,16 @@ export class EmailService {
         .replaceAll("{shareUrl}", shareUrl)
         .replaceAll(
           "{desc}",
-          description ?? this.i18n.t("email.shareRecipientsDescFallback"),
+          description ??
+            this.i18n.t("email.shareRecipientsDescFallback", { lang }),
         )
         .replaceAll(
           "{expires}",
           moment(expiration).unix() != 0
             ? moment(expiration).locale(locale).fromNow()
-            : this.i18n.t("email.shareRecipientsExpiresNeverFallback"),
+            : this.i18n.t("email.shareRecipientsExpiresNeverFallback", {
+                lang,
+              }),
         ),
       {
         replyTo,
@@ -309,7 +313,9 @@ export class EmailService {
           "{expires}",
           moment(expiration).unix() != 0
             ? moment(expiration).locale(locale).fromNow()
-            : this.i18n.t("email.shareRecipientsExpiresNeverFallback"),
+            : this.i18n.t("email.shareRecipientsExpiresNeverFallback", {
+                lang,
+              }),
         ),
       {
         // No CTA button here on purpose — unlike the recipient's email
@@ -322,6 +328,101 @@ export class EmailService {
         headline: shareName
           ? this.i18n.t("email.senderHeadlineNamed", { lang, args: { name: shareName } })
           : this.i18n.t("email.senderHeadline", { lang }),
+        metaLine: files.length
+          ? this.buildMetaLine(files.length, totalSize, expiration)
+          : undefined,
+        downloadUrl: shareUrl,
+        files,
+      },
+    );
+  }
+
+  // Nudge for a share that's about to expire and hasn't been picked back
+  // up — sent to whoever owns it (signed-in creator or anonymous
+  // senderEmail) by JobsService.notifyExpiringSenders(). Unlike
+  // sendShareLinkToSender above, this one *does* carry a CTA button: that
+  // email is a passive backup copy of a link you already have, this one
+  // is prompting an action (go check it / grab it again) before it's gone.
+  async sendSenderExpiryReminder(
+    recipientEmail: string,
+    shareId: string,
+    shareName: string | undefined,
+    expiration: Date,
+    files: TransferFile[] = [],
+  ) {
+    const shareUrl = `${this.config.get("general.appUrl")}/s/${shareId}`;
+    const lang = this.config.get("general.defaultLanguage");
+    const locale = this.i18n.translate("email.locale", { lang });
+    const totalSize = byteToHumanSizeString(
+      files.reduce((sum, file) => sum + file.size, 0),
+    );
+
+    await this.sendMail(
+      recipientEmail,
+      this.config.get("email.expiringSenderNotificationSubject"),
+      this.config
+        .get("email.expiringSenderNotificationMessage")
+        .replaceAll("\\n", "\n")
+        .replaceAll("{name}", shareName ? ` « ${shareName} »` : "")
+        .replaceAll("{shareUrl}", shareUrl),
+      {
+        ctaUrl: shareUrl,
+        ctaLabel: this.i18n.t("email.viewShareButtonLabel", { lang }),
+        headline: shareName
+          ? this.i18n.t("email.expiringSenderHeadlineNamed", {
+              lang,
+              args: { name: shareName },
+            })
+          : this.i18n.t("email.expiringSenderHeadline", { lang }),
+        metaLine: files.length
+          ? this.buildMetaLine(files.length, totalSize, expiration)
+          : undefined,
+        downloadUrl: shareUrl,
+        files,
+      },
+    );
+  }
+
+  // Same nudge, for a named Email-mode recipient who hasn't downloaded
+  // yet — sent by JobsService.notifyExpiringRecipients(). Reuses the same
+  // ?recipient= tracking URL sendMailToShareRecipients uses, so a click
+  // through from this email still marks ShareRecipient.downloadedAt via
+  // the normal download path.
+  async sendRecipientExpiryReminder(
+    recipientEmail: string,
+    recipientId: string,
+    shareId: string,
+    creator: User | undefined,
+    expiration: Date,
+    files: TransferFile[] = [],
+  ) {
+    const shareUrl = `${this.config.get(
+      "general.appUrl",
+    )}/s/${shareId}?recipient=${encodeURIComponent(recipientId)}`;
+    const lang = this.config.get("general.defaultLanguage");
+    const totalSize = byteToHumanSizeString(
+      files.reduce((sum, file) => sum + file.size, 0),
+    );
+    const creatorName =
+      creator?.username ??
+      this.i18n.t("email.shareRecipientsCreatorFallback", { lang });
+
+    await this.sendMail(
+      recipientEmail,
+      this.config.get("email.expiringRecipientNotificationSubject"),
+      this.config
+        .get("email.expiringRecipientNotificationMessage")
+        .replaceAll("\\n", "\n")
+        .replaceAll("{shareUrl}", shareUrl),
+      {
+        ctaUrl: shareUrl,
+        ctaLabel: this.i18n.t("email.downloadButtonLabel", { lang }),
+        headline: this.i18n.t(
+          files.length === 1
+            ? "email.expiringRecipientHeadlineSingular"
+            : "email.expiringRecipientHeadlinePlural",
+          { lang, args: { creator: creatorName, fileName: files[0]?.name, count: files.length } },
+        ),
         metaLine: files.length
           ? this.buildMetaLine(files.length, totalSize, expiration)
           : undefined,
@@ -396,8 +497,9 @@ export class EmailService {
 
   async sendTestMail(recipientEmail: string) {
     const isHtml = this.config.get("email.sendHtmlEmails");
-    const subject = this.i18n.t("email.testSubject");
-    const content = this.buildContent(this.i18n.t("email.testText"));
+    const lang = this.config.get("general.defaultLanguage");
+    const subject = this.i18n.t("email.testSubject", { lang });
+    const content = this.buildContent(this.i18n.t("email.testText", { lang }));
 
     // Deliberately doesn't go through the shared sendMail() above — that
     // method swallows the real transport error behind a generic translated

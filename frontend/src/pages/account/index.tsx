@@ -8,6 +8,7 @@ import {
   Paper,
   PasswordInput,
   Stack,
+  Switch,
   Tabs,
   Text,
   TextInput,
@@ -34,6 +35,7 @@ import { getOAuthIcon, getOAuthUrl, unlinkOAuth } from "../../utils/oauth.util";
 import toast from "../../utils/toast.util";
 
 const Account = () => {
+  const [notifyLoading, setNotifyLoading] = useState(false);
   const [oauth, setOAuth] = useState<string[]>([]);
   const [oauthStatus, setOAuthStatus] = useState<Record<
     string,
@@ -394,6 +396,31 @@ const Account = () => {
                 )}
               </Tabs.Panel>
             </Tabs>
+          </Paper>
+          <Paper p="xl" mt="lg">
+            <Title order={5} mb="xs">
+              <FormattedMessage id="account.card.notifications.title" />
+            </Title>
+            <Switch
+              label={t("account.card.notifications.expiring-shares.label")}
+              description={t(
+                "account.card.notifications.expiring-shares.description",
+              )}
+              checked={user?.notifyOnExpiringSentShares ?? true}
+              disabled={notifyLoading}
+              onChange={(event) => {
+                const checked = event.currentTarget.checked;
+                setNotifyLoading(true);
+                userService
+                  .updateCurrentUser({ notifyOnExpiringSentShares: checked })
+                  .then(async () => {
+                    await refreshUser();
+                    toast.success(t("account.notify.notifications.success"));
+                  })
+                  .catch(toast.axiosError)
+                  .finally(() => setNotifyLoading(false));
+              }}
+            />
           </Paper>
           <Paper p="xl" mt="lg">
             <Title order={5} mb="xs">

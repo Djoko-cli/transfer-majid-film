@@ -156,6 +156,13 @@ export default {
   "account.modal.totp.verify": "Verify",
   "account.notify.totp.disable": "TOTP disabled successfully",
   "account.notify.totp.enable": "TOTP enabled successfully",
+  "account.card.notifications.title": "Notifications",
+  "account.card.notifications.expiring-shares.label":
+    "Notify me before my shares expire",
+  "account.card.notifications.expiring-shares.description":
+    "Receive an email when a share you created or sent is about to expire.",
+  "account.notify.notifications.success":
+    "Notification preferences saved.",
 
   "account.card.language.title": "Language",
   "account.card.language.description":
@@ -707,6 +714,38 @@ export default {
     "Download notification message (link)",
   "admin.config.email.owner-download-notification-message.description":
     "Message sent to the creator or sender of a share with no named recipient (Link mode) when a file is downloaded. Available variables:\n {fileName} - The downloaded file name\n {shareUrl} - The URL of the share",
+  "admin.config.email.enable-expiring-sender-notification":
+    "Notify before expiry (sender)",
+  "admin.config.email.enable-expiring-sender-notification.description":
+    "Whether to notify a share's creator or sender when it's about to expire. Each user can turn this off from their own account.",
+  "admin.config.email.expiring-sender-notification-window":
+    "Expiry notice window (sender)",
+  "admin.config.email.expiring-sender-notification-window.description":
+    "How long before a share expires to notify its creator or sender.",
+  "admin.config.email.expiring-sender-notification-subject":
+    "Expiry notice subject (sender)",
+  "admin.config.email.expiring-sender-notification-subject.description":
+    "Subject of the email sent to a share's creator or sender when it's about to expire.",
+  "admin.config.email.expiring-sender-notification-message":
+    "Expiry notice message (sender)",
+  "admin.config.email.expiring-sender-notification-message.description":
+    "Message sent to a share's creator or sender when it's about to expire. The name, link, and expiration already appear automatically at the top of the email. Available variables:\n {name} - The name of the share, if it has one\n {shareUrl} - The URL of the share",
+  "admin.config.email.enable-expiring-recipient-notification":
+    "Notify before expiry (recipient)",
+  "admin.config.email.enable-expiring-recipient-notification.description":
+    "Whether to notify a named recipient (Email mode) who hasn't downloaded a share yet when it's about to expire. Requires email recipient sharing to be enabled.",
+  "admin.config.email.expiring-recipient-notification-window":
+    "Expiry notice window (recipient)",
+  "admin.config.email.expiring-recipient-notification-window.description":
+    "How long before a share expires to notify a recipient who hasn't downloaded it yet.",
+  "admin.config.email.expiring-recipient-notification-subject":
+    "Expiry notice subject (recipient)",
+  "admin.config.email.expiring-recipient-notification-subject.description":
+    "Subject of the email sent to a recipient who hasn't downloaded a share that's about to expire.",
+  "admin.config.email.expiring-recipient-notification-message":
+    "Expiry notice message (recipient)",
+  "admin.config.email.expiring-recipient-notification-message.description":
+    "Message sent to a recipient who hasn't downloaded a share that's about to expire. The link and expiration already appear automatically at the top of the email. Available variables:\n {shareUrl} - The URL of the share",
   "admin.config.email.enable-email-verification": "Enable email verification",
   "admin.config.email.enable-email-verification.description":
     "Whether to require users to verify their email address before being able to sign in. This can only be enabled if SMTP is activated.",

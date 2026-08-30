@@ -38,6 +38,14 @@ model User {
   activationTokenExpiresAt DateTime?
   activationAttempts       Int       @default(0)
 
+  // Granular per-user opt-out for JobsService's sender-side expiry
+  // reminder — only meaningful for a registered creator, who's the only
+  // one with an account/settings to control it from. An anonymous
+  // sender's own reminder (keyed off Share.senderEmail instead) has no
+  // such toggle to check, same reasoning as the unconditional
+  // "here's your link" backstop email.
+  notifyOnExpiringSentShares Boolean @default(true)
+
   oAuthUsers OAuthUser[]
 }
 
@@ -107,6 +115,11 @@ model Share {
   // (share.requireEmailVerificationForAnonymousShares) is even enabled.
   senderEmail String?
 
+  // Set once JobsService.notifyExpiringSenders() has emailed this share's
+  // owner that it's about to expire — the dedup guard against re-sending
+  // every time that job's cron tick runs.
+  expiryReminderSentAt DateTime?
+
   reverseShareId String?
   reverseShare   ReverseShare? @relation(fields: [reverseShareId], references: [id], onDelete: Cascade)
 
@@ -138,6 +151,18 @@ model ReverseShare {
 model ShareRecipient {
   id    String @id @default(uuid())
   email String
+
+  // Set the first time this specific recipient downloads anything from
+  // the share — FileService.notifyDownload's recipientId branch sets it
+  // unconditionally (not gated behind the download-notification email
+  // toggle), since JobsService.notifyExpiringRecipients() needs to know
+  // "did they ever pick this up" independently of whether that other
+  // feature is even enabled.
+  downloadedAt DateTime?
+  // Same dedup role as Share.expiryReminderSentAt above, scoped to this
+  // one recipient rather than the whole share — each named recipient on
+  // an Email-mode share gets their own reminder and their own guard.
+  expiryReminderSentAt DateTime?
 
   shareId String
   share   Share  @relation(fields: [shareId], references: [id], onDelete: Cascade)

@@ -122,6 +122,22 @@ email:
   # {fileName} - The downloaded file name
   # {shareUrl} - The URL of the share
   ownerDownloadNotificationMessage: "{fileName} a été téléchargé depuis votre partage : {shareUrl}"
+  #Whether to email the owner (signed-in creator or anonymous sender) of a share that's about to expire and hasn't been downloaded yet. Requires SMTP. A registered creator can opt out from their own account settings; an anonymous sender is always notified.
+  enableExpiringSenderNotification: "false"
+  #How long before expiration to send the sender's reminder.
+  expiringSenderNotificationWindow: 24 hours
+  #Subject of the expiring-share reminder sent to the sender.
+  expiringSenderNotificationSubject: Votre transfert expire bientôt
+  #Message of the expiring-share reminder sent to the sender.
+  expiringSenderNotificationMessage: Il n'a pas encore été téléchargé.
+  #Whether to email a named Email-mode recipient who hasn't downloaded their share yet, shortly before it expires. Requires SMTP and enableShareEmailRecipients.
+  enableExpiringRecipientNotification: "false"
+  #How long before expiration to send the recipient's reminder.
+  expiringRecipientNotificationWindow: 24 hours
+  #Subject of the expiring-share reminder sent to a recipient.
+  expiringRecipientNotificationSubject: Un transfert qui vous a été envoyé expire bientôt
+  #Message of the expiring-share reminder sent to a recipient.
+  expiringRecipientNotificationMessage: Vous ne l'avez pas encore téléchargé.
   #Whether to require users to verify their email address before being able to sign in. This can only be enabled if SMTP is activated.
   enableEmailVerification: "false"
   #Subject of the email which gets sent to the user when they sign up.

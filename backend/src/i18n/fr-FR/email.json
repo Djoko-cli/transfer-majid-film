@@ -20,5 +20,10 @@
   "expiresOnLabel": "Expire {date}",
   "neverExpiresLabel": "N'expire jamais",
   "filesLabelSingular": "{count} élément",
-  "filesLabelPlural": "{count} éléments"
+  "filesLabelPlural": "{count} éléments",
+  "viewShareButtonLabel": "Voir mon partage",
+  "expiringSenderHeadline": "Votre transfert expire bientôt",
+  "expiringSenderHeadlineNamed": "« {name} » expire bientôt",
+  "expiringRecipientHeadlineSingular": "{creator} vous a envoyé {fileName} — ça expire bientôt",
+  "expiringRecipientHeadlinePlural": "{creator} vous a envoyé {count} fichiers — ça expire bientôt"
 }

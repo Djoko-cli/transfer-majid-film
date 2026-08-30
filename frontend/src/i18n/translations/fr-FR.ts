@@ -149,6 +149,13 @@ export default {
   "account.notify.totp.disable":
     "Double authentification (TOTP) désactivé avec succès",
   "account.notify.totp.enable": "TOTP activé avec succès",
+  "account.card.notifications.title": "Notifications",
+  "account.card.notifications.expiring-shares.label":
+    "M'avertir avant l'expiration de mes partages",
+  "account.card.notifications.expiring-shares.description":
+    "Recevoir un e-mail lorsqu'un partage que vous avez créé ou envoyé est sur le point d'expirer.",
+  "account.notify.notifications.success":
+    "Préférences de notification enregistrées.",
   "account.card.language.title": "Langue",
   "account.card.language.description":
     "Anglais et français sont les deux seules langues maintenues.",
@@ -678,6 +685,38 @@ export default {
     "Message de notification de téléchargement (lien)",
   "admin.config.email.owner-download-notification-message.description":
     "Message envoyé au créateur ou à l'expéditeur d'un partage sans destinataire nommé (mode Lien) lorsqu'un fichier est téléchargé. Variables disponibles :\n {fileName} - Nom du fichier téléchargé\n {shareUrl} - URL du partage",
+  "admin.config.email.enable-expiring-sender-notification":
+    "Alerter avant expiration (expéditeur)",
+  "admin.config.email.enable-expiring-sender-notification.description":
+    "S'il faut prévenir le créateur ou l'expéditeur d'un partage lorsque celui-ci est sur le point d'expirer. Chaque utilisateur peut désactiver cette alerte depuis son compte.",
+  "admin.config.email.expiring-sender-notification-window":
+    "Délai avant expiration (expéditeur)",
+  "admin.config.email.expiring-sender-notification-window.description":
+    "Combien de temps avant l'expiration d'un partage prévenir son créateur ou son expéditeur.",
+  "admin.config.email.expiring-sender-notification-subject":
+    "Sujet d'alerte avant expiration (expéditeur)",
+  "admin.config.email.expiring-sender-notification-subject.description":
+    "Objet de l'e-mail envoyé au créateur ou à l'expéditeur d'un partage sur le point d'expirer.",
+  "admin.config.email.expiring-sender-notification-message":
+    "Message d'alerte avant expiration (expéditeur)",
+  "admin.config.email.expiring-sender-notification-message.description":
+    "Message envoyé au créateur ou à l'expéditeur d'un partage sur le point d'expirer. Le nom, le lien et l'expiration s'affichent déjà automatiquement en haut du courriel. Variables disponibles :\n {name} - Le nom du partage, s'il en a un\n {shareUrl} - L'URL du partage",
+  "admin.config.email.enable-expiring-recipient-notification":
+    "Alerter avant expiration (destinataire)",
+  "admin.config.email.enable-expiring-recipient-notification.description":
+    "S'il faut prévenir un destinataire nommé (mode E-mail) qui n'a pas encore téléchargé un partage lorsque celui-ci est sur le point d'expirer. Nécessite que le partage par e-mail soit activé.",
+  "admin.config.email.expiring-recipient-notification-window":
+    "Délai avant expiration (destinataire)",
+  "admin.config.email.expiring-recipient-notification-window.description":
+    "Combien de temps avant l'expiration d'un partage prévenir un destinataire qui ne l'a pas encore téléchargé.",
+  "admin.config.email.expiring-recipient-notification-subject":
+    "Sujet d'alerte avant expiration (destinataire)",
+  "admin.config.email.expiring-recipient-notification-subject.description":
+    "Objet de l'e-mail envoyé à un destinataire n'ayant pas encore téléchargé un partage sur le point d'expirer.",
+  "admin.config.email.expiring-recipient-notification-message":
+    "Message d'alerte avant expiration (destinataire)",
+  "admin.config.email.expiring-recipient-notification-message.description":
+    "Message envoyé à un destinataire n'ayant pas encore téléchargé un partage sur le point d'expirer. Le lien et l'expiration s'affichent déjà automatiquement en haut du courriel. Variables disponibles :\n {shareUrl} - L'URL du partage",
   "admin.config.email.enable-email-verification":
     "Activer l'email de vérification",
   "admin.config.email.enable-email-verification.description":

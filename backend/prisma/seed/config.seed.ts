@@ -234,6 +234,51 @@ export const configVariables = {
       defaultValue:
         "{fileName} a été téléchargé depuis votre partage : {shareUrl}",
     },
+    // Reminds the owner (signed-in creator or anonymous senderEmail) of a
+    // share that's about to expire — see JobsService.notifyExpiringSenders.
+    // Per-user opt-out for a registered creator lives on User itself
+    // (account.notifications), not here — this only gates the feature
+    // globally.
+    enableExpiringSenderNotification: {
+      type: "boolean",
+      defaultValue: "false",
+      secret: false,
+    },
+    expiringSenderNotificationWindow: {
+      type: "timespan",
+      defaultValue: "24 hours",
+      secret: false,
+    },
+    expiringSenderNotificationSubject: {
+      type: "string",
+      defaultValue: "Votre transfert expire bientôt",
+    },
+    expiringSenderNotificationMessage: {
+      type: "text",
+      defaultValue: "Il n'a pas encore été téléchargé.",
+    },
+    // Same idea, for a named Email-mode recipient who hasn't downloaded
+    // yet — see JobsService.notifyExpiringRecipients. No per-user
+    // opt-out: most recipients are plain email addresses with no account
+    // at all, same reasoning as shareRecipientsMessage having none either.
+    enableExpiringRecipientNotification: {
+      type: "boolean",
+      defaultValue: "false",
+      secret: false,
+    },
+    expiringRecipientNotificationWindow: {
+      type: "timespan",
+      defaultValue: "24 hours",
+      secret: false,
+    },
+    expiringRecipientNotificationSubject: {
+      type: "string",
+      defaultValue: "Un transfert qui vous a été envoyé expire bientôt",
+    },
+    expiringRecipientNotificationMessage: {
+      type: "text",
+      defaultValue: "Vous ne l'avez pas encore téléchargé.",
+    },
     enableEmailVerification: {
       type: "boolean",
       defaultValue: "false",
