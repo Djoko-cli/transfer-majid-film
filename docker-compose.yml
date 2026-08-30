@@ -10,18 +10,6 @@ services:
       - PGID=100
       - DATABASE_URL=file:/db/transfer.db?connection_limit=1
 
-    # Secrets (SMTP/LDAP/S3/OAuth passwords and keys) — deliberately NOT in
-    # config.yaml below, which is a plain, live-synced, casually-readable
-    # file. `required: false` means a missing file is just "no overrides",
-    # same as any single variable left unset inside it — see
-    # secrets.env.example at the repo root for the full list and setup:
-    #   cp secrets.env.example secrets.env && chmod 600 secrets.env
-    # Unlike config.yaml, read once at container start — no live watcher,
-    # so a change here needs a restart (`docker compose up -d`) to apply.
-    env_file:
-      - path: /volume2/docker/transfer/secrets.env
-        required: false
-
     volumes:
       - /volume2/docker/transfer/db:/db
       - /volume1/Transfer:/opt/app/backend/data
@@ -33,6 +21,16 @@ services:
       # file bind mount over a path that doesn't exist yet gets created as
       # a directory instead), and be writable by PUID:PGID above.
       - /volume2/docker/transfer/config.yaml:/opt/app/config.yaml
+      # Secrets (SMTP/LDAP/S3/OAuth passwords and keys) — deliberately a
+      # separate file from config.yaml above: see secrets.env.example at
+      # the repo root for the full list, and why. Hot-reloaded the same
+      # way config.yaml is (no restart needed to pick up a change), but
+      # mounted `:ro` — unlike config.yaml this one is never written back
+      # to by the app, only ever read, so read-only is enforced at the
+      # mount level too, not just in application code. Same pre-existence
+      # requirement as config.yaml above:
+      #   cp secrets.env.example secrets.env && chmod 600 secrets.env
+      - /volume2/docker/transfer/secrets.env:/opt/app/secrets.env:ro
 
     # Transfer's own Caddy listens internally on port 3000 and fronts both
     # the frontend and the backend (splitting /api/* to the backend) — it

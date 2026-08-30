@@ -15,7 +15,7 @@ import { stringToTimespan } from "src/utils/date.util";
 import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 import { I18nContext } from "nestjs-i18n";
 import { YamlConfig } from "../../prisma/seed/config.seed";
-import { CONFIG_FILE } from "src/constants";
+import { CONFIG_FILE, SECRETS_FILE } from "src/constants";
 
 /**
  * ConfigService extends EventEmitter to allow listening for config updates,
@@ -32,7 +32,13 @@ export class ConfigService extends EventEmitter {
   // rewriting itself (e.g. into canonical formatting right after a hand
   // edit) never gets mistaken for a second external change and reprocessed.
   private lastWrittenYaml: string | null = null;
-  private yamlWatchDebounce: ReturnType<typeof setTimeout>;
+
+  // null until a secrets.env is actually found (mirrors yamlConfig above) —
+  // envValueFor below treats null and "key genuinely absent from a found
+  // file" identically (both just fall through to process.env), so this
+  // only needs to distinguish "no file" for initialize()'s watcher gating.
+  private secretsFromFile: Record<string, string> | null = null;
+  private lastLoadedSecretsRaw: string | null = null;
 
   constructor(
     @Inject("CONFIG_VARIABLES") private configVariables: Config[],
@@ -59,20 +65,30 @@ export class ConfigService extends EventEmitter {
     return `${category.toUpperCase()}_${snake}`;
   }
 
+  // secrets.env takes priority over a bare process.env var — it's the
+  // documented, hot-reloadable path (secrets.env.example); a raw
+  // environment variable (set via `docker run -e`, a Kubernetes secret
+  // mounted as env, ...) still works underneath it for anyone not using
+  // the file, exactly as before this file mechanism existed.
   // undefined (not "") when unset, so callers can `??` past it cleanly.
   private envValueFor(variable: Config): string | undefined {
     if (!variable.obscured) return undefined;
-    const raw = process.env[this.envVarNameFor(variable.category, variable.name)];
+    const varName = this.envVarNameFor(variable.category, variable.name);
+    const raw = this.secretsFromFile?.[varName] ?? process.env[varName];
     return raw ? raw : undefined;
   }
 
   // Initialize gets called by the ConfigModule
   async initialize() {
     await this.loadYamlConfig();
+    await this.loadSecretsFile();
 
     if (this.yamlConfig) {
       await this.migrateInitUser();
       this.startYamlWatcher();
+    }
+    if (this.secretsFromFile) {
+      this.startSecretsWatcher();
     }
   }
 
@@ -106,6 +122,82 @@ export class ConfigService extends EventEmitter {
         e,
       );
     }
+  }
+
+  // Read-only counterpart of loadYamlConfig above — same file-watch-for-
+  // hot-reload treatment (see startSecretsWatcher/reloadSecretsFile below),
+  // but deliberately no writeYamlConfig()-equivalent write-back: the entire
+  // reason a secret lives in this file instead of config.yaml is that
+  // config.yaml is a live, app-writable mirror — see envValueFor's comment.
+  // Making secrets.env writable too would just recreate the same exposure
+  // under a different filename. An admin-panel edit to an env-managed field
+  // is rejected outright (update() above) rather than silently accepted
+  // and then overridden again — same reasoning as `locked` fields.
+  private async loadSecretsFile() {
+    let raw: string;
+    try {
+      raw = fs.readFileSync(SECRETS_FILE, "utf8");
+    } catch {
+      this.logger.log(
+        "secrets.env is not set. Secret fields fall back to the admin panel or a plain environment variable.",
+      );
+      return;
+    }
+    this.lastLoadedSecretsRaw = raw;
+    this.secretsFromFile = this.parseSecretsFile(raw);
+    this.logger.log(
+      `Loaded ${Object.keys(this.secretsFromFile).length} secret(s) from ${SECRETS_FILE}.`,
+    );
+  }
+
+  // Triggered by startSecretsWatcher() below on every change to
+  // SECRETS_FILE. Never logs a value, only how many were found — same
+  // spirit as never sending one to the admin panel in getByCategory below.
+  private reloadSecretsFile() {
+    let raw: string;
+    try {
+      raw = fs.readFileSync(SECRETS_FILE, "utf8");
+    } catch (e) {
+      this.logger.warn(
+        `Could not read ${SECRETS_FILE} after a change event: `,
+        e,
+      );
+      return;
+    }
+    if (raw === this.lastLoadedSecretsRaw) return; // Nothing actually changed.
+
+    this.lastLoadedSecretsRaw = raw;
+    this.secretsFromFile = this.parseSecretsFile(raw);
+    this.logger.log(
+      `Reloaded ${SECRETS_FILE} — ${Object.keys(this.secretsFromFile).length} secret(s) now set.`,
+    );
+  }
+
+  // Deliberately minimal KEY=value parsing rather than pulling in a real
+  // dotenv-style library: no multi-line values, no variable expansion, no
+  // `export` prefix. secrets.env.example only ever needs the simple form,
+  // and a parser this small has nowhere to hide a security bug. `#` starts
+  // a full-line comment, blank lines are ignored, and one malformed line
+  // is simply skipped rather than failing the whole file.
+  private parseSecretsFile(raw: string): Record<string, string> {
+    const result: Record<string, string> = {};
+    for (const line of raw.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+
+      const eq = trimmed.indexOf("=");
+      if (eq === -1) continue;
+
+      const key = trimmed.slice(0, eq).trim();
+      let value = trimmed.slice(eq + 1).trim();
+      const isQuoted =
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"));
+      if (isQuoted && value.length >= 2) value = value.slice(1, -1);
+
+      if (key) result[key] = value;
+    }
+    return result;
   }
 
   // Shared by the initial boot-time load above and every live reload
@@ -215,26 +307,38 @@ export class ConfigService extends EventEmitter {
   // bound to the original inode goes silently stale the moment it's
   // replaced — confirmed while testing this locally. A directory watch,
   // filtered to this one filename, doesn't have that failure mode.
-  private startYamlWatcher() {
+  //
+  // Shared with startSecretsWatcher below — each call closes over its own
+  // debounce timer, so the two files' watchers never interfere with each
+  // other despite sharing this one implementation.
+  private watchFile(filePath: string, onChange: () => void) {
+    let debounce: ReturnType<typeof setTimeout>;
     try {
       fs.watch(
-        path.dirname(CONFIG_FILE),
+        path.dirname(filePath),
         { persistent: false },
         (_eventType, filename) => {
-          if (filename && filename !== path.basename(CONFIG_FILE)) return;
-          clearTimeout(this.yamlWatchDebounce);
-          this.yamlWatchDebounce = setTimeout(
-            () => this.reloadFromYamlFile(),
-            300,
-          );
+          if (filename && filename !== path.basename(filePath)) return;
+          clearTimeout(debounce);
+          debounce = setTimeout(onChange, 300);
         },
       );
     } catch (e) {
       this.logger.error(
-        `Failed to watch ${path.dirname(CONFIG_FILE)} for changes to ${CONFIG_FILE}: `,
+        `Failed to watch ${path.dirname(filePath)} for changes to ${filePath}: `,
         e,
       );
     }
+  }
+
+  private startYamlWatcher() {
+    this.watchFile(CONFIG_FILE, () => this.reloadFromYamlFile());
+  }
+
+  // Read-through hot-reload for secrets.env, exactly like startYamlWatcher
+  // above — no write-back counterpart, see loadSecretsFile's comment.
+  private startSecretsWatcher() {
+    this.watchFile(SECRETS_FILE, () => this.reloadSecretsFile());
   }
 
   private async reloadFromYamlFile() {

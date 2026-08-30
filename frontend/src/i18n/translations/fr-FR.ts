@@ -558,9 +558,9 @@ export default {
   "admin.config.config-file-sync.title": "Synchronisé avec config.yaml",
   "admin.config.config-file-sync.description":
     "Un fichier config.yaml est monté sur cette instance. Les modifications faites ici sont aussi écrites dans le fichier, et inversement — les deux restent synchronisés.",
-  "admin.config.env-managed-secrets.title": "Certains champs sont définis via variable d'environnement",
+  "admin.config.env-managed-secrets.title": "Certains champs sont définis en dehors de ce panneau",
   "admin.config.env-managed-secrets.description":
-    "Un secret ci-dessous est défini via une variable d'environnement, qui est toujours prioritaire — elle n'est jamais écrite dans config.yaml, et ne peut pas être modifiée ici. Retirez la variable pour le gérer depuis ce panneau à la place.",
+    "Un secret ci-dessous est défini via secrets.env ou une simple variable d'environnement, qui est toujours prioritaire — il n'est jamais écrit dans config.yaml, et ne peut pas être modifié ici. Retirez-le de là pour le gérer depuis ce panneau à la place.",
   "admin.config.env-managed-placeholder": "Défini via variable d'environnement",
   "admin.config.title": "Paramètres",
   "admin.config.category.general": "Général",

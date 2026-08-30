@@ -7,6 +7,13 @@ export const APP_NAME = "Transfer";
 
 export const CONFIG_FILE = process.env.CONFIG_FILE || "../config.yaml";
 
+// Same resolution convention as CONFIG_FILE above, deliberately a separate
+// file from it — see ConfigService's envValueFor comment for why secrets
+// never live in config.yaml. Read-only: ConfigService watches this one for
+// hot-reload like config.yaml, but (also unlike config.yaml) never writes
+// to it — see loadSecretsFile's own comment.
+export const SECRETS_FILE = process.env.SECRETS_FILE || "../secrets.env";
+
 export const DATA_DIRECTORY = process.env.DATA_DIRECTORY || "./data";
 export const SHARE_DIRECTORY = `${DATA_DIRECTORY}/uploads/shares`;
 export const DATABASE_URL =
