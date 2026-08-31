@@ -378,6 +378,16 @@ export default {
   "admin.brand.still.enabled": "Shown",
   "admin.brand.project.enableAll": "Enable all",
   "admin.brand.project.disableAll": "Disable all",
+  "admin.brand.notSynced.title": "Not synced yet",
+  "admin.brand.notSynced.description":
+    "No projects have been synced from majid.film yet. Run a sync to populate the slideshow.",
+  "admin.brand.sync.button": "Sync now",
+  "admin.brand.sync.enable": "Automatic sync",
+  "admin.brand.sync.enable.description":
+    "Checks nightly for new projects or images on majid.film.",
+  "admin.brand.sync.notify.success":
+    "Sync complete: {newProjects} new project(s), {newStills} new image(s)",
+  "admin.brand.sync.notify.upToDate": "Already up to date, nothing new",
   // END /admin/brand
 
   // /upload

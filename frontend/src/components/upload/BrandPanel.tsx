@@ -13,7 +13,10 @@ import { TbPlayerPause, TbPlayerPlay } from "react-icons/tb";
 import { PROJECTS } from "../../data/brandProjects";
 import useTranslate from "../../hooks/useTranslate.hook";
 import brandSlideService from "../../services/brandSlide.service";
-import { DisabledBrandSlide } from "../../types/brandSlide.type";
+import {
+  BrandCatalogProject,
+  DisabledBrandSlide,
+} from "../../types/brandSlide.type";
 
 const SLIDE_DURATION_MS = 10000;
 const TRANSITION_MS = 900;
@@ -44,10 +47,28 @@ const STANDARD_WIDTHS = [640, 1280, 2048, 3840];
 // stills actually reach the rotation below), rather than kept as two
 // copies that could drift apart.
 
-// Flattened to one slide per (project, still) pair — every still of a
-// project shares its title/year/credit-link but gets its own unique key and
-// its own resolved width list.
-const SLIDES = PROJECTS.flatMap((project) => {
+// One flattened slide, whichever catalog it came from. `source` decides
+// which URL scheme buildSrcSet resolves it through below — the two
+// catalogs are otherwise shaped identically once flattened.
+type BrandSlide = {
+  slug: string;
+  still: number;
+  title: string;
+  year: string;
+  widths: number[];
+  source: "static" | "synced";
+};
+
+// The bundled fallback: flattened to one slide per (project, still) pair,
+// every still of a project sharing its title/year/credit-link but getting
+// its own unique key and resolved width list — unchanged behavior from
+// before this catalog became syncable, just renamed (was SLIDES) to make
+// clear it's a fallback now, not the source of truth. Used whenever the
+// live/synced catalog (below) is empty — not yet synced from majid.film,
+// or the sync pipeline unavailable — so the public panel never has
+// nothing to show. See the mount effect further down for how the two are
+// chosen between.
+const STATIC_SLIDES: BrandSlide[] = PROJECTS.flatMap((project) => {
   const stills = project.stillWidths
     ? Object.entries(project.stillWidths).map(([still, widths]) => ({
         still: Number(still),
@@ -64,8 +85,24 @@ const SLIDES = PROJECTS.flatMap((project) => {
     title: project.title,
     year: project.year,
     widths,
+    source: "static" as const,
   }));
 });
+
+// Same flattening as STATIC_SLIDES above, just simpler: the backend's own
+// GET catalog already resolves each still's widths directly (no
+// stills/stillWidths branching to redo client-side).
+const flattenCatalog = (catalog: BrandCatalogProject[]): BrandSlide[] =>
+  catalog.flatMap((project) =>
+    project.stills.map((s) => ({
+      slug: project.slug,
+      still: s.still,
+      title: project.title,
+      year: project.year,
+      widths: s.widths,
+      source: "synced" as const,
+    })),
+  );
 
 // The image panel is always full-bleed (100vw) at every breakpoint in this
 // layout — the glass card floats on top of it via absolute positioning
@@ -73,14 +110,31 @@ const SLIDES = PROJECTS.flatMap((project) => {
 // ever needs to weigh candidates against the viewport width itself.
 const SIZES = "100vw";
 
+// The one place the two catalogs' different URL schemes meet: the static
+// fallback's images ship in the Next.js build (public/img/brand/derived/),
+// the synced catalog's are streamed by the backend from wherever
+// BrandSyncService symlinked them (see brandSlide.service.ts's own
+// getImageUrl, same path shape as this one).
+const imageUrl = (
+  slug: string,
+  still: number,
+  width: number,
+  format: "avif" | "webp",
+  source: BrandSlide["source"],
+) =>
+  source === "static"
+    ? `/img/brand/derived/${slug}-s${still}-${width}.${format}`
+    : brandSlideService.getImageUrl(slug, still, width, format);
+
 const buildSrcSet = (
   slug: string,
   still: number,
   widths: number[],
   format: "avif" | "webp",
+  source: BrandSlide["source"],
 ) =>
   widths
-    .map((w) => `/img/brand/derived/${slug}-s${still}-${w}.${format} ${w}w`)
+    .map((w) => `${imageUrl(slug, still, w, format, source)} ${w}w`)
     .join(", ");
 
 // Fisher-Yates — done client-side only (see effect below) so the server and
@@ -249,7 +303,7 @@ const Slide = ({
   isActive,
   prefersReducedMotion,
 }: {
-  slide: (typeof SLIDES)[number];
+  slide: BrandSlide;
   delta: number;
   isActive: boolean;
   prefersReducedMotion: boolean;
@@ -300,17 +354,41 @@ const Slide = ({
         <picture>
           <source
             type="image/avif"
-            srcSet={buildSrcSet(slide.slug, slide.still, slide.widths, "avif")}
+            srcSet={buildSrcSet(
+              slide.slug,
+              slide.still,
+              slide.widths,
+              "avif",
+              slide.source,
+            )}
             sizes={SIZES}
           />
           <source
             type="image/webp"
-            srcSet={buildSrcSet(slide.slug, slide.still, slide.widths, "webp")}
+            srcSet={buildSrcSet(
+              slide.slug,
+              slide.still,
+              slide.widths,
+              "webp",
+              slide.source,
+            )}
             sizes={SIZES}
           />
           <img
             className={classes.slideImage}
-            src={`/img/brand/derived/${slide.slug}-s${slide.still}-${slide.widths[1]}.webp`}
+            src={imageUrl(
+              slide.slug,
+              slide.still,
+              // Index 1 (1280px) on the static fallback, which always has
+              // all 4 STANDARD_WIDTHS — but the synced catalog only
+              // records widths that actually had a complete avif+webp
+              // pair on majid.film's side, so this falls back to
+              // whatever's smallest rather than assuming a 2nd entry
+              // exists.
+              slide.widths[1] ?? slide.widths[0],
+              "webp",
+              slide.source,
+            )}
             alt=""
             // Eager for the slide right after this one too (delta === 1),
             // not just the active one — otherwise the *only* thing asking
@@ -339,36 +417,43 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
   const theme = useMantineTheme();
   const t = useTranslate();
 
-  const [order, setOrder] = useState(SLIDES);
+  const [order, setOrder] = useState<BrandSlide[]>(STATIC_SLIDES);
   const [current, setCurrent] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   // Lets any visitor stop the rotation, not just reduced-motion users —
   // see the interval effect below, which is also gated on this.
   const [isPaused, setIsPaused] = useState(false);
-  // `order` starts as the unshuffled SLIDES array so the server-rendered
-  // HTML and the client's first render agree (Math.random() at render time
-  // would desync them, since the server and the client's first pass would
-  // each pick their own random slide independently — a hydration mismatch,
-  // not just a cosmetic one). But that means SLIDES[0] ("À petit feu") is
-  // what actually starts loading, `loading="eager"`, the instant this
-  // mounts — the shuffle effect runs a moment later and picks something
-  // else, so the *real* slide's own request starts later than À petit
-  // feu's did, and often loses that race. The fix isn't shuffling faster;
-  // it's not rendering (and so not requesting) any image at all until
-  // the shuffle has already happened, so the very first request the
-  // browser makes is already for the right slide.
+  // `order` starts as the unshuffled STATIC_SLIDES array so the
+  // server-rendered HTML and the client's first render agree (Math.random()
+  // at render time would desync them, since the server and the client's
+  // first pass would each pick their own random slide independently — a
+  // hydration mismatch, not just a cosmetic one). But that means
+  // STATIC_SLIDES[0] ("À petit feu") is what actually starts loading,
+  // `loading="eager"`, the instant this mounts — the shuffle effect runs a
+  // moment later and picks something else, so the *real* slide's own
+  // request starts later than À petit feu's did, and often loses that
+  // race. The fix isn't shuffling faster; it's not rendering (and so not
+  // requesting) any image at all until the shuffle has already happened,
+  // so the very first request the browser makes is already for the right
+  // slide.
   const [isReady, setIsReady] = useState(false);
 
-  // Randomize the slide order once the component has mounted on the client
-  // — and first fold in whichever stills the admin brand-slide page (see
-  // pages/admin/brand.tsx) has excluded, so a just-disabled still never
-  // gets a chance to flash in as the very first slide shown. Bounded by
-  // DISABLED_FETCH_TIMEOUT_MS (falls through to the full, unfiltered
-  // SLIDES either way past that point) rather than gating isReady on
-  // however long the fetch actually takes — this reuses the exact same
-  // isReady gate that already exists to keep server/client shuffle output
-  // in sync (see isReady's own comment above), just waiting slightly
-  // longer on it, not a new hydration-risk surface.
+  // Randomize the slide order once the component has mounted on the
+  // client — and first fetch the live/synced catalog (BrandSyncService,
+  // see pages/admin/brand.tsx) plus whichever stills the admin curation
+  // page has excluded, so a freshly synced project is eligible from the
+  // very first render that can show it, and a just-disabled still never
+  // gets a chance to flash in as the very first slide shown. Both fetches
+  // run in parallel, each independently bounded by
+  // DISABLED_FETCH_TIMEOUT_MS (Promise.all — neither waits on the other),
+  // rather than gating isReady on however long either actually takes —
+  // this reuses the exact same isReady gate that already exists to keep
+  // server/client shuffle output in sync (see isReady's own comment
+  // above), just waiting slightly longer on it, not a new hydration-risk
+  // surface. An empty, failed, or timed-out catalog fetch falls through to
+  // STATIC_SLIDES exactly as if sync had never run — this is what
+  // guarantees the panel can never regress to blank, regardless of
+  // anything about the sync pipeline's own health.
   useEffect(() => {
     let cancelled = false;
 
@@ -378,22 +463,32 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
         new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
       ]);
 
-    withTimeout(
-      brandSlideService.getDisabled(),
-      DISABLED_FETCH_TIMEOUT_MS,
-      [] as DisabledBrandSlide[],
-    ).then((disabled) => {
+    Promise.all([
+      withTimeout(
+        brandSlideService.getCatalog(),
+        DISABLED_FETCH_TIMEOUT_MS,
+        [] as BrandCatalogProject[],
+      ),
+      withTimeout(
+        brandSlideService.getDisabled(),
+        DISABLED_FETCH_TIMEOUT_MS,
+        [] as DisabledBrandSlide[],
+      ),
+    ]).then(([catalog, disabled]) => {
       if (cancelled) return;
+
+      const synced = flattenCatalog(catalog);
+      const pool = synced.length > 0 ? synced : STATIC_SLIDES;
 
       const disabledKeys = new Set(
         disabled.map((d) => `${d.slug}-s${d.still}`),
       );
-      const available = SLIDES.filter(
+      const available = pool.filter(
         (slide) => !disabledKeys.has(`${slide.slug}-s${slide.still}`),
       );
       // Never render zero slides — an admin disabling everything, or a
       // fetch returning something unexpected, must never blank the panel.
-      setOrder(shuffle(available.length ? available : SLIDES));
+      setOrder(shuffle(available.length ? available : STATIC_SLIDES));
       setIsReady(true);
     });
 

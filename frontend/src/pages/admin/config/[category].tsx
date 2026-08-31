@@ -116,7 +116,11 @@ const AdminConfigPage: NextPageWithLayout = () => {
 
   const updateConfigVariable = (configVariable: UpdateConfig) => {
     if (configVariable.key === "general.appUrl") {
-      configVariable.value = sanitizeUrl(configVariable.value);
+      // Always a real string at runtime — general.appUrl is a "string"
+      // -type config field, guarded by the key check above; UpdateConfig
+      // .value only widened to string | number | boolean for boolean
+      // fields elsewhere (see its own comment).
+      configVariable.value = sanitizeUrl(configVariable.value as string);
     }
 
     const index = updatedConfigVariables.findIndex(

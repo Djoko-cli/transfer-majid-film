@@ -100,6 +100,26 @@ export const configVariables = {
       secret: false,
     },
   },
+  // Deliberately its own tiny category rather than folded into `share` —
+  // not surfaced on the generic /admin/config/[category] settings page at
+  // all (that page and config.service.ts's own frontend both hardcode
+  // their own category allowlists; adding a whole settings page for one
+  // toggle isn't worth it). useConfig().get("brand.enableSync") already
+  // works with zero extra wiring via the generic, unfiltered config list
+  // every page already receives — the switch itself lives directly on
+  // pages/admin/brand.tsx, next to the "Sync now" button, a more
+  // discoverable spot for it than a settings page anyway.
+  brand: {
+    // Gates BrandSyncService's actual sync/write path only (cron + the
+    // manual admin trigger) — see MAJIDFILM_SOURCE_ROOT in constants.ts
+    // for the paired deploy-time gate. Already-synced catalog/image data
+    // keeps serving regardless of this flag's later value.
+    enableSync: {
+      type: "boolean",
+      defaultValue: "false",
+      secret: false,
+    },
+  },
   verification: {
     codeSubject: {
       type: "string",

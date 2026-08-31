@@ -10,10 +10,8 @@ import {
 } from "@mantine/core";
 import { FormattedMessage } from "react-intl";
 import useTranslate from "../../../hooks/useTranslate.hook";
-import {
-  BrandProject,
-  getProjectStillNumbers,
-} from "../../../data/brandProjects";
+import brandSlideService from "../../../services/brandSlide.service";
+import { BrandCatalogProject } from "../../../types/brandSlide.type";
 
 const useStyles = createStyles((theme) => ({
   thumb: {
@@ -42,15 +40,14 @@ const BrandStillGrid = ({
   onToggle,
   onToggleAll,
 }: {
-  project: BrandProject;
+  project: BrandCatalogProject;
   isDisabled: (slug: string, still: number) => boolean;
   pendingKeys: Set<string>;
   onToggle: (slug: string, still: number, disabled: boolean) => void;
-  onToggleAll: (project: BrandProject, disabled: boolean) => void;
+  onToggleAll: (project: BrandCatalogProject, disabled: boolean) => void;
 }) => {
   const { classes } = useStyles();
   const t = useTranslate();
-  const stillNumbers = getProjectStillNumbers(project);
 
   return (
     <div>
@@ -84,7 +81,7 @@ const BrandStillGrid = ({
         spacing="md"
         breakpoints={[{ maxWidth: "sm", cols: 2 }]}
       >
-        {stillNumbers.map((still) => {
+        {project.stills.map(({ still }) => {
           const key = `${project.slug}-s${still}`;
           const disabled = isDisabled(project.slug, still);
           const pending = pendingKeys.has(key);
@@ -93,7 +90,12 @@ const BrandStillGrid = ({
             <Card key={key} withBorder p={0} radius="sm">
               <img
                 className={classes.thumb}
-                src={`/img/brand/derived/${project.slug}-s${still}-640.webp`}
+                src={brandSlideService.getImageUrl(
+                  project.slug,
+                  still,
+                  640,
+                  "webp",
+                )}
                 alt=""
                 style={{ opacity: disabled ? 0.5 : 1 }}
               />

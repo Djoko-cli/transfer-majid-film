@@ -302,3 +302,39 @@ model DisabledBrandSlide {
 
   @@id([slug, still])
 }
+
+// The live catalog for BrandPanel's rotation, kept in sync from
+// majid.film by BrandSyncService (backend/src/brandSlides/brandSync.
+// service.ts) — see MAJIDFILM_SOURCE_ROOT in constants.ts. Frontend's own
+// hardcoded frontend/src/data/brandProjects.ts stays untouched as a
+// fallback for whenever this is empty (not yet synced, or the NAS mount
+// unavailable) — it is NOT backfilled from that file; the first sync just
+// discovers everything fresh from the real source. Sync only ever adds or
+// updates a row here, never deletes one that's gone missing upstream —
+// same "never delete" principle majid.film's own deployer.py already
+// documents for the same reason (a folder transiently absent mid-deploy
+// shouldn't destroy curation history).
+model BrandProject {
+  slug      String   @id
+  title     String
+  year      String
+  updatedAt DateTime @updatedAt
+
+  stills BrandStill[]
+}
+
+// widths is JSON-encoded (e.g. "[640,1280,2048,3840]") rather than a real
+// array column — this schema has no Json field anywhere and SQLite has no
+// native array type; every other multi-value case in this app already
+// goes through a plain String for the same reason (see e.g. Config's own
+// scalar-only fields). Only a width with BOTH a .avif and a .webp
+// derivative on majid.film's side is recorded here.
+model BrandStill {
+  slug   String
+  still  Int
+  widths String
+
+  project BrandProject @relation(fields: [slug], references: [slug], onDelete: Cascade)
+
+  @@id([slug, still])
+}

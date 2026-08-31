@@ -21,8 +21,21 @@ export const SECRETS_FILE = process.env.SECRETS_FILE || "../secrets.env";
 // share.enableNasImport config toggle, even if that's accidentally on.
 export const NAS_IMPORT_ROOT = process.env.NAS_IMPORT_ROOT || null;
 
+// Root of majid.film's own deployed output on the same NAS (read-only
+// mount) — BrandSyncService reads brand-manifest.json and assets/img/
+// derived/ from here to keep BrandPanel's rotation in sync. Same
+// deploy-time-infra, null-means-structurally-disabled convention as
+// NAS_IMPORT_ROOT above, and for the same reason: not admin-editable at
+// runtime, since it names a mount that either exists or doesn't.
+export const MAJIDFILM_SOURCE_ROOT = process.env.MAJIDFILM_SOURCE_ROOT || null;
+
 export const DATA_DIRECTORY = process.env.DATA_DIRECTORY || "./data";
 export const SHARE_DIRECTORY = `${DATA_DIRECTORY}/uploads/shares`;
+// Where BrandSyncService symlinks each synced (slug, still, width, format)
+// image — never copied, same reasoning as NasImportService's own symlinks
+// into SHARE_DIRECTORY: the real bytes stay on the read-only NAS mount,
+// this directory only ever holds links into it.
+export const BRAND_IMAGE_DIRECTORY = `${DATA_DIRECTORY}/brand-images`;
 // Where a share's files land when clamav.infectedFileAction is
 // "quarantine" instead of "delete" — moved here rather than removed, so
 // an admin can inspect a false positive (or confirm a real one) before
@@ -39,6 +52,14 @@ export const CLAMAV_HOST =
   (process.env.NODE_ENV == "docker" ? "clamav" : "127.0.0.1");
 export const CLAMAV_PORT = parseInt(process.env.CLAMAV_PORT) || 3310;
 
-export const LOG_LEVEL_AVAILABLE: LogLevel[] = ['verbose', 'debug', 'log', 'warn', 'error', 'fatal'];
-export const LOG_LEVEL_DEFAULT: LogLevel = process.env.NODE_ENV === 'development' ? "verbose" : "log";
+export const LOG_LEVEL_AVAILABLE: LogLevel[] = [
+  "verbose",
+  "debug",
+  "log",
+  "warn",
+  "error",
+  "fatal",
+];
+export const LOG_LEVEL_DEFAULT: LogLevel =
+  process.env.NODE_ENV === "development" ? "verbose" : "log";
 export const LOG_LEVEL_ENV = `${process.env.PV_LOG_LEVEL || ""}`;

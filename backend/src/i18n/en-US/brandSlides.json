@@ -1,0 +1,6 @@
+{
+  "notConfigured": "Brand slide sync isn't configured on this instance",
+  "alreadyRunning": "A brand slide sync is already in progress",
+  "invalidFormat": "Invalid image format",
+  "imageNotFound": "That brand slide image doesn't exist"
+}

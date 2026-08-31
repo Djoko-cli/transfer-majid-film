@@ -1,0 +1,6 @@
+{
+  "notConfigured": "La synchronisation du diaporama n'est pas configurée sur cette instance",
+  "alreadyRunning": "Une synchronisation du diaporama est déjà en cours",
+  "invalidFormat": "Format d'image invalide",
+  "imageNotFound": "Cette image du diaporama n'existe pas"
+}

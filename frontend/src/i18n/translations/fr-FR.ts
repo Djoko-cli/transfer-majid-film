@@ -354,6 +354,16 @@ export default {
   "admin.brand.still.enabled": "Diffusée",
   "admin.brand.project.enableAll": "Tout activer",
   "admin.brand.project.disableAll": "Tout désactiver",
+  "admin.brand.notSynced.title": "Pas encore synchronisé",
+  "admin.brand.notSynced.description":
+    "Aucun projet n'a encore été synchronisé depuis majid.film. Lancez une synchronisation pour peupler le diaporama.",
+  "admin.brand.sync.button": "Synchroniser maintenant",
+  "admin.brand.sync.enable": "Synchronisation automatique",
+  "admin.brand.sync.enable.description":
+    "Vérifie chaque nuit si de nouveaux projets ou images sont disponibles sur majid.film.",
+  "admin.brand.sync.notify.success":
+    "Synchronisation terminée : {newProjects} nouveau(x) projet(s), {newStills} nouvelle(s) image(s)",
+  "admin.brand.sync.notify.upToDate": "Déjà à jour, rien de nouveau",
   // END /admin/brand
 
   // /upload

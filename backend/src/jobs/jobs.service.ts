@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import * as fs from "fs";
 import * as moment from "moment";
+import { BrandSyncService } from "src/brandSlides/brandSync.service";
 import { EmailService } from "src/email/email.service";
 import { FileService } from "src/file/file.service";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -19,6 +20,7 @@ export class JobsService {
     private fileService: FileService,
     private configServer: ConfigService,
     private emailService: EmailService,
+    private brandSyncService: BrandSyncService,
   ) {}
 
   @Cron("* * * * *")
@@ -221,8 +223,7 @@ export class JobsService {
       // an anonymous sender (senderEmail, no account to opt out from) is
       // always notified, same reasoning as the unconditional "here's your
       // link" backstop email.
-      if (share.creator && !share.creator.notifyOnExpiringSentShares)
-        continue;
+      if (share.creator && !share.creator.notifyOnExpiringSentShares) continue;
 
       const ownerEmail = share.creator?.email || share.senderEmail;
       if (!ownerEmail) continue;
@@ -316,5 +317,16 @@ export class JobsService {
     if (sent > 0) {
       this.logger.log(`Sent ${sent} recipient expiry reminders`);
     }
+  }
+
+  // Thin wrapper — the actual work (and its own logging) lives in
+  // BrandSyncService, matching how this module already delegates to
+  // FileService/ReverseShareService/EmailService rather than embedding
+  // their logic directly here. A non-ok result (not configured, or
+  // already mid-run from a concurrent manual trigger) is a quiet no-op
+  // from a cron's perspective — nothing to surface here.
+  @Cron("0 3 * * *")
+  async syncBrandSlides() {
+    await this.brandSyncService.syncFromMajidfilm();
   }
 }

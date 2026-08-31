@@ -7,7 +7,12 @@ type Config = {
 
 export type UpdateConfig = {
   key: string;
-  value: string;
+  // Matches the backend's own UpdateConfigDTO exactly (string | number |
+  // boolean) — AdminConfigInput.tsx's Switch fields already pass a real
+  // boolean here at runtime (e.value.checked), just through an `any`
+  // parameter that didn't surface the mismatch until a second, more
+  // narrowly-typed caller (pages/admin/brand.tsx) needed to pass one too.
+  value: string | number | boolean;
 };
 
 export type AdminConfig = Config & {

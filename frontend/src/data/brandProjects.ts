@@ -1,9 +1,15 @@
-// The still-image catalog behind BrandPanel.tsx's public slideshow, and the
-// same catalog the admin brand-slide curation page (pages/admin/brand.tsx)
-// browses to let an admin pick which of these are actually eligible for
-// that rotation. Kept in its own module, rather than inline in BrandPanel,
-// specifically so both can import the exact same data with nothing
-// duplicated between them.
+// BrandPanel.tsx's FALLBACK catalog, not the source of truth: the real,
+// live catalog is synced from majid.film by BrandSyncService (backend/src/
+// brandSlides/brandSync.service.ts) into BrandProject/BrandStill, served
+// over GET brand-slides/catalog, and used whenever it has anything to
+// offer. This file only matters when that's empty — not yet synced, or the
+// NAS mount unavailable (including every local dev machine without it
+// configured) — so BrandPanel never has nothing to show. It is NOT kept in
+// sync with majid.film itself; the admin curation page
+// (pages/admin/brand.tsx) doesn't use this at all any more, only the live
+// catalog (see its own "not synced yet" empty state for why: showing a
+// stale, different picture there would only confuse the one person who
+// could actually fix it).
 export type BrandProject = {
   slug: string;
   title: string;
@@ -145,13 +151,3 @@ export const PROJECTS: BrandProject[] = [
     stills: [1, 2, 3, 4, 5],
   },
 ];
-
-// Which still numbers a project actually has — width-agnostic, unlike
-// BrandPanel's own SLIDES derivation (which also resolves each still's
-// widths and stays local to BrandPanel.tsx). Used by the admin curation
-// page (pages/admin/brand.tsx), which only ever needs to know which
-// stills exist, never how they're served.
-export const getProjectStillNumbers = (project: BrandProject): number[] =>
-  project.stillWidths
-    ? Object.keys(project.stillWidths).map(Number)
-    : (project.stills ?? []);

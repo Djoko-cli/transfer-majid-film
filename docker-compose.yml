@@ -15,6 +15,12 @@ services:
       # below. Fixed container-side path; only the host-side mount below
       # decides what it actually points at.
       - NAS_IMPORT_ROOT=/opt/app/backend/nas-import
+      # Brand-slide sync (brand.enableSync in the admin panel, off by
+      # default) — reads majid.film's own deployed output (brand-manifest
+      # .json + assets/img/derived/) to keep the sign-in/upload background
+      # slideshow's catalog current automatically. Same fixed-path,
+      # host-mount-decides split as NAS_IMPORT_ROOT above.
+      - MAJIDFILM_SOURCE_ROOT=/opt/app/backend/majidfilm-source
 
     volumes:
       - /volume2/docker/transfer/db:/db
@@ -45,6 +51,20 @@ services:
       # already owns the folder, unlike the Transfer volume above which
       # was set up for this app from the start.
       - "/volume1/Archives Photo et Video:/opt/app/backend/nas-import:ro"
+      # Read-only, same reasoning as the NAS-import mount just above:
+      # BrandSyncService only ever reads brand-manifest.json and
+      # assets/img/derived/ from here and symlinks *into*
+      # BRAND_IMAGE_DIRECTORY (a subdirectory of the Transfer volume
+      # above), never writes here — majid.film's own build/deployer.py
+      # already treats "nothing ever modifies these files after deploy"
+      # as a hard rule (see its README/CHANTIERS.md), :ro just makes the
+      # same guarantee true from this side too. "web" is the Synology
+      # share name majid.film's own deployer.py rsyncs into (confirmed via
+      # its local SMB mount, //<user>@NAS/web); "majidfilm" is the folder
+      # under it — matches /volume1/<ShareName> exactly like the Transfer
+      # and Archives mounts above. Confirm this against DSM before relying
+      # on it, same as those two originally were.
+      - "/volume1/web/majidfilm:/opt/app/backend/majidfilm-source:ro"
 
     # Transfer's own Caddy listens internally on port 3000 and fronts both
     # the frontend and the backend (splitting /api/* to the backend) — it

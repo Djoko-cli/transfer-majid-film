@@ -7,10 +7,8 @@ import {
   createStyles,
 } from "@mantine/core";
 import useTranslate from "../../../hooks/useTranslate.hook";
-import {
-  BrandProject,
-  getProjectStillNumbers,
-} from "../../../data/brandProjects";
+import brandSlideService from "../../../services/brandSlide.service";
+import { BrandCatalogProject } from "../../../types/brandSlide.type";
 
 const useStyles = createStyles((theme) => ({
   row: {
@@ -48,7 +46,7 @@ const BrandProjectList = ({
   onSelect,
   isDisabled,
 }: {
-  projects: BrandProject[];
+  projects: BrandCatalogProject[];
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
   isDisabled: (slug: string, still: number) => boolean;
@@ -59,9 +57,9 @@ const BrandProjectList = ({
   return (
     <Stack spacing={4}>
       {projects.map((project) => {
-        const stillNumbers = getProjectStillNumbers(project);
-        const enabledCount = stillNumbers.filter(
-          (still) => !isDisabled(project.slug, still),
+        const firstStill = project.stills[0];
+        const enabledCount = project.stills.filter(
+          (s) => !isDisabled(project.slug, s.still),
         ).length;
         const active = project.slug === selectedSlug;
 
@@ -73,11 +71,18 @@ const BrandProjectList = ({
           >
             <Group position="apart" noWrap>
               <Group noWrap spacing="sm" sx={{ minWidth: 0 }}>
-                <img
-                  className={classes.thumb}
-                  src={`/img/brand/derived/${project.slug}-s${stillNumbers[0]}-640.webp`}
-                  alt=""
-                />
+                {firstStill && (
+                  <img
+                    className={classes.thumb}
+                    src={brandSlideService.getImageUrl(
+                      project.slug,
+                      firstStill.still,
+                      640,
+                      "webp",
+                    )}
+                    alt=""
+                  />
+                )}
                 <div style={{ minWidth: 0 }}>
                   <Text size="sm" weight={600} truncate>
                     {project.title}
@@ -89,11 +94,13 @@ const BrandProjectList = ({
               </Group>
               <Badge
                 variant="light"
-                color={enabledCount === stillNumbers.length ? "gray" : "orange"}
+                color={
+                  enabledCount === project.stills.length ? "gray" : "orange"
+                }
               >
                 {t("admin.brand.project.enabledCount", {
                   enabled: enabledCount,
-                  total: stillNumbers.length,
+                  total: project.stills.length,
                 })}
               </Badge>
             </Group>
