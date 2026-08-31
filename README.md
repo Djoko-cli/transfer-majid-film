@@ -23,7 +23,7 @@ It started as a fork of [Pingvin Share](https://github.com/stonith404/pingvin-sh
 - **Authentication** — local accounts, TOTP two-factor, LDAP, and OAuth/OIDC (Google, GitHub, Microsoft, Discord, or any spec-compliant OIDC provider via a generic connector).
 - **Storage** — local disk or S3-compatible object storage, with optional ClamAV scanning of uploads.
 - **Admin panel** — user and transfer management, and every setting above configurable from the UI (or via `config.yaml`/environment variables — see [`config.example.yaml`](config.example.yaml) for the full reference).
-- **i18n** — ships with French and English out of the box; the wider translation set inherited from upstream is present but unmaintained here.
+- **i18n** — French and English; the wider translation set inherited from upstream was removed (see [`locales.ts`](frontend/src/i18n/locales.ts)) rather than left to go stale unmaintained.
 
 ## Setup
 

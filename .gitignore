@@ -48,6 +48,13 @@ backend/server.log
 /docs/.cache-loader
 /config.yaml
 
+# impeccable skill's own scratch output (design critique reports etc.) -
+# tool-generated, timestamped, not meant to be permanent project content.
+# Was previously untracked-by-omission rather than by rule, which let a
+# handful of report files get committed by accident from two different
+# invocation directories (.impeccable/ at repo root, frontend/.impeccable/).
+.impeccable/
+
 # Jetbrains specific (webstorm)
 .idea/**/**
 
