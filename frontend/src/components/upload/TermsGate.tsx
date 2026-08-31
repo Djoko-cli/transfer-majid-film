@@ -1,5 +1,6 @@
 import { Anchor, Button, Stack, Text } from "@mantine/core";
 import { FormattedMessage } from "react-intl";
+import { APP_NAME } from "../../constants";
 import useTranslate from "../../hooks/useTranslate.hook";
 
 // Shown in place of the dropzone (see UploadPage.tsx) until a visitor has
@@ -22,6 +23,7 @@ const TermsGate = ({ onAccept }: { onAccept: () => void }) => {
         <FormattedMessage
           id="upload.termsGate.description"
           values={{
+            appName: APP_NAME,
             // Reuses terms.title rather than a separate translation key -
             // one fewer string to keep in sync if the page's own title
             // ever changes.

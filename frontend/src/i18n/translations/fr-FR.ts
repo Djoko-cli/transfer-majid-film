@@ -369,8 +369,8 @@ export default {
   // /upload
   "upload.title": "Envoyer",
   "upload.termsGate.description":
-    "Avant d'envoyer ou de déposer des fichiers, merci de prendre connaissance de nos {termsLink}.",
-  "upload.termsGate.accept": "J'accepte les conditions d'utilisation",
+    "En utilisant {appName}, j'accepte les {termsLink}.",
+  "upload.termsGate.accept": "J'accepte",
   "upload.notify.confirm-leave":
     "Êtes-vous sûr de vouloir quitter cette page ? Votre envoi sera annulé.",
   "upload.notify.generic-error":
