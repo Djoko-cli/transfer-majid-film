@@ -141,16 +141,29 @@ const Body = ({
 
   const isReverseShare = !!router.query["reverseShareToken"];
 
-  // Resets the page behind the modal for a next transfer — regardless of
-  // *how* this modal closes (the "Terminé" button below, or a click outside
+  // Non-reverse-share only: navigates back to "/" once this modal closes
+  // (regardless of *how* — the "Terminé" button below, or a click outside
   // now that closeOnClickOutside is on), since this is the only thing that
   // unmounts it (the ModalsProvider lives above page transitions, so an
   // unrelated navigation elsewhere wouldn't trigger this).
+  //
+  // The reverse-share branch used to call router.reload() here instead —
+  // removed. UploadPage's own completion handler already resets `files`
+  // back to [] the instant this modal is opened (before the visitor could
+  // possibly have closed it yet), which is everything this page needs to
+  // be ready for a next transfer; a reload was never buying anything past
+  // that except re-validating the token. For the common
+  // remainingUses: 1 case, that re-validation is the token this exact
+  // upload just consumed — walking the visitor straight into "this link
+  // is invalid" the instant after successfully sending something, not a
+  // fresh page ready for another. The backend enforces remainingUses/
+  // expiration independently at request time either way (CreateShareGuard
+  // → reverseShareService.isValid), so a visitor who does try to send
+  // again through an exhausted link still gets a correct, and far less
+  // alarming, inline error instead of this.
   useEffect(() => {
     return () => {
-      if (isReverseShare) {
-        router.reload();
-      } else {
+      if (!isReverseShare) {
         router.push("/");
       }
     };
