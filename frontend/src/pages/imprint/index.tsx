@@ -11,7 +11,7 @@ const Imprint = () => {
   return (
     <>
       <Meta title={t("imprint.title")} />
-      <Title mb={30} order={1}>
+      <Title mt="xl" mb={30} order={1}>
         <FormattedMessage id="imprint.title" />
       </Title>
       <LegalMarkdown content={config.get("legal.imprintText")} />

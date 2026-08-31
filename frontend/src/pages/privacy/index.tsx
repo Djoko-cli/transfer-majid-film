@@ -11,7 +11,7 @@ const PrivacyPolicy = () => {
   return (
     <>
       <Meta title={t("privacy.title")} />
-      <Title mb={30} order={1}>
+      <Title mt="xl" mb={30} order={1}>
         <FormattedMessage id="privacy.title" />
       </Title>
       <LegalMarkdown content={config.get("legal.privacyPolicyText")} />

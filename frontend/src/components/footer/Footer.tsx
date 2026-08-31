@@ -1,4 +1,5 @@
 import { Anchor, Box, Footer as MFooter, Text, createStyles } from "@mantine/core";
+import { useRouter } from "next/router";
 import { Fragment, useEffect, useRef } from "react";
 import { APP_NAME } from "../../constants";
 import useConfig from "../../hooks/config.hook";
@@ -102,6 +103,7 @@ const useStyles = createStyles((theme) => {
 const Footer = () => {
   const t = useTranslate();
   const config = useConfig();
+  const router = useRouter();
   const { classes } = useStyles();
   // Published as a CSS var (rather than prop-drilled) so pages that need to
   // reserve room for the footer — e.g. SplitTransferLayout, which lives
@@ -148,7 +150,14 @@ const Footer = () => {
       href: "/privacy",
       label: t("privacy.title"),
     },
-  ].filter(({ configKey }) => !!config.get(configKey));
+    // Excludes whichever of these three the visitor is currently reading -
+    // no reason to link a page to itself, and the footer's own
+    // ResizeObserver (above) already recomputes --footer-height for
+    // whatever's actually rendered, so a shorter link list on these pages
+    // isn't a separate thing to account for.
+  ].filter(
+    ({ configKey, href }) => !!config.get(configKey) && router.pathname !== href,
+  );
 
   return (
     <MFooter

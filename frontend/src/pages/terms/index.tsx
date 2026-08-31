@@ -11,7 +11,7 @@ const Terms = () => {
   return (
     <>
       <Meta title={t("terms.title")} />
-      <Title mb={30} order={1}>
+      <Title mt="xl" mb={30} order={1}>
         <FormattedMessage id="terms.title" />
       </Title>
       <LegalMarkdown content={config.get("legal.termsText")} />
