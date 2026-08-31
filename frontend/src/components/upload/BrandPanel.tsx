@@ -10,10 +10,21 @@ import {
 import { useEffect, useLayoutEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import { TbPlayerPause, TbPlayerPlay } from "react-icons/tb";
+import { PROJECTS } from "../../data/brandProjects";
 import useTranslate from "../../hooks/useTranslate.hook";
+import brandSlideService from "../../services/brandSlide.service";
+import { DisabledBrandSlide } from "../../types/brandSlide.type";
 
 const SLIDE_DURATION_MS = 10000;
 const TRANSITION_MS = 900;
+// Worst-case delay the admin-curated exclusion list (see the mount effect
+// below) is allowed to add before the very first slide reveals — a fixed,
+// small bound regardless of network conditions, rather than however long a
+// slow connection happens to take. Falls through to showing everything
+// either way past this point (or on an outright fetch error) — this is a
+// curatorial feature, never a takedown, so an unfiltered panel is always a
+// safe fallback and a blank one never is.
+const DISABLED_FETCH_TIMEOUT_MS = 400;
 // How long the settled slide's own slow zoom-in takes — sized to the
 // remaining dwell time (total minus the slide transition itself) so it
 // reads as reaching (and then holding, see .living below) its target right
@@ -28,132 +39,10 @@ const LIVING_DURATION_MS = SLIDE_DURATION_MS - TRANSITION_MS;
 // s4/s5 top out at 2228px while its s1-s3 reach 4096px, for instance.
 const STANDARD_WIDTHS = [640, 1280, 2048, 3840];
 
-// One entry per project. `stills` lists which numbered stills to show (all
-// sharing `widths`, or the project-level `widths` override, or
-// STANDARD_WIDTHS); `stillWidths` is used instead when widths vary between
-// stills of the same project.
-const PROJECTS = [
-  {
-    slug: "apetitfeu",
-    title: "À petit feu",
-    year: "2024",
-    stills: [1, 2, 3, 4, 5],
-  },
-  { slug: "atr", title: "ATR", year: "2022", stills: [1, 2, 3, 4, 5] },
-  {
-    slug: "battle",
-    title: "Battle - La Rényon",
-    year: "2024",
-    stills: [1, 2, 3, 4, 5],
-  },
-  {
-    slug: "bluesmaron",
-    title: "À la rencontre du blues maron",
-    year: "2023",
-    stills: [1, 2, 3, 4, 5, 15],
-  },
-  {
-    slug: "cavacava",
-    title: "Ça va ? Ça va",
-    year: "2024",
-    stills: [1, 2, 3, 4, 5],
-  },
-  {
-    slug: "cilam-couple",
-    title: "Des instants qui comptent - Couple",
-    year: "2026",
-    stills: [1, 2, 3, 4, 5],
-  },
-  {
-    slug: "cilam-grand-pere",
-    title: "Des instants qui comptent - Grand-père",
-    year: "2026",
-    stills: [1, 2, 3, 4, 5],
-  },
-  {
-    slug: "dbba",
-    title: "Dann' Babadzyé Artemis",
-    year: "2025",
-    stills: [1, 2, 3, 4, 5],
-  },
-  {
-    slug: "foli",
-    title: "FOLÏ",
-    year: "2024",
-    stills: [1, 2, 3, 4, 5],
-    widths: [640, 1280, 1920],
-  },
-  {
-    slug: "grave-dans-la-peau",
-    title: "Gravé dans la peau",
-    year: "2025",
-    stills: [1, 2, 3, 4, 5],
-  },
-  {
-    slug: "hyundai-i10-n-line",
-    title: "i10 N Line",
-    year: "2024",
-    stills: [1, 2, 3, 4, 5],
-  },
-  {
-    slug: "kalou",
-    title: "KALOU",
-    year: "2023",
-    stillWidths: {
-      1: [640, 1280, 2048, 4096],
-      2: [640, 1280, 2048, 4096],
-      3: [640, 1280, 2048, 4096],
-      4: [640, 1280, 2048, 2228],
-      5: [640, 1280, 2048, 2228],
-    },
-  },
-  { slug: "kaskole", title: "KASKOLÉ", year: "2023", stills: [1, 2, 3, 4, 5] },
-  {
-    slug: "lanrl",
-    title: "La NRL, La Nouvelle Réunion Libre",
-    year: "2023",
-    stills: [1, 2, 3, 4, 5],
-  },
-  {
-    slug: "lespotscasses",
-    title: "Les Pots Cassés",
-    year: "2023",
-    stills: [1, 2, 3, 4, 5],
-  },
-  {
-    slug: "quartierruisseau",
-    title: "Quartier Ruisseau",
-    year: "2023",
-    stills: [1, 2, 3, 4, 5],
-    widths: [640, 1280, 2048, 2880],
-  },
-  {
-    slug: "sfr-noel",
-    title: "La connexion entre nous, ça se fête !",
-    year: "2024",
-    stills: [1, 2, 3, 4, 5],
-    widths: [640, 1280, 2048, 3193],
-  },
-  { slug: "sovaz", title: "SOVAZ", year: "2023", stills: [1, 2, 3, 4, 5] },
-  {
-    slug: "standup",
-    title: "Stand Up !",
-    year: "2026",
-    stills: [1, 2, 3, 4, 5],
-  },
-  {
-    slug: "thousanddays",
-    title: "THOUSANDS DAYS",
-    year: "2023",
-    stills: [1, 2, 3, 4, 5],
-  },
-  {
-    slug: "tordballe",
-    title: "Tord Balle",
-    year: "2024",
-    stills: [1, 2, 3, 4, 5],
-  },
-];
+// PROJECTS itself lives in data/brandProjects.ts, not here — shared as-is
+// with pages/admin/brand.tsx (the curation page that picks which of these
+// stills actually reach the rotation below), rather than kept as two
+// copies that could drift apart.
 
 // Flattened to one slide per (project, still) pair — every still of a
 // project shares its title/year/credit-link but gets its own unique key and
@@ -164,7 +53,7 @@ const SLIDES = PROJECTS.flatMap((project) => {
         still: Number(still),
         widths,
       }))
-    : project.stills.map((still) => ({
+    : (project.stills ?? []).map((still) => ({
         still,
         widths: project.widths ?? STANDARD_WIDTHS,
       }));
@@ -470,13 +359,51 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
   // browser makes is already for the right slide.
   const [isReady, setIsReady] = useState(false);
 
-  // Randomize the slide order once the component has mounted on the client.
+  // Randomize the slide order once the component has mounted on the client
+  // — and first fold in whichever stills the admin brand-slide page (see
+  // pages/admin/brand.tsx) has excluded, so a just-disabled still never
+  // gets a chance to flash in as the very first slide shown. Bounded by
+  // DISABLED_FETCH_TIMEOUT_MS (falls through to the full, unfiltered
+  // SLIDES either way past that point) rather than gating isReady on
+  // however long the fetch actually takes — this reuses the exact same
+  // isReady gate that already exists to keep server/client shuffle output
+  // in sync (see isReady's own comment above), just waiting slightly
+  // longer on it, not a new hydration-risk surface.
   useEffect(() => {
-    setOrder(shuffle(SLIDES));
-    setIsReady(true);
+    let cancelled = false;
+
+    const withTimeout = <T,>(promise: Promise<T>, ms: number, fallback: T) =>
+      Promise.race([
+        promise.catch(() => fallback),
+        new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+      ]);
+
+    withTimeout(
+      brandSlideService.getDisabled(),
+      DISABLED_FETCH_TIMEOUT_MS,
+      [] as DisabledBrandSlide[],
+    ).then((disabled) => {
+      if (cancelled) return;
+
+      const disabledKeys = new Set(
+        disabled.map((d) => `${d.slug}-s${d.still}`),
+      );
+      const available = SLIDES.filter(
+        (slide) => !disabledKeys.has(`${slide.slug}-s${slide.still}`),
+      );
+      // Never render zero slides — an admin disabling everything, or a
+      // fetch returning something unexpected, must never blank the panel.
+      setOrder(shuffle(available.length ? available : SLIDES));
+      setIsReady(true);
+    });
+
     setPrefersReducedMotion(
       window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     );
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

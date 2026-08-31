@@ -271,6 +271,7 @@ export default {
   "admin.title": "Administration",
   "admin.button.users": "Gestion des utilisateurs",
   "admin.button.shares": "Gestion des transferts",
+  "admin.button.brand": "Diaporama",
   "admin.button.config": "Paramètres",
   "admin.version": "Version",
   // END /admin
@@ -346,6 +347,14 @@ export default {
   "admin.shares.edit.delete.description":
     "Le lien cessera de fonctionner immédiatement. Cette action est irréversible.",
   // END /admin/shares
+
+  // /admin/brand
+  "admin.brand.title": "Gestion du diaporama",
+  "admin.brand.project.enabledCount": "{enabled}/{total} diffusées",
+  "admin.brand.still.enabled": "Diffusée",
+  "admin.brand.project.enableAll": "Tout activer",
+  "admin.brand.project.disableAll": "Tout désactiver",
+  // END /admin/brand
 
   // /upload
   "upload.title": "Envoyer",

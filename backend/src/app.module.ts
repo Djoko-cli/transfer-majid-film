@@ -11,6 +11,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AppCacheModule } from "./cache/cache.module";
 import { AppController } from "./app.controller";
+import { BrandSlidesModule } from "./brandSlides/brandSlides.module";
 import { ClamScanModule } from "./clamscan/clamscan.module";
 import { ConfigModule } from "./config/config.module";
 import { EmailModule } from "./email/email.module";
@@ -55,6 +56,7 @@ const i18nPath = existsSync(join(__dirname, "../i18n"))
     ClamScanModule,
     ReverseShareModule,
     NasImportModule,
+    BrandSlidesModule,
     OAuthModule,
     AppCacheModule,
     I18nModule.forRoot({

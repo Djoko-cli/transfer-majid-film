@@ -293,6 +293,7 @@ export default {
   "admin.title": "Administration",
   "admin.button.users": "User management",
   "admin.button.shares": "Transfer management",
+  "admin.button.brand": "Slideshow",
   "admin.button.config": "Configuration",
   "admin.version": "Version",
   // END /admin
@@ -370,6 +371,14 @@ export default {
     "The link will stop working immediately. This action cannot be undone.",
 
   // END /admin/shares
+
+  // /admin/brand
+  "admin.brand.title": "Slideshow management",
+  "admin.brand.project.enabledCount": "{enabled}/{total} shown",
+  "admin.brand.still.enabled": "Shown",
+  "admin.brand.project.enableAll": "Enable all",
+  "admin.brand.project.disableAll": "Disable all",
+  // END /admin/brand
 
   // /upload
   "upload.title": "Upload",

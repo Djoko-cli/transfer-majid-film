@@ -16,6 +16,7 @@ import {
   TbBucket,
   TbLink,
   TbMail,
+  TbPhoto,
   TbScale,
   TbServerBolt,
   TbSettings,
@@ -51,6 +52,11 @@ const adminItems = [
     href: "/admin/shares",
     labelId: "admin.button.shares",
     icon: <TbLink />,
+  },
+  {
+    href: "/admin/brand",
+    labelId: "admin.button.brand",
+    icon: <TbPhoto />,
   },
 ];
 

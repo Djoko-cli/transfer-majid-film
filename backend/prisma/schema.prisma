@@ -288,3 +288,17 @@ model ClamavScan {
 
   @@index([createdAt])
 }
+
+// A row's mere existence means this still is excluded from BrandPanel's
+// public rotation — absence is the default (enabled), same "existence as
+// the fact" idiom AdminNoticeDismissal already uses. Keeps every one of
+// the ~106 stills already in frontend/src/data/brandProjects.ts enabled
+// with zero backfill, and any still added there later defaults to shown
+// with no migration of its own needed.
+model DisabledBrandSlide {
+  slug       String
+  still      Int
+  disabledAt DateTime @default(now())
+
+  @@id([slug, still])
+}
