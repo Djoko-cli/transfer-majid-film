@@ -1,9 +1,28 @@
-import { ActionIcon, Anchor, Box, Text, createStyles } from "@mantine/core";
-import { useEffect, useState } from "react";
+import {
+  ActionIcon,
+  Anchor,
+  Box,
+  Text,
+  Transition,
+  createStyles,
+} from "@mantine/core";
+import { useCallback, useEffect, useState } from "react";
 import { TbX } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import useTranslate from "../hooks/useTranslate.hook";
 import userPreferences from "../utils/userPreferences.util";
+
+// Auto-dismisses after this long once actually shown, same action as
+// clicking the close button (see the effect below) - purely informational
+// (see the notice's own reasoning further down), never blocking anything,
+// and its content stays permanently available at /privacy and in the
+// footer, which is what makes a timed auto-dismiss reasonable here rather
+// than a WCAG 2.2.1 timing concern.
+const AUTO_DISMISS_MS = 20000;
+// Mantine's own built-in presets (opacity + transform only - translate/
+// scale, never a layout-triggering property like height or top/bottom) -
+// GPU-composited by construction, not something to hand-roll on top of.
+const TRANSITION_MS = 300;
 
 // Every cookie this app sets (see the table in privacy policy content) is
 // either strictly necessary (auth, CSRF state, password-protected-share
@@ -87,36 +106,57 @@ const CookieNotice = () => {
     setDismissed(userPreferences.get("cookieNoticeDismissed") === "true");
   }, []);
 
-  const dismiss = () => {
+  // useCallback rather than a plain function, so the effect below (and any
+  // future caller) can list it as a real dependency instead of needing an
+  // exhaustive-deps suppression - it never actually changes identity
+  // (setDismissed is stable, userPreferences is a module import), but
+  // ESLint can't know that from a fresh arrow function every render.
+  const dismiss = useCallback(() => {
     userPreferences.set("cookieNoticeDismissed", "true");
     setDismissed(true);
-  };
+  }, []);
 
-  if (dismissed) return null;
+  // Starts only once the card actually becomes visible (not on every
+  // render) - re-arms itself correctly if `dismissed` were ever to flip
+  // back to false, though nothing in this component does that today.
+  useEffect(() => {
+    if (dismissed) return;
+    const timeout = setTimeout(dismiss, AUTO_DISMISS_MS);
+    return () => clearTimeout(timeout);
+  }, [dismissed, dismiss]);
 
   return (
-    <Box className={classes.card}>
-      <ActionIcon
-        className={classes.closeButton}
-        size="sm"
-        onClick={dismiss}
-        aria-label={t("cookieNotice.dismiss")}
-      >
-        <TbX size={14} />
-      </ActionIcon>
-      <Text size="xs" className={classes.text}>
-        <FormattedMessage
-          id="cookieNotice.text"
-          values={{
-            privacyLink: (
-              <Anchor size="xs" href="/privacy">
-                {t("privacy.title")}
-              </Anchor>
-            ),
-          }}
-        />
-      </Text>
-    </Box>
+    <Transition
+      mounted={!dismissed}
+      transition="slide-up"
+      duration={TRANSITION_MS}
+      timingFunction="ease"
+    >
+      {(transitionStyles) => (
+        <Box className={classes.card} style={transitionStyles}>
+          <ActionIcon
+            className={classes.closeButton}
+            size="sm"
+            onClick={dismiss}
+            aria-label={t("cookieNotice.dismiss")}
+          >
+            <TbX size={14} />
+          </ActionIcon>
+          <Text size="xs" className={classes.text}>
+            <FormattedMessage
+              id="cookieNotice.text"
+              values={{
+                privacyLink: (
+                  <Anchor size="xs" href="/privacy">
+                    {t("privacy.title")}
+                  </Anchor>
+                ),
+              }}
+            />
+          </Text>
+        </Box>
+      )}
+    </Transition>
   );
 };
 
