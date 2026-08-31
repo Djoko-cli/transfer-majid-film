@@ -627,10 +627,11 @@ export default {
     "Analyse chaque partage envoyé à la recherche de fichiers malveillants avant de le conserver. Les partages infectés sont supprimés automatiquement. Nécessite une instance ClamAV joignable (voir la doc des intégrations).",
   "admin.config.clamav.infected-file-action": "Action en cas de fichier infecté",
   "admin.config.clamav.infected-file-action.description":
-    "Ce qu'il advient d'un partage dont ClamAV a détecté un fichier malveillant : supprimé définitivement, ou mis de côté pour vérification.",
+    "Ce qu'il advient d'un partage dont ClamAV a détecté un fichier malveillant : supprimé définitivement, mis de côté pour vérification, ou laissé tel quel (le partage reste accessible normalement, ClamAV se contente d'enregistrer la détection dans l'historique des analyses).",
   "admin.config.clamav.infected-file-action.delete": "Supprimer",
   "admin.config.clamav.infected-file-action.quarantine":
     "Mettre en quarantaine",
+  "admin.config.clamav.infected-file-action.none": "Ne rien faire",
   "admin.clamav.status.title": "État de ClamAV",
   "admin.clamav.status.connected": "Connecté",
   "admin.clamav.status.disconnected": "Non connecté",
@@ -649,6 +650,7 @@ export default {
   "admin.clamav.scans.status.error": "Erreur",
   "admin.clamav.scans.action.delete": "Supprimé",
   "admin.clamav.scans.action.quarantine": "Mis en quarantaine",
+  "admin.clamav.scans.action.none": "Aucune action",
   "admin.config.cache.ttl": "DDV",
   "admin.config.cache.ttl.description":
     "Durée de vie des informations conservées en cache.",

@@ -31,6 +31,10 @@ const statusColor: Record<ClamavScan["status"], string> = {
 const actionColor: Record<NonNullable<ClamavScan["action"]>, string> = {
   delete: "red",
   quarantine: "yellow",
+  // Neutral rather than a warning color — choosing "none" is deliberate
+  // inaction, not itself something to flag the way delete/quarantine's
+  // own colors do.
+  none: "gray",
 };
 
 // freshclam (the updater running inside the ClamAV container, separate

@@ -95,10 +95,10 @@ export type ClamavScan = {
   infectedCount: number;
   infectedFileNames: string | null;
   errorMessage: string | null;
-  // Matches clamav.infectedFileAction's own values ("delete"/"quarantine")
-  // exactly — this is that config's value at the time THIS scan ran, not
-  // necessarily what it's set to now.
-  action: "delete" | "quarantine" | null;
+  // Matches clamav.infectedFileAction's own values ("delete"/"quarantine"/
+  // "none") exactly — this is that config's value at the time THIS scan
+  // ran, not necessarily what it's set to now.
+  action: "delete" | "quarantine" | "none" | null;
 };
 
 const getClamavScans = async (

@@ -290,6 +290,26 @@ export class ClamScanService {
         // keeps getting exactly what they already had.
         const action = this.config.get("clamav.infectedFileAction") || "delete";
 
+        if (action === "none") {
+          // Detect-only: the share and its files are left exactly as
+          // uploaded — no delete, no quarantine, no removedReason. Still
+          // recorded on the scan row and logged, same as the other two
+          // actions, so an admin who chose this still sees every
+          // detection in both the scan history and the server log; they
+          // just haven't asked the app to act on it automatically.
+          if (scanId) {
+            await this.prisma.clamavScan
+              .update({ where: { id: scanId }, data: { action } })
+              .catch(() => {
+                // Non-critical — see the same catch a few lines below.
+              });
+          }
+          this.logger.warn(
+            `Share ${shareId} contains ${infectedFiles.length} malicious file(s) (${infectedFiles.map((file) => file.name).join(", ")}) — left as-is, clamav.infectedFileAction is "none"`,
+          );
+          return;
+        }
+
         try {
           if (action === "quarantine") {
             await this.fileService.quarantineAllFiles(shareId);

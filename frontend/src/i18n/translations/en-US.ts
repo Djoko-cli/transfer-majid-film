@@ -658,9 +658,10 @@ export default {
     "Scan every uploaded share for malicious files before keeping it. Infected shares are deleted automatically. Requires a reachable ClamAV instance (see the integrations docs).",
   "admin.config.clamav.infected-file-action": "Infected file action",
   "admin.config.clamav.infected-file-action.description":
-    "What happens to a share ClamAV flags as containing a malicious file: permanently deleted, or set aside for review.",
+    "What happens to a share ClamAV flags as containing a malicious file: permanently deleted, set aside for review, or left as-is (the share stays fully accessible — ClamAV only records the detection in the scan history).",
   "admin.config.clamav.infected-file-action.delete": "Delete",
   "admin.config.clamav.infected-file-action.quarantine": "Quarantine",
+  "admin.config.clamav.infected-file-action.none": "Do nothing",
   "admin.clamav.status.title": "ClamAV status",
   "admin.clamav.status.connected": "Connected",
   "admin.clamav.status.disconnected": "Not connected",
@@ -679,6 +680,7 @@ export default {
   "admin.clamav.scans.status.error": "Error",
   "admin.clamav.scans.action.delete": "Deleted",
   "admin.clamav.scans.action.quarantine": "Quarantined",
+  "admin.clamav.scans.action.none": "No action taken",
   "admin.config.cache.ttl": "TTL",
   "admin.config.cache.ttl.description":
     "Time in second to keep information inside the cache.",

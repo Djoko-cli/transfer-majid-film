@@ -143,6 +143,9 @@ export const configVariables = {
     // share's files aside (see QUARANTINE_DIRECTORY) instead of removing
     // them, so a false positive can still be recovered — at the cost of
     // an admin needing to clear that directory out themselves over time.
+    // "none" takes no action at all: the share stays exactly as uploaded,
+    // fully accessible — only the scan history and server log record the
+    // detection (see ClamScanService.checkAndRemove).
     infectedFileAction: {
       type: "string",
       defaultValue: "delete",

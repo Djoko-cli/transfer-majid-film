@@ -279,11 +279,13 @@ model ClamavScan {
   infectedCount     Int     @default(0)
   infectedFileNames String?
   errorMessage      String?
-  // Only set once infectedCount > 0 and the share was actually acted on
-  // — "deleted" | "quarantined", matching clamav.infectedFileAction at
-  // the time this scan ran (not necessarily what it's set to *now*).
-  // null for every clean/error scan, and for an infected scan whose
-  // own delete/quarantine attempt itself failed (see checkAndRemove).
+  // Only set once infectedCount > 0 — "delete" | "quarantine" | "none",
+  // matching clamav.infectedFileAction's own values at the time this scan
+  // ran (not necessarily what it's set to *now*). null for every
+  // clean/error scan, and for an infected scan whose own delete/
+  // quarantine attempt itself failed (see checkAndRemove) — "none" is
+  // still recorded even though nothing was removed, since it's itself
+  // the outcome the admin configured, not a failure to record one.
   action            String?
 
   @@index([createdAt])

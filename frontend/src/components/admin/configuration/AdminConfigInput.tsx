@@ -112,6 +112,10 @@ const AdminConfigInput = ({
                 value: "quarantine",
                 label: t("admin.config.clamav.infected-file-action.quarantine"),
               },
+              {
+                value: "none",
+                label: t("admin.config.clamav.infected-file-action.none"),
+              },
             ]}
             value={form.values.stringValue}
             placeholder={configVariable.defaultValue}
