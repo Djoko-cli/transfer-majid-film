@@ -44,6 +44,11 @@ export const categories = [
 
 const adminItems = [
   {
+    href: "/admin/brand",
+    labelId: "admin.button.brand",
+    icon: <TbPhoto />,
+  },
+  {
     href: "/admin/users",
     labelId: "admin.button.users",
     icon: <TbUsers />,
@@ -52,11 +57,6 @@ const adminItems = [
     href: "/admin/shares",
     labelId: "admin.button.shares",
     icon: <TbLink />,
-  },
-  {
-    href: "/admin/brand",
-    labelId: "admin.button.brand",
-    icon: <TbPhoto />,
   },
 ];
 
