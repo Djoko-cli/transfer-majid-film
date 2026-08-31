@@ -572,6 +572,11 @@ export const configVariables = {
       defaultValue: "",
       secret: false,
     },
+    termsText: {
+      type: "text",
+      defaultValue: "",
+      secret: false,
+    },
     privacyPolicyText: {
       type: "text",
       defaultValue: "",

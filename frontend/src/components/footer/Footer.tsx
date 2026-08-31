@@ -93,8 +93,25 @@ const Footer = () => {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-  const hasImprint = !!config.get("legal.imprintText");
-  const hasPrivacy = !!config.get("legal.privacyPolicyText");
+  // Built as a list rather than three separate hasX booleans (the shape
+  // this had with just imprint/privacy) - a fixed pairwise "hasA && hasB"
+  // separator check doesn't scale past two optional links without an
+  // explicit case for every combination. Filtering first means the " • "
+  // separators below only ever appear between two links that are both
+  // actually rendered, regardless of which of the three are configured.
+  const legalLinks = [
+    {
+      configKey: "legal.imprintText",
+      href: "/imprint",
+      label: t("imprint.title"),
+    },
+    { configKey: "legal.termsText", href: "/terms", label: t("terms.title") },
+    {
+      configKey: "legal.privacyPolicyText",
+      href: "/privacy",
+      label: t("privacy.title"),
+    },
+  ].filter(({ configKey }) => !!config.get(configKey));
 
   return (
     <MFooter
@@ -125,17 +142,14 @@ const Footer = () => {
           </Text>
           <div>
             <Text size="xs" color="dimmed" align="right">
-              {hasImprint && (
-                <Anchor size="xs" href="/imprint">
-                  {t("imprint.title")}
-                </Anchor>
-              )}
-              {hasImprint && hasPrivacy && " • "}
-              {hasPrivacy && (
-                <Anchor size="xs" href="/privacy">
-                  {t("privacy.title")}
-                </Anchor>
-              )}
+              {legalLinks.map(({ href, label }, index) => (
+                <span key={href}>
+                  {index > 0 && " • "}
+                  <Anchor size="xs" href={href}>
+                    {label}
+                  </Anchor>
+                </span>
+              ))}
             </Text>
           </div>
         </SimpleGrid>

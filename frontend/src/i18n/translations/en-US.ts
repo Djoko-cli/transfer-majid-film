@@ -621,6 +621,10 @@ export default {
   "imprint.title": "Imprint",
   // END /imprint
 
+  // /terms
+  "terms.title": "Terms of Use",
+  // END /terms
+
   // /privacy
   "privacy.title": "Privacy Policy",
   // END /privacy
@@ -1034,6 +1038,9 @@ export default {
   "admin.config.legal.imprint-text": "Imprint text",
   "admin.config.legal.imprint-text.description":
     "The text which should be shown in the imprint. Supports Markdown.",
+  "admin.config.legal.terms-text": "Terms of use text",
+  "admin.config.legal.terms-text.description":
+    "The text which should be shown in the terms of use. Supports Markdown.",
   "admin.config.legal.privacy-policy-text": "Privacy policy text",
   "admin.config.legal.privacy-policy-text.description":
     "The text which should be shown in the privacy policy. Supports Markdown.",

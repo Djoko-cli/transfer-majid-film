@@ -93,6 +93,7 @@ export function getDefaultConfig(): Config[] {
       type: "boolean",
     },
     { key: "legal.imprintText", value: "", defaultValue: "", type: "text" },
+    { key: "legal.termsText", value: "", defaultValue: "", type: "text" },
     {
       key: "legal.privacyPolicyText",
       value: "",

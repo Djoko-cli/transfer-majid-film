@@ -590,6 +590,10 @@ export default {
   "imprint.title": "Mentions légales",
   // END /imprint
 
+  // /terms
+  "terms.title": "Conditions d'utilisation",
+  // END /terms
+
   // /privacy
   "privacy.title": "Politique de confidentialité",
   // END /privacy
@@ -1017,6 +1021,9 @@ export default {
   "admin.config.legal.imprint-text": "Texte des mentions légales",
   "admin.config.legal.imprint-text.description":
     "Le texte qui doit être affiché dans les mentions légales. Supporte le Markdown.",
+  "admin.config.legal.terms-text": "Texte des conditions d'utilisation",
+  "admin.config.legal.terms-text.description":
+    "Le texte qui doit être affiché dans les conditions d'utilisation. Supporte le Markdown.",
   "admin.config.legal.privacy-policy-text":
     "Texte de la politique de confidentialité",
   "admin.config.legal.privacy-policy-text.description":

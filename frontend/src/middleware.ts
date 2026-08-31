@@ -62,6 +62,7 @@ export async function middleware(request: NextRequest) {
       "/upload/*",
       "/error",
       "/imprint",
+      "/terms",
       "/privacy",
     ]),
     admin: new Routes(["/admin/*"]),
@@ -115,10 +116,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!getConfig("legal.enabled")) {
-    routes.disabled.routes.push("/imprint", "/privacy");
+    routes.disabled.routes.push("/imprint", "/terms", "/privacy");
   } else {
     if (!getConfig("legal.imprintText")) {
       routes.disabled.routes.push("/imprint");
+    }
+    if (!getConfig("legal.termsText")) {
+      routes.disabled.routes.push("/terms");
     }
     if (!getConfig("legal.privacyPolicyText")) {
       routes.disabled.routes.push("/privacy");

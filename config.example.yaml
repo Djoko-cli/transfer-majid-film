@@ -266,6 +266,8 @@ legal:
   enabled: "false"
   #The text which should be shown in the imprint. Supports Markdown.
   imprintText: ""
+  #The text which should be shown in the terms of use. Supports Markdown.
+  termsText: ""
   #The text which should be shown in the privacy policy. Supports Markdown.
   privacyPolicyText: ""
 #This configuration is used to create the initial user when the application is started for the first time.
