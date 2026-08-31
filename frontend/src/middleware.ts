@@ -117,13 +117,10 @@ export async function middleware(request: NextRequest) {
   if (!getConfig("legal.enabled")) {
     routes.disabled.routes.push("/imprint", "/privacy");
   } else {
-    if (!getConfig("legal.imprintText") && !getConfig("legal.imprintUrl")) {
+    if (!getConfig("legal.imprintText")) {
       routes.disabled.routes.push("/imprint");
     }
-    if (
-      !getConfig("legal.privacyPolicyText") &&
-      !getConfig("legal.privacyPolicyUrl")
-    ) {
+    if (!getConfig("legal.privacyPolicyText")) {
       routes.disabled.routes.push("/privacy");
     }
   }
@@ -162,16 +159,6 @@ export async function middleware(request: NextRequest) {
     {
       condition: routes.admin.contains(route) && !user?.isAdmin,
       path: "/",
-    },
-    // Imprint redirect
-    {
-      condition: route == "/imprint" && !getConfig("legal.imprintText") && getConfig("legal.imprintUrl"),
-      path: getConfig("legal.imprintUrl"),
-    },
-    // Privacy redirect
-    {
-      condition: route == "/privacy" && !getConfig("legal.privacyPolicyText") && getConfig("legal.privacyPolicyUrl"),
-      path: getConfig("legal.privacyPolicyUrl"),
     },
   ];
   for (const rule of rules) {

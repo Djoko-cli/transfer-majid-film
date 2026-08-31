@@ -93,18 +93,11 @@ export function getDefaultConfig(): Config[] {
       type: "boolean",
     },
     { key: "legal.imprintText", value: "", defaultValue: "", type: "text" },
-    { key: "legal.imprintUrl", value: "", defaultValue: "", type: "string" },
     {
       key: "legal.privacyPolicyText",
       value: "",
       defaultValue: "",
       type: "text",
-    },
-    {
-      key: "legal.privacyPolicyUrl",
-      value: "",
-      defaultValue: "",
-      type: "string",
     },
   ];
 }

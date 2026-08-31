@@ -572,18 +572,8 @@ export const configVariables = {
       defaultValue: "",
       secret: false,
     },
-    imprintUrl: {
-      type: "string",
-      defaultValue: "",
-      secret: false,
-    },
     privacyPolicyText: {
       type: "text",
-      defaultValue: "",
-      secret: false,
-    },
-    privacyPolicyUrl: {
-      type: "string",
       defaultValue: "",
       secret: false,
     },

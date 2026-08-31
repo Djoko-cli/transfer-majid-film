@@ -264,14 +264,10 @@ s3:
 legal:
   #Whether to show a link to imprint and privacy policy in the footer.
   enabled: "false"
-  #The text which should be shown in the imprint. Supports Markdown. Leave blank to link to an external imprint page.
+  #The text which should be shown in the imprint. Supports Markdown.
   imprintText: ""
-  #If you already have an imprint page you can link it here instead of using the text field.
-  imprintUrl: ""
-  #The text which should be shown in the privacy policy. Supports Markdown. Leave blank to link to an external privacy policy page.
+  #The text which should be shown in the privacy policy. Supports Markdown.
   privacyPolicyText: ""
-  #If you already have a privacy policy page you can link it here instead of using the text field.
-  privacyPolicyUrl: ""
 #This configuration is used to create the initial user when the application is started for the first time.
 #Make sure to change at least the password as soon as you log in!
 initUser:

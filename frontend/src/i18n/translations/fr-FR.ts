@@ -1016,18 +1016,11 @@ export default {
     "Afficher/Masquer dans le pied de page un lien vers les mentions légales et la politique de confidentialité.",
   "admin.config.legal.imprint-text": "Texte des mentions légales",
   "admin.config.legal.imprint-text.description":
-    "Le texte qui doit être affiché dans les mentions légales. Supporte le Markdown. Laissez vide pour mettre un lien vers une page de mentions légales externe.",
-  "admin.config.legal.imprint-url": "URL des mentions légales",
-  "admin.config.legal.imprint-url.description":
-    "Si vous avez déjà une page de mentions légales, vous pouvez indiquer son URL ici au lieu d'utiliser le champ de texte.",
+    "Le texte qui doit être affiché dans les mentions légales. Supporte le Markdown.",
   "admin.config.legal.privacy-policy-text":
     "Texte de la politique de confidentialité",
   "admin.config.legal.privacy-policy-text.description":
-    "Le texte qui doit être affiché dans la politique de confidentialité. Supporte le Markdown. Laissez vide pour mettre un lien vers une page de politique de confidentialité externe.",
-  "admin.config.legal.privacy-policy-url":
-    "URL de la politique de confidentialité",
-  "admin.config.legal.privacy-policy-url.description":
-    "Si vous avez déjà une page de politique de confidentialité, vous pouvez indiquer son URL ici au lieu d'utiliser le champ de texte.",
+    "Le texte qui doit être affiché dans la politique de confidentialité. Supporte le Markdown.",
   // 404
   "404.description": "Désolé, mais cette page n’existe pas.",
   "404.button.home": "Retour à l’accueil",

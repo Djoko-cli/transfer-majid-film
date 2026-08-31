@@ -93,20 +93,8 @@ const Footer = () => {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-  const hasImprint = !!(
-    config.get("legal.imprintUrl") || config.get("legal.imprintText")
-  );
-  const hasPrivacy = !!(
-    config.get("legal.privacyPolicyUrl") ||
-    config.get("legal.privacyPolicyText")
-  );
-  const imprintUrl =
-    (!config.get("legal.imprintText") && config.get("legal.imprintUrl")) ||
-    "/imprint";
-  const privacyUrl =
-    (!config.get("legal.privacyPolicyText") &&
-      config.get("legal.privacyPolicyUrl")) ||
-    "/privacy";
+  const hasImprint = !!config.get("legal.imprintText");
+  const hasPrivacy = !!config.get("legal.privacyPolicyText");
 
   return (
     <MFooter
@@ -138,13 +126,13 @@ const Footer = () => {
           <div>
             <Text size="xs" color="dimmed" align="right">
               {hasImprint && (
-                <Anchor size="xs" href={imprintUrl}>
+                <Anchor size="xs" href="/imprint">
                   {t("imprint.title")}
                 </Anchor>
               )}
               {hasImprint && hasPrivacy && " • "}
               {hasPrivacy && (
-                <Anchor size="xs" href={privacyUrl}>
+                <Anchor size="xs" href="/privacy">
                   {t("privacy.title")}
                 </Anchor>
               )}
