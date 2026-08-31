@@ -368,6 +368,9 @@ export default {
 
   // /upload
   "upload.title": "Envoyer",
+  "upload.termsGate.description":
+    "Avant d'envoyer ou de déposer des fichiers, merci de prendre connaissance de nos {termsLink}.",
+  "upload.termsGate.accept": "J'accepte les conditions d'utilisation",
   "upload.notify.confirm-leave":
     "Êtes-vous sûr de vouloir quitter cette page ? Votre envoi sera annulé.",
   "upload.notify.generic-error":
@@ -1017,7 +1020,7 @@ export default {
   "admin.config.category.legal": "Juridique",
   "admin.config.legal.enabled": "Activer les mentions légales",
   "admin.config.legal.enabled.description":
-    "Afficher/Masquer dans le pied de page un lien vers les mentions légales et la politique de confidentialité.",
+    "Afficher/Masquer dans le pied de page un lien vers les mentions légales, les conditions d'utilisation et la politique de confidentialité.",
   "admin.config.legal.imprint-text": "Texte des mentions légales",
   "admin.config.legal.imprint-text.description":
     "Le texte qui doit être affiché dans les mentions légales. Supporte le Markdown.",

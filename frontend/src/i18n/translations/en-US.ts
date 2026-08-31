@@ -392,6 +392,9 @@ export default {
 
   // /upload
   "upload.title": "Upload",
+  "upload.termsGate.description":
+    "Before sending or dropping files, please take a moment to read our {termsLink}.",
+  "upload.termsGate.accept": "I accept the terms of use",
 
   "upload.notify.confirm-leave":
     "Are you sure you want to leave this page? Your upload will be canceled.",
@@ -1034,7 +1037,7 @@ export default {
   "admin.config.category.legal": "Legal",
   "admin.config.legal.enabled": "Enable legal notices",
   "admin.config.legal.enabled.description":
-    "Whether to show a link to imprint and privacy policy in the footer.",
+    "Whether to show a link to the imprint, terms of use, and privacy policy in the footer.",
   "admin.config.legal.imprint-text": "Imprint text",
   "admin.config.legal.imprint-text.description":
     "The text which should be shown in the imprint. Supports Markdown.",

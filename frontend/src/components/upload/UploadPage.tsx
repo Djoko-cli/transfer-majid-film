@@ -12,6 +12,7 @@ import Dropzone, { getFilesFromEvent } from "./Dropzone";
 import FileList from "./FileList";
 import PageDropOverlay from "./PageDropOverlay";
 import SplitTransferLayout from "./SplitTransferLayout";
+import TermsGate from "./TermsGate";
 import TransferCard from "./TransferCard";
 import showCompletedUploadModal from "./modals/showCompletedUploadModal";
 import showCreateUploadModal from "./modals/showCreateUploadModal";
@@ -28,6 +29,7 @@ import { NasImportPreview } from "../../types/nasImport.type";
 import { CreateShare, Mode, Share } from "../../types/share.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
+import userPreferences from "../../utils/userPreferences.util";
 import {
   getNormalizedFileName,
   filterDuplicateFiles,
@@ -59,6 +61,23 @@ const Upload = ({
     done: number;
     total: number;
   } | null>(null);
+
+  // Starts false on every render, server and client alike - localStorage
+  // doesn't exist during SSR, and seeding this from it directly (e.g. via
+  // useState's lazy initializer) would make the client's first render
+  // disagree with the server-rendered HTML for a returning visitor,
+  // exactly the hydration-mismatch class of bug Footer.tsx's own isMobile
+  // fix exists to avoid. The real value loads a tick later, in the effect
+  // below - a one-frame flash of the gate for a returning visitor, deemed
+  // fine given it's a synchronous local read with no network round trip.
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
+  useEffect(() => {
+    setHasAcceptedTerms(userPreferences.get("termsAccepted") === "true");
+  }, []);
+  const acceptTerms = () => {
+    userPreferences.set("termsAccepted", "true");
+    setHasAcceptedTerms(true);
+  };
 
   const requiresEmailVerification =
     !user &&
@@ -424,7 +443,7 @@ const Upload = ({
       Array.from(e.dataTransfer?.types || []).includes("Files");
 
     const handleDragEnter = (e: DragEvent) => {
-      if (isUploading || !isFileDrag(e)) return;
+      if (isUploading || !hasAcceptedTerms || !isFileDrag(e)) return;
       e.preventDefault();
       dragDepthRef.current += 1;
       setIsDraggingFileOverPage(true);
@@ -449,7 +468,7 @@ const Upload = ({
       e.preventDefault();
       dragDepthRef.current = 0;
       setIsDraggingFileOverPage(false);
-      if (isUploading) return;
+      if (isUploading || !hasAcceptedTerms) return;
 
       const droppedFiles = (await getFilesFromEvent(e)) as FileUpload[];
       const fileSizeSum = droppedFiles.reduce((n, { size }) => n + size, 0);
@@ -483,11 +502,11 @@ const Upload = ({
       window.removeEventListener("drop", handleDrop);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUploading, currentFilesSize, maxShareSize, files]);
+  }, [isUploading, hasAcceptedTerms, currentFilesSize, maxShareSize, files]);
 
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
-      if (modals.modals.length > 0) {
+      if (modals.modals.length > 0 || !hasAcceptedTerms) {
         return;
       }
 
@@ -535,7 +554,7 @@ const Upload = ({
     return () => {
       window.removeEventListener("paste", handlePaste);
     };
-  }, [modals.modals.length]);
+  }, [modals.modals.length, hasAcceptedTerms]);
 
   useEffect(() => {
     // Check if there are any files that failed to upload
@@ -587,6 +606,28 @@ const Upload = ({
         .catch(() => toast.error(t("upload.notify.generic-error")));
     }
   }, [files]);
+
+  // Gates both branches below behind one accept, checked once per browser
+  // (see hasAcceptedTerms above) rather than duplicated per-branch - same
+  // glass shell each flow already uses (AuthGlassLayout / SplitTransfer
+  // Layout), just with TermsGate in place of the real content, so the
+  // frame the visitor sees doesn't jump once they accept.
+  if (!hasAcceptedTerms) {
+    return (
+      <>
+        <Meta title={t("upload.title")} />
+        {isReverseShare ? (
+          <AuthGlassLayout>
+            <TermsGate onAccept={acceptTerms} />
+          </AuthGlassLayout>
+        ) : (
+          <SplitTransferLayout>
+            <TermsGate onAccept={acceptTerms} />
+          </SplitTransferLayout>
+        )}
+      </>
+    );
+  }
 
   if (isReverseShare) {
     return (
