@@ -53,19 +53,26 @@ services:
     # forwarded headers from that proxy instead of replacing internal Caddy).
     #
     # No network_mode here (used to be `bridge`, Docker's own raw default
-    # network) — that put this container on a *different* network than
-    # clamav below, which gets no network_mode and so joins Compose's own
-    # auto-created project network instead. Only Compose-managed networks
-    # run the embedded DNS server that resolves a service name (`clamav`,
-    # what CLAMAV_HOST defaults to below) to that service's container —
-    # the plain "bridge" network doesn't do this at all. transfer could
-    # never have reached clamav by name while this stayed set, however
-    # long clamav itself took to become ready: a permanent, not transient,
-    # "not reachable". Host port publishing (ports: below) works exactly
-    # the same on Compose's own network as it did on the raw bridge one,
-    # so removing this loses nothing.
+    # network) — every other container on this NAS can stay on plain
+    # "bridge" without issue, since none of them need to reach a sibling
+    # container *by name*; the instant one does (transfer → clamav, right
+    # below), it needs a network Compose actually manages, because only
+    # those run the embedded DNS server that resolves a service name to
+    # that service's container. The plain "bridge" network doesn't do
+    # this at all — transfer could never have reached clamav by the
+    # CLAMAV_HOST=clamav hostname it defaults to while this stayed set,
+    # however long clamav itself took to become ready: a permanent, not
+    # transient, "not reachable". `networks:` below opts back in to that
+    # DNS with an explicit, chosen name (see the bottom of this file)
+    # instead of the auto-generated `<project>_default` Compose would
+    # otherwise give it. Host port publishing (ports: below) works
+    # exactly the same on any bridge-driver network, named or not, so
+    # none of this changes anything about how this container is reached
+    # from outside Docker.
     ports:
       - "6100:3000"
+    networks:
+      - transfer
 
     # Scans every uploaded share with ClamAV before it's kept. Needs real
     # resources (see the integrations docs).
@@ -76,6 +83,8 @@ services:
   clamav:
     restart: unless-stopped
     image: clamav/clamav
+    networks:
+      - transfer
     volumes:
       # Without this, every container restart (NAS reboot, Docker daemon
       # restart, an OOM kill, a manual restart — not just a fresh install)
@@ -92,3 +101,16 @@ services:
       # that on a *first* boot, but every boot after this volume exists
       # only needs an incremental signature diff, not a full re-fetch.
       - /volume2/docker/transfer/clamav-db:/var/lib/clamav
+
+# A named, Compose-managed network rather than the default bridge — see
+# transfer's own `networks:` comment above for why one is needed at all.
+# `name:` pins the exact Docker network name to this instead of Compose's
+# own default `<project-directory-name>_default` pattern, so it reads
+# the same as every other container's plain "bridge" mode in Container
+# Manager's own network list, not like a one-off stack with its own
+# generated network. Driver is still bridge underneath — this is a
+# *named* bridge network, not a different kind of networking.
+networks:
+  transfer:
+    name: transfer
+    driver: bridge
