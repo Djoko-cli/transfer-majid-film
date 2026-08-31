@@ -27,14 +27,20 @@ It started as a fork of [Pingvin Share](https://github.com/stonith404/pingvin-sh
 
 ## Setup
 
-There's no published Docker image for this fork — build it from source with Docker Compose:
+Each release builds and publishes a versioned image to `ghcr.io/djoko-cli/transfer-majid-film` (a private package — see [Releases](https://github.com/Djoko-cli/transfer-majid-film/releases) for the full changelog per version). `docker-compose.yml` pulls `:latest` by default:
 
 1. Clone this repository.
-2. Copy `docker-compose.local.yml` (builds the image locally) or adapt `docker-compose.yml` to point `build: .` instead of pulling an image.
-3. Run:
+2. `docker login ghcr.io` with a token that has access to this repo's packages.
+3. Adjust `docker-compose.yml` for your setup (ports, volumes, `TRUST_PROXY`), then run:
    ```bash
-   docker compose -f docker-compose.local.yml up -d --build
+   docker compose pull && docker compose up -d
    ```
+
+To build from source instead of pulling (e.g. for local changes), use `docker-compose.local.yml`:
+
+```bash
+docker compose -f docker-compose.local.yml up -d --build
+```
 
 The app listens on the port mapped in whichever compose file you used. There's no default admin account: the first user to sign up (`/auth/signUp`) is automatically made an admin. To pre-provision an admin instead (e.g. for an automated deploy), set `initUser` in `config.yaml` before first boot — see `config.example.yaml`.
 
