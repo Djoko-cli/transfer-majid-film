@@ -365,6 +365,7 @@ const createReverseShare = async (
   simplified: boolean,
   publicAccess: boolean,
   token?: string,
+  name?: string,
 ) => {
   return (
     await api.post("reverseShares", {
@@ -375,6 +376,7 @@ const createReverseShare = async (
       simplified,
       publicAccess,
       token,
+      name,
     })
   ).data;
 };

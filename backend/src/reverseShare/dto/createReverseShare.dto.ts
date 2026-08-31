@@ -39,4 +39,13 @@ export class CreateReverseShareDTO {
   })
   @Length(3, 50)
   token?: string;
+
+  // Same bounds as a direct share's own name (CreateUploadModalBody's own
+  // yup validation) — the two are the same concept, just set by whoever
+  // is allowed to for each: the sender themselves for a direct share, only
+  // this reverse share's own creator here.
+  @IsString()
+  @IsOptional()
+  @Length(3, 30)
+  name?: string;
 }

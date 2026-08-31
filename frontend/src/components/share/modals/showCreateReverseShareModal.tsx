@@ -9,6 +9,7 @@ import {
   Stack,
   Switch,
   Text,
+  TextInput,
 } from "@mantine/core";
 import { useForm, yupResolver } from "@mantine/form";
 import { useModals } from "@mantine/modals";
@@ -101,6 +102,13 @@ const Body = ({
   const form = useForm({
     initialValues: {
       token: generatedToken,
+      // "" rather than undefined — an <input value={undefined}> starts
+      // uncontrolled, and the first keystroke (form.values.name becoming
+      // a real string) would flip it to controlled mid-lifecycle, which
+      // React warns about loudly. yup's own transform below already
+      // normalizes "" back to undefined before validating/submitting, so
+      // this changes nothing about what actually gets sent.
+      name: "",
       maxShareSize: userMaxShareSize,
       maxUseCount: 1,
       sendEmailNotification: false,
@@ -121,6 +129,11 @@ const Body = ({
           .matches(new RegExp("^[a-zA-Z0-9_-]*$"), {
             message: t("upload.modal.link.error.invalid"),
           }),
+        name: yup
+          .string()
+          .transform((value) => value || undefined)
+          .min(3, t("common.error.too-short", { length: 3 }))
+          .max(30, t("common.error.too-long", { length: 30 })),
         maxUseCount: yup
           .number()
           .typeError(t("common.error.invalid-number"))
@@ -184,6 +197,12 @@ const Body = ({
         values.simplified,
         values.publicAccess,
         values.token,
+        // Not just values.name — that's "" when left blank (see its own
+        // initialValues comment), and the backend's @IsOptional() only
+        // skips @Length(3, 30) for null/undefined, not "": an empty
+        // string would fail that check on every reverse share created
+        // without a name, the common case.
+        values.name || undefined,
       )
       .then(({ token }) => {
         modals.closeAll();
@@ -204,6 +223,20 @@ const Body = ({
             appUrl={appUrl}
             defaultAppUrl={defaultAppUrl}
             pathPrefix="/upload/"
+          />
+          {
+            // The only place this share's name can be set at all — whoever
+            // uploads through this link no longer gets a name field of
+            // their own (see showCreateUploadModal.tsx), on the reasoning
+            // that it's this link's creator's own account the resulting
+            // share lands in, not the uploader's.
+          }
+          <TextInput
+            variant="filled"
+            label={t("account.reverseShares.modal.name.label")}
+            description={t("account.reverseShares.modal.name.description")}
+            placeholder={t("account.reverseShares.modal.name.placeholder")}
+            {...form.getInputProps("name")}
           />
           <div>
             <Grid align={form.errors.expiration_num ? "center" : "flex-end"}>

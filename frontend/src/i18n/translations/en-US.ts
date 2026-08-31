@@ -250,6 +250,11 @@ export default {
   "account.reverseShares.modal.expiration.year-singular": "Year",
   "account.reverseShares.modal.expiration.year-plural": "Years",
 
+  "account.reverseShares.modal.name.label": "Name",
+  "account.reverseShares.modal.name.description":
+    "Used as the name for shares created through this link. Leave blank to use a name based on the files sent.",
+  "account.reverseShares.modal.name.placeholder": "Optional",
+
   "account.reverseShares.modal.max-size.label": "Max share size",
 
   "account.reverseShares.modal.send-email": "Send email notifications",
@@ -258,7 +263,7 @@ export default {
 
   "account.reverseShares.modal.simplified": "Simple mode",
   "account.reverseShares.modal.simplified.description":
-    "Make it easy for the person uploading the file to share it with you. They will only be able to customize the name and description of the share.",
+    "Make it easy for the person uploading the file to share it with you. They will only be able to customize the share's description.",
 
   "account.reverseShares.modal.public-access": "Public access",
   "account.reverseShares.modal.public-access.description":
@@ -274,6 +279,7 @@ export default {
   "account.reverseShares.table.no-shares": "No shares created yet",
   "account.reverseShares.table.count.singular": "share",
   "account.reverseShares.table.count.plural": "shares",
+  "account.reverseShares.table.name": "Name",
   "account.reverseShares.table.shares": "Shares",
   "account.reverseShares.table.remaining": "Remaining uses",
   "account.reverseShares.table.max-size": "Max share size",
@@ -496,6 +502,7 @@ export default {
   "upload.modal.expires.year-plural": "Years",
 
   "upload.modal.accordion.name-and-description.title": "Name and description",
+  "upload.modal.accordion.description-only.title": "Description",
   "upload.modal.accordion.name-and-description.name.placeholder": "Name",
   "upload.modal.accordion.name-and-description.description.placeholder":
     "Note for the recipients of this share",

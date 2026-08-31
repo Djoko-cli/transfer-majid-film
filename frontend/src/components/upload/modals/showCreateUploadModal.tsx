@@ -320,17 +320,33 @@ const CreateUploadModalBody = <T extends { name: string; size: number }>({
           <Accordion>
             <Accordion.Item value="description" sx={{ borderBottom: "none" }}>
               <Accordion.Control>
-                <FormattedMessage id="upload.modal.accordion.name-and-description.title" />
+                <FormattedMessage
+                  id={
+                    options.isReverseShare
+                      ? "upload.modal.accordion.description-only.title"
+                      : "upload.modal.accordion.name-and-description.title"
+                  }
+                />
               </Accordion.Control>
               <Accordion.Panel>
                 <Stack align="stretch">
-                  <TextInput
-                    variant="filled"
-                    placeholder={t(
-                      "upload.modal.accordion.name-and-description.name.placeholder",
-                    )}
-                    {...form.getInputProps("name")}
-                  />
+                  {
+                    // Only this reverse share's own creator can name the
+                    // resulting share (set at reverse-share creation time,
+                    // see showCreateReverseShareModal.tsx) — not whoever
+                    // uploads through it. onSubmit's own
+                    // getDefaultShareName(files, t) fallback still applies
+                    // when neither side named it.
+                  }
+                  {!options.isReverseShare && (
+                    <TextInput
+                      variant="filled"
+                      placeholder={t(
+                        "upload.modal.accordion.name-and-description.name.placeholder",
+                      )}
+                      {...form.getInputProps("name")}
+                    />
+                  )}
                   <Textarea
                     variant="filled"
                     placeholder={t(
@@ -541,13 +557,22 @@ const SimplifiedCreateUploadModalModal = <
       <form onSubmit={onSubmit}>
         <Stack align="stretch">
           <Stack align="stretch">
-            <TextInput
-              variant="filled"
-              placeholder={t(
-                "upload.modal.accordion.name-and-description.name.placeholder",
-              )}
-              {...form.getInputProps("name")}
-            />
+            {
+              // Simplified mode only ever runs for a reverse share (see
+              // UploadPage.tsx — the direct-upload flow never sets
+              // options.simplified), so this is always true in practice;
+              // written explicitly anyway rather than assumed, for the
+              // same reason as the full form's own identical check above.
+            }
+            {!options.isReverseShare && (
+              <TextInput
+                variant="filled"
+                placeholder={t(
+                  "upload.modal.accordion.name-and-description.name.placeholder",
+                )}
+                {...form.getInputProps("name")}
+              />
+            )}
             <Textarea
               variant="filled"
               placeholder={t(

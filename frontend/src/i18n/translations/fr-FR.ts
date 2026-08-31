@@ -235,6 +235,10 @@ export default {
   "account.reverseShares.modal.expiration.month-plural": "Mois",
   "account.reverseShares.modal.expiration.year-singular": "An",
   "account.reverseShares.modal.expiration.year-plural": "Ans",
+  "account.reverseShares.modal.name.label": "Nom",
+  "account.reverseShares.modal.name.description":
+    "Utilisé comme nom des partages créés via ce lien. Laissez vide pour utiliser un nom basé sur les fichiers envoyés.",
+  "account.reverseShares.modal.name.placeholder": "Optionnel",
   "account.reverseShares.modal.max-size.label": "Taille maximale du partage",
   "account.reverseShares.modal.send-email":
     "Envoyer des notifications par courriel",
@@ -242,7 +246,7 @@ export default {
     "Vous envoi une notification par courriel lorsqu'un partage est créé avec ce lien de partage inversé.",
   "account.reverseShares.modal.simplified": "Mode simple",
   "account.reverseShares.modal.simplified.description":
-    "Simplifiez la tâche à la personne qui vous partage un fichier. Ils ne pourront que personnaliser le nom et la description du partage.",
+    "Simplifiez la tâche à la personne qui vous partage un fichier. Ils ne pourront que personnaliser la description du partage.",
   "account.reverseShares.modal.public-access": "Accès public",
   "account.reverseShares.modal.public-access.description":
     "Rendre les partages créés avec ce partage inversé public. Si désactivé, seul vous et le créateur du partage pourrez le voir.",
@@ -255,6 +259,7 @@ export default {
   "account.reverseShares.table.no-shares": "Aucun partage créé pour le moment",
   "account.reverseShares.table.count.singular": "partage",
   "account.reverseShares.table.count.plural": "partages",
+  "account.reverseShares.table.name": "Nom",
   "account.reverseShares.table.shares": "Partages",
   "account.reverseShares.table.remaining": "Utilisations restantes",
   "account.reverseShares.table.max-size": "Taille maximale du partage",
@@ -468,6 +473,7 @@ export default {
   "upload.modal.expires.year-singular": "An",
   "upload.modal.expires.year-plural": "Ans",
   "upload.modal.accordion.name-and-description.title": "Nom et description",
+  "upload.modal.accordion.description-only.title": "Description",
   "upload.modal.accordion.name-and-description.name.placeholder": "Nom",
   "upload.modal.accordion.name-and-description.description.placeholder":
     "Note pour les destinataires de ce partage",

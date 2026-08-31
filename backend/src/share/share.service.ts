@@ -123,6 +123,16 @@ export class ShareService {
       }
     }
 
+    // Same idea as expirationDate above: a reverse share's own name (set
+    // only by its creator, at creation time — see CreateReverseShareDTO)
+    // always wins over whatever the submission itself carries, which for
+    // a reverse share is never a visitor's own choice any more (the
+    // frontend no longer offers that field) but still a real, sometimes-
+    // meaningful fallback: the file-derived default name computed
+    // client-side. Only actually overrides when the creator set one —
+    // reverseShare.name is optional, same as a direct share's.
+    const finalName = reverseShare?.name || share.name;
+
     fs.mkdirSync(`${SHARE_DIRECTORY}/${share.id}`, {
       recursive: true,
     });
@@ -132,12 +142,14 @@ export class ShareService {
       security: _security,
       recipients: _recipients,
       expiration: _expiration,
+      name: _name,
       ...shareData
     } = share;
 
     const shareTuple = await this.prisma.share.create({
       data: {
         ...shareData,
+        name: finalName,
         // A signed-in creator's identity is already the `creator` relation
         // below — never persist a second, potentially-stale copy of their
         // email here. Only meaningful for an anonymous sender.
