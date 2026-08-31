@@ -1037,6 +1037,9 @@ export default {
   "admin.config.legal.privacy-policy-text": "Privacy policy text",
   "admin.config.legal.privacy-policy-text.description":
     "The text which should be shown in the privacy policy. Supports Markdown.",
+  "admin.config.legal.editor.markdown-label": "Markdown",
+  "admin.config.legal.editor.preview-label": "Preview",
+  "admin.config.legal.editor.preview-empty": "Nothing to preview yet.",
 
   // 404
   "404.description": "Oops this page doesn't exist.",

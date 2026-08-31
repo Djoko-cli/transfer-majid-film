@@ -20,6 +20,7 @@ import { FormattedMessage } from "react-intl";
 import Meta from "../../../components/Meta";
 import AdminConfigInput from "../../../components/admin/configuration/AdminConfigInput";
 import ClamavPanel from "../../../components/admin/clamav/ClamavPanel";
+import LegalContentEditor from "../../../components/admin/legal/LegalContentEditor";
 import TestEmailButton from "../../../components/admin/configuration/TestEmailButton";
 import TestRedisButton from "../../../components/admin/configuration/TestRedisButton";
 import AdminLayout from "../../../components/admin/AdminLayout";
@@ -330,9 +331,60 @@ const AdminConfigPage: NextPageWithLayout = () => {
                             </>
                           );
                         })()
-                      : configVariables.map((configVariable) =>
-                          renderConfigRow(configVariable, configVariables),
-                        )}
+                      : categoryId.toLowerCase() === "legal"
+                        ? (() => {
+                            // legal.enabled stays a normal 50/50 row; the
+                            // two long-form text fields get the
+                            // split-pane editor below instead of
+                            // AdminConfigInput's plain Textarea - see
+                            // LegalContentEditor's own comment for why.
+                            const enabledVariable = configVariables.find(
+                              (cv) => cv.key === "legal.enabled",
+                            );
+                            const textVariables = configVariables.filter(
+                              (cv) => cv.key !== "legal.enabled",
+                            );
+                            return (
+                              <>
+                                {enabledVariable &&
+                                  renderConfigRow(
+                                    enabledVariable,
+                                    configVariables,
+                                  )}
+                                {textVariables.map((configVariable) => (
+                                  <Stack key={configVariable.key} spacing={4}>
+                                    <Title order={6}>
+                                      <FormattedMessage
+                                        id={`admin.config.${camelToKebab(configVariable.key)}`}
+                                      />
+                                    </Title>
+                                    <Text color="dimmed" size="sm" mb="xs">
+                                      <FormattedMessage
+                                        id={`admin.config.${camelToKebab(configVariable.key)}.description`}
+                                      />
+                                    </Text>
+                                    <LegalContentEditor
+                                      initialValue={
+                                        configVariable.value ??
+                                        configVariable.defaultValue
+                                      }
+                                      placeholder={configVariable.defaultValue}
+                                      disabled={!configVariable.allowEdit}
+                                      onChange={(value) =>
+                                        updateConfigVariable({
+                                          key: configVariable.key,
+                                          value,
+                                        })
+                                      }
+                                    />
+                                  </Stack>
+                                ))}
+                              </>
+                            );
+                          })()
+                        : configVariables.map((configVariable) =>
+                            renderConfigRow(configVariable, configVariables),
+                          )}
                     {categoryId == "clamav" && <ClamavPanel />}
                   </Stack>
                 </Box>

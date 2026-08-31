@@ -1021,6 +1021,9 @@ export default {
     "Texte de la politique de confidentialité",
   "admin.config.legal.privacy-policy-text.description":
     "Le texte qui doit être affiché dans la politique de confidentialité. Supporte le Markdown.",
+  "admin.config.legal.editor.markdown-label": "Markdown",
+  "admin.config.legal.editor.preview-label": "Aperçu",
+  "admin.config.legal.editor.preview-empty": "Rien à prévisualiser pour l'instant.",
   // 404
   "404.description": "Désolé, mais cette page n’existe pas.",
   "404.button.home": "Retour à l’accueil",
