@@ -824,6 +824,9 @@ export default {
     "Enable sharing with registered users",
   "admin.config.share.enable-user-recipients.description":
     "When enabled, shares sent to a registered user's email address will automatically appear in their account. Users can also restrict share access to named recipients only.",
+  "admin.config.share.enable-nas-import": "Enable NAS import",
+  "admin.config.share.enable-nas-import.description":
+    "Lets an administrator create a share from files already on the NAS, without duplicating their content. Also requires the NAS_IMPORT_ROOT environment variable to be set to a mounted directory.",
   "admin.config.share.file-retention-period": "File retention period",
   "admin.config.share.file-retention-period.description":
     "How long files are kept after a share expires or gets deleted. Only useful if the 'Allow admin access to all shares' is also enabled. Set to -1 to keep files forever.",

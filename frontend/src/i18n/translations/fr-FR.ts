@@ -799,6 +799,9 @@ export default {
     "Activer le partage avec les utilisateurs enregistrés",
   "admin.config.share.enable-user-recipients.description":
     "Lorsqu'il est activé, les partages envoyés à l'adresse e-mail d'un utilisateur enregistré apparaîtront automatiquement dans son compte. Les utilisateurs peuvent également restreindre l'accès au partage aux destinataires nommés uniquement.",
+  "admin.config.share.enable-nas-import": "Activer l'import depuis le NAS",
+  "admin.config.share.enable-nas-import.description":
+    "Permet à un administrateur de créer un partage à partir de fichiers déjà présents sur le NAS, sans en dupliquer le contenu. Nécessite également que la variable d'environnement NAS_IMPORT_ROOT soit définie sur un dossier monté.",
   "admin.config.share.file-retention-period":
     "Période de conservation des fichiers",
   "admin.config.share.file-retention-period.description":

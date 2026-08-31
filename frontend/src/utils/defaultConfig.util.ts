@@ -75,12 +75,6 @@ export function getDefaultConfig(): Config[] {
       type: "filesize",
     },
     {
-      key: "share.autoOpenShareModal",
-      value: "false",
-      defaultValue: "false",
-      type: "boolean",
-    },
-    {
       key: "email.enableShareEmailRecipients",
       value: "false",
       defaultValue: "false",

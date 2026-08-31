@@ -30,14 +30,12 @@ share:
   zipCompressionLevel: "9"
   #Adjust the chunk size for your uploads to balance efficiency and reliability according to your internet connection. Smaller chunks can enhance success rates for unstable connections, while larger chunks make uploads faster for stable connections.
   chunkSize: "10000000"
-  #The share creation modal automatically appears when a user selects files, eliminating the need to manually click the button.
-  autoOpenShareModal: "false"
-  #Force reverse shares to be created in simple mode. If disabled, the creator of the reverse share can choose between simple and advanced mode.
-  reverseShareSimpleOnly: "false"
   #Allow administrators to access all shares, even if they are password protected, expired or deleted.
   allowAdminAccessAllShares: "false"
   #When enabled, shares sent to a registered user's email address will automatically appear in their account. Users can also restrict share access to named recipients only.
   enableUserRecipients: "false"
+  #Lets an administrator create a share from files already on the NAS, without duplicating their content. Also requires the NAS_IMPORT_ROOT environment variable to be set to a mounted directory.
+  enableNasImport: "false"
   #How long files are kept after a share expires or gets deleted. Only useful if the 'Allow admin access to all shares' is also enabled. Set to -1 to keep files forever.
   fileRetentionPeriod: 0 days
 verification:
