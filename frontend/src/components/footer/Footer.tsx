@@ -1,10 +1,4 @@
-import {
-  Anchor,
-  Footer as MFooter,
-  SimpleGrid,
-  Text,
-  createStyles,
-} from "@mantine/core";
+import { Anchor, Box, Footer as MFooter, Text, createStyles } from "@mantine/core";
 import { useEffect, useRef } from "react";
 import { APP_NAME } from "../../constants";
 import useConfig from "../../hooks/config.hook";
@@ -28,35 +22,59 @@ const useStyles = createStyles((theme) => {
       borderTop: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
     },
 
-    // Hidden below 700px rather than conditionally not rendered (this used
-    // to be `{!isMobile && <div></div>}`, isMobile from useMediaQuery) —
-    // useMediaQuery can't know the real viewport during SSR (no `window`),
-    // so it rendered every visitor's *first* paint as if desktop, mobile
-    // devices included, then corrected itself once the client hydrated and
-    // read the real width — a real, visible layout jump on every mobile
-    // load with legal links enabled, reported by the user on their own
-    // instance. display:none is decided by the browser evaluating a CSS
-    // media query at paint time, using the actual viewport, the same on
-    // the server-rendered first paint and every one after — nothing to
-    // correct after the fact. A display:none grid child doesn't consume a
-    // grid cell, so this still leaves exactly 2 real columns for
-    // SimpleGrid's own mobile breakpoint below to fill.
-    spacer: {
+    // Named grid areas (not SimpleGrid's equal-column model) because the
+    // two breakpoints don't just change column *count*, they change
+    // reading order: desktop wants [spacer, brand, legal] side by side
+    // (spacer balances the legal column's width so brand reads as
+    // centered), mobile wants legal on top and brand below, both centered,
+    // one per row. SimpleGrid has no way to reorder children per
+    // breakpoint short of reordering the DOM itself — grid-template-areas
+    // does it in CSS alone, so the underlying markup order never has to
+    // match either breakpoint's visual order.
+    //
+    // Was a 3-column SimpleGrid down to 700px, 2 columns (brand left,
+    // legal right) below it — fine with two legal links, but a third
+    // (terms of use) made the right column wrap to 3 lines next to a
+    // single short line on the left: lopsided, reported by the user from
+    // a screenshot. Centering everything in one column removes the
+    // asymmetry regardless of how many legal links exist or how many
+    // lines they wrap to.
+    footerGrid: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gridTemplateAreas: '"spacer brand legal"',
+      columnGap: theme.spacing.md,
+      alignItems: "center",
+
+      [theme.fn.smallerThan(700)]: {
+        gridTemplateColumns: "1fr",
+        gridTemplateAreas: '"legal" "brand"',
+        rowGap: 4,
+      },
+    },
+
+    spacerArea: {
+      gridArea: "spacer",
+      // display:none, not omitted from the mobile template alone — an
+      // empty but still-laid-out cell would otherwise reserve a track's
+      // worth of width under the 1-column mobile template too. See the
+      // hydration-safety note this same CSS-only (no useMediaQuery)
+      // approach has carried since the original spacer fix.
       [theme.fn.smallerThan(700)]: {
         display: "none",
       },
     },
 
-    // Same reasoning as spacer above — was `align={isMobile ? "left" :
-    // "center"}` on the Text itself. theme.fn.smallerThan(700) here matches
-    // SimpleGrid's own breakpoints prop (below) exactly: both resolve
-    // through the same theme.fn.smallerThan, so the column count and this
-    // alignment always flip at precisely the same width, never one frame
-    // or one pixel apart.
-    brandText: {
+    brandArea: {
+      gridArea: "brand",
       textAlign: "center",
+    },
+
+    legalArea: {
+      gridArea: "legal",
+      textAlign: "right",
       [theme.fn.smallerThan(700)]: {
-        textAlign: "left",
+        textAlign: "center",
       },
     },
   };
@@ -132,27 +150,25 @@ const Footer = () => {
         </Text>
       )}
       {config.get("legal.enabled") && (
-        <SimpleGrid cols={3} breakpoints={[{ maxWidth: 700, cols: 2 }]} m={0}>
-          <div className={classes.spacer}></div>
-          <Text size="xs" color="dimmed" className={classes.brandText}>
+        <Box className={classes.footerGrid}>
+          <div className={classes.spacerArea}></div>
+          <Text size="xs" color="dimmed" className={classes.brandArea}>
             {APP_NAME} ·{" "}
             <Anchor size="xs" href="https://majid.film" target="_blank">
               majid.film
             </Anchor>
           </Text>
-          <div>
-            <Text size="xs" color="dimmed" align="right">
-              {legalLinks.map(({ href, label }, index) => (
-                <span key={href}>
-                  {index > 0 && " • "}
-                  <Anchor size="xs" href={href}>
-                    {label}
-                  </Anchor>
-                </span>
-              ))}
-            </Text>
-          </div>
-        </SimpleGrid>
+          <Text size="xs" color="dimmed" className={classes.legalArea}>
+            {legalLinks.map(({ href, label }, index) => (
+              <span key={href}>
+                {index > 0 && " • "}
+                <Anchor size="xs" href={href}>
+                  {label}
+                </Anchor>
+              </span>
+            ))}
+          </Text>
+        </Box>
       )}
     </MFooter>
   );
