@@ -148,6 +148,76 @@ const shuffle = <T,>(array: T[]): T[] => {
   return result;
 };
 
+// Random order, but never two slides from the same project back to back -
+// a plain shuffle() doesn't guarantee that (battle alone can be 70 of a
+// few hundred slides), and it gets more likely to happen somewhere in the
+// sequence the more stills a single project has. "Back to back" includes
+// the wrap from the last slide to the first, since the carousel loops (see
+// the interval effect below) - a visitor watching through a full cycle
+// would see that seam too.
+//
+// Two passes rather than one shuffle-and-hope: a greedy construction
+// (always place from whichever project has the most stills left, skipping
+// whichever one was just placed - the standard approach for "no two
+// adjacent equal", and provably conflict-free for a plain linear sequence
+// as long as no single project is more than half the total), then a small
+// swap-based repair for the one adjacency that construction can't see
+// coming - the wrap-around between the last slide it placed and the
+// first.
+const shuffleNoAdjacentProjects = (slides: BrandSlide[]): BrandSlide[] => {
+  if (slides.length < 3) return shuffle(slides);
+
+  const bySlug = new Map<string, BrandSlide[]>();
+  for (const slide of slides) {
+    const group = bySlug.get(slide.slug);
+    if (group) group.push(slide);
+    else bySlug.set(slide.slug, [slide]);
+  }
+  // Shuffled twice over: which still of a project comes out first (each
+  // group, individually) and which project's turn it is whenever there's
+  // a tie for "most left" (the groups' own relative order) - without the
+  // first, a project's stills would always surface in source order (s1
+  // before s2, ...); without the second, ties would always favor
+  // whichever project happened to appear first in `slides`.
+  const groups = shuffle([...bySlug.values()].map((group) => shuffle(group)));
+
+  const result: BrandSlide[] = [];
+  let lastSlug: string | null = null;
+  while (result.length < slides.length) {
+    let pick: BrandSlide[] | null = null;
+    for (const group of groups) {
+      if (group.length === 0 || group[0].slug === lastSlug) continue;
+      if (!pick || group.length > pick.length) pick = group;
+    }
+    // Every remaining group is the one just placed - only possible if a
+    // single project so dominates the curated set that a valid
+    // arrangement can't exist (e.g. it's the only project left enabled).
+    // Falls back to repeating rather than looping forever; this is a
+    // best-effort guarantee; not enforced for a curation choice that
+    // makes it mathematically impossible to keep.
+    pick ??= groups.find((group) => group.length > 0)!;
+    const slide = pick.pop()!;
+    result.push(slide);
+    lastSlug = slide.slug;
+  }
+
+  const n = result.length;
+  if (result[0].slug === result[n - 1].slug) {
+    for (let i = 1; i < n - 1; i++) {
+      [result[i], result[n - 1]] = [result[n - 1], result[i]];
+      const resolved =
+        result[i - 1].slug !== result[i].slug &&
+        result[i].slug !== result[i + 1].slug &&
+        result[n - 2].slug !== result[n - 1].slug &&
+        result[n - 1].slug !== result[0].slug;
+      if (resolved) break;
+      [result[i], result[n - 1]] = [result[n - 1], result[i]]; // undo
+    }
+  }
+
+  return result;
+};
+
 // Shortest signed distance between two indices on a circular track of the
 // given length, e.g. going from the last slide to the first is a +1 step,
 // not a jump all the way back — that's what keeps the loop feeling
@@ -488,7 +558,9 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
       );
       // Never render zero slides — an admin disabling everything, or a
       // fetch returning something unexpected, must never blank the panel.
-      setOrder(shuffle(available.length ? available : STATIC_SLIDES));
+      setOrder(
+        shuffleNoAdjacentProjects(available.length ? available : STATIC_SLIDES),
+      );
       setIsReady(true);
     });
 
