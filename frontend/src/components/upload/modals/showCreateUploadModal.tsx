@@ -32,7 +32,6 @@ import {
   stringToTimespan,
   getExpirationPreview,
 } from "../../../utils/date.util";
-import toast from "../../../utils/toast.util";
 import { Timespan } from "../../../types/timespan.type";
 import { getDefaultShareName } from "../../../utils/file.util";
 import { generateAvailableShareId } from "../../../utils/share.util";
@@ -50,35 +49,17 @@ const showCreateUploadModal = <T extends { name: string; size: number }>(
   modals: ModalsContextProps,
   options: {
     isUserSignedIn: boolean;
-    isReverseShare: boolean;
     allowUnauthenticatedShares: boolean;
     enableEmailRecepients: boolean;
     enableUserRecipients: boolean;
     maxExpiration: Timespan;
     defaultExpiration: Timespan;
     shareIdLength: number;
-    simplified: boolean;
   },
   files: T[],
   uploadCallback: (createShare: CreateShare, files: T[]) => void,
 ) => {
   const t = translateOutsideContext();
-
-  if (options.simplified) {
-    return modals.openModal({
-      title: t("upload.modal.title"),
-      styles: glassModalStyles,
-      children: (
-        <MantineProvider inherit theme={glassFormTheme}>
-          <SimplifiedCreateUploadModalModal
-            options={options}
-            files={files}
-            uploadCallback={uploadCallback}
-          />
-        </MantineProvider>
-      ),
-    });
-  }
 
   return modals.openModal({
     title: t("upload.modal.title"),
@@ -104,7 +85,6 @@ const CreateUploadModalBody = <T extends { name: string; size: number }>({
   uploadCallback: (createShare: CreateShare, files: T[]) => void;
   options: {
     isUserSignedIn: boolean;
-    isReverseShare: boolean;
     allowUnauthenticatedShares: boolean;
     enableEmailRecepients: boolean;
     enableUserRecipients: boolean;
@@ -229,124 +209,104 @@ const CreateUploadModalBody = <T extends { name: string; size: number }>({
       )}
       <form onSubmit={onSubmit}>
         <Stack align="stretch">
-          {!options.isReverseShare && (
-            <>
-              <Grid align={form.errors.expiration_num ? "center" : "flex-end"}>
-                <Col xs={6}>
-                  <NumberInput
-                    min={1}
-                    max={99999}
-                    precision={0}
-                    variant="filled"
-                    label={t("upload.modal.expires.label")}
-                    disabled={form.values.never_expires}
-                    {...form.getInputProps("expiration_num")}
-                  />
-                </Col>
-                <Col xs={6}>
-                  <Select
-                    disabled={form.values.never_expires}
-                    {...form.getInputProps("expiration_unit")}
-                    data={[
-                      {
-                        value: "-minutes",
-                        label:
-                          form.values.expiration_num == 1
-                            ? t("upload.modal.expires.minute-singular")
-                            : t("upload.modal.expires.minute-plural"),
-                      },
-                      {
-                        value: "-hours",
-                        label:
-                          form.values.expiration_num == 1
-                            ? t("upload.modal.expires.hour-singular")
-                            : t("upload.modal.expires.hour-plural"),
-                      },
-                      {
-                        value: "-days",
-                        label:
-                          form.values.expiration_num == 1
-                            ? t("upload.modal.expires.day-singular")
-                            : t("upload.modal.expires.day-plural"),
-                      },
-                      {
-                        value: "-weeks",
-                        label:
-                          form.values.expiration_num == 1
-                            ? t("upload.modal.expires.week-singular")
-                            : t("upload.modal.expires.week-plural"),
-                      },
-                      {
-                        value: "-months",
-                        label:
-                          form.values.expiration_num == 1
-                            ? t("upload.modal.expires.month-singular")
-                            : t("upload.modal.expires.month-plural"),
-                      },
-                      {
-                        value: "-years",
-                        label:
-                          form.values.expiration_num == 1
-                            ? t("upload.modal.expires.year-singular")
-                            : t("upload.modal.expires.year-plural"),
-                      },
-                    ]}
-                  />
-                </Col>
-              </Grid>
-              {options.maxExpiration.value == 0 && (
-                <Checkbox
-                  label={t("upload.modal.expires.never-long")}
-                  {...form.getInputProps("never_expires")}
-                />
-              )}
-              <Text
-                italic
-                size="xs"
-                sx={(theme) => ({
-                  color: theme.colors.gray[6],
-                })}
-              >
-                {getExpirationPreview(
+          <Grid align={form.errors.expiration_num ? "center" : "flex-end"}>
+            <Col xs={6}>
+              <NumberInput
+                min={1}
+                max={99999}
+                precision={0}
+                variant="filled"
+                label={t("upload.modal.expires.label")}
+                disabled={form.values.never_expires}
+                {...form.getInputProps("expiration_num")}
+              />
+            </Col>
+            <Col xs={6}>
+              <Select
+                disabled={form.values.never_expires}
+                {...form.getInputProps("expiration_unit")}
+                data={[
                   {
-                    neverExpires: t("upload.modal.completed.never-expires"),
-                    expiresOn: t("upload.modal.completed.expires-on"),
+                    value: "-minutes",
+                    label:
+                      form.values.expiration_num == 1
+                        ? t("upload.modal.expires.minute-singular")
+                        : t("upload.modal.expires.minute-plural"),
                   },
-                  form,
-                )}
-              </Text>
-            </>
+                  {
+                    value: "-hours",
+                    label:
+                      form.values.expiration_num == 1
+                        ? t("upload.modal.expires.hour-singular")
+                        : t("upload.modal.expires.hour-plural"),
+                  },
+                  {
+                    value: "-days",
+                    label:
+                      form.values.expiration_num == 1
+                        ? t("upload.modal.expires.day-singular")
+                        : t("upload.modal.expires.day-plural"),
+                  },
+                  {
+                    value: "-weeks",
+                    label:
+                      form.values.expiration_num == 1
+                        ? t("upload.modal.expires.week-singular")
+                        : t("upload.modal.expires.week-plural"),
+                  },
+                  {
+                    value: "-months",
+                    label:
+                      form.values.expiration_num == 1
+                        ? t("upload.modal.expires.month-singular")
+                        : t("upload.modal.expires.month-plural"),
+                  },
+                  {
+                    value: "-years",
+                    label:
+                      form.values.expiration_num == 1
+                        ? t("upload.modal.expires.year-singular")
+                        : t("upload.modal.expires.year-plural"),
+                  },
+                ]}
+              />
+            </Col>
+          </Grid>
+          {options.maxExpiration.value == 0 && (
+            <Checkbox
+              label={t("upload.modal.expires.never-long")}
+              {...form.getInputProps("never_expires")}
+            />
           )}
+          <Text
+            italic
+            size="xs"
+            sx={(theme) => ({
+              color: theme.colors.gray[6],
+            })}
+          >
+            {getExpirationPreview(
+              {
+                neverExpires: t("upload.modal.completed.never-expires"),
+                expiresOn: t("upload.modal.completed.expires-on"),
+              },
+              form,
+            )}
+          </Text>
           <Accordion>
             <Accordion.Item value="description" sx={{ borderBottom: "none" }}>
               <Accordion.Control>
-                <FormattedMessage
-                  id={
-                    options.isReverseShare
-                      ? "upload.modal.accordion.description-only.title"
-                      : "upload.modal.accordion.name-and-description.title"
-                  }
-                />
+                <FormattedMessage id="upload.modal.accordion.name-and-description.title" />
               </Accordion.Control>
               <Accordion.Panel>
                 <Stack align="stretch">
-                  {
-                    // Only this reverse share's own creator can name the
-                    // resulting share (set at reverse-share creation time,
-                    // see showCreateReverseShareModal.tsx) — not whoever
-                    // uploads through it. onSubmit's own
-                    // getDefaultShareName(files, t) fallback still applies
-                    // when neither side named it.
-                  }
-                  {!options.isReverseShare && (
-                    <TextInput
-                      variant="filled"
-                      placeholder={t(
-                        "upload.modal.accordion.name-and-description.name.placeholder",
-                      )}
-                      {...form.getInputProps("name")}
-                    />
-                  )}
+                  <TextInput
+                    variant="filled"
+                    placeholder={t(
+                      "upload.modal.accordion.name-and-description.name.placeholder",
+                    )}
+                    {...form.getInputProps("name")}
+                  />
                   <Textarea
                     variant="filled"
                     placeholder={t(
@@ -470,123 +430,6 @@ const CreateUploadModalBody = <T extends { name: string; size: number }>({
         </Stack>
       </form>
     </>
-  );
-};
-
-const SimplifiedCreateUploadModalModal = <
-  T extends { name: string; size: number },
->({
-  uploadCallback,
-  files,
-  options,
-}: {
-  files: T[];
-  uploadCallback: (createShare: CreateShare, files: T[]) => void;
-  options: {
-    isUserSignedIn: boolean;
-    isReverseShare: boolean;
-    allowUnauthenticatedShares: boolean;
-    enableEmailRecepients: boolean;
-    maxExpiration: Timespan;
-    shareIdLength: number;
-  };
-}) => {
-  const modals = useModals();
-  const t = useTranslate();
-
-  const [showNotSignedInAlert, setShowNotSignedInAlert] = useState(true);
-
-  const validationSchema = yup.object().shape({
-    name: yup
-      .string()
-      .transform((value) => value || undefined)
-      .min(3, t("common.error.too-short", { length: 3 }))
-      .max(30, t("common.error.too-long", { length: 30 })),
-  });
-
-  const form = useForm({
-    initialValues: {
-      name: undefined,
-      description: undefined,
-    },
-    validate: yupResolver(validationSchema),
-  });
-
-  const onSubmit = form.onSubmit(async (values) => {
-    const link = await generateAvailableShareId(options.shareIdLength).catch(
-      () => {
-        toast.error(t("upload.modal.link.error.taken"));
-        return undefined;
-      },
-    );
-
-    if (!link) {
-      return;
-    }
-
-    uploadCallback(
-      {
-        id: link,
-        name: values.name || getDefaultShareName(files, t),
-        expiration: "never",
-        recipients: [],
-        description: values.description,
-        security: {
-          password: undefined,
-          maxViews: undefined,
-        },
-      },
-      files,
-    );
-    modals.closeAll();
-  });
-
-  return (
-    <Stack>
-      {showNotSignedInAlert && !options.isUserSignedIn && (
-        <Alert
-          withCloseButton
-          onClose={() => setShowNotSignedInAlert(false)}
-          icon={<TbAlertCircle size={16} />}
-          title={t("upload.modal.not-signed-in")}
-          color="yellow"
-        >
-          <FormattedMessage id="upload.modal.not-signed-in-description" />
-        </Alert>
-      )}
-      <form onSubmit={onSubmit}>
-        <Stack align="stretch">
-          <Stack align="stretch">
-            {
-              // Simplified mode only ever runs for a reverse share (see
-              // UploadPage.tsx — the direct-upload flow never sets
-              // options.simplified), so this is always true in practice;
-              // written explicitly anyway rather than assumed, for the
-              // same reason as the full form's own identical check above.
-            }
-            {!options.isReverseShare && (
-              <TextInput
-                variant="filled"
-                placeholder={t(
-                  "upload.modal.accordion.name-and-description.name.placeholder",
-                )}
-                {...form.getInputProps("name")}
-              />
-            )}
-            <Textarea
-              variant="filled"
-              placeholder={t(
-                "upload.modal.accordion.name-and-description.description.placeholder",
-              )}
-              {...form.getInputProps("description")}
-            />
-          </Stack>
-          <Button type="submit" data-autofocus>
-            <FormattedMessage id="common.button.share" />
-          </Button>
-        </Stack>
-      </form>
-    </Stack>
   );
 };
 

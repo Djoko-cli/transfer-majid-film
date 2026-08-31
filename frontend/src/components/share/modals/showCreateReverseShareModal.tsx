@@ -5,10 +5,12 @@ import {
   Group,
   MantineProvider,
   NumberInput,
+  PasswordInput,
   Select,
   Stack,
   Switch,
   Text,
+  Textarea,
   TextInput,
 } from "@mantine/core";
 import { useForm, yupResolver } from "@mantine/form";
@@ -38,7 +40,6 @@ const showCreateReverseShareModal = (
   showSendEmailNotificationOption: boolean,
   maxExpiration: Timespan,
   defaultExpiration: Timespan,
-  reverseShareSimpleOnly: boolean,
   appUrl: string,
   defaultAppUrl: string,
   maxShareSize: number,
@@ -57,7 +58,6 @@ const showCreateReverseShareModal = (
           getReverseShares={getReverseShares}
           maxExpiration={maxExpiration}
           defaultExpiration={defaultExpiration}
-          reverseShareSimpleOnly={reverseShareSimpleOnly}
           appUrl={appUrl}
           defaultAppUrl={defaultAppUrl}
           maxShareSize={maxShareSize}
@@ -73,7 +73,6 @@ const Body = ({
   showSendEmailNotificationOption,
   maxExpiration,
   defaultExpiration,
-  reverseShareSimpleOnly,
   appUrl,
   defaultAppUrl,
   maxShareSize,
@@ -83,7 +82,6 @@ const Body = ({
   showSendEmailNotificationOption: boolean;
   maxExpiration: Timespan;
   defaultExpiration: Timespan;
-  reverseShareSimpleOnly: boolean;
   appUrl: string;
   defaultAppUrl: string;
   maxShareSize: number;
@@ -102,21 +100,22 @@ const Body = ({
   const form = useForm({
     initialValues: {
       token: generatedToken,
-      // "" rather than undefined — an <input value={undefined}> starts
-      // uncontrolled, and the first keystroke (form.values.name becoming
-      // a real string) would flip it to controlled mid-lifecycle, which
-      // React warns about loudly. yup's own transform below already
-      // normalizes "" back to undefined before validating/submitting, so
-      // this changes nothing about what actually gets sent.
+      // "" rather than undefined for every string field here — an
+      // <input value={undefined}> starts uncontrolled, and the first
+      // keystroke (the value becoming a real string) would flip it to
+      // controlled mid-lifecycle, which React warns about loudly. Each
+      // field's own yup transform below already normalizes "" back to
+      // undefined before validating/submitting, so this changes nothing
+      // about what actually gets sent.
       name: "",
+      description: "",
+      password: "",
+      maxViews: undefined as number | undefined,
       maxShareSize: userMaxShareSize,
       maxUseCount: 1,
       sendEmailNotification: false,
       expiration_num: defaultTimespan.value,
       expiration_unit: `-${defaultTimespan.unit}` as string,
-      simplified: !reverseShareSimpleOnly
-        ? false
-        : !!(getCookie("reverse-share.simplified") ?? false),
       publicAccess: !!(getCookie("reverse-share.public-access") ?? true),
     },
     validate: yupResolver(
@@ -134,6 +133,19 @@ const Body = ({
           .transform((value) => value || undefined)
           .min(3, t("common.error.too-short", { length: 3 }))
           .max(30, t("common.error.too-long", { length: 30 })),
+        description: yup
+          .string()
+          .transform((value) => value || undefined)
+          .max(512, t("common.error.too-long", { length: 512 })),
+        password: yup
+          .string()
+          .transform((value) => value || undefined)
+          .min(3, t("common.error.too-short", { length: 3 }))
+          .max(30, t("common.error.too-long", { length: 30 })),
+        maxViews: yup
+          .number()
+          .transform((value) => value || undefined)
+          .min(1, t("common.error.number-too-small", { min: 1 })),
         maxUseCount: yup
           .number()
           .typeError(t("common.error.invalid-number"))
@@ -160,8 +172,7 @@ const Body = ({
       return;
     }
 
-    // remember simplified and publicAccess in cookies
-    setCookie("reverse-share.simplified", values.simplified);
+    // remember publicAccess in cookies
     setCookie("reverse-share.public-access", values.publicAccess);
 
     const expirationDate = moment().add(
@@ -194,15 +205,17 @@ const Body = ({
         values.maxShareSize,
         values.maxUseCount,
         values.sendEmailNotification,
-        values.simplified,
         values.publicAccess,
         values.token,
-        // Not just values.name — that's "" when left blank (see its own
-        // initialValues comment), and the backend's @IsOptional() only
-        // skips @Length(3, 30) for null/undefined, not "": an empty
-        // string would fail that check on every reverse share created
-        // without a name, the common case.
+        // Not just values.name (etc.) — those are "" when left blank (see
+        // initialValues' own comment), and the backend's @IsOptional()
+        // only skips its length checks for null/undefined, not "": an
+        // empty string would fail validation on every reverse share
+        // created without these set, the common case.
         values.name || undefined,
+        values.description || undefined,
+        values.password || undefined,
+        values.maxViews || undefined,
       )
       .then(({ token }) => {
         modals.closeAll();
@@ -216,6 +229,25 @@ const Body = ({
     <Group>
       <form onSubmit={onSubmit}>
         <Stack align="stretch">
+          {
+            // Name (and everything below, down through the security
+            // fields) only ever set here, by this link's own creator —
+            // whoever uploads through it gets no form of their own any
+            // more at all (see UploadPage.tsx: submitting now goes
+            // straight from the file list to the upload itself). Leads
+            // the form, ahead of the link itself, as the first real
+            // decision being made here.
+          }
+          <TextInput
+            variant="filled"
+            label={t("account.reverseShares.modal.name.label")}
+            {...form.getInputProps("name")}
+          />
+          <Textarea
+            variant="filled"
+            label={t("account.reverseShares.modal.description.label")}
+            {...form.getInputProps("description")}
+          />
           <CustomUrlInput
             form={form}
             fieldName="token"
@@ -223,20 +255,6 @@ const Body = ({
             appUrl={appUrl}
             defaultAppUrl={defaultAppUrl}
             pathPrefix="/upload/"
-          />
-          {
-            // The only place this share's name can be set at all — whoever
-            // uploads through this link no longer gets a name field of
-            // their own (see showCreateUploadModal.tsx), on the reasoning
-            // that it's this link's creator's own account the resulting
-            // share lands in, not the uploader's.
-          }
-          <TextInput
-            variant="filled"
-            label={t("account.reverseShares.modal.name.label")}
-            description={t("account.reverseShares.modal.name.description")}
-            placeholder={t("account.reverseShares.modal.name.placeholder")}
-            {...form.getInputProps("name")}
           />
           <div>
             <Grid align={form.errors.expiration_num ? "center" : "flex-end"}>
@@ -331,6 +349,25 @@ const Body = ({
             description={t("account.reverseShares.modal.max-use.description")}
             {...form.getInputProps("maxUseCount")}
           />
+          {
+            // Same two fields as a direct share's own "Options de
+            // sécurité" — moved here for the same reason as name/
+            // description above. No "restrict to recipients" option:
+            // that only ever made sense against a recipients list, and a
+            // reverse share's creator has no such list to build here.
+          }
+          <PasswordInput
+            variant="filled"
+            label={t("account.reverseShares.modal.password.label")}
+            autoComplete="new-password"
+            {...form.getInputProps("password")}
+          />
+          <NumberInput
+            min={1}
+            variant="filled"
+            label={t("account.reverseShares.modal.max-views.label")}
+            {...form.getInputProps("maxViews")}
+          />
           {showSendEmailNotificationOption && (
             <Switch
               mt="xs"
@@ -340,19 +377,6 @@ const Body = ({
                 "account.reverseShares.modal.send-email.description",
               )}
               {...form.getInputProps("sendEmailNotification", {
-                type: "checkbox",
-              })}
-            />
-          )}
-          {!reverseShareSimpleOnly && (
-            <Switch
-              mt="xs"
-              labelPosition="left"
-              label={t("account.reverseShares.modal.simplified")}
-              description={t(
-                "account.reverseShares.modal.simplified.description",
-              )}
-              {...form.getInputProps("simplified", {
                 type: "checkbox",
               })}
             />

@@ -31,18 +31,18 @@ import toast from "../../utils/toast.util";
 import {
   getNormalizedFileName,
   filterDuplicateFiles,
+  getDefaultShareName,
 } from "../../utils/file.util";
+import { generateAvailableShareId } from "../../utils/share.util";
 
 const promiseLimit = pLimit(3);
 
 const Upload = ({
   maxShareSize,
   isReverseShare = false,
-  simplified,
 }: {
   maxShareSize?: number;
   isReverseShare: boolean;
-  simplified: boolean;
 }) => {
   const modals = useModals();
   const t = useTranslate();
@@ -91,8 +91,6 @@ const Upload = ({
   const currentFilesSize = useMemo(() => {
     return files.reduce((acc, file) => acc + file.size, 0);
   }, [files]);
-
-  const autoOpenCreateUploadModal = config.get("share.autoOpenShareModal");
 
   // 3 attempts total (1 initial + 2 retries) with a short fixed backoff —
   // long enough to ride out a transient blip, short enough that a genuinely
@@ -270,28 +268,23 @@ const Upload = ({
     );
   };
 
-  const openCreateUploadModal = (files: FileUpload[]) => {
-    showCreateUploadModal(
-      modals,
-      {
-        isUserSignedIn: user ? true : false,
-        isReverseShare,
-        allowUnauthenticatedShares: config.get(
-          "share.allowUnauthenticatedShares",
-        ),
-        enableEmailRecepients: config.get("email.enableShareEmailRecipients"),
-        enableUserRecipients: config.get("share.enableUserRecipients"),
-        maxExpiration:
-          user?.isAdmin || user?.canCreatePermanentShares
-            ? { value: 0, unit: "days" }
-            : config.get("share.maxExpiration"),
-        defaultExpiration: config.get("share.defaultExpiration"),
-        shareIdLength: config.get("share.shareIdLength"),
-        simplified,
-      },
-      files,
-      uploadFiles,
-    );
+  // The reverse share's own creator already set name/description/security
+  // at creation time (showCreateReverseShareModal.tsx) — ShareService
+  // .create()'s own override applies those, ignoring whatever this sends
+  // for them, so there's no modal left to show here: clicking "Partager"
+  // submits directly. name still carries a files-based fallback, the same
+  // default a direct share falls back to, for when the creator also left
+  // the reverse share's own name blank.
+  const submitReverseShare = async () => {
+    startUpload({
+      id: await generateAvailableShareId(config.get("share.shareIdLength")),
+      name: getDefaultShareName(files, t),
+      recipients: [],
+      // Ignored — ShareService.create() always substitutes the reverse
+      // share's own shareExpiration when a reverseShareToken is present.
+      expiration: "never",
+      security: {},
+    });
   };
 
   // Mirrors uploadFiles above (create → wait → complete → show the same
@@ -385,7 +378,6 @@ const Upload = ({
         modals,
         {
           isUserSignedIn: user ? true : false,
-          isReverseShare,
           allowUnauthenticatedShares: config.get(
             "share.allowUnauthenticatedShares",
           ),
@@ -397,7 +389,6 @@ const Upload = ({
               : config.get("share.maxExpiration"),
           defaultExpiration: config.get("share.defaultExpiration"),
           shareIdLength: config.get("share.shareIdLength"),
-          simplified: false,
         },
         syntheticFiles,
         (share) => importFromNas(share, paths, preview),
@@ -413,12 +404,7 @@ const Upload = ({
     );
     if (filtered.length === 0) return;
 
-    if (isReverseShare && autoOpenCreateUploadModal) {
-      setFiles(filtered);
-      openCreateUploadModal(filtered);
-    } else {
-      setFiles((oldArr) => [...oldArr, ...filtered]);
-    }
+    setFiles((oldArr) => [...oldArr, ...filtered]);
   };
 
   // Anywhere-on-the-page drag & drop: a visitor dragging from their file
@@ -540,12 +526,7 @@ const Upload = ({
         );
         if (filtered.length === 0) return;
 
-        if (isReverseShare && autoOpenCreateUploadModal) {
-          setFiles(filtered);
-          openCreateUploadModal(filtered);
-        } else {
-          setFiles((oldArr) => [...oldArr, ...filtered]);
-        }
+        setFiles((oldArr) => [...oldArr, ...filtered]);
       }
     };
 
@@ -554,7 +535,7 @@ const Upload = ({
     return () => {
       window.removeEventListener("paste", handlePaste);
     };
-  }, [autoOpenCreateUploadModal, modals.modals.length]);
+  }, [modals.modals.length]);
 
   useEffect(() => {
     // Check if there are any files that failed to upload
@@ -627,9 +608,7 @@ const Upload = ({
           <Stack align="stretch" spacing={0}>
             <Dropzone
               title={
-                !autoOpenCreateUploadModal && files.length > 0
-                  ? t("share.edit.append-upload")
-                  : undefined
+                files.length > 0 ? t("share.edit.append-upload") : undefined
               }
               maxShareSize={maxShareSize}
               currentFilesSize={currentFilesSize}
@@ -666,7 +645,7 @@ const Upload = ({
                   <Button
                     fullWidth
                     loading={isUploading}
-                    onClick={() => openCreateUploadModal(files)}
+                    onClick={submitReverseShare}
                   >
                     <FormattedMessage id="common.button.share" />
                   </Button>

@@ -82,33 +82,54 @@ export class ShareService {
     if (!(await this.isShareIdAvailable(share.id)).isAvailable)
       throw new BadRequestException(this.i18n.t("share.idInUse"));
 
-    if (!share.security || Object.keys(share.security).length == 0)
-      share.security = undefined;
+    // Same reasoning as expirationDate/finalName below: a reverse share's
+    // own security is set once by its creator (CreateReverseShareDTO),
+    // never per-submission any more — the frontend sends no security of
+    // its own for a reverse share at all. reverseShare.password is
+    // already hashed (ReverseShareService.create, at reverse share
+    // creation time), so it's used as-is here, not re-hashed — hashing an
+    // already-hashed value would just make it permanently unverifiable.
+    // restrictToRecipients has no reverse-share equivalent (there's no
+    // creator-facing recipients field to restrict to), so it's simply
+    // never set on this path.
+    if (reverseShare) {
+      share.security =
+        reverseShare.password || reverseShare.maxViews
+          ? {
+              password: reverseShare.password || undefined,
+              maxViews: reverseShare.maxViews || undefined,
+              restrictToRecipients: undefined,
+            }
+          : undefined;
+    } else {
+      if (!share.security || Object.keys(share.security).length == 0)
+        share.security = undefined;
 
-    if (share.security?.restrictToRecipients && share.security?.password) {
-      throw new BadRequestException(
-        "Cannot set a password on a share restricted to recipients.",
-      );
-    }
-
-    if (share.security?.password) {
-      share.security.password = await argon.hash(share.security.password);
-    }
-
-    if (
-      this.configService.get("share.enableUserRecipients") &&
-      share.security?.restrictToRecipients
-    ) {
-      if (!share.recipients?.length) {
+      if (share.security?.restrictToRecipients && share.security?.password) {
         throw new BadRequestException(
-          "A share restricted to recipients must have at least one recipient.",
+          "Cannot set a password on a share restricted to recipients.",
         );
       }
-      // Note: we intentionally do NOT check whether the recipient emails belong
-      // to registered accounts. Doing so would leak which emails have an account
-      // (account enumeration). Recipients who aren't registered yet simply sign
-      // up to gain access (see ShareSecurityGuard); if signups are disabled they
-      // can't access it.
+
+      if (share.security?.password) {
+        share.security.password = await argon.hash(share.security.password);
+      }
+
+      if (
+        this.configService.get("share.enableUserRecipients") &&
+        share.security?.restrictToRecipients
+      ) {
+        if (!share.recipients?.length) {
+          throw new BadRequestException(
+            "A share restricted to recipients must have at least one recipient.",
+          );
+        }
+        // Note: we intentionally do NOT check whether the recipient emails belong
+        // to registered accounts. Doing so would leak which emails have an account
+        // (account enumeration). Recipients who aren't registered yet simply sign
+        // up to gain access (see ShareSecurityGuard); if signups are disabled they
+        // can't access it.
+      }
     }
 
     let expirationDate: Date;
@@ -132,6 +153,9 @@ export class ShareService {
     // client-side. Only actually overrides when the creator set one —
     // reverseShare.name is optional, same as a direct share's.
     const finalName = reverseShare?.name || share.name;
+    // Same pattern, one field over — the frontend sends no description of
+    // its own for a reverse share submission any more either.
+    const finalDescription = reverseShare?.description || share.description;
 
     fs.mkdirSync(`${SHARE_DIRECTORY}/${share.id}`, {
       recursive: true,
@@ -143,6 +167,7 @@ export class ShareService {
       recipients: _recipients,
       expiration: _expiration,
       name: _name,
+      description: _description,
       ...shareData
     } = share;
 
@@ -150,6 +175,7 @@ export class ShareService {
       data: {
         ...shareData,
         name: finalName,
+        description: finalDescription,
         // A signed-in creator's identity is already the `creator` relation
         // below — never persist a second, potentially-stale copy of their
         // email here. Only meaningful for an anonymous sender.

@@ -148,15 +148,19 @@ model ReverseShare {
   maxShareSize          String
   sendEmailNotification Boolean
   remainingUses         Int
-  simplified            Boolean  @default(false)
   publicAccess          Boolean  @default(true)
 
-  // Set once, by the reverse share's own creator, at creation time — never
-  // by whoever uploads through it (see ShareService.create()'s own
-  // override: this wins over whatever name a submission carries, falling
-  // back to that submission's own name only when this is unset). Optional,
-  // same as a direct share's own name.
-  name String?
+  // All three set once, by the reverse share's own creator, at creation
+  // time — never by whoever uploads through it (see ShareService.create()'s
+  // own override, the same pattern already used for shareExpiration above).
+  // Optional, same as a direct share's own name/description/security.
+  // password is already hashed at this point (ReverseShareService.create,
+  // same argon2 call AuthService uses) — never a plaintext round-trip
+  // through any later request.
+  name        String?
+  description String?
+  password    String?
+  maxViews    Int?
 
   creatorId String
   creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)

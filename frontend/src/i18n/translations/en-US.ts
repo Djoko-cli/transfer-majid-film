@@ -251,19 +251,13 @@ export default {
   "account.reverseShares.modal.expiration.year-plural": "Years",
 
   "account.reverseShares.modal.name.label": "Name",
-  "account.reverseShares.modal.name.description":
-    "Used as the name for shares created through this link. Leave blank to use a name based on the files sent.",
-  "account.reverseShares.modal.name.placeholder": "Optional",
+  "account.reverseShares.modal.description.label": "Description",
 
   "account.reverseShares.modal.max-size.label": "Max share size",
 
   "account.reverseShares.modal.send-email": "Send email notifications",
   "account.reverseShares.modal.send-email.description":
     "Sends you an email notification when a share is created with this reverse share link.",
-
-  "account.reverseShares.modal.simplified": "Simple mode",
-  "account.reverseShares.modal.simplified.description":
-    "Make it easy for the person uploading the file to share it with you. They will only be able to customize the share's description.",
 
   "account.reverseShares.modal.public-access": "Public access",
   "account.reverseShares.modal.public-access.description":
@@ -272,6 +266,8 @@ export default {
   "account.reverseShares.modal.max-use.label": "Max uses",
   "account.reverseShares.modal.max-use.description":
     "The maximum amount of times this URL can be used to create a share.",
+  "account.reverseShares.modal.password.label": "Password protection",
+  "account.reverseShares.modal.max-views.label": "Maximum views",
   "account.reverseShare.never-expires": "This reverse share will never expire.",
   "account.reverseShare.expires-on":
     "This reverse share will expire on {expiration}.",
@@ -820,15 +816,8 @@ export default {
   "admin.config.share.chunk-size": "Chunk size",
   "admin.config.share.chunk-size.description":
     "Adjust the chunk size for your uploads to balance efficiency and reliability according to your internet connection. Smaller chunks can enhance success rates for unstable connections, while larger chunks make uploads faster for stable connections.",
-  "admin.config.share.auto-open-share-modal": "Auto open create share modal",
-  "admin.config.share.auto-open-share-modal.description":
-    "The share creation modal automatically appears when a user selects files, eliminating the need to manually click the button.",
   "admin.config.share.allow-admin-access-all-shares":
     "Allow admin access to all shares",
-  "admin.config.share.reverse-share-simple-only":
-    "Force reverse share simple mode",
-  "admin.config.share.reverse-share-simple-only.description":
-    "Force reverse shares to be created in simple mode. If disabled, the creator of the reverse share can choose between simple and advanced mode.",
   "admin.config.share.allow-admin-access-all-shares.description":
     "Allow administrators to access all shares, even if they are password protected, expired or deleted.",
   "admin.config.share.enable-user-recipients":

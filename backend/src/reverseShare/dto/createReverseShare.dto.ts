@@ -1,10 +1,12 @@
 import {
   IsBoolean,
+  IsNumber,
   IsOptional,
   IsString,
   Length,
   Matches,
   Max,
+  MaxLength,
   Min,
 } from "class-validator";
 import { i18nValidationMessage } from "nestjs-i18n";
@@ -27,10 +29,25 @@ export class CreateReverseShareDTO {
   maxUseCount: number;
 
   @IsBoolean()
-  simplified: boolean;
-
-  @IsBoolean()
   publicAccess: boolean;
+
+  // Same shape as a direct share's own optional description/security
+  // (CreateShareDTO/ShareSecurityDTO) — set once here by this reverse
+  // share's own creator, applied to every share created through it
+  // (ShareService.create()'s own override), rather than left for
+  // whoever uploads to configure per-submission.
+  @MaxLength(512)
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  @Length(3, 30)
+  password?: string;
+
+  @IsNumber()
+  @IsOptional()
+  maxViews?: number;
 
   @IsString()
   @IsOptional()

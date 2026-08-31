@@ -236,23 +236,20 @@ export default {
   "account.reverseShares.modal.expiration.year-singular": "An",
   "account.reverseShares.modal.expiration.year-plural": "Ans",
   "account.reverseShares.modal.name.label": "Nom",
-  "account.reverseShares.modal.name.description":
-    "Utilisé comme nom des partages créés via ce lien. Laissez vide pour utiliser un nom basé sur les fichiers envoyés.",
-  "account.reverseShares.modal.name.placeholder": "Optionnel",
+  "account.reverseShares.modal.description.label": "Description",
   "account.reverseShares.modal.max-size.label": "Taille maximale du partage",
   "account.reverseShares.modal.send-email":
     "Envoyer des notifications par courriel",
   "account.reverseShares.modal.send-email.description":
     "Vous envoi une notification par courriel lorsqu'un partage est créé avec ce lien de partage inversé.",
-  "account.reverseShares.modal.simplified": "Mode simple",
-  "account.reverseShares.modal.simplified.description":
-    "Simplifiez la tâche à la personne qui vous partage un fichier. Ils ne pourront que personnaliser la description du partage.",
   "account.reverseShares.modal.public-access": "Accès public",
   "account.reverseShares.modal.public-access.description":
     "Rendre les partages créés avec ce partage inversé public. Si désactivé, seul vous et le créateur du partage pourrez le voir.",
   "account.reverseShares.modal.max-use.label": "Nombre d'utilisations max",
   "account.reverseShares.modal.max-use.description":
     "Le nombre maximal de fois que cette URL peut être utilisée pour créer un partage.",
+  "account.reverseShares.modal.password.label": "Protection par mot de passe",
+  "account.reverseShares.modal.max-views.label": "Nombre de vues maximum",
   "account.reverseShare.never-expires": "Ce partage inversé n'expirera jamais.",
   "account.reverseShare.expires-on":
     "Ce partage inversé expirera le {expiration}.",
@@ -794,16 +791,8 @@ export default {
   "admin.config.share.chunk-size": "Taille des tronçons",
   "admin.config.share.chunk-size.description":
     "Ajustez la taille des tronçons pour que vos téléchargements équilibrent efficacité et fiabilité en fonction de votre connexion Internet. Les petits tronçons peuvent améliorer les taux de succès sur les connexions instables, tandis que les tronçons plus importants accélèrent les téléchargements sur les connexions stables.",
-  "admin.config.share.auto-open-share-modal":
-    "Ouvrir automatiquement la modale de partage",
-  "admin.config.share.auto-open-share-modal.description":
-    "La modale de création de partage apparaît automatiquement lorsqu’un utilisateur sélectionne des fichiers, ce qui élimine le besoin de cliquer manuellement sur le bouton.",
   "admin.config.share.allow-admin-access-all-shares":
     "Autoriser l'accès admin à tous les partages",
-  "admin.config.share.reverse-share-simple-only":
-    "Forcer le mode simple de partage inversé",
-  "admin.config.share.reverse-share-simple-only.description":
-    "Forcer la création des partages inversés en mode simple. Si désactivé, le créateur du partage inversé peut choisir entre les modes simple et avancé.",
   "admin.config.share.allow-admin-access-all-shares.description":
     "Autoriser les administrateurs à accéder à tous les partages, même s'ils sont protégés par un mot de passe, expirés ou supprimés.",
   "admin.config.share.enable-user-recipients":

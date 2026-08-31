@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import * as argon from "argon2";
 import * as moment from "moment";
 import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
@@ -68,9 +69,14 @@ export class ReverseShareService {
           remainingUses: data.maxUseCount,
           maxShareSize: data.maxShareSize,
           sendEmailNotification: data.sendEmailNotification,
-          simplified: data.simplified,
           publicAccess: data.publicAccess,
           name: data.name || undefined,
+          description: data.description || undefined,
+          // Hashed here, once — ShareService.create() reads this same
+          // hash straight into each new share's own security record
+          // rather than re-hashing (it isn't the plaintext any more).
+          password: data.password ? await argon.hash(data.password) : undefined,
+          maxViews: data.maxViews || undefined,
           creatorId,
         },
       });

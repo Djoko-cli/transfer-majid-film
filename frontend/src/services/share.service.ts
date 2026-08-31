@@ -362,10 +362,12 @@ const createReverseShare = async (
   maxShareSize: number,
   maxUseCount: number,
   sendEmailNotification: boolean,
-  simplified: boolean,
   publicAccess: boolean,
   token?: string,
   name?: string,
+  description?: string,
+  password?: string,
+  maxViews?: number,
 ) => {
   return (
     await api.post("reverseShares", {
@@ -373,10 +375,12 @@ const createReverseShare = async (
       maxShareSize: maxShareSize.toString(),
       maxUseCount,
       sendEmailNotification,
-      simplified,
       publicAccess,
       token,
       name,
+      description,
+      password,
+      maxViews,
     })
   ).data;
 };

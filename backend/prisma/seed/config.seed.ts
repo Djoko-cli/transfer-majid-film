@@ -75,16 +75,6 @@ export const configVariables = {
       defaultValue: "10000000",
       secret: false,
     },
-    autoOpenShareModal: {
-      type: "boolean",
-      defaultValue: "false",
-      secret: false,
-    },
-    reverseShareSimpleOnly: {
-      type: "boolean",
-      defaultValue: "false",
-      secret: false,
-    },
     allowAdminAccessAllShares: {
       type: "boolean",
       defaultValue: "false",

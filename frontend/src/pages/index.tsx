@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <>
       <Meta title="Home" />
-      <Upload isReverseShare={false} simplified={false} />
+      <Upload isReverseShare={false} />
     </>
   );
 }
