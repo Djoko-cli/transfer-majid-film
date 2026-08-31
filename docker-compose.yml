@@ -44,7 +44,7 @@ services:
       # before relying on this — it's a different identity than whatever
       # already owns the folder, unlike the Transfer volume above which
       # was set up for this app from the start.
-      - "/volume1/Archives Photos et Video:/opt/app/backend/nas-import:ro"
+      - "/volume1/Archives Photo et Video:/opt/app/backend/nas-import:ro"
 
     # Transfer's own Caddy listens internally on port 3000 and fronts both
     # the frontend and the backend (splitting /api/* to the backend) — it
