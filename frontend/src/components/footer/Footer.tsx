@@ -1,5 +1,5 @@
 import { Anchor, Box, Footer as MFooter, Text, createStyles } from "@mantine/core";
-import { useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { APP_NAME } from "../../constants";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -75,6 +75,25 @@ const useStyles = createStyles((theme) => {
       textAlign: "right",
       [theme.fn.smallerThan(700)]: {
         textAlign: "center",
+      },
+    },
+
+    // Desktop keeps every link on one inline row, separated by " • " (see
+    // legalSeparator below) - room enough there, and it matches the
+    // brand text's own single line beside it. Mobile has neither: one
+    // link per line, no separators - requested by the user after the
+    // wrapped, separator-heavy version above still read as visually busy
+    // once centered.
+    legalLink: {
+      [theme.fn.smallerThan(700)]: {
+        display: "block",
+        marginTop: 2,
+      },
+    },
+
+    legalSeparator: {
+      [theme.fn.smallerThan(700)]: {
+        display: "none",
       },
     },
   };
@@ -160,12 +179,14 @@ const Footer = () => {
           </Text>
           <Text size="xs" color="dimmed" className={classes.legalArea}>
             {legalLinks.map(({ href, label }, index) => (
-              <span key={href}>
-                {index > 0 && " • "}
-                <Anchor size="xs" href={href}>
+              <Fragment key={href}>
+                {index > 0 && (
+                  <span className={classes.legalSeparator}> • </span>
+                )}
+                <Anchor size="xs" href={href} className={classes.legalLink}>
                   {label}
                 </Anchor>
-              </span>
+              </Fragment>
             ))}
           </Text>
         </Box>
