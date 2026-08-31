@@ -61,10 +61,9 @@ services:
       # same guarantee true from this side too. "web" is the Synology
       # share name majid.film's own deployer.py rsyncs into (confirmed via
       # its local SMB mount, //<user>@NAS/web); "majidfilm" is the folder
-      # under it — matches /volume1/<ShareName> exactly like the Transfer
-      # and Archives mounts above. Confirm this against DSM before relying
-      # on it, same as those two originally were.
-      - "/volume1/web/majidfilm:/opt/app/backend/majidfilm-source:ro"
+      # under it. On volume2, not volume1 like the two mounts above —
+      # confirmed directly on the NAS, no assumed pattern across shares.
+      - "/volume2/web/majidfilm:/opt/app/backend/majidfilm-source:ro"
 
     # Transfer's own Caddy listens internally on port 3000 and fronts both
     # the frontend and the backend (splitting /api/* to the backend) — it
