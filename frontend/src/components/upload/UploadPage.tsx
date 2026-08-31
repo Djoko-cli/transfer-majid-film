@@ -5,6 +5,7 @@ import { AxiosError } from "axios";
 import pLimit from "p-limit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
+import AuthGlassLayout from "../auth/AuthGlassLayout";
 import AnimatedHeight from "../core/AnimatedHeight";
 import Meta from "../Meta";
 import Dropzone, { getFilesFromEvent } from "./Dropzone";
@@ -388,9 +389,7 @@ const Upload = ({
           allowUnauthenticatedShares: config.get(
             "share.allowUnauthenticatedShares",
           ),
-          enableEmailRecepients: config.get(
-            "email.enableShareEmailRecipients",
-          ),
+          enableEmailRecepients: config.get("email.enableShareEmailRecipients"),
           enableUserRecipients: config.get("share.enableUserRecipients"),
           maxExpiration:
             user?.isAdmin || user?.canCreatePermanentShares
@@ -613,37 +612,69 @@ const Upload = ({
       <>
         <Meta title={t("upload.title")} />
         <PageDropOverlay visible={isDraggingFileOverPage} />
-        <Group position="right" mb={20}>
-          <Button
-            loading={isUploading}
-            disabled={files.length <= 0}
-            onClick={() => openCreateUploadModal(files)}
-          >
-            <FormattedMessage id="common.button.share" />
-          </Button>
-        </Group>
-        <Dropzone
-          title={
-            !autoOpenCreateUploadModal && files.length > 0
-              ? t("share.edit.append-upload")
-              : undefined
-          }
-          maxShareSize={maxShareSize}
-          currentFilesSize={currentFilesSize}
-          onFilesChanged={handleDropzoneFilesChanged}
-          isUploading={isUploading}
-        />
-        <AnimatedHeight>
-          {files.length > 0 ? (
-            <FileList<FileUpload>
-              files={files}
-              setFiles={setFiles}
+        {
+          // AuthGlassLayout, not SplitTransferLayout: this is a single
+          // bounded task (pick files, hand them over) centered on the
+          // brand backdrop, the same shape as signing in, not
+          // SplitTransferLayout's asymmetric split (built specifically
+          // for TransferCard's own two-column layout) or
+          // GlassPageBackdrop's ambient scrim (for a page-length document
+          // like account settings, which this isn't — the file list is
+          // real content but stays within one card, scrolling internally
+          // past a height cap exactly like TransferCard's own).
+        }
+        <AuthGlassLayout>
+          <Stack align="stretch" spacing={0}>
+            <Dropzone
+              title={
+                !autoOpenCreateUploadModal && files.length > 0
+                  ? t("share.edit.append-upload")
+                  : undefined
+              }
+              maxShareSize={maxShareSize}
+              currentFilesSize={currentFilesSize}
+              onFilesChanged={handleDropzoneFilesChanged}
               isUploading={isUploading}
-              onCancel={cancelUpload}
-              onRetry={retryFile}
+              waiting={files.length === 0}
+              compact={files.length > 0}
+              tightenWhenEmpty
+              glass
             />
-          ) : null}
-        </AnimatedHeight>
+            {
+              // The share button used to sit in a top-right corner above
+              // the dropzone, always visible but disabled until files
+              // existed — read fine on the old full-width bare page, but
+              // cramped and inconsistent with every other glass card in
+              // this app (TransferCard's own submit, every modal's) once
+              // this became a narrow centered card. Moved below the file
+              // list, full width, and — same reasoning as TransferCard's
+              // own progressive disclosure — not rendered at all until
+              // there's something to share, rather than shown-but-inert:
+              // nothing to decide about, nothing to click, before a file
+              // exists.
+            }
+            <AnimatedHeight duration={300} gapWhenOpen={16}>
+              {files.length > 0 ? (
+                <Stack align="stretch">
+                  <FileList<FileUpload>
+                    files={files}
+                    setFiles={setFiles}
+                    isUploading={isUploading}
+                    onCancel={cancelUpload}
+                    onRetry={retryFile}
+                  />
+                  <Button
+                    fullWidth
+                    loading={isUploading}
+                    onClick={() => openCreateUploadModal(files)}
+                  >
+                    <FormattedMessage id="common.button.share" />
+                  </Button>
+                </Stack>
+              ) : null}
+            </AnimatedHeight>
+          </Stack>
+        </AuthGlassLayout>
       </>
     );
   }

@@ -1,6 +1,6 @@
 import { Box, MantineProvider, createStyles } from "@mantine/core";
 import { ReactNode } from "react";
-import { HEADER_HEIGHT } from "../header/Header";
+import { HEADER_HEIGHT, MOBILE_MENU_SPACER_HEIGHT } from "../header/Header";
 import BrandPanel from "../upload/BrandPanel";
 import GlintBorder from "../upload/GlintBorder";
 import LiquidGlassKeyframes from "../upload/liquidGlassKeyframes";
@@ -59,17 +59,39 @@ const useStyles = createStyles((theme) => {
       justifyContent: "center",
       padding: "48px 20px",
 
-      // Matches SplitTransferLayout's own mobile margin exactly (see its
-      // more detailed comment) — 16px sides, 40px top/bottom to match a
-      // pre-existing 40px spacer above the header that a plain top margin
-      // would otherwise collapse into and appear to have no effect at all.
+      // Same fix as SplitTransferLayout's own mobile cardSlot (see its
+      // fuller comment) — this used to be a plain top/bottom margin with
+      // no real centering mechanism at all, invisible for a card tall
+      // enough to fill most of the screen (every auth form until now) but
+      // measurably wrong (129px off true center, on a real measurement,
+      // not eyeballed) for a short one, which is exactly what the reverse
+      // -share flow's at-rest dropzone is once it started using this same
+      // layout. min-height (not a fixed height) plus flex-centering
+      // reproduces the header-to-footer band via normal flow instead of
+      // desktop's absolute positioning; 100dvh instead of 100vh because
+      // mobile's 100vh is defined against the largest possible viewport
+      // (chrome collapsed), not the one actually visible; subtracting
+      // MOBILE_MENU_SPACER_HEIGHT accounts for the real, uncollapsed flow
+      // space Header.tsx's own mobile menu spacer reserves below itself;
+      // and the translateY shift re-centers within the *visible* band
+      // rather than the band minus that same spacer, which is invisible
+      // flow space, not a visual obstruction — BrandPanel's fixed photo
+      // backdrop shows straight through it. All four pieces are load-
+      // bearing together; dropping any one reproduces a version of this
+      // same bug. Padding, not margin, for the same reason as
+      // SplitTransferLayout: margin would collapse into that spacer's own
+      // (zero) margin exactly the way this file's old comment describes,
+      // which is fine for a fixed offset but wrong once a min-height band
+      // needs a deterministic size to center within.
       [theme.fn.smallerThan("sm")]: {
         position: "relative",
         top: "auto",
         bottom: "auto",
-        display: "block",
-        padding: 0,
-        margin: "40px 16px",
+        display: "flex",
+        alignItems: "center",
+        minHeight: `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px))`,
+        padding: "40px 16px",
+        transform: `translateY(-${MOBILE_MENU_SPACER_HEIGHT / 2}px)`,
       },
     },
 

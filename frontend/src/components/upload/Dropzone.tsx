@@ -35,15 +35,16 @@ const useStyles = createStyles(
       // via `bottom: -20`. 30 — the original, unconditional value — unless
       // both compact is false (nothing has narrowed this to the slim bar
       // yet) *and* the caller opted into tightenWhenEmpty: with
-      // files.length === 0 in TransferCard specifically, this dropzone
-      // usually *is* the entire visible card, so any slack here stacks
-      // directly on top of the card's own bottom padding — the top of the
-      // dropzone has no equivalent floating element eating into its own
-      // margin, and the mismatch reads as an off-center card. Opt-in rather
-      // than unconditional: the only other caller (UploadPage's
-      // reverse-share flow) puts a file table directly below with no
-      // padded container absorbing the difference, where the original 30
-      // is still the right amount of breathing room.
+      // files.length === 0, this dropzone usually *is* the entire visible
+      // card, so any slack here stacks directly on top of the card's own
+      // bottom padding — the top of the dropzone has no equivalent floating
+      // element eating into its own margin, and the mismatch reads as an
+      // off-center card. Opt-in rather than unconditional: a caller that
+      // doesn't sit inside a padded glass card (there isn't one left in
+      // this app any more — both TransferCard and UploadPage's reverse-share
+      // flow now render inside one, see SplitTransferLayout/AuthGlassLayout)
+      // would want the original 30 instead, so this stays a per-caller
+      // choice rather than the new default.
       wrapper: {
         position: "relative",
         marginBottom: !compact && tightenWhenEmpty ? 20 : 30,
