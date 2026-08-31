@@ -589,6 +589,11 @@ export default {
   "share.edit.notify.save-success": "Partage mis à jour avec succès",
   // END /share/[id]/edit
 
+  // CookieNotice.tsx - shown site-wide, not tied to one page
+  "cookieNotice.text":
+    "Ce site utilise uniquement des cookies nécessaires à son fonctionnement — aucun cookie publicitaire ni de suivi. {privacyLink}",
+  "cookieNotice.dismiss": "Fermer",
+
   // /imprint
   "imprint.title": "Mentions légales",
   // END /imprint

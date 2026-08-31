@@ -32,6 +32,7 @@ import { CurrentUser } from "../types/user.type";
 import i18nUtil from "../utils/i18n.util";
 import userPreferences from "../utils/userPreferences.util";
 import Footer from "../components/footer/Footer";
+import CookieNotice from "../components/CookieNotice";
 import { getDefaultConfig } from "../utils/defaultConfig.util";
 import AdminNoticeModal, {
   AdminNotice,
@@ -233,6 +234,14 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                         </div>
                         <Footer />
                       </Stack>
+                      {
+                        // Only on the default (non-admin) layout - a first
+                        // -time *visitor* is who this is for; by the time
+                        // someone reaches /admin/*, they're already an
+                        // authenticated admin, not someone who needs an
+                        // introductory cookie notice.
+                      }
+                      <CookieNotice />
                     </>
                   )}
                 </UserContext.Provider>

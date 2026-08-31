@@ -619,6 +619,11 @@ export default {
   "share.edit.notify.save-success": "Share updated successfully",
   // END /share/[id]/edit
 
+  // CookieNotice.tsx - shown site-wide, not tied to one page
+  "cookieNotice.text":
+    "This site only uses cookies necessary for it to work — no advertising or tracking cookies. {privacyLink}",
+  "cookieNotice.dismiss": "Close",
+
   // /imprint
   "imprint.title": "Imprint",
   // END /imprint
