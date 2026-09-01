@@ -370,6 +370,7 @@ export default {
 
   // /upload
   "upload.title": "Envoyer",
+  "upload.ogTitle": "Transfer - Service d'envoi de fichiers",
   "upload.termsGate.perks.size": "Envoyez jusqu'à {size} Go",
   "upload.termsGate.perks.free": "Gratuit et sécurisé",
   "upload.termsGate.perks.location": "Fichiers stockés à la Réunion 🇷🇪",

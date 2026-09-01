@@ -8,13 +8,23 @@ const DEFAULT_DESCRIPTION =
 const Meta = ({
   title,
   description,
+  // The browser tab (<title>) wants "{page} - {app}" (Envoyer - Transfer,
+  // Contact - Transfer...) - a real page name first, consistent across
+  // every page, exactly what a tab bar full of open pages needs. A share
+  // preview's title is read alone, once, out of that context, so it
+  // doesn't have to follow the same shape - defaults to metaTitle when a
+  // page doesn't need anything different (every page except the upload
+  // flow, today).
+  ogTitle,
 }: {
   title: string;
   description?: string;
+  ogTitle?: string;
 }) => {
   const config = useConfig();
   const metaTitle = `${title} - ${APP_NAME}`;
   const metaDescription = description ?? DEFAULT_DESCRIPTION;
+  const shareTitle = ogTitle ?? metaTitle;
   // og:image/twitter:image need a real absolute URL - a crawler (not a
   // browser) is what actually fetches this, and relative paths resolve
   // inconsistently, or not at all, without a browsing context to resolve
@@ -36,7 +46,7 @@ const Meta = ({
         // read). twitter:* tags are the one family that genuinely does
         // use name, per Twitter/X's own Card spec - left as-is below.
       }
-      <meta property="og:title" content={metaTitle} />
+      <meta property="og:title" content={shareTitle} />
       <meta property="og:description" content={metaDescription} />
       <meta property="og:type" content="website" />
       <meta property="og:site_name" content={APP_NAME} />
@@ -44,7 +54,7 @@ const Meta = ({
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={metaTitle} />
+      <meta name="twitter:title" content={shareTitle} />
       <meta name="twitter:description" content={metaDescription} />
       <meta name="twitter:image" content={ogImageUrl} />
     </Head>

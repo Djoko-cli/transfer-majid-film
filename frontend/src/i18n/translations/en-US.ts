@@ -394,6 +394,7 @@ export default {
 
   // /upload
   "upload.title": "Upload",
+  "upload.ogTitle": "Transfer - File Sharing Service",
   "upload.termsGate.perks.size": "Send up to {size} GB",
   "upload.termsGate.perks.free": "Free and secure",
   "upload.termsGate.perks.location": "Files stored in Réunion 🇷🇪",

@@ -758,7 +758,7 @@ const Upload = ({
 
   return (
     <>
-      <Meta title={t("upload.title")} />
+      <Meta title={t("upload.title")} ogTitle={t("upload.ogTitle")} />
       <PageDropOverlay visible={isDraggingFileOverPage} />
       {isReverseShare ? (
         // AuthGlassLayout, not SplitTransferLayout: this is a single
