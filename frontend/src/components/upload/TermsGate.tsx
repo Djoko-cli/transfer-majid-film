@@ -60,15 +60,25 @@ const TermsGate = ({
   return (
     <Stack align="center" spacing="lg" py="md">
       {
-        // sx width:100% rather than relying on the parent Stack's default
-        // cross-axis sizing - the outer Stack's own align="center" (needed
-        // so the description/button below stay centered) makes every
-        // child shrink-wrap and center by default, which is exactly what
-        // left this block narrower than the fullWidth button below it,
-        // stranding empty space on both sides instead of lining up with
-        // the rest of the card.
+        // Neither full width (471-021's own trailing edge left the short
+        // lines - "Gratuit" - stranding a large empty gap after them, on
+        // the right) nor the outer Stack's default shrink-to-fit-and-
+        // center (which centers on this block's own widest line, landing
+        // noticeably narrower than the description text below and voided
+        // on both sides) - reported from the user's own screen both times.
+        // align-self: flex-start opts this one child out of the parent's
+        // align="center" so a plain marginLeft can position it directly
+        // instead of being folded into a centering calculation (which
+        // would just re-center the now-wider box rather than shift it) -
+        // landing its left edge roughly where the description text's own
+        // centered first line visually starts, so the two read as lined
+        // up rather than the checklist looking independently placed.
       }
-      <Stack spacing="xs" align="flex-start" sx={{ width: "100%" }}>
+      <Stack
+        spacing="xs"
+        align="flex-start"
+        sx={{ alignSelf: "flex-start", marginLeft: 32 }}
+      >
         {perks.map((perk, index) => (
           <Group key={index} spacing="xs" noWrap>
             <TbCircleCheck color={accent} size={18} />
