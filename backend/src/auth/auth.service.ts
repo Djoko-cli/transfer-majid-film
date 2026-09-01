@@ -80,7 +80,14 @@ export class AuthService {
     // row is treated as a real error instead of retried again.
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        return await this.prisma.$transaction(async (tx) => {
+        // Captured via closure rather than put on the transaction's own
+        // return value — that return value is exactly what the controller
+        // sends back as the HTTP response body (see AuthController.signUp),
+        // and the full Prisma User row carries the password hash. This
+        // stays out of band, read only by the notification below.
+        let createdUser: User | undefined;
+
+        const result = await this.prisma.$transaction(async (tx) => {
           const user = await tx.user.create({
             data: {
               email,
@@ -96,6 +103,7 @@ export class AuthService {
                 : null,
             },
           });
+          createdUser = user;
 
           if (user.activationToken) {
             await this.emailService.sendVerificationEmail(
@@ -115,6 +123,27 @@ export class AuthService {
           this.logger.log(`User ${user.email} signed up from IP ${ip}`);
           return { accessToken, refreshToken, user };
         });
+
+        // Fire-and-forget, after the transaction above has already
+        // committed rather than inside it — this app's DATABASE_URL caps
+        // the pool at connection_limit=1, so holding that transaction
+        // open for an SMTP round-trip would block every other request
+        // (login, downloads, share creation) for however long that takes.
+        // Not awaited and always caught rather than left to throw: this is
+        // a best-effort admin notification, and a failure in it (SMTP off,
+        // misconfigured, momentarily down) must never turn what was
+        // otherwise a successful signup into an error response for the
+        // person who just signed up.
+        if (
+          this.config.get("email.enableNewAccountNotifications") &&
+          createdUser
+        ) {
+          this.emailService
+            .sendNewAccountNotification(createdUser.username, createdUser.email)
+            .catch((e) => this.logger.error(e));
+        }
+
+        return result;
       } catch (e) {
         if (e instanceof PrismaClientKnownRequestError && e.code == "P2002") {
           const duplicatedField: string = e.meta.target[0];
@@ -193,11 +222,29 @@ export class AuthService {
   async generateToken(
     user: User,
     oauth?: { idToken?: string },
-    tokenOptions?: { response?: Response; rememberDevice?: boolean },
+    tokenOptions?: {
+      response?: Response;
+      rememberDevice?: boolean;
+      // Only ever set by signInTrusted() below, and only once it has
+      // already verified — server-side, this call — that the trusted-
+      // device cookie is a validly-signed, unexpired token for this exact
+      // user. That cookie is itself only ever issued after a real TOTP
+      // challenge already succeeded once on this device (see
+      // AuthTotpService.signInTotp and setTrustedDeviceCookie's own
+      // comments) — this is what lets a returning trusted device skip
+      // TOTP again for up to 30 days, the same "remember this device"
+      // pattern most 2FA implementations offer, rather than only ever
+      // skipping the password field the way this originally shipped.
+      skipTotp?: boolean;
+    },
   ) {
     // TODO: Make all old loginTokens invalid when a new one is created
     // Check if the user has TOTP enabled
-    if (user.totpVerified && !(oauth && this.config.get("oauth.ignoreTotp"))) {
+    if (
+      user.totpVerified &&
+      !(oauth && this.config.get("oauth.ignoreTotp")) &&
+      !tokenOptions?.skipTotp
+    ) {
       const loginToken = await this.createLoginToken(user.id);
 
       return { loginToken };
@@ -333,7 +380,9 @@ export class AuthService {
     }
 
     if (user.activationAttempts >= 5) {
-      throw new BadRequestException(this.i18n.t("verification.tooManyAttempts"));
+      throw new BadRequestException(
+        this.i18n.t("verification.tooManyAttempts"),
+      );
     }
 
     if (user.activationToken !== code) {
@@ -588,7 +637,8 @@ export class AuthService {
       const claims = await this.jwtService.verifyAsync(token, {
         secret: this.config.get("internal.jwtSecret"),
       });
-      if (claims.purpose !== TRUSTED_DEVICE_PURPOSE) return { recognized: false };
+      if (claims.purpose !== TRUSTED_DEVICE_PURPOSE)
+        return { recognized: false };
 
       const user = await this.prisma.user.findUnique({
         where: { id: claims.sub },
@@ -604,13 +654,20 @@ export class AuthService {
 
   // The actual sign-in triggered by the "Welcome back" button — re-verifies
   // the cookie server-side (never trusts that the earlier read-only check
-  // already ran) and hands off to the exact same generateToken() every
-  // other sign-in path uses, so a TOTP-enabled account still hits the TOTP
-  // wall even from a trusted device: a leaked cookie alone can't fully
-  // bypass a deliberately-configured second factor.
+  // already ran) and hands off to the same generateToken() every other
+  // sign-in path uses, passing skipTotp: true — this cookie is only ever
+  // set after a real TOTP challenge already succeeded once on this exact
+  // device (see setTrustedDeviceCookie's own comment), so re-solving TOTP
+  // again here would just be asking a device that already proved itself
+  // to prove itself a second time, not adding real protection against
+  // anyone who doesn't already hold this specific signed, httpOnly,
+  // 30-day cookie.
   async signInTrusted(request: Request) {
     const token = request.cookies?.[TRUSTED_DEVICE_COOKIE];
-    if (!token) throw new UnauthorizedException(this.i18n.t("auth.tokenInvalidOrExpired"));
+    if (!token)
+      throw new UnauthorizedException(
+        this.i18n.t("auth.tokenInvalidOrExpired"),
+      );
 
     let claims: { sub?: string; purpose?: string };
     try {
@@ -618,18 +675,24 @@ export class AuthService {
         secret: this.config.get("internal.jwtSecret"),
       });
     } catch {
-      throw new UnauthorizedException(this.i18n.t("auth.tokenInvalidOrExpired"));
+      throw new UnauthorizedException(
+        this.i18n.t("auth.tokenInvalidOrExpired"),
+      );
     }
     if (claims.purpose !== TRUSTED_DEVICE_PURPOSE)
-      throw new UnauthorizedException(this.i18n.t("auth.tokenInvalidOrExpired"));
+      throw new UnauthorizedException(
+        this.i18n.t("auth.tokenInvalidOrExpired"),
+      );
 
     const user = await this.prisma.user.findUnique({
       where: { id: claims.sub },
     });
     if (!user?.isActivated)
-      throw new UnauthorizedException(this.i18n.t("auth.tokenInvalidOrExpired"));
+      throw new UnauthorizedException(
+        this.i18n.t("auth.tokenInvalidOrExpired"),
+      );
 
-    return this.generateToken(user);
+    return this.generateToken(user, undefined, { skipTotp: true });
   }
 
   /**

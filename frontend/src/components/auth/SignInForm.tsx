@@ -69,7 +69,9 @@ const useStyles = createStyles((theme) => ({
   },
 }));
 
-type TrustedDevice = { recognized: false } | { recognized: true; username: string };
+type TrustedDevice =
+  | { recognized: false }
+  | { recognized: true; username: string };
 
 const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
   const config = useConfig();
@@ -138,11 +140,14 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
   };
 
   // The one-click "Welcome back" button. Re-verifies the cookie server
-  // side (the GET check below is read-only and proves nothing on its
-  // own) and still runs through the same TOTP branching a normal sign-in
-  // does — a trusted device doesn't bypass a second factor, so this can
-  // land on the TOTP screen too, just already carrying rememberDevice
-  // forward (no checkbox exists on that screen to ask again).
+  // side (the GET check below is read-only and proves nothing on its own)
+  // — a trusted device's cookie is only ever set after a real TOTP
+  // challenge already succeeded once on it, so the backend now skips
+  // asking again here (see AuthService.signInTrusted's own comment), and
+  // this always lands directly in the `else` branch below. The loginToken
+  // branch is dead for this specific call as of that change, but left in
+  // place rather than trimmed - harmless, and a fallback if that ever
+  // changes again.
   const signInTrusted = async () => {
     setSigningInTrusted(true);
     try {

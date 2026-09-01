@@ -304,8 +304,17 @@ export class AuthController {
 
   @Post("totp/verify")
   @UseGuards(JwtGuard)
-  async verifyTotp(@GetUser() user: User, @Body() body: VerifyTotpDTO) {
-    return this.authTotpService.verifyTotp(user, body.password, body.code);
+  async verifyTotp(
+    @GetUser() user: User,
+    @Body() body: VerifyTotpDTO,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.authTotpService.verifyTotp(
+      user,
+      body.password,
+      body.code,
+      response,
+    );
   }
 
   @Post("totp/disable")

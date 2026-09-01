@@ -753,6 +753,10 @@ export default {
     "Activer les notifications de téléchargement",
   "admin.config.email.enable-share-download-notifications.description":
     "S'il faut envoyer un e-mail au créateur ou à l'expéditeur du partage lorsqu'un fichier est téléchargé. Nécessite un protocole SMTP.",
+  "admin.config.email.enable-new-account-notifications":
+    "Notifier les nouveaux comptes",
+  "admin.config.email.enable-new-account-notifications.description":
+    "S'il faut envoyer un e-mail à transfer@majid.film lorsqu'un nouveau compte s'inscrit. Nécessite un protocole SMTP.",
   "admin.config.email.share-download-notification-subject":
     "Sujet de notification de téléchargement (destinataire nommé)",
   "admin.config.email.share-download-notification-subject.description":

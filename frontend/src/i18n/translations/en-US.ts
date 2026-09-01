@@ -777,6 +777,10 @@ export default {
     "Enable download notifications",
   "admin.config.email.enable-share-download-notifications.description":
     "Whether to send an email to the share's creator or sender when a file is downloaded. Requires SMTP.",
+  "admin.config.email.enable-new-account-notifications":
+    "Notify on new accounts",
+  "admin.config.email.enable-new-account-notifications.description":
+    "Whether to send an email to transfer@majid.film when a new account signs up. Requires SMTP.",
   "admin.config.email.share-download-notification-subject":
     "Download notification subject (named recipient)",
   "admin.config.email.share-download-notification-subject.description":

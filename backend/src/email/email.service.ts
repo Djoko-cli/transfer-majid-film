@@ -516,13 +516,14 @@ export class EmailService {
     );
   }
 
-  // Only send* method whose "to" is fixed (CONTACT_EMAIL) rather than a
-  // parameter — every other one sends an app notification out to a user;
-  // this is the one direction that runs the other way, a visitor's own
-  // words reaching the site owner. subject is free text the visitor
-  // typed, so it goes through nodemailer's own `subject` field rather than
-  // anything hand-concatenated into raw headers the way ContactController's
-  // now-upstream DTO validation already guards against on the way in.
+  // One of two send* methods whose "to" is fixed (CONTACT_EMAIL) rather
+  // than a parameter — see sendNewAccountNotification below for the other.
+  // Every other method here sends an app notification out to a user; these
+  // two run the other direction, back to the site owner. subject is free
+  // text the visitor typed, so it goes through nodemailer's own `subject`
+  // field rather than anything hand-concatenated into raw headers the way
+  // ContactController's own upstream DTO validation already guards against
+  // on the way in.
   async sendContactMessage(subject: string, message: string, replyTo?: string) {
     const lang = this.config.get("general.defaultLanguage");
     const sender =
@@ -536,6 +537,23 @@ export class EmailService {
         replyTo,
         headline: this.i18n.t("email.contactHeadline", { lang }),
       },
+    );
+  }
+
+  // Fire-and-forget from AuthService.signUp's perspective — see that
+  // method's own comment for why this runs after its transaction commits
+  // rather than inside it, and why a failure here is caught there instead
+  // of propagating: this is a best-effort admin notification, never
+  // something that should turn a visitor's own successful signup into an
+  // error response.
+  async sendNewAccountNotification(username: string, email: string) {
+    const lang = this.config.get("general.defaultLanguage");
+
+    await this.sendMail(
+      CONTACT_EMAIL,
+      this.i18n.t("email.newAccountSubject", { lang }),
+      this.i18n.t("email.newAccountBody", { lang, args: { username, email } }),
+      { headline: this.i18n.t("email.newAccountHeadline", { lang }) },
     );
   }
 

@@ -136,7 +136,12 @@ export class AuthTotpService {
     };
   }
 
-  async verifyTotp(user: User, password: string, code: string) {
+  async verifyTotp(
+    user: User,
+    password: string,
+    code: string,
+    response: Response,
+  ) {
     if (!(await this.authService.verifyPassword(user, password)))
       throw new ForbiddenException(this.i18n.t("auth.invalidPassword"));
 
@@ -164,6 +169,18 @@ export class AuthTotpService {
         totpVerified: true,
       },
     });
+
+    // A trusted-device cookie from before TOTP was ever enabled on this
+    // account would otherwise now double as a TOTP bypass too (see
+    // AuthService.signInTrusted's own comment on why a *TOTP-verified*
+    // trusted-device cookie is safe to skip TOTP with) — this one was
+    // never vetted by an actual TOTP challenge, so it doesn't get to
+    // benefit from that trust. Clearing it here, at the exact moment TOTP
+    // newly becomes required, forces this device back through a real TOTP
+    // challenge once (which re-marks it trusted, same as any other device)
+    // instead of silently keeping a bypass around for whatever's left of
+    // its original 30 days.
+    this.authService.clearTrustedDeviceCookie(response);
 
     return true;
   }

@@ -239,6 +239,11 @@ export const configVariables = {
       defaultValue: "false",
       secret: false,
     },
+    enableNewAccountNotifications: {
+      type: "boolean",
+      defaultValue: "false",
+      secret: false,
+    },
     shareRecipientsReplyToCreator: {
       type: "boolean",
       defaultValue: "false",
