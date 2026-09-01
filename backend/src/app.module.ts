@@ -14,6 +14,7 @@ import { AppController } from "./app.controller";
 import { BrandSlidesModule } from "./brandSlides/brandSlides.module";
 import { ClamScanModule } from "./clamscan/clamscan.module";
 import { ConfigModule } from "./config/config.module";
+import { ContactModule } from "./contact/contact.module";
 import { EmailModule } from "./email/email.module";
 import { FileModule } from "./file/file.module";
 import { JobsModule } from "./jobs/jobs.module";
@@ -46,6 +47,7 @@ const i18nPath = existsSync(join(__dirname, "../i18n"))
     SystemModule,
     AdminNoticeModule,
     VerificationModule,
+    ContactModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60 * 1000,

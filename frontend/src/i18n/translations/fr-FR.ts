@@ -613,6 +613,14 @@ export default {
   "privacy.title": "Politique de confidentialité",
   // END /privacy
 
+  // /contact
+  "contact.heading": "Vous avez une question ?",
+  "contact.input.subject": "Sujet",
+  "contact.input.message": "Message",
+  "contact.button.send": "Envoyer",
+  "contact.notify.success": "Votre message a bien été envoyé",
+  // END /contact
+
   // /admin/config
   "admin.config.config-file-sync.title": "Synchronisé avec config.yaml",
   "admin.config.config-file-sync.description":

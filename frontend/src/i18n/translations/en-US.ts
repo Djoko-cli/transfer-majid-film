@@ -642,6 +642,14 @@ export default {
   "privacy.title": "Privacy Policy",
   // END /privacy
 
+  // /contact
+  "contact.heading": "Have a question?",
+  "contact.input.subject": "Subject",
+  "contact.input.message": "Message",
+  "contact.button.send": "Send",
+  "contact.notify.success": "Your message has been sent",
+  // END /contact
+
   // /admin/config
   "admin.config.config-file-sync.title": "Synced with config.yaml",
   "admin.config.config-file-sync.description":

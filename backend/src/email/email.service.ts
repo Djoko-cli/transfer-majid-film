@@ -8,7 +8,7 @@ import * as moment from "moment";
 import * as nodemailer from "nodemailer";
 import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
-import { APP_NAME } from "src/constants";
+import { APP_NAME, CONTACT_EMAIL } from "src/constants";
 import { byteToHumanSizeString } from "src/utils/fileSize.util";
 import { renderEmailEnvelope } from "./email.template";
 
@@ -133,7 +133,11 @@ export class EmailService {
   // — this only picks the singular/plural i18n key and formats the date,
   // mirroring the frontend's own summary.singular/plural pattern for the
   // completed-upload modal.
-  private buildMetaLine(fileCount: number, totalSize: string, expiration: Date) {
+  private buildMetaLine(
+    fileCount: number,
+    totalSize: string,
+    expiration: Date,
+  ) {
     const lang = this.config.get("general.defaultLanguage");
     const locale = this.i18n.translate("email.locale", { lang });
     const expiresPhrase =
@@ -215,7 +219,14 @@ export class EmailService {
           files.length === 1
             ? "email.recipientHeadlineSingular"
             : "email.recipientHeadlinePlural",
-          { lang, args: { creator: creatorName, fileName: files[0]?.name, count: files.length } },
+          {
+            lang,
+            args: {
+              creator: creatorName,
+              fileName: files[0]?.name,
+              count: files.length,
+            },
+          },
         ),
         metaLine: files.length
           ? this.buildMetaLine(files.length, totalSize, expiration)
@@ -326,7 +337,10 @@ export class EmailService {
         // title split (share-ready-named vs share-ready) for consistency
         // between the live confirmation and this backup email.
         headline: shareName
-          ? this.i18n.t("email.senderHeadlineNamed", { lang, args: { name: shareName } })
+          ? this.i18n.t("email.senderHeadlineNamed", {
+              lang,
+              args: { name: shareName },
+            })
           : this.i18n.t("email.senderHeadline", { lang }),
         metaLine: files.length
           ? this.buildMetaLine(files.length, totalSize, expiration)
@@ -421,7 +435,14 @@ export class EmailService {
           files.length === 1
             ? "email.expiringRecipientHeadlineSingular"
             : "email.expiringRecipientHeadlinePlural",
-          { lang, args: { creator: creatorName, fileName: files[0]?.name, count: files.length } },
+          {
+            lang,
+            args: {
+              creator: creatorName,
+              fileName: files[0]?.name,
+              count: files.length,
+            },
+          },
         ),
         metaLine: files.length
           ? this.buildMetaLine(files.length, totalSize, expiration)
@@ -492,6 +513,29 @@ export class EmailService {
         .replaceAll("\\n", "\n")
         .replaceAll("{code}", code),
       { code },
+    );
+  }
+
+  // Only send* method whose "to" is fixed (CONTACT_EMAIL) rather than a
+  // parameter — every other one sends an app notification out to a user;
+  // this is the one direction that runs the other way, a visitor's own
+  // words reaching the site owner. subject is free text the visitor
+  // typed, so it goes through nodemailer's own `subject` field rather than
+  // anything hand-concatenated into raw headers the way ContactController's
+  // now-upstream DTO validation already guards against on the way in.
+  async sendContactMessage(subject: string, message: string, replyTo?: string) {
+    const lang = this.config.get("general.defaultLanguage");
+    const sender =
+      replyTo ?? this.i18n.t("email.contactAnonymousSender", { lang });
+
+    await this.sendMail(
+      CONTACT_EMAIL,
+      `[Contact] ${subject}`,
+      `${this.i18n.t("email.contactFromLabel", { lang })} ${sender}\n\n${message}`,
+      {
+        replyTo,
+        headline: this.i18n.t("email.contactHeadline", { lang }),
+      },
     );
   }
 

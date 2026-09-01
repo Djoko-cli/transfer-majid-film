@@ -5,6 +5,10 @@ import { LogLevel } from "@nestjs/common";
 // Changing it ships through a normal build/deploy instead of the admin UI.
 export const APP_NAME = "Transfer";
 
+// Where ContactService forwards the public contact form's messages — same
+// fixed-constant reasoning as APP_NAME above, not admin-configurable.
+export const CONTACT_EMAIL = "transfer@majid.film";
+
 export const CONFIG_FILE = process.env.CONFIG_FILE || "../config.yaml";
 
 // Same resolution convention as CONFIG_FILE above, deliberately a separate
