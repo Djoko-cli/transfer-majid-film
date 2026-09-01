@@ -10,18 +10,30 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 // whatever caused the change — one file added, three removed at once,
 // the first file ever, the last one leaving — animates the same way.
 //
-// Starts at height 0 and lets the first ResizeObserver callback (firing
-// essentially immediately after mount) apply the real height *instantly*
-// — no transition — before switching to animating every change after
-// that. Only genuinely-empty-then-filled content (e.g. an upload's file
-// list, nothing at mount, something once a file lands) ever wants that
-// first jump animated in the first place; content that's already real
-// from the very first frame (e.g. a terms gate that swaps for a dropzone
-// once accepted) has no meaningful "before" state to grow in from — the
-// 0 was never a real state anything chose, just this component's own
-// unavoidable starting placeholder before it can measure anything at
-// all. Animating it anyway reads as an unexplained empty flash on every
-// load, reported by the user from their own testing.
+// Starts at height "auto" (natural, content-driven sizing — CSS's own,
+// nothing measured yet) and lets the first ResizeObserver callback (firing
+// essentially immediately after mount) hand off to a real pixel value
+// *instantly* — no transition — before switching to animating every change
+// after that. "auto" rather than a hardcoded 0: this component can't know,
+// before it's measured anything, whether its children are genuinely empty
+// (an upload's file list, nothing at mount) or already fully real (a terms
+// gate that's already SSR-correct for a returning visitor, or any other
+// content that exists from the very first frame) — 0 answered that
+// question wrong for the second case, collapsing already-correct content
+// to nothing and making it visibly pop in once JS caught up, which is what
+// was actually still happening in the case that motivated this: reported
+// by the user from a real Safari reload, caught on video, after this
+// session's own faster synthetic testing missed it. "auto" answers it
+// correctly for both: truly-empty children render at their natural (zero)
+// size either way, and already-real children simply render at their real
+// size from byte one, no measurement required to get that right. Safe to
+// hand off from "auto" to a measured px value with no visible jump
+// specifically because that handoff is the one update `skipTransition`
+// below always applies instantly (CSS can't meaningfully animate between
+// "auto" and a pixel value anyway, so this same guard that exists for the
+// "no first-jump animation" reason also happens to make this handoff a
+// no-op in practice — the measured value is, by construction, exactly
+// what "auto" was already rendering).
 //
 // Render `null`/nothing as children to animate back down to 0 — this
 // component itself must stay mounted for that to work; conditionally
@@ -44,7 +56,10 @@ const AnimatedHeight = ({
   gapWhenOpen?: number;
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState(0);
+  // undefined = not yet measured (renders at natural/"auto" height below,
+  // see the style object) - a plain constant, the same on every render
+  // regardless of props, which is what keeps this hydration-safe.
+  const [height, setHeight] = useState<number | undefined>(undefined);
   // Starts true so the very first real measurement below applies with
   // `transition: none` (see skipTransition's own use in the style below)
   // — flipped off one frame later, once that height has already painted
@@ -80,11 +95,19 @@ const AnimatedHeight = ({
     return () => observer.disconnect();
   }, []);
 
+  // Before the first measurement, infer "is there real content" from
+  // children directly rather than from height (there's no measured height
+  // yet to ask) - matches every current call site's own pattern of passing
+  // exactly `null` for "nothing to show" (see the doc comment above), and
+  // only affects the margin, which has no hydration-safety stakes of its
+  // own the way the height value itself does.
+  const hasContent = height === undefined ? children != null : height > 0;
+
   return (
     <Box
       sx={{
-        height,
-        marginTop: height > 0 ? gapWhenOpen : 0,
+        height: height ?? "auto",
+        marginTop: hasContent ? gapWhenOpen : 0,
         overflow: "hidden",
         // Natural deceleration ("confident arrival") rather than plain
         // `ease` — this only ever grows or shrinks in one direction per

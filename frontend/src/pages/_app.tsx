@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { IntlProvider } from "react-intl";
 import Header, { HEADER_HEIGHT } from "../components/header/Header";
 import { ConfigContext } from "../hooks/config.hook";
+import { TermsAcceptanceContext } from "../hooks/termsAcceptance.hook";
 import { UserContext } from "../hooks/user.hook";
 import { LOCALES } from "../i18n/locales";
 import authService from "../services/auth.service";
@@ -65,6 +66,27 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
   const [configVariables, setConfigVariables] = useState<Config[]>(
     pageProps.configVariables,
   );
+
+  // Seeded straight from the cookie getInitialProps already read
+  // server-side below (pageProps.hasAcceptedTerms) - identical for the
+  // server render and the client's first hydration pass, so a returning
+  // visitor's very first painted byte already skips the terms gate instead
+  // of showing it until a client-only effect corrects it a moment later
+  // (see UploadPage.tsx's own history: that was localStorage-backed, which
+  // *can't* be read server-side, so every reload flashed the gate first -
+  // reported by the user from a real Safari reload, not just this session's
+  // own faster/synthetic testing).
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(
+    pageProps.hasAcceptedTerms ?? false,
+  );
+  const acceptTerms = () => {
+    setCookie("termsAccepted", "true", {
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365, // 1 year - a real "remembered" choice, not a session-only one
+    });
+    setHasAcceptedTerms(true);
+  };
 
   // Accent color, border radius and every other visual token now live as
   // static values in mantine.style.ts (globalStyle) — colorScheme is the
@@ -202,48 +224,52 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                     },
                   }}
                 >
-                  <AdminNoticeModal
-                    notice={pendingNotices[0] || null}
-                    onDismiss={handleDismissNotice}
-                  />
-                  {Component.getLayout ? (
-                    Component.getLayout(<Component {...pageProps} />)
-                  ) : (
-                    <>
-                      <Stack
-                        justify="space-between"
-                        sx={{ minHeight: "100vh" }}
-                      >
-                        <div
-                          style={{
-                            paddingTop: HEADER_HEIGHT,
-                            // Footer is a fixed, floating glass bar (see
-                            // Footer.tsx) rather than flow content, so
-                            // nothing pushes it down naturally the way a
-                            // normal last element would — without this,
-                            // a page whose content reaches the bottom of
-                            // the viewport would have its last bit hidden
-                            // underneath it.
-                            paddingBottom: "var(--footer-height, 40px)",
-                          }}
+                  <TermsAcceptanceContext.Provider
+                    value={{ hasAcceptedTerms, acceptTerms }}
+                  >
+                    <AdminNoticeModal
+                      notice={pendingNotices[0] || null}
+                      onDismiss={handleDismissNotice}
+                    />
+                    {Component.getLayout ? (
+                      Component.getLayout(<Component {...pageProps} />)
+                    ) : (
+                      <>
+                        <Stack
+                          justify="space-between"
+                          sx={{ minHeight: "100vh" }}
                         >
-                          <Header pushContentRef={pageContentRef} />
-                          <Container ref={pageContentRef}>
-                            <Component {...pageProps} />
-                          </Container>
-                        </div>
-                        <Footer />
-                      </Stack>
-                      {
-                        // Only on the default (non-admin) layout - a first
-                        // -time *visitor* is who this is for; by the time
-                        // someone reaches /admin/*, they're already an
-                        // authenticated admin, not someone who needs an
-                        // introductory cookie notice.
-                      }
-                      <CookieNotice />
-                    </>
-                  )}
+                          <div
+                            style={{
+                              paddingTop: HEADER_HEIGHT,
+                              // Footer is a fixed, floating glass bar (see
+                              // Footer.tsx) rather than flow content, so
+                              // nothing pushes it down naturally the way a
+                              // normal last element would — without this,
+                              // a page whose content reaches the bottom of
+                              // the viewport would have its last bit hidden
+                              // underneath it.
+                              paddingBottom: "var(--footer-height, 40px)",
+                            }}
+                          >
+                            <Header pushContentRef={pageContentRef} />
+                            <Container ref={pageContentRef}>
+                              <Component {...pageProps} />
+                            </Container>
+                          </div>
+                          <Footer />
+                        </Stack>
+                        {
+                          // Only on the default (non-admin) layout - a first
+                          // -time *visitor* is who this is for; by the time
+                          // someone reaches /admin/*, they're already an
+                          // authenticated admin, not someone who needs an
+                          // introductory cookie notice.
+                        }
+                        <CookieNotice />
+                      </>
+                    )}
+                  </TermsAcceptanceContext.Provider>
                 </UserContext.Provider>
               </ConfigContext.Provider>
             </ModalsProvider>
@@ -264,6 +290,7 @@ App.getInitialProps = async ({ ctx }: { ctx: GetServerSidePropsContext }) => {
     language?: string;
     isConfigFallback?: boolean;
     needsSetup?: boolean;
+    hasAcceptedTerms?: boolean;
   } = {
     // Light mode is retired from display for now — "dark" instead of the
     // original "light" fallback so a first-time visitor (no cookie yet)
@@ -271,6 +298,10 @@ App.getInitialProps = async ({ ctx }: { ctx: GetServerSidePropsContext }) => {
     // light before the client-side force-dark effect below corrects it.
     colorScheme:
       (getCookie("mantine-color-scheme", ctx) as ColorScheme) ?? "dark",
+    // Same reasoning, same mechanism, for the upload page's terms gate —
+    // see the hasAcceptedTerms state below for why this has to be a cookie
+    // rather than the localStorage read it used to be.
+    hasAcceptedTerms: getCookie("termsAccepted", ctx) === "true",
   };
 
   if (ctx.req) {

@@ -20,6 +20,7 @@ import showEmailVerificationModal from "./modals/showEmailVerificationModal";
 import showNasImportModal from "./modals/showNasImportModal";
 import useConfig from "../../hooks/config.hook";
 import useConfirmLeave from "../../hooks/confirm-leave.hook";
+import useTermsAcceptance from "../../hooks/termsAcceptance.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import useUser from "../../hooks/user.hook";
 import nasImportService from "../../services/nasImport.service";
@@ -29,7 +30,6 @@ import { NasImportPreview } from "../../types/nasImport.type";
 import { CreateShare, Mode, Share } from "../../types/share.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
-import userPreferences from "../../utils/userPreferences.util";
 import {
   getNormalizedFileName,
   filterDuplicateFiles,
@@ -62,22 +62,17 @@ const Upload = ({
     total: number;
   } | null>(null);
 
-  // Starts false on every render, server and client alike - localStorage
-  // doesn't exist during SSR, and seeding this from it directly (e.g. via
-  // useState's lazy initializer) would make the client's first render
-  // disagree with the server-rendered HTML for a returning visitor,
-  // exactly the hydration-mismatch class of bug Footer.tsx's own isMobile
-  // fix exists to avoid. The real value loads a tick later, in the effect
-  // below - a one-frame flash of the gate for a returning visitor, deemed
-  // fine given it's a synchronous local read with no network round trip.
-  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
-  useEffect(() => {
-    setHasAcceptedTerms(userPreferences.get("termsAccepted") === "true");
-  }, []);
-  const acceptTerms = () => {
-    userPreferences.set("termsAccepted", "true");
-    setHasAcceptedTerms(true);
-  };
+  // Cookie-backed (see _app.tsx) rather than localStorage - the server can
+  // read a cookie back off the request, so a returning visitor's very
+  // first server-rendered byte already reflects their prior "accepted"
+  // choice instead of showing the gate again until a client-only effect
+  // corrects it. That was this component's original approach, and it was
+  // fine in the always-hydrates-in-a-frame-or-two production build, but
+  // dev mode's much larger unminified bundle stretched that correction
+  // window wide enough to clearly see - reported by the user from a real
+  // Safari reload, caught on video, after this session's own faster
+  // synthetic testing had missed it.
+  const { hasAcceptedTerms, acceptTerms } = useTermsAcceptance();
 
   const requiresEmailVerification =
     !user &&
@@ -696,7 +691,11 @@ const Upload = ({
               onCancel={cancelUpload}
               onRetry={retryFile}
             />
-            <Button fullWidth loading={isUploading} onClick={submitReverseShare}>
+            <Button
+              fullWidth
+              loading={isUploading}
+              onClick={submitReverseShare}
+            >
               <FormattedMessage id="common.button.share" />
             </Button>
           </Stack>
@@ -748,11 +747,7 @@ const Upload = ({
           "@media (prefers-reduced-motion: reduce)": { animation: "none" },
         }}
       >
-        {hasAcceptedTerms ? (
-          realContent
-        ) : (
-          <TermsGate onAccept={acceptTerms} />
-        )}
+        {hasAcceptedTerms ? realContent : <TermsGate onAccept={acceptTerms} />}
       </Box>
     </AnimatedHeight>
   );
