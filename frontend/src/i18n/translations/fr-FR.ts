@@ -1,6 +1,7 @@
 export default {
   // Navbar
   "navbar.upload": "Téléverser",
+  "navbar.contact": "Contact",
   "navbar.signin": "Se connecter",
   "navbar.home": "Accueil",
   "navbar.signup": "S’inscrire",

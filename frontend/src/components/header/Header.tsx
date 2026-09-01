@@ -18,7 +18,7 @@ import { useRouter } from "next/router";
 import { ReactNode, RefObject, useEffect, useRef, useState } from "react";
 import { TbChevronLeft } from "react-icons/tb";
 import { useIntl } from "react-intl";
-import { APP_NAME } from "../../constants";
+import { APP_NAME, CONTACT_EMAIL } from "../../constants";
 import useConfig from "../../hooks/config.hook";
 import useUser from "../../hooks/user.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -472,11 +472,19 @@ const Header = ({
       component: <NavbarShareMenu />,
     },
     {
+      link: `mailto:${CONTACT_EMAIL}`,
+      label: t("navbar.contact"),
+    },
+    {
       component: <ActionAvatar />,
     },
   ];
 
   let unauthenticatedLinks: NavLink[] = [
+    {
+      link: `mailto:${CONTACT_EMAIL}`,
+      label: t("navbar.contact"),
+    },
     {
       link: "/auth/signIn",
       label: t("navbar.signin"),
@@ -505,6 +513,10 @@ const Header = ({
         },
         {
           label: t("common.button.shares"),
+        },
+        {
+          link: `mailto:${CONTACT_EMAIL}`,
+          label: t("navbar.contact"),
         },
         {
           label: t("common.button.profile"),
