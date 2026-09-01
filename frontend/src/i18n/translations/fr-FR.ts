@@ -371,7 +371,7 @@ export default {
   // /upload
   "upload.title": "Envoyer",
   "upload.termsGate.perks.size": "Envoyez jusqu'à {size} Go",
-  "upload.termsGate.perks.free": "Gratuit",
+  "upload.termsGate.perks.free": "Gratuit et sécurisé",
   "upload.termsGate.perks.location": "Fichiers stockés à la Réunion 🇷🇪",
   "upload.termsGate.perks.retention":
     "Gardez vos transferts jusqu'à 30 jours",

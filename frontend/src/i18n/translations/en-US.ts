@@ -395,7 +395,7 @@ export default {
   // /upload
   "upload.title": "Upload",
   "upload.termsGate.perks.size": "Send up to {size} GB",
-  "upload.termsGate.perks.free": "Free",
+  "upload.termsGate.perks.free": "Free and secure",
   "upload.termsGate.perks.location": "Files stored in Réunion 🇷🇪",
   "upload.termsGate.perks.retention": "Keep your transfers for up to 30 days",
   "upload.termsGate.description": "By using {appName}, I accept the {termsLink}.",
