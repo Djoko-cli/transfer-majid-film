@@ -1,4 +1,4 @@
-import { Button, Group, Progress, Stack, Text } from "@mantine/core";
+import { Box, Button, Group, Progress, Stack, Text } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { cleanNotifications } from "@mantine/notifications";
 import { AxiosError } from "axios";
@@ -607,159 +607,177 @@ const Upload = ({
     }
   }, [files]);
 
-  // Gates both branches below behind one accept, checked once per browser
-  // (see hasAcceptedTerms above) rather than duplicated per-branch - same
-  // glass shell each flow already uses (AuthGlassLayout / SplitTransfer
-  // Layout), just with TermsGate in place of the real content, so the
-  // frame the visitor sees doesn't jump once they accept.
-  if (!hasAcceptedTerms) {
-    return (
-      <>
-        <Meta title={t("upload.title")} />
-        {isReverseShare ? (
-          <AuthGlassLayout>
-            <TermsGate onAccept={acceptTerms} />
-          </AuthGlassLayout>
-        ) : (
-          <SplitTransferLayout>
-            <TermsGate onAccept={acceptTerms} />
-          </SplitTransferLayout>
-        )}
-      </>
-    );
-  }
-
-  if (isReverseShare) {
-    return (
-      <>
-        <Meta title={t("upload.title")} />
-        <PageDropOverlay visible={isDraggingFileOverPage} />
-        {
-          // AuthGlassLayout, not SplitTransferLayout: this is a single
-          // bounded task (pick files, hand them over) centered on the
-          // brand backdrop, the same shape as signing in, not
-          // SplitTransferLayout's asymmetric split (built specifically
-          // for TransferCard's own two-column layout) or
-          // GlassPageBackdrop's ambient scrim (for a page-length document
-          // like account settings, which this isn't — the file list is
-          // real content but stays within one card, scrolling internally
-          // past a height cap exactly like TransferCard's own).
-        }
-        <AuthGlassLayout>
-          <Stack align="stretch" spacing={0}>
-            <Dropzone
-              title={
-                files.length > 0 ? t("share.edit.append-upload") : undefined
+  // The NAS-import button is another way to add files, same as the
+  // dropzone itself - stays behind the same gate, hidden until
+  // hasAcceptedTerms, rather than only ever having lived in a return
+  // branch the gate made unreachable (see git history: before this was
+  // merged into one shared structure below, it simply never rendered
+  // while gated, as a side effect of which branch that was in — this
+  // condition keeps that same effective behavior on purpose, now that
+  // there's no separate branch to rely on for it).
+  const nasImportPanel = hasAcceptedTerms &&
+    !isReverseShare &&
+    user?.isAdmin &&
+    config.get("share.enableNasImport") && (
+      <Stack spacing={4} mb="sm">
+        <Group position="right">
+          <Button
+            variant="subtle"
+            size="xs"
+            disabled={isUploading}
+            onClick={openNasImportModal}
+          >
+            <FormattedMessage id="upload.nasImport.button" />
+          </Button>
+        </Group>
+        {nasImportProgress && (
+          <Stack spacing={2}>
+            <Text size="xs" color="dimmed" align="right">
+              {t("upload.nasImport.progress", {
+                done: nasImportProgress.done,
+                total: nasImportProgress.total,
+              })}
+            </Text>
+            <Progress
+              value={
+                nasImportProgress.total > 0
+                  ? (nasImportProgress.done / nasImportProgress.total) * 100
+                  : 0
               }
-              maxShareSize={maxShareSize}
-              currentFilesSize={currentFilesSize}
-              onFilesChanged={handleDropzoneFilesChanged}
-              isUploading={isUploading}
-              waiting={files.length === 0}
-              compact={files.length > 0}
-              tightenWhenEmpty
-              glass
+              size="sm"
+              animate
             />
-            {
-              // The share button used to sit in a top-right corner above
-              // the dropzone, always visible but disabled until files
-              // existed — read fine on the old full-width bare page, but
-              // cramped and inconsistent with every other glass card in
-              // this app (TransferCard's own submit, every modal's) once
-              // this became a narrow centered card. Moved below the file
-              // list, full width, and — same reasoning as TransferCard's
-              // own progressive disclosure — not rendered at all until
-              // there's something to share, rather than shown-but-inert:
-              // nothing to decide about, nothing to click, before a file
-              // exists.
-            }
-            <AnimatedHeight duration={300} gapWhenOpen={16}>
-              {files.length > 0 ? (
-                <Stack align="stretch">
-                  <FileList<FileUpload>
-                    files={files}
-                    setFiles={setFiles}
-                    isUploading={isUploading}
-                    onCancel={cancelUpload}
-                    onRetry={retryFile}
-                  />
-                  <Button
-                    fullWidth
-                    loading={isUploading}
-                    onClick={submitReverseShare}
-                  >
-                    <FormattedMessage id="common.button.share" />
-                  </Button>
-                </Stack>
-              ) : null}
-            </AnimatedHeight>
           </Stack>
-        </AuthGlassLayout>
-      </>
+        )}
+      </Stack>
     );
-  }
+
+  // The actual content each flow shows once past the terms gate -
+  // pulled out so both this and TermsGate itself can sit as siblings
+  // inside the *same* AnimatedHeight below, one glass card that morphs
+  // smoothly from the gate's height to this one instead of the two
+  // being separate return branches (and so separate mounts of
+  // SplitTransferLayout/AuthGlassLayout) with nothing animating the cut
+  // between them at all. Reported by the user from their own viewing:
+  // it read as a hard jump, not remotely as smooth as AnimatedHeight's
+  // own file-list transitions elsewhere on this same page.
+  const realContent = isReverseShare ? (
+    <Stack align="stretch" spacing={0}>
+      <Dropzone
+        title={files.length > 0 ? t("share.edit.append-upload") : undefined}
+        maxShareSize={maxShareSize}
+        currentFilesSize={currentFilesSize}
+        onFilesChanged={handleDropzoneFilesChanged}
+        isUploading={isUploading}
+        waiting={files.length === 0}
+        compact={files.length > 0}
+        tightenWhenEmpty
+        glass
+      />
+      {
+        // The share button used to sit in a top-right corner above the
+        // dropzone, always visible but disabled until files existed —
+        // read fine on the old full-width bare page, but cramped and
+        // inconsistent with every other glass card in this app
+        // (TransferCard's own submit, every modal's) once this became a
+        // narrow centered card. Moved below the file list, full width,
+        // and — same reasoning as TransferCard's own progressive
+        // disclosure — not rendered at all until there's something to
+        // share, rather than shown-but-inert: nothing to decide about,
+        // nothing to click, before a file exists.
+      }
+      <AnimatedHeight duration={300} gapWhenOpen={16}>
+        {files.length > 0 ? (
+          <Stack align="stretch">
+            <FileList<FileUpload>
+              files={files}
+              setFiles={setFiles}
+              isUploading={isUploading}
+              onCancel={cancelUpload}
+              onRetry={retryFile}
+            />
+            <Button fullWidth loading={isUploading} onClick={submitReverseShare}>
+              <FormattedMessage id="common.button.share" />
+            </Button>
+          </Stack>
+        ) : null}
+      </AnimatedHeight>
+    </Stack>
+  ) : (
+    <TransferCard
+      files={files}
+      isUploading={isUploading}
+      onCancelUpload={cancelUpload}
+      onRetryFile={retryFile}
+      maxShareSize={maxShareSize}
+      currentFilesSize={currentFilesSize}
+      onFilesChanged={handleDropzoneFilesChanged}
+      setFiles={setFiles}
+      onSubmit={startUpload}
+      isUserSignedIn={user ? true : false}
+      userEmail={user?.email}
+      enableEmailRecepients={config.get("email.enableShareEmailRecipients")}
+      enableUserRecipients={config.get("share.enableUserRecipients")}
+      maxExpiration={
+        user?.isAdmin || user?.canCreatePermanentShares
+          ? { value: 0, unit: "days" }
+          : config.get("share.maxExpiration")
+      }
+      defaultExpiration={config.get("share.defaultExpiration")}
+      shareIdLength={config.get("share.shareIdLength")}
+    />
+  );
+
+  // AnimatedHeight itself must stay mounted across the swap (see its own
+  // doc comment — that's what keeps its ResizeObserver alive through the
+  // transition instead of just snapping to the new content's height).
+  // The inner Box is what actually swaps, keyed on hasAcceptedTerms so
+  // it remounts fresh right when that happens — a brand new element is
+  // what lets a @keyframes animation play its `from` state on mount
+  // (same reasoning as BrandPanel's own Slide component), which is what
+  // gives the incoming content a fade-in rather than an instant pop the
+  // moment AnimatedHeight has made room for it. brandPanelFadeIn is
+  // already global (see LiquidGlassKeyframes, rendered inside both
+  // layouts below) — reused rather than a second copy of the same fade.
+  const gatedContent = (
+    <AnimatedHeight duration={300}>
+      <Box
+        key={hasAcceptedTerms ? "content" : "gate"}
+        sx={{
+          animation: "brandPanelFadeIn 300ms ease",
+          "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+        }}
+      >
+        {hasAcceptedTerms ? (
+          realContent
+        ) : (
+          <TermsGate onAccept={acceptTerms} />
+        )}
+      </Box>
+    </AnimatedHeight>
+  );
 
   return (
     <>
       <Meta title={t("upload.title")} />
       <PageDropOverlay visible={isDraggingFileOverPage} />
-      {user?.isAdmin && config.get("share.enableNasImport") && (
-        <Stack spacing={4} mb="sm">
-          <Group position="right">
-            <Button
-              variant="subtle"
-              size="xs"
-              disabled={isUploading}
-              onClick={openNasImportModal}
-            >
-              <FormattedMessage id="upload.nasImport.button" />
-            </Button>
-          </Group>
-          {nasImportProgress && (
-            <Stack spacing={2}>
-              <Text size="xs" color="dimmed" align="right">
-                {t("upload.nasImport.progress", {
-                  done: nasImportProgress.done,
-                  total: nasImportProgress.total,
-                })}
-              </Text>
-              <Progress
-                value={
-                  nasImportProgress.total > 0
-                    ? (nasImportProgress.done / nasImportProgress.total) * 100
-                    : 0
-                }
-                size="sm"
-                animate
-              />
-            </Stack>
-          )}
-        </Stack>
+      {isReverseShare ? (
+        // AuthGlassLayout, not SplitTransferLayout: this is a single
+        // bounded task (pick files, hand them over) centered on the
+        // brand backdrop, the same shape as signing in, not
+        // SplitTransferLayout's asymmetric split (built specifically for
+        // TransferCard's own two-column layout) or GlassPageBackdrop's
+        // ambient scrim (for a page-length document like account
+        // settings, which this isn't — the file list is real content but
+        // stays within one card, scrolling internally past a height cap
+        // exactly like TransferCard's own).
+        <AuthGlassLayout>{gatedContent}</AuthGlassLayout>
+      ) : (
+        <>
+          {nasImportPanel}
+          <SplitTransferLayout>{gatedContent}</SplitTransferLayout>
+        </>
       )}
-      <SplitTransferLayout>
-        <TransferCard
-          files={files}
-          isUploading={isUploading}
-          onCancelUpload={cancelUpload}
-          onRetryFile={retryFile}
-          maxShareSize={maxShareSize}
-          currentFilesSize={currentFilesSize}
-          onFilesChanged={handleDropzoneFilesChanged}
-          setFiles={setFiles}
-          onSubmit={startUpload}
-          isUserSignedIn={user ? true : false}
-          userEmail={user?.email}
-          enableEmailRecepients={config.get("email.enableShareEmailRecipients")}
-          enableUserRecipients={config.get("share.enableUserRecipients")}
-          maxExpiration={
-            user?.isAdmin || user?.canCreatePermanentShares
-              ? { value: 0, unit: "days" }
-              : config.get("share.maxExpiration")
-          }
-          defaultExpiration={config.get("share.defaultExpiration")}
-          shareIdLength={config.get("share.shareIdLength")}
-        />
-      </SplitTransferLayout>
     </>
   );
 };
