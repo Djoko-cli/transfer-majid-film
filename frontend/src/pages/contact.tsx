@@ -65,27 +65,27 @@ const Contact = () => {
   return (
     <AuthGlassLayout width={460}>
       <Meta title={t("navbar.contact")} />
-      <Title order={2} weight={900} align="center">
-        <FormattedMessage id="contact.heading" />
-      </Title>
 
-      <Box mt="xl">
-        <AnimatedHeight duration={300}>
-          <Box
-            key={sent ? "sent" : "form"}
-            sx={{
-              animation: "brandPanelFadeIn 300ms ease",
-              "@media (prefers-reduced-motion: reduce)": { animation: "none" },
-            }}
-          >
-            {sent ? (
-              <Stack align="center" spacing="sm" py="md">
-                <TbCircleCheck color={accent} size={48} />
-                <Text align="center" weight={600}>
-                  <FormattedMessage id="contact.notify.success" />
-                </Text>
-              </Stack>
-            ) : (
+      <AnimatedHeight duration={300}>
+        <Box
+          key={sent ? "sent" : "form"}
+          sx={{
+            animation: "brandPanelFadeIn 300ms ease",
+            "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+          }}
+        >
+          {sent ? (
+            <Stack align="center" spacing="sm" py="md">
+              <TbCircleCheck color={accent} size={48} />
+              <Text align="center" weight={600}>
+                <FormattedMessage id="contact.notify.success" />
+              </Text>
+            </Stack>
+          ) : (
+            <>
+              <Title order={2} weight={900} align="center" mb="xl">
+                <FormattedMessage id="contact.heading" />
+              </Title>
               <form
                 onSubmit={form.onSubmit((values) => {
                   contactService
@@ -137,16 +137,16 @@ const Contact = () => {
                   }}
                   {...form.getInputProps("website")}
                 />
-                <Group position="right" mt="lg">
+                <Group position="center" mt="lg">
                   <Button type="submit">
                     <FormattedMessage id="contact.button.send" />
                   </Button>
                 </Group>
               </form>
-            )}
-          </Box>
-        </AnimatedHeight>
-      </Box>
+            </>
+          )}
+        </Box>
+      </AnimatedHeight>
     </AuthGlassLayout>
   );
 };
