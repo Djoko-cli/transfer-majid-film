@@ -747,7 +747,11 @@ const Upload = ({
           "@media (prefers-reduced-motion: reduce)": { animation: "none" },
         }}
       >
-        {hasAcceptedTerms ? realContent : <TermsGate onAccept={acceptTerms} />}
+        {hasAcceptedTerms ? (
+          realContent
+        ) : (
+          <TermsGate onAccept={acceptTerms} maxShareSize={maxShareSize} />
+        )}
       </Box>
     </AnimatedHeight>
   );

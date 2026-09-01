@@ -1,5 +1,6 @@
-import { Anchor, Button, Stack, Text } from "@mantine/core";
+import { Anchor, Button, Group, Stack, Text } from "@mantine/core";
 import { FormattedMessage } from "react-intl";
+import { TbCircleCheck } from "react-icons/tb";
 import { APP_NAME } from "../../constants";
 import useTranslate from "../../hooks/useTranslate.hook";
 
@@ -14,11 +15,44 @@ import useTranslate from "../../hooks/useTranslate.hook";
 // -function - matches the one other rich-message call site in this app
 // (admin.config.s3.docs-link in [category].tsx) rather than react-intl's
 // alternate <tag>chunks</tag> API, which nothing else here uses.
-const TermsGate = ({ onAccept }: { onAccept: () => void }) => {
+const TermsGate = ({
+  onAccept,
+  maxShareSize,
+}: {
+  onAccept: () => void;
+  // Plain bytes, same shape UploadPage.tsx already computes for the real
+  // dropzone right below this gate (user's own shareSizeLimit, falling
+  // back to the instance's configured share.maxSize) - reused here rather
+  // than a second hardcoded number, so this can't quietly drift out of
+  // sync with the instance's actual configured limit the way a literal
+  // "15" in a translation string could.
+  maxShareSize: number;
+}) => {
   const t = useTranslate();
+
+  // Short, scannable reassurance before the legal text below it asks for
+  // a decision - four fixed, known-safe strings (never user content), so
+  // plain t() + array index as key is fine here, no id/stability concerns
+  // a dynamic list would have.
+  const perks = [
+    t("upload.termsGate.perks.size", {
+      size: Math.round(maxShareSize / 1_000_000_000),
+    }),
+    t("upload.termsGate.perks.free"),
+    t("upload.termsGate.perks.location"),
+    t("upload.termsGate.perks.retention"),
+  ];
 
   return (
     <Stack align="center" spacing="lg" py="md">
+      <Stack spacing="xs" align="flex-start">
+        {perks.map((perk, index) => (
+          <Group key={index} spacing="xs" noWrap>
+            <TbCircleCheck color="green" size={18} />
+            <Text size="sm">{perk}</Text>
+          </Group>
+        ))}
+      </Stack>
       <Text align="center" color="dimmed">
         <FormattedMessage
           id="upload.termsGate.description"
