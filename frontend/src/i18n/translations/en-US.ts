@@ -108,6 +108,7 @@ export default {
   "resetPassword.text.resetPassword": "Reset password",
   "resetPassword.text.enterNewPassword": "Enter your new password",
   "resetPassword.input.password": "New password",
+  "resetPassword.input.confirmPassword": "Confirm password",
   "resetPassword.notify.passwordReset":
     "Your password has been successfully reset.",
 
@@ -1141,6 +1142,7 @@ export default {
   "common.error.exact-length": "Must be exactly {length} characters",
   "common.error.invalid-number": "Must be a number",
   "common.error.field-required": "This field is required",
+  "common.error.passwords-dont-match": "Passwords don't match",
 
   "admin.notice.modal.headerTag": "ADMINISTRATIVE ACTION REQUIRED",
   "admin.notice.modal.defaultCheckboxLabel":

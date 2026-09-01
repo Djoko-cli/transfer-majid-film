@@ -104,6 +104,7 @@ export default {
   "resetPassword.text.resetPassword": "Réinitialiser le mot de passe",
   "resetPassword.text.enterNewPassword": "Saisissez votre nouveau mot de passe",
   "resetPassword.input.password": "Nouveau mot de passe",
+  "resetPassword.input.confirmPassword": "Confirmer le mot de passe",
   "resetPassword.notify.passwordReset":
     "Votre mot de passe a été réinitialisé avec succès.",
   // /account
@@ -1123,6 +1124,7 @@ export default {
   "common.error.exact-length": "Doit comporter exactement {length} caractères",
   "common.error.invalid-number": "Doit être un nombre",
   "common.error.field-required": "Ce champ est obligatoire",
+  "common.error.passwords-dont-match": "Les mots de passe ne correspondent pas",
 
   "admin.notice.modal.headerTag": "ACTION ADMINISTRATIVE REQUISE",
   "admin.notice.modal.defaultCheckboxLabel":
