@@ -24,6 +24,10 @@ RUN apk add openssl
 
 WORKDIR /opt/app
 COPY ./backend .
+# The three legal pages' real content (see config.seed.ts's own comment on
+# readLegalMarkdown) - repo-root files, explicit names rather than a *.md
+# glob so README.md doesn't end up alongside them here too.
+COPY mentionslegales.md conditionsutilisation.md politiqueconfidentialite.md ./legal/
 COPY --from=backend-dependencies /opt/app/node_modules ./node_modules
 RUN npx prisma generate
 RUN npm run build && npx tsc prisma/seed/config.seed.ts --outDir dist/prisma/seed --rootDir prisma/seed && npm prune --production
@@ -55,6 +59,7 @@ RUN rm -rf ./node_modules/typescript \
            ./node_modules/.bin/esbuild
 COPY --from=backend-builder /opt/app/dist ./dist
 COPY --from=backend-builder /opt/app/prisma ./prisma
+COPY --from=backend-builder /opt/app/legal ./legal
 COPY --from=backend-builder /opt/app/package.json ./
 COPY --from=backend-builder /opt/app/tsconfig.json ./
 

@@ -1,5 +1,45 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import * as crypto from "crypto";
+import * as fs from "fs";
+import * as path from "path";
+
+// The three legal pages' real content lives as plain .md files at the repo
+// root (mentionslegales.md, conditionsutilisation.md,
+// politiqueconfidentialite.md) rather than as string literals in here -
+// one source of truth, editable directly, diffable in its own right.
+// Baked in as defaultValue (not value): migrateConfigVariables() below
+// always overwrites defaultValue from this file but explicitly preserves
+// whatever's already in the DB's own `value` column (see its own
+// comment) - so this can never clobber a change made through the admin
+// panel's own Markdown editor, it only supplies what a fresh install (or
+// a since-cleared field) falls back to.
+//
+// __dirname resolves differently in dev (ts-node running prisma/seed/
+// config.seed.ts straight from source, three levels below the repo root)
+// than in the built image (dist/prisma/seed/config.seed.js, three levels
+// below /opt/app/backend, with the .md files copied to /opt/app/backend/
+// legal instead — see the Dockerfile) - same existsSync-first-then-
+// fall-back-to-source idiom already used for i18nPath in app.module.ts,
+// for the same reason (one compiled path, one dev path, no way to know
+// which without checking).
+const legalContentDir = fs.existsSync(path.join(__dirname, "../../../legal"))
+  ? path.join(__dirname, "../../../legal")
+  : path.join(__dirname, "../../..");
+
+// Missing/unreadable is a real possibility worth tolerating rather than
+// crashing the whole seed over (a checkout without the .md files, a typo
+// in a future rename) - falls back to "" as the field already had before
+// this, exactly as if this whole mechanism didn't exist.
+function readLegalMarkdown(filename: string): string {
+  try {
+    return fs
+      .readFileSync(path.join(legalContentDir, filename), "utf8")
+      .trimEnd();
+  } catch (e) {
+    console.warn(`Could not read ${filename} for legal.* defaults:`, e.message);
+    return "";
+  }
+}
 
 export const configVariables = {
   internal: {
@@ -567,24 +607,28 @@ export const configVariables = {
     },
   },
   legal: {
+    // Defaults to on now that there's real content to show by default
+    // (see readLegalMarkdown above) - an instance with working legal
+    // pages baked in has no reason to also ship them switched off,
+    // unlike when this only ever defaulted to three empty text fields.
     enabled: {
       type: "boolean",
-      defaultValue: "false",
+      defaultValue: "true",
       secret: false,
     },
     imprintText: {
       type: "text",
-      defaultValue: "",
+      defaultValue: readLegalMarkdown("mentionslegales.md"),
       secret: false,
     },
     termsText: {
       type: "text",
-      defaultValue: "",
+      defaultValue: readLegalMarkdown("conditionsutilisation.md"),
       secret: false,
     },
     privacyPolicyText: {
       type: "text",
-      defaultValue: "",
+      defaultValue: readLegalMarkdown("politiqueconfidentialite.md"),
       secret: false,
     },
   },
