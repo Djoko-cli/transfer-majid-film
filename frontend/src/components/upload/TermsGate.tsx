@@ -1,4 +1,11 @@
-import { Anchor, Button, Group, Stack, Text } from "@mantine/core";
+import {
+  Anchor,
+  Button,
+  Group,
+  Stack,
+  Text,
+  useMantineTheme,
+} from "@mantine/core";
 import { FormattedMessage } from "react-intl";
 import { TbCircleCheck } from "react-icons/tb";
 import { APP_NAME } from "../../constants";
@@ -29,6 +36,13 @@ const TermsGate = ({
   maxShareSize: number;
 }) => {
   const t = useTranslate();
+  const theme = useMantineTheme();
+  // Same computed-accent pattern already used for icon color everywhere
+  // else in this app (TransferCard, Dropzone, PageDropOverlay) rather
+  // than a literal hex - theme.colors.accent isn't a color react-icons'
+  // own `color` prop understands, it wants a real CSS value.
+  const accent =
+    theme.colors[theme.primaryColor][theme.colorScheme === "dark" ? 4 : 6];
 
   // Short, scannable reassurance before the legal text below it asks for
   // a decision - four fixed, known-safe strings (never user content), so
@@ -45,10 +59,19 @@ const TermsGate = ({
 
   return (
     <Stack align="center" spacing="lg" py="md">
-      <Stack spacing="xs" align="flex-start">
+      {
+        // sx width:100% rather than relying on the parent Stack's default
+        // cross-axis sizing - the outer Stack's own align="center" (needed
+        // so the description/button below stay centered) makes every
+        // child shrink-wrap and center by default, which is exactly what
+        // left this block narrower than the fullWidth button below it,
+        // stranding empty space on both sides instead of lining up with
+        // the rest of the card.
+      }
+      <Stack spacing="xs" align="flex-start" sx={{ width: "100%" }}>
         {perks.map((perk, index) => (
           <Group key={index} spacing="xs" noWrap>
-            <TbCircleCheck color="green" size={18} />
+            <TbCircleCheck color={accent} size={18} />
             <Text size="sm">{perk}</Text>
           </Group>
         ))}
