@@ -81,8 +81,20 @@ const TermsGate = ({
       >
         {perks.map((perk, index) => (
           <Group key={index} spacing="xs" noWrap>
-            <TbCircleCheck color={accent} size={18} />
-            <Text size="sm">{perk}</Text>
+            {
+              // Sized up from the theme's plain sm/md steps (14/16px) to a
+              // custom 17px, checked live against where the description
+              // text's own longest line ends ("...Conditions", right below
+              // this) rather than picked by eye - the checklist's own
+              // longest line now lands within a couple of px of the same
+              // right edge, so the two blocks read as matching widths
+              // instead of the checklist looking short next to it. Icon
+              // bumped to 21 alongside it, roughly keeping their original
+              // size ratio rather than leaving a now-small icon next to
+              // bigger text.
+            }
+            <TbCircleCheck color={accent} size={21} />
+            <Text size={17}>{perk}</Text>
           </Group>
         ))}
       </Stack>
