@@ -7,7 +7,7 @@ import {
   createStyles,
   useMantineTheme,
 } from "@mantine/core";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import { TbPlayerPause, TbPlayerPlay } from "react-icons/tb";
 import { PROJECTS } from "../../data/brandProjects";
@@ -642,20 +642,57 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
     };
   }, []);
 
+  // How much of the *current* slide's dwell time is left — a plain
+  // setInterval(..., SLIDE_DURATION_MS) always restarts a full fresh
+  // 10s wait on every unpause, regardless of how much of the previous
+  // 10s had already elapsed before pausing. That's fine on its own, but
+  // .living's zoom (paused/resumed via animation-play-state, see Slide)
+  // correctly resumes from wherever *it* was frozen — meaning after a
+  // long enough pause, the zoom (already most of the way done) finishes
+  // and holds its final scale well before this timer's fresh 10s is up,
+  // leaving the image sitting visibly static for however much of the
+  // gap is left. Reported by the user from their own testing. Tracking
+  // and resuming from the real remaining time here keeps both in sync
+  // regardless of pause duration, the same way the CSS animation always
+  // already did on its own.
+  const remainingMs = useRef(SLIDE_DURATION_MS);
+  // Resets the very instant a new slide becomes current — deliberately
+  // a separate effect from the one below that counts it down, so this
+  // always fires exactly once per real slide change, not once per
+  // pause/resume toggle of the other effect.
+  useEffect(() => {
+    remainingMs.current = SLIDE_DURATION_MS;
+  }, [current]);
+
   useEffect(() => {
     // Reduced-motion users previously still got the interval — only the
     // CSS transition/animation were gated — so the slide still hard
-    // jump-cut every 10s instead of actually stopping. Gating the
-    // interval itself (and letting anyone pause it via isPaused) fixes
-    // both that and WCAG 2.2.2 (no way to pause an auto-updating carousel).
+    // jump-cut every 10s instead of actually stopping. Gating the timer
+    // itself (and letting anyone pause it via isPaused) fixes both that
+    // and WCAG 2.2.2 (no way to pause an auto-updating carousel).
     if (order.length <= 1 || prefersReducedMotion || isPaused) return;
 
-    const interval = setInterval(() => {
+    const startedAt = Date.now();
+    // Local to this one effect run, not a ref — distinguishes "cleanup
+    // because the timeout below already fired and handled it" from
+    // "cleanup because we're pausing (or unmounting) mid-countdown",
+    // which is the only case that should actually decrement the budget.
+    let advanced = false;
+    const timeout = setTimeout(() => {
+      advanced = true;
       setCurrent((index) => (index + 1) % order.length);
-    }, SLIDE_DURATION_MS);
+    }, remainingMs.current);
 
-    return () => clearInterval(interval);
-  }, [order.length, prefersReducedMotion, isPaused]);
+    return () => {
+      clearTimeout(timeout);
+      if (!advanced) {
+        remainingMs.current = Math.max(
+          0,
+          remainingMs.current - (Date.now() - startedAt),
+        );
+      }
+    };
+  }, [order.length, prefersReducedMotion, isPaused, current]);
 
   const activeSlide = order[current];
 
