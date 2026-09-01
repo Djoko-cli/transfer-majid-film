@@ -281,7 +281,7 @@ const cyclicDelta = (from: number, to: number, length: number) => {
   return delta;
 };
 
-const useStyles = createStyles((theme) => ({
+const useStyles = createStyles((theme, { isPaused }: { isPaused: boolean }) => ({
   panel: {
     position: "absolute",
     inset: 0,
@@ -347,6 +347,17 @@ const useStyles = createStyles((theme) => ({
   // moment ago).
   living: {
     animation: `gentleZoom ${LIVING_DURATION_MS}ms linear ${TRANSITION_MS}ms forwards`,
+    // The pause button (see BrandPanel's own isPaused) only ever gated
+    // the interval that advances `current` - it had no connection to
+    // this CSS animation at all, which runs on the browser's own
+    // compositor timeline regardless of React/JS state. Reported by the
+    // user: pausing stopped the slide from changing but the zoom kept
+    // visibly animating in real time underneath it. animation-play-state
+    // is the correct primitive for this - unlike removing the class
+    // (which would lose the current scale and restart from 1 on
+    // resume), "paused" freezes the animation at its exact current
+    // computed value and resumes from precisely there.
+    animationPlayState: isPaused ? "paused" : "running",
   },
 
   // On tall content the transfer card (z-index 2, see SplitTransferLayout)
@@ -424,13 +435,15 @@ const Slide = ({
   delta,
   isActive,
   prefersReducedMotion,
+  isPaused,
 }: {
   slide: BrandSlide;
   delta: number;
   isActive: boolean;
   prefersReducedMotion: boolean;
+  isPaused: boolean;
 }) => {
-  const { classes, cx } = useStyles();
+  const { classes, cx } = useStyles({ isPaused });
 
   // Bumped only the instant this slide transitions from inactive to
   // active (including the very first time, for whichever slide starts
@@ -535,7 +548,6 @@ const Slide = ({
 };
 
 const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
-  const { classes } = useStyles();
   const theme = useMantineTheme();
   const t = useTranslate();
 
@@ -545,6 +557,11 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
   // Lets any visitor stop the rotation, not just reduced-motion users —
   // see the interval effect below, which is also gated on this.
   const [isPaused, setIsPaused] = useState(false);
+  // Declared after isPaused (this hook needs it) rather than at the very
+  // top like every other component in this file - order among hooks
+  // doesn't matter for correctness, only that all of them still run
+  // unconditionally every render, which this still does.
+  const { classes } = useStyles({ isPaused });
   // `order` starts as the unshuffled STATIC_SLIDES array so the
   // server-rendered HTML and the client's first render agree (Math.random()
   // at render time would desync them, since the server and the client's
@@ -666,6 +683,7 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
                 delta={cyclicDelta(current, index, order.length)}
                 isActive={index === current}
                 prefersReducedMotion={prefersReducedMotion}
+                isPaused={isPaused}
               />
             ))}
           </Box>
