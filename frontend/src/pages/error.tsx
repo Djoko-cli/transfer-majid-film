@@ -33,12 +33,15 @@ export default function Error() {
           <FormattedMessage
             id={`error.msg.${router.query.error || "default"}`}
             values={Object.fromEntries(
-              [params].map((value, key) => [key.toString(), value]),
+              params.map((value, key) => [key.toString(), value]),
             )}
           />
         </Text>
-        <Button mt="xl" onClick={() => router.push("/")}>
-          {"Go Home"}
+        <Button
+          mt="xl"
+          onClick={() => router.push((router.query.redirect as string) || "/")}
+        >
+          {t("error.button.back")}
         </Button>
       </Stack>
     </>

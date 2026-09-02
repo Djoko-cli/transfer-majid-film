@@ -1078,9 +1078,9 @@ export default {
     "Le compte {0} est déjà associé à un autre compte.",
   "error.msg.not_linked": "Le compte {0} n’est pas encore associé à compte.",
   "error.msg.email_already_exists":
-    "An account with this email address already exists. Please sign in with your password and manually link your {0} account in your My Account page.",
+    "Un compte existe déjà avec ce courriel. Connectez-vous avec votre mot de passe puis associez manuellement votre compte {0} depuis la page Mon compte.",
   "error.msg.email_not_verified":
-    "Your email address on this {0} account is not verified. Please verify your email with your identity provider before signing in.",
+    "Le courriel de ce compte {0} n’est pas vérifié. Vérifiez-le auprès de votre fournisseur d’identité avant de vous connecter.",
   "error.msg.unverified_account":
     "Le compte {0} n'est pas vérifié, veuillez réessayer après vérification.",
   "error.msg.user_not_allowed": "Vous n’êtes pas autorisé à vous authentifier.",
