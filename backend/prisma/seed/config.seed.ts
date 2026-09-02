@@ -547,9 +547,18 @@ export const configVariables = {
       type: "string",
       defaultValue: "",
     },
+    // True by default: without it, "Se déconnecter" only ever clears
+    // Transfer's own session, never the identity provider's - anyone
+    // else using the same browser afterward inherits whatever OIDC
+    // session is still active there instead of getting a real sign-in
+    // screen of their own (see AuthService.signOut's own end_session_endpoint
+    // redirect for the actual single-logout mechanics this enables).
+    // migrateConfigVariables() only ever overwrites defaultValue, never
+    // an admin-set value, so this is safe to flip without touching any
+    // instance that already has its own explicit choice here.
     "oidc-signOut": {
       type: "boolean",
-      defaultValue: "false",
+      defaultValue: "true",
     },
     "oidc-scope": {
       type: "string",
