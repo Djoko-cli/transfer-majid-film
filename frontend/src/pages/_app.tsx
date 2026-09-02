@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { IntlProvider } from "react-intl";
 import Header, { HEADER_HEIGHT } from "../components/header/Header";
 import { ConfigContext } from "../hooks/config.hook";
+import { LanguageContext } from "../hooks/language.hook";
 import { TermsAcceptanceContext } from "../hooks/termsAcceptance.hook";
 import { UserContext } from "../hooks/user.hook";
 import { LOCALES } from "../i18n/locales";
@@ -152,8 +153,21 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
     });
   };
 
-  const language = useRef(pageProps.language);
-  moment.locale(language.current);
+  const [language, setLanguage] = useState(pageProps.language);
+  moment.locale(language);
+
+  // Cookie first, then the state update that actually makes IntlProvider
+  // below re-render with the new locale/messages - no reload. Also
+  // updates the two document-level attributes the mount effect above sets
+  // from the server-resolved language once, up front; this is the same
+  // thing happening again for a language chosen after the fact.
+  const switchLanguage = (code: string) => {
+    i18nUtil.setLanguageCookie(code);
+    setLanguage(code);
+    const current = i18nUtil.getLocaleByCode(code);
+    document.documentElement.dir = current.direction ?? "ltr";
+    document.documentElement.lang = current.code;
+  };
 
   const [pendingNotices, setPendingNotices] = useState<AdminNotice[]>([]);
 
@@ -194,8 +208,8 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
         />
       </Head>
       <IntlProvider
-        messages={i18nUtil.getLocaleByCode(language.current)?.messages}
-        locale={language.current}
+        messages={i18nUtil.getLocaleByCode(language)?.messages}
+        locale={language}
         defaultLocale={LOCALES.ENGLISH.code}
       >
         <MantineProvider withGlobalStyles withNormalizeCSS theme={mergedTheme}>
@@ -206,72 +220,74 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
             <GlobalStyle />
             <Notifications />
             <ModalsProvider>
-              <ConfigContext.Provider
-                value={{
-                  configVariables,
-                  refresh: async () => {
-                    setConfigVariables(await configService.list());
-                  },
-                }}
-              >
-                <UserContext.Provider
+              <LanguageContext.Provider value={{ language, switchLanguage }}>
+                <ConfigContext.Provider
                   value={{
-                    user,
-                    refreshUser: async () => {
-                      const user = await userService.getCurrentUser();
-                      setUser(user);
-                      return user;
+                    configVariables,
+                    refresh: async () => {
+                      setConfigVariables(await configService.list());
                     },
                   }}
                 >
-                  <TermsAcceptanceContext.Provider
-                    value={{ hasAcceptedTerms, acceptTerms }}
+                  <UserContext.Provider
+                    value={{
+                      user,
+                      refreshUser: async () => {
+                        const user = await userService.getCurrentUser();
+                        setUser(user);
+                        return user;
+                      },
+                    }}
                   >
-                    <AdminNoticeModal
-                      notice={pendingNotices[0] || null}
-                      onDismiss={handleDismissNotice}
-                    />
-                    {Component.getLayout ? (
-                      Component.getLayout(<Component {...pageProps} />)
-                    ) : (
-                      <>
-                        <Stack
-                          justify="space-between"
-                          sx={{ minHeight: "100vh" }}
-                        >
-                          <div
-                            style={{
-                              paddingTop: HEADER_HEIGHT,
-                              // Footer is a fixed, floating glass bar (see
-                              // Footer.tsx) rather than flow content, so
-                              // nothing pushes it down naturally the way a
-                              // normal last element would — without this,
-                              // a page whose content reaches the bottom of
-                              // the viewport would have its last bit hidden
-                              // underneath it.
-                              paddingBottom: "var(--footer-height, 40px)",
-                            }}
+                    <TermsAcceptanceContext.Provider
+                      value={{ hasAcceptedTerms, acceptTerms }}
+                    >
+                      <AdminNoticeModal
+                        notice={pendingNotices[0] || null}
+                        onDismiss={handleDismissNotice}
+                      />
+                      {Component.getLayout ? (
+                        Component.getLayout(<Component {...pageProps} />)
+                      ) : (
+                        <>
+                          <Stack
+                            justify="space-between"
+                            sx={{ minHeight: "100vh" }}
                           >
-                            <Header pushContentRef={pageContentRef} />
-                            <Container ref={pageContentRef}>
-                              <Component {...pageProps} />
-                            </Container>
-                          </div>
-                          <Footer />
-                        </Stack>
-                        {
-                          // Only on the default (non-admin) layout - a first
-                          // -time *visitor* is who this is for; by the time
-                          // someone reaches /admin/*, they're already an
-                          // authenticated admin, not someone who needs an
-                          // introductory cookie notice.
-                        }
-                        <CookieNotice />
-                      </>
-                    )}
-                  </TermsAcceptanceContext.Provider>
-                </UserContext.Provider>
-              </ConfigContext.Provider>
+                            <div
+                              style={{
+                                paddingTop: HEADER_HEIGHT,
+                                // Footer is a fixed, floating glass bar (see
+                                // Footer.tsx) rather than flow content, so
+                                // nothing pushes it down naturally the way a
+                                // normal last element would — without this,
+                                // a page whose content reaches the bottom of
+                                // the viewport would have its last bit hidden
+                                // underneath it.
+                                paddingBottom: "var(--footer-height, 40px)",
+                              }}
+                            >
+                              <Header pushContentRef={pageContentRef} />
+                              <Container ref={pageContentRef}>
+                                <Component {...pageProps} />
+                              </Container>
+                            </div>
+                            <Footer />
+                          </Stack>
+                          {
+                            // Only on the default (non-admin) layout - a first
+                            // -time *visitor* is who this is for; by the time
+                            // someone reaches /admin/*, they're already an
+                            // authenticated admin, not someone who needs an
+                            // introductory cookie notice.
+                          }
+                          <CookieNotice />
+                        </>
+                      )}
+                    </TermsAcceptanceContext.Provider>
+                  </UserContext.Provider>
+                </ConfigContext.Provider>
+              </LanguageContext.Provider>
             </ModalsProvider>
           </ColorSchemeProvider>
         </MantineProvider>

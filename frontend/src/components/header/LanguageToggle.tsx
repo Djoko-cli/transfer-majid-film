@@ -1,9 +1,8 @@
 import { Box, createStyles, UnstyledButton } from "@mantine/core";
 import { useState } from "react";
 import { TbWorld } from "react-icons/tb";
-import { useIntl } from "react-intl";
+import useLanguage from "../../hooks/language.hook";
 import { LOCALES } from "../../i18n/locales";
-import i18nUtil from "../../utils/i18n.util";
 
 // Same duration the mobile menu's own GPU-only reveal uses (see
 // MOBILE_MENU_DURATION in this file's sibling Header.tsx) — nothing ties
@@ -91,17 +90,16 @@ const useStyles = createStyles((theme) => {
 // between the two languages this instance actually gets used in (see
 // LOCALES's own comment on why only these two are offered at all).
 //
-// Switching still reloads the page (i18nUtil.setLanguageCookie + a plain
-// location.reload — nothing here changes that) - deliberately deferred,
-// not forgotten: the app has no live locale-swap path today, and building
-// one is a bigger job than restyling this control. The reload is delayed
-// by one animation frame's worth of time so the slide below actually gets
-// to play before the page tears down, rather than jumping to reload's own
-// blank instant.
+// Switching hot-swaps via _app.tsx's own LanguageContext (no reload,
+// see that file's switchLanguage) - nothing here decides that, this
+// only decides *when* to call it. The switch itself is delayed by one
+// slide's worth of time so the indicator's own animation gets to
+// finish before the rest of the page's text changes under it, rather
+// than both happening on top of each other at once.
 const LanguageToggle = () => {
-  const { locale } = useIntl();
+  const { language, switchLanguage } = useLanguage();
   const { classes, cx } = useStyles();
-  const isCurrentlyFrench = locale?.toLowerCase().startsWith("fr");
+  const isCurrentlyFrench = language?.toLowerCase().startsWith("fr");
   const [selected, setSelected] = useState<"fr" | "en">(
     isCurrentlyFrench ? "fr" : "en",
   );
@@ -115,10 +113,7 @@ const LanguageToggle = () => {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     setTimeout(
-      () => {
-        i18nUtil.setLanguageCookie(code);
-        location.reload();
-      },
+      () => switchLanguage(code),
       reducedMotion ? 0 : SLIDE_DURATION_MS,
     );
   };
