@@ -156,13 +156,28 @@ export async function middleware(request: NextRequest) {
       condition: !user && !routes.public.contains(route) && !routes.unauthenticated.contains(route),
       path: "/auth/signIn",
     },
+    // /account/* and /admin/* are never in routes.public, so the rule
+    // above already catches both when the rest of the site isn't public
+    // either — these two exist for the one config where it is
+    // (share.allowUnauthenticatedShares), which makes every route
+    // "public" for the rule above's own purposes and would otherwise
+    // leave a signed-out visitor here with no way back to what they
+    // actually asked for, only "/".
     {
       condition: !user && routes.account.contains(route),
-      path: "/",
+      path: "/auth/signIn",
     },
-    // Admin privileges
     {
-      condition: routes.admin.contains(route) && !user?.isAdmin,
+      condition: !user && routes.admin.contains(route),
+      path: "/auth/signIn",
+    },
+    // Admin privileges — signed in, but genuinely lacking admin rights.
+    // Unlike the two rules above, sending this case through sign-in
+    // again would offer no way back to an /admin/* page they were
+    // never going to be let into regardless — "/" is the correct
+    // landing spot here, not a redirect-with-return.
+    {
+      condition: user && !user.isAdmin && routes.admin.contains(route),
       path: "/",
     },
   ];
