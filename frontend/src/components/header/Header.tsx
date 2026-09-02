@@ -17,40 +17,15 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { ReactNode, RefObject, useEffect, useRef, useState } from "react";
 import { TbChevronLeft } from "react-icons/tb";
-import { useIntl } from "react-intl";
 import { APP_NAME } from "../../constants";
 import useConfig from "../../hooks/config.hook";
 import useUser from "../../hooks/user.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import authService from "../../services/auth.service";
-import i18nUtil from "../../utils/i18n.util";
 import Logo from "../Logo";
 import ActionAvatar from "./ActionAvatar";
+import LanguageToggle from "./LanguageToggle";
 import NavbarShareMenu from "./NavbarShareMenu";
-
-// Quick EN/FR toggle for the navbar — the full language list already lives
-// in account settings (LanguagePicker); this is just a one-click swap
-// between the two languages this instance actually gets used in, labeled
-// with the language it switches *to* rather than the current one.
-const LanguageToggle = ({ className }: { className?: string }) => {
-  const { locale } = useIntl();
-  const isFrench = locale?.toLowerCase().startsWith("fr");
-  const targetCode = isFrench ? "en-US" : "fr-FR";
-  const targetLabel = isFrench ? "EN" : "FR";
-
-  return (
-    <UnstyledButton
-      className={className}
-      title={isFrench ? "Switch to English" : "Passer en français"}
-      onClick={() => {
-        i18nUtil.setLanguageCookie(targetCode);
-        location.reload();
-      }}
-    >
-      {targetLabel}
-    </UnstyledButton>
-  );
-};
 
 export const HEADER_HEIGHT = 60;
 
@@ -702,7 +677,7 @@ const Header = ({
             <Group spacing={5} className={classes.links}>
               <Group>{desktopItems}</Group>
             </Group>
-            <LanguageToggle className={classes.link} />
+            <LanguageToggle />
             <Burger
               opened={opened}
               onClick={toggle}
