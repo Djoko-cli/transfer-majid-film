@@ -17,6 +17,12 @@ export const CONTACT_EMAIL = "transfer@majid.film";
 // dev, or a manual workflow_dispatch build with no release tag).
 export const APP_VERSION = process.env.APP_VERSION || "dev";
 
+// Used by AppController to check the latest GitHub release against
+// APP_VERSION — a fixed constant like APP_NAME, not deploy-time infra,
+// since it names this fork's own repo rather than anything environment-
+// specific.
+export const GITHUB_REPO = "Djoko-cli/transfer-majid-film";
+
 export const CONFIG_FILE = process.env.CONFIG_FILE || "../config.yaml";
 
 // Same resolution convention as CONFIG_FILE above, deliberately a separate

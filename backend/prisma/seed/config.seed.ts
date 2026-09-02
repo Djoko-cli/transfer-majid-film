@@ -69,6 +69,18 @@ export const configVariables = {
       defaultValue: "fr-FR",
       secret: false,
     },
+    // Fine-grained GitHub PAT, read-only, scoped to just this repo's
+    // Releases — lets AppController's /version endpoint tell the admin
+    // panel whether the running build is the latest release. The repo is
+    // private, so an unauthenticated check would always 404; the badge
+    // simply doesn't render (see AppController.getLatestRelease) until
+    // this is set.
+    versionCheckToken: {
+      type: "string",
+      defaultValue: "",
+      secret: true,
+      obscured: true,
+    },
   },
   share: {
     allowRegistration: {

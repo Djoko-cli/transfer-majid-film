@@ -650,6 +650,12 @@ export default {
   "admin.config.general.session-duration": "Durée de la session",
   "admin.config.general.session-duration.description":
     "Temps après lequel un utilisateur doit se reconnecter (par défaut : 3 mois).",
+  "admin.config.general.version-check-token":
+    "Jeton de vérification de version",
+  "admin.config.general.version-check-token.description":
+    "Jeton d'accès personnel GitHub (lecture seule, restreint à ce dépôt) utilisé pour afficher dans la barre latérale si la version installée est à jour. Le dépôt étant privé, laisser ce champ vide désactive simplement le badge.",
+  "admin.version.upToDate": "Vous êtes à jour",
+  "admin.version.outdated": "Nouvelle version disponible : {0}",
   "admin.config.clamav.enabled": "Analyser les envois avec ClamAV",
   "admin.config.clamav.enabled.description":
     "Analyse chaque partage envoyé à la recherche de fichiers malveillants avant de le conserver. Les partages infectés sont supprimés automatiquement. Nécessite une instance ClamAV joignable (voir la doc des intégrations).",

@@ -7,6 +7,7 @@ import {
   Stack,
   Text,
   ThemeIcon,
+  Tooltip,
 } from "@mantine/core";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -29,7 +30,8 @@ import {
 } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import { APP_NAME, RELEASES_URL } from "../../constants";
-import versionService from "../../services/version.service";
+import useTranslate from "../../hooks/useTranslate.hook";
+import versionService, { VersionInfo } from "../../services/version.service";
 
 export const categories = [
   { name: "General", icon: <TbSettings /> },
@@ -118,10 +120,11 @@ const AdminNavBar = ({
 }) => {
   const { classes } = useStyles();
   const router = useRouter();
-  const [version, setVersion] = useState<string | null>(null);
+  const t = useTranslate();
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
 
   useEffect(() => {
-    versionService.get().then(setVersion).catch(() => {});
+    versionService.get().then(setVersionInfo).catch(() => {});
   }, []);
 
   const categorySlug =
@@ -198,17 +201,40 @@ const AdminNavBar = ({
           })}
         </Stack>
       </Navbar.Section>
-      {version && (
+      {versionInfo && (
         <Navbar.Section pt="md">
-          <Anchor
-            href={RELEASES_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            size="xs"
-            color="dimmed"
-          >
-            {APP_NAME} {version}
-          </Anchor>
+          <Group spacing={6} noWrap>
+            <Anchor
+              href={RELEASES_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              size="xs"
+              color="dimmed"
+            >
+              {APP_NAME} {versionInfo.version}
+            </Anchor>
+            {versionInfo.upToDate !== null && (
+              <Tooltip
+                withArrow
+                label={
+                  versionInfo.upToDate
+                    ? t("admin.version.upToDate")
+                    : t("admin.version.outdated", { 0: versionInfo.latest })
+                }
+              >
+                <Box
+                  sx={(theme) => ({
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    backgroundColor: versionInfo.upToDate
+                      ? theme.colors.green[6]
+                      : theme.colors.orange[6],
+                  })}
+                />
+              </Tooltip>
+            )}
+          </Group>
         </Navbar.Section>
       )}
     </Navbar>
