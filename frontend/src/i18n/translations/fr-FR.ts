@@ -69,6 +69,8 @@ export default {
   "signup.onboarding.description":
     "Aucun compte n'existe encore sur cette instance. Le compte créé ici devient automatiquement administrateur.",
   "signup.onboarding.button.submit": "Créer le compte administrateur",
+  "signUp.oauth.or": "OU",
+  "signUp.oauth.signUpWith": "S'inscrire avec",
   // /auth/verify
   "verify.title": "Vérifier le compte",
   "verify.success":

@@ -72,6 +72,8 @@ export default {
   "signup.onboarding.description":
     "No account exists on this instance yet. The account you create here automatically becomes admin.",
   "signup.onboarding.button.submit": "Create the admin account",
+  "signUp.oauth.or": "OR",
+  "signUp.oauth.signUpWith": "Sign up with",
 
   // /auth/verify
   "verify.title": "Verify Account",

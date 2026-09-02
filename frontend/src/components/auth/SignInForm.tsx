@@ -22,10 +22,15 @@ import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
 import AuthGlassLayout from "./AuthGlassLayout";
 import useConfig from "../../hooks/config.hook";
+import useOAuthProviders from "../../hooks/oauthProviders.hook";
 import useUser from "../../hooks/user.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import authService from "../../services/auth.service";
-import { getOAuthIcon, getOAuthUrl } from "../../utils/oauth.util";
+import {
+  getOAuthIcon,
+  getOAuthUrl,
+  resolveOAuthOrigin,
+} from "../../utils/oauth.util";
 import { safeRedirectPath } from "../../utils/router.util";
 import toast from "../../utils/toast.util";
 
@@ -80,9 +85,8 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
   const { refreshUser } = useUser();
   const { classes } = useStyles();
 
-  const [oauthProviders, setOauthProviders] = useState<string[] | null>(null);
-  const [isRedirectingToOauthProvider, setIsRedirectingToOauthProvider] =
-    useState(false);
+  const { oauthProviders, isRedirecting: isRedirectingToOauthProvider } =
+    useOAuthProviders();
   // null while the read-only recognition check is still in flight — kept
   // separate from the standard form's own loading state so both mount
   // effects can gate the same "don't flash the wrong view" render below.
@@ -176,26 +180,6 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
     setShowStandardForm(true);
     authService.forgetTrustedDevice().catch(() => {});
   };
-
-  useEffect(() => {
-    authService
-      .getAvailableOAuth()
-      .then((providers) => {
-        setOauthProviders(providers.data);
-        if (
-          providers.data.length === 1 &&
-          config.get("oauth.disablePassword")
-        ) {
-          setIsRedirectingToOauthProvider(true);
-          const origin: string =
-            config.get("general.appUrl") !== config.get("general.appUrl", true)
-              ? config.get("general.appUrl")
-              : window.location.origin;
-          router.push(getOAuthUrl(origin, providers.data[0]));
-        }
-      })
-      .catch(toast.axiosError);
-  }, []);
 
   useEffect(() => {
     authService
@@ -312,13 +296,7 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
                   key={provider}
                   component="a"
                   title={t(`signIn.oauth.${provider}`)}
-                  href={getOAuthUrl(
-                    config.get("general.appUrl") !==
-                      config.get("general.appUrl", true)
-                      ? config.get("general.appUrl")
-                      : window.location.origin,
-                    provider,
-                  )}
+                  href={getOAuthUrl(resolveOAuthOrigin(config), provider)}
                   variant="light"
                   fullWidth
                 >

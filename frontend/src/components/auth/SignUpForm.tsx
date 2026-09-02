@@ -3,7 +3,11 @@ import {
   Box,
   Button,
   Center,
+  createStyles,
+  Group,
+  Loader,
   PasswordInput,
+  Stack,
   Text,
   TextInput,
   ThemeIcon,
@@ -17,10 +21,61 @@ import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
 import AuthGlassLayout from "./AuthGlassLayout";
 import useConfig from "../../hooks/config.hook";
+import useOAuthProviders from "../../hooks/oauthProviders.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import useUser from "../../hooks/user.hook";
 import authService from "../../services/auth.service";
+import {
+  getOAuthIcon,
+  getOAuthUrl,
+  resolveOAuthOrigin,
+} from "../../utils/oauth.util";
 import toast from "../../utils/toast.util";
+
+// Same visual recipe as SignInForm's own "OU" / "S'inscrire avec"
+// dividers — kept as a separate copy rather than a shared export since
+// createStyles ties a stylesheet to the component using it; duplicating
+// ~25 lines of CSS is the right side of that tradeoff versus threading a
+// third shared file through for styles alone.
+const useStyles = createStyles((theme) => ({
+  signUpWith: {
+    fontWeight: 500,
+    "&:before": {
+      content: "''",
+      flex: 1,
+      display: "block",
+    },
+    "&:after": {
+      content: "''",
+      flex: 1,
+      display: "block",
+    },
+  },
+  or: {
+    "&:before": {
+      content: "''",
+      flex: 1,
+      display: "block",
+      borderTopWidth: 1,
+      borderTopStyle: "solid",
+      borderColor:
+        theme.colorScheme === "dark"
+          ? theme.colors.dark[3]
+          : theme.colors.gray[4],
+    },
+    "&:after": {
+      content: "''",
+      flex: 1,
+      display: "block",
+      borderTopWidth: 1,
+      borderTopStyle: "solid",
+      borderColor:
+        theme.colorScheme === "dark"
+          ? theme.colors.dark[3]
+          : theme.colors.gray[4],
+    },
+  },
+}));
 
 // `needsSetup` (from _app.tsx's getInitialProps, mirroring the middleware's
 // own check — see needsSetup in middleware.ts) means no account exists on
@@ -32,6 +87,8 @@ const SignUpForm = ({ needsSetup }: { needsSetup?: boolean }) => {
   const router = useRouter();
   const t = useTranslate();
   const { refreshUser } = useUser();
+  const { classes } = useStyles();
+  const { oauthProviders, isRedirecting } = useOAuthProviders();
 
   const validationSchema = yup.object().shape({
     email: yup.string().email(t("common.error.invalid-email")).required(),
@@ -75,6 +132,18 @@ const SignUpForm = ({ needsSetup }: { needsSetup?: boolean }) => {
       .catch(toast.axiosError);
   };
 
+  if (!oauthProviders) return null;
+
+  if (isRedirecting)
+    return (
+      <Group align="center" position="center">
+        <Loader size="sm" />
+        <Text align="center">
+          <FormattedMessage id="common.text.redirecting" />
+        </Text>
+      </Group>
+    );
+
   return (
     <AuthGlassLayout>
       {needsSetup && (
@@ -104,36 +173,68 @@ const SignUpForm = ({ needsSetup }: { needsSetup?: boolean }) => {
         )
       )}
       <Box mt={30}>
-        <form
-          onSubmit={form.onSubmit((values) =>
-            signUp(values.email, values.username, values.password),
-          )}
-        >
-          <TextInput
-            label={t("signup.input.username")}
-            placeholder={t("signup.input.username.placeholder")}
-            {...form.getInputProps("username")}
-          />
-          <TextInput
-            label={t("signup.input.email")}
-            placeholder={t("signup.input.email.placeholder")}
-            mt="md"
-            {...form.getInputProps("email")}
-          />
-          <PasswordInput
-            label={t("signin.input.password")}
-            placeholder={t("signin.input.password.placeholder")}
-            mt="md"
-            {...form.getInputProps("password")}
-          />
-          <Button fullWidth mt="xl" type="submit">
-            <FormattedMessage
-              id={
-                needsSetup ? "signup.onboarding.button.submit" : "signup.button.submit"
-              }
+        {config.get("oauth.disablePassword") || (
+          <form
+            onSubmit={form.onSubmit((values) =>
+              signUp(values.email, values.username, values.password),
+            )}
+          >
+            <TextInput
+              label={t("signup.input.username")}
+              placeholder={t("signup.input.username.placeholder")}
+              {...form.getInputProps("username")}
             />
-          </Button>
-        </form>
+            <TextInput
+              label={t("signup.input.email")}
+              placeholder={t("signup.input.email.placeholder")}
+              mt="md"
+              {...form.getInputProps("email")}
+            />
+            <PasswordInput
+              label={t("signin.input.password")}
+              placeholder={t("signin.input.password.placeholder")}
+              mt="md"
+              {...form.getInputProps("password")}
+            />
+            <Button fullWidth mt="xl" type="submit">
+              <FormattedMessage
+                id={
+                  needsSetup
+                    ? "signup.onboarding.button.submit"
+                    : "signup.button.submit"
+                }
+              />
+            </Button>
+          </form>
+        )}
+        {oauthProviders.length > 0 && (
+          <Stack mt={config.get("oauth.disablePassword") ? undefined : "xl"}>
+            {config.get("oauth.disablePassword") ? (
+              <Group align="center" className={classes.signUpWith}>
+                <Text>{t("signUp.oauth.signUpWith")}</Text>
+              </Group>
+            ) : (
+              <Group align="center" className={classes.or}>
+                <Text>{t("signUp.oauth.or")}</Text>
+              </Group>
+            )}
+            <Group position="center">
+              {oauthProviders.map((provider) => (
+                <Button
+                  key={provider}
+                  component="a"
+                  title={t(`signIn.oauth.${provider}`)}
+                  href={getOAuthUrl(resolveOAuthOrigin(config), provider)}
+                  variant="light"
+                  fullWidth
+                >
+                  {getOAuthIcon(provider)}
+                  {" " + t(`signIn.oauth.${provider}`)}
+                </Button>
+              ))}
+            </Group>
+          </Stack>
+        )}
       </Box>
     </AuthGlassLayout>
   );
