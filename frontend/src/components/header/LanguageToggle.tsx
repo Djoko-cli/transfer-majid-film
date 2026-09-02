@@ -14,27 +14,32 @@ const useStyles = createStyles((theme) => {
   const dark = theme.colorScheme === "dark";
 
   return {
+    // A border groups icon+FR+EN as one control, but deliberately no
+    // *fill* of its own — this sits nested *inside* the header bar,
+    // which is already glass over the photo, and a filled background
+    // here compounded into a visibly darker, higher-contrast patch than
+    // anything else in the header (confirmed: identical computed
+    // gradient as Header's own `root`, just applied twice - a fill
+    // stacks opacity, a 1px outline doesn't). Same border color as
+    // every other glass surface in this app, just without what makes
+    // those surfaces glass.
     root: {
       display: "inline-flex",
       alignItems: "center",
       gap: 8,
       padding: "4px 10px",
       borderRadius: 999,
-      // Same glass recipe as the header bar itself and the mobile menu's
-      // panel (see Header.tsx's own `root`/`mobilePanel` classes) — a
-      // small floating control gets the same treatment as every other
-      // glass surface in this app, not a flat one-off.
-      background: dark
-        ? "linear-gradient(160deg, rgba(10, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0.6) 55%, rgba(10, 10, 10, 0.54) 100%)"
-        : "linear-gradient(160deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.6) 55%, rgba(255, 255, 255, 0.54) 100%)",
-      backdropFilter: "blur(18px) saturate(160%)",
-      WebkitBackdropFilter: "blur(18px) saturate(160%)",
       border: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
     },
 
     icon: {
       display: "flex",
       color: dark ? theme.colors.dark[2] : theme.colors.gray[6],
+      // Same halo the header's own wordmark/nav links use against the
+      // photo backdrop (see Header.tsx's `wordmark`/`link` classes) -
+      // this now sits as exposed to that backdrop as they are, having
+      // lost its own background above.
+      filter: `drop-shadow(0 1px 3px ${dark ? "rgba(0, 0, 0, 0.7)" : "rgba(255, 255, 255, 0.7)"})`,
     },
 
     divider: {
@@ -73,6 +78,11 @@ const useStyles = createStyles((theme) => {
       textAlign: "center",
       color: dark ? theme.colors.dark[2] : theme.colors.gray[6],
       transition: "color 150ms ease-out",
+      // Same reasoning as `icon` above - exposed straight to the photo
+      // backdrop now, same halo every other header text gets there.
+      textShadow: dark
+        ? "0 1px 3px rgba(0, 0, 0, 0.7)"
+        : "0 1px 3px rgba(255, 255, 255, 0.7)",
     },
 
     optionActive: {
