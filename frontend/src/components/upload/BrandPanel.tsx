@@ -299,6 +299,20 @@ const useStyles = createStyles((theme, { isPaused }: { isPaused: boolean }) => (
       position: "fixed",
       inset: 0,
       height: "100dvh",
+      // Cancels out the mobile menu's own page-content push (see
+      // Header's applyPush and its own comment on --mobile-menu-push) —
+      // a transform on an ancestor while the menu is open makes *that*
+      // ancestor this element's containing block instead of the true
+      // viewport, which without this shows as a black gap where the
+      // photo should be, for as long as the menu stays open (the
+      // containing block's own box doesn't start until further down
+      // than true 0). The transition duration is read from the same
+      // custom property Header sets, so this tracks its push amount in
+      // lockstep — including respecting prefers-reduced-motion, which
+      // only affects that duration, nothing here directly.
+      transform: "translateY(calc(-1 * var(--mobile-menu-push, 0px)))",
+      transition:
+        "transform var(--mobile-menu-push-duration, 200ms) ease-out",
     },
   },
 

@@ -419,6 +419,40 @@ const Header = ({
     pushEl.style.transform = openedRef.current
       ? `translateY(calc(${menuHeightRef.current}px + ${menuGapRef.current}))`
       : "";
+    // A related value, exposed as a custom property this time (inherits
+    // fine to a descendant regardless of the transform above — that's a
+    // separate mechanism from containing-block). BrandPanel's mobile
+    // position:fixed photo backdrop is a descendant of this element, so
+    // the instant the transform above becomes non-none, per spec *this*
+    // element becomes its containing block instead of the true viewport
+    // (same rule the comment above already describes for the at-rest
+    // case — unavoidable here, since actually moving while open is the
+    // whole point). Without this, that shows as a black gap where the
+    // photo should be, for as long as the menu stays open. BrandPanel
+    // cancels it out via translateY(calc(-1 * var(...))) on that same
+    // fixed element, transitioned with the matching duration below so
+    // the two move in lockstep instead of drifting apart mid-open/close.
+    //
+    // HEADER_HEIGHT, not just the push amount: BrandPanel's containing
+    // block only ever becomes this element once it's already a
+    // transformed containing block — at that point BrandPanel's inset:0
+    // resolves against this element's own *flow* position too (padded
+    // HEADER_HEIGHT down from the true viewport top by _app.tsx, on top
+    // of whatever this transform itself adds), not just the transform.
+    // Leaving HEADER_HEIGHT out of the cancellation left BrandPanel
+    // permanently HEADER_HEIGHT off — a visibly smaller black strip than
+    // before this fix existed at all, but still a black strip, the whole
+    // time the menu was open.
+    pushEl.style.setProperty(
+      "--mobile-menu-push",
+      openedRef.current
+        ? `calc(${HEADER_HEIGHT}px + ${menuHeightRef.current}px + ${menuGapRef.current})`
+        : "0px",
+    );
+    pushEl.style.setProperty(
+      "--mobile-menu-push-duration",
+      `${mobileMenuDuration}ms`,
+    );
   };
 
   useEffect(() => {
