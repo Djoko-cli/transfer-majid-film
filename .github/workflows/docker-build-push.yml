@@ -51,5 +51,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # ref_name is the release tag itself (e.g. v3.0.2) for a
+          # `release` trigger, or the branch name (e.g. "main") for a
+          # manual workflow_dispatch run — read at runtime by the admin
+          # panel's version memo (see APP_VERSION in constants.ts).
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

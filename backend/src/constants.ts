@@ -9,6 +9,14 @@ export const APP_NAME = "Transfer";
 // fixed-constant reasoning as APP_NAME above, not admin-configurable.
 export const CONTACT_EMAIL = "transfer@majid.film";
 
+// Baked in at image-build time from the release tag (see APP_VERSION in
+// .github/workflows/docker-build-push.yml's build-args) — exposed at
+// runtime via AppController's /version endpoint so the admin panel can
+// show which release is actually running. Deploy-time infra like the
+// constants below, not admin-editable. "dev" outside that pipeline (local
+// dev, or a manual workflow_dispatch build with no release tag).
+export const APP_VERSION = process.env.APP_VERSION || "dev";
+
 export const CONFIG_FILE = process.env.CONFIG_FILE || "../config.yaml";
 
 // Same resolution convention as CONFIG_FILE above, deliberately a separate

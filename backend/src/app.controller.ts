@@ -1,5 +1,6 @@
 import { Controller, Get, Res } from "@nestjs/common";
 import { Response } from "express";
+import { APP_VERSION } from "./constants";
 import { PrismaService } from "./prisma/prisma.service";
 
 @Controller("/")
@@ -15,5 +16,10 @@ export class AppController {
       res.statusCode = 500;
       return "ERROR";
     }
+  }
+
+  @Get("version")
+  version() {
+    return { version: APP_VERSION };
   }
 }

@@ -35,6 +35,12 @@ RUN npm run build && npx tsc prisma/seed/config.seed.ts --outDir dist/prisma/see
 # Stage 5: Final image
 FROM node:24-alpine AS runner
 ENV NODE_ENV=docker
+# Set by the release workflow's build-args (see docker-build-push.yml) to
+# the git tag being built — read at runtime via constants.ts/AppController
+# so the admin panel can show which release is actually running. "dev" for
+# a plain local `docker build` with no --build-arg.
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 
 # Delete default node user
 RUN deluser --remove-home node

@@ -1,4 +1,5 @@
 import {
+  Anchor,
   Box,
   createStyles,
   Group,
@@ -9,7 +10,7 @@ import {
 } from "@mantine/core";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import {
   TbAt,
   TbBinaryTree,
@@ -27,6 +28,8 @@ import {
   TbVirusSearch,
 } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
+import { APP_NAME, RELEASES_URL } from "../../constants";
+import versionService from "../../services/version.service";
 
 export const categories = [
   { name: "General", icon: <TbSettings /> },
@@ -90,6 +93,19 @@ const useStyles = createStyles((theme) => {
       borderRadius: theme.radius.sm,
       fontWeight: 600,
     },
+
+    // The category list is long enough to outgrow the navbar's own height
+    // on an ordinary laptop screen (confirmed: 11 categories overflows a
+    // 740px-tall navbar by ~160px) — without this, that overflow is just
+    // invisible past the fixed-position navbar's edge, taking the version
+    // memo below it down with it. minHeight: 0 is load-bearing: a flex
+    // child's default min-height is "auto" (its content size), which
+    // silently defeats overflow scrolling inside a flex column no matter
+    // what overflowY says.
+    categoryScroll: {
+      minHeight: 0,
+      overflowY: "auto",
+    },
   };
 });
 
@@ -102,6 +118,11 @@ const AdminNavBar = ({
 }) => {
   const { classes } = useStyles();
   const router = useRouter();
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    versionService.get().then(setVersion).catch(() => {});
+  }, []);
 
   const categorySlug =
     router.pathname === "/admin/config/[category]" &&
@@ -146,7 +167,7 @@ const AdminNavBar = ({
           })}
         </Stack>
       </Navbar.Section>
-      <Navbar.Section mt="md">
+      <Navbar.Section mt="md" grow className={classes.categoryScroll}>
         <Text size="xs" color="dimmed" mb="sm">
           <FormattedMessage id="admin.config.title" />
         </Text>
@@ -177,6 +198,19 @@ const AdminNavBar = ({
           })}
         </Stack>
       </Navbar.Section>
+      {version && (
+        <Navbar.Section pt="md">
+          <Anchor
+            href={RELEASES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            size="xs"
+            color="dimmed"
+          >
+            {APP_NAME} {version}
+          </Anchor>
+        </Navbar.Section>
+      )}
     </Navbar>
   );
 };
