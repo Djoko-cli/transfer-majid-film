@@ -13,7 +13,7 @@ import FileList from "./FileList";
 import PageDropOverlay from "./PageDropOverlay";
 import SplitTransferLayout from "./SplitTransferLayout";
 import TermsGate from "./TermsGate";
-import TransferCard from "./TransferCard";
+import TransferCard, { useSubmitButtonStyles } from "./TransferCard";
 import showCompletedUploadModal from "./modals/showCompletedUploadModal";
 import showEmailVerificationModal from "./modals/showEmailVerificationModal";
 import showNasImportModal from "./modals/showNasImportModal";
@@ -47,6 +47,7 @@ const Upload = ({
 }) => {
   const modals = useModals();
   const t = useTranslate();
+  const { classes: submitButtonClasses } = useSubmitButtonStyles();
 
   const { user } = useUser();
   const config = useConfig();
@@ -708,7 +709,10 @@ const Upload = ({
             !user && submittedSenderEmailRef.current
               ? submittedSenderEmailRef.current
               : undefined,
-            !isReverseShare,
+            // Both flows sit on a glass backdrop now (AuthGlassLayout for
+            // reverse-share, SplitTransferLayout for the main flow) - see
+            // showCompletedUploadModal's own comment on this parameter.
+            true,
             submittedModeRef.current,
             config.get("smtp.enabled") &&
               config.get("email.enableShareDownloadNotifications"),
@@ -781,6 +785,11 @@ const Upload = ({
               fullWidth
               loading={isUploading}
               onClick={submitReverseShare}
+              className={
+                !isUploading && files.length > 0
+                  ? submitButtonClasses.ready
+                  : undefined
+              }
             >
               <FormattedMessage id="common.button.share" />
             </Button>

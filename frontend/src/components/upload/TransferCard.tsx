@@ -83,7 +83,10 @@ const useHoldRepeat = (step: (delta: number) => void, disabled: boolean) => {
 // The pre-selection "waiting for input" pulse lives on the Dropzone
 // instead (see Dropzone.tsx's `waiting` prop) — that's the element the
 // user actually needs to act on, not this button.
-const useSubmitButtonStyles = createStyles((theme) => {
+// Exported for UploadPage's reverse-share submit button, the one other
+// "ready to send" primary action in this app - same glass-catching-light
+// shimmer once files are actually selected, not a separate copy of it.
+export const useSubmitButtonStyles = createStyles((theme) => {
   const dark = theme.colorScheme === "dark";
   const accent = theme.colors[theme.primaryColor][dark ? 4 : 6];
 

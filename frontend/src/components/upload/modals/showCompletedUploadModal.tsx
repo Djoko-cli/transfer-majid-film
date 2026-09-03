@@ -33,10 +33,14 @@ const showCompletedUploadModal = (
   appUrl: string,
   defaultAppUrl: string,
   anonymousEmail?: string,
-  // Only the main "/" flow (SplitTransferLayout + the brand image behind
-  // it) gets the glass treatment — this same modal is also the completion
-  // step for the legacy reverse-share flow, which has no brand image
-  // behind it and stays on its plain opaque styling.
+  // Both callers pass true now: the main "/" flow (SplitTransferLayout)
+  // and the reverse-share flow (AuthGlassLayout) each have their own
+  // brand image behind this modal, so both get the glass treatment.
+  // Reverse-share's completion screen used to stay on plain opaque
+  // styling here regardless - a leftover from before that flow moved
+  // onto AuthGlassLayout, not a deliberate difference; nothing about it
+  // actually lacked a backdrop to read against. false remains the
+  // default for a hypothetical caller with no glass backdrop of its own.
   glass = false,
   // "link" shows the real link (CopyTextField) plus the download-
   // notification line below when possible — showing it is the whole
