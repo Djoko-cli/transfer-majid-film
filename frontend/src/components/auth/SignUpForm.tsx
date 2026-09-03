@@ -219,19 +219,32 @@ const SignUpForm = ({ needsSetup }: { needsSetup?: boolean }) => {
               </Group>
             )}
             <Group position="center">
-              {oauthProviders.map((provider) => (
-                <Button
-                  key={provider}
-                  component="a"
-                  title={t(`signIn.oauth.${provider}`)}
-                  href={getOAuthUrl(resolveOAuthOrigin(config), provider)}
-                  variant="light"
-                  fullWidth
-                >
-                  {getOAuthIcon(provider)}
-                  {" " + t(`signIn.oauth.${provider}`)}
-                </Button>
-              ))}
+              {oauthProviders.map((provider) => {
+                // See oauth.oidc-signUpUrl's own comment in config.seed.ts
+                // - some providers (confirmed: Pocket ID) have no sign-up
+                // option on the OIDC authorization screen this button
+                // would otherwise land on, only on their own login page.
+                const oidcSignUpUrl =
+                  provider === "oidc" && config.get("oauth.oidc-signUpUrl");
+                return (
+                  <Button
+                    key={provider}
+                    component="a"
+                    title={t(`signIn.oauth.${provider}`)}
+                    href={
+                      oidcSignUpUrl ||
+                      getOAuthUrl(resolveOAuthOrigin(config), provider)
+                    }
+                    target={oidcSignUpUrl ? "_blank" : undefined}
+                    rel={oidcSignUpUrl ? "noopener noreferrer" : undefined}
+                    variant="light"
+                    fullWidth
+                  >
+                    {getOAuthIcon(provider)}
+                    {" " + t(`signIn.oauth.${provider}`)}
+                  </Button>
+                );
+              })}
             </Group>
           </Stack>
         )}

@@ -981,6 +981,9 @@ export default {
   "admin.config.oauth.oidc-discovery-uri": "OpenID Connect Discovery URI",
   "admin.config.oauth.oidc-discovery-uri.description":
     "Discovery URI of the OpenID Connect OAuth app",
+  "admin.config.oauth.oidc-sign-up-url": "OpenID Connect sign-up URL",
+  "admin.config.oauth.oidc-sign-up-url.description":
+    "Direct URL to the OpenID provider's own sign-up page (optional). When set, the “Sign up with OpenID” button opens it in a new tab instead of going through the standard sign-in flow, which sometimes has no sign-up option.",
   "admin.config.oauth.oidc-sign-out": "Sign out from OpenID Connect",
   "admin.config.oauth.oidc-sign-out.description":
     "Whether the “Sign out” button will sign out from the OpenID Connect provider",

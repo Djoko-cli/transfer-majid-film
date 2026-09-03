@@ -962,6 +962,9 @@ export default {
   "admin.config.oauth.oidc-discovery-uri": "URI de découverte OpenID",
   "admin.config.oauth.oidc-discovery-uri.description":
     "L’URI de découverte de la connexion à l'application OpenID OAuth",
+  "admin.config.oauth.oidc-sign-up-url": "URL d'inscription OpenID",
+  "admin.config.oauth.oidc-sign-up-url.description":
+    "URL directe de la page d'inscription du fournisseur OpenID (optionnel). Si renseignée, le bouton « S'inscrire avec OpenID » y renvoie directement dans un nouvel onglet au lieu de passer par le flux de connexion standard, qui ne propose parfois pas d'inscription.",
   "admin.config.oauth.oidc-sign-out":
     "Déconnexion du fournisseur OpenID Connect",
   "admin.config.oauth.oidc-sign-out.description":

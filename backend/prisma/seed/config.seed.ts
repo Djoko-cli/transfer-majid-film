@@ -547,6 +547,25 @@ export const configVariables = {
       type: "string",
       defaultValue: "",
     },
+    // Optional escape hatch: Pocket ID (and possibly other providers) has
+    // no sign-up option on its OIDC *authorization* screen even once its
+    // own login page offers one - confirmed by reading its source, the
+    // unauthenticated /authorize redirect lands on /interaction, a
+    // component with only a sign-in button, never on /login (which does
+    // conditionally render "Sign up"). When set, SignUpForm's "Sign up
+    // with OpenID" button links straight to this URL (the provider's own
+    // sign-up page) instead of through the normal /api/oauth/auth/oidc
+    // flow; blank (default) keeps today's behavior for providers where
+    // that flow already handles sign-up fine.
+    // secret: false (like disablePassword above) - SignUpForm reads this
+    // through the generic public /configs list, same as every other
+    // config useConfig() exposes to a signed-out visitor; it's just a URL,
+    // nothing sensitive about it being world-readable.
+    "oidc-signUpUrl": {
+      type: "string",
+      defaultValue: "",
+      secret: false,
+    },
     // True by default: without it, "Se déconnecter" only ever clears
     // Transfer's own session, never the identity provider's - anyone
     // else using the same browser afterward inherits whatever OIDC
