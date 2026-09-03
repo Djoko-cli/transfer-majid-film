@@ -470,9 +470,10 @@ export default {
     "{count} fichier(s) ignoré(s) (déjà présents dans ce partage)",
   "upload.nasImport.progress": "{done} / {total} fichiers importés",
 
-  // showNasImportModal.tsx (its options step - formerly a separate
-  // showCreateUploadModal.tsx, folded in when the two-modal NAS-import
-  // flow became one continuous modal)
+  // TransferCard.tsx's own inline share-options form (name, recipients,
+  // expiration, security) — shared by both a regular drag-and-drop upload
+  // and a confirmed NAS import selection, not a modal despite the key
+  // prefix.
   "upload.modal.title": "Créer un partage",
   "upload.modal.link.error.invalid":
     "Ne peut contenir que des lettres, des chiffres, des tirets bas et des traits d'union",

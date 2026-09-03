@@ -60,6 +60,18 @@ const Upload = ({
     done: number;
     total: number;
   } | null>(null);
+  // A confirmed-but-not-yet-submitted NAS selection - set once the browse
+  // modal hands back a choice, cleared once importFromNas finishes
+  // successfully (or the user removes it via TransferCard's own clear
+  // affordance). While this is set, TransferCard shows a summary of it
+  // instead of the dropzone/file-list, using the exact same inline share-
+  // options form and "Partager" button a regular upload does - the NAS
+  // button used to hand off to its own second modal collecting that same
+  // form again, which is exactly the duplication this replaces.
+  const [nasImportSelection, setNasImportSelection] = useState<{
+    paths: string[];
+    preview: NasImportPreview;
+  } | null>(null);
 
   // Cookie-backed (see _app.tsx) rather than localStorage - the server can
   // read a cookie back off the request, so a returning visitor's very
@@ -257,7 +269,15 @@ const Upload = ({
   // required. share.senderEmail is already populated whenever the sender
   // typed their email into TransferCard (any mode, not just "email"), so
   // the OTP modal only needs to ask for the code, not the address again.
+  // A pending NAS selection takes a completely different path (no bytes to
+  // upload, no OTP gate - see importFromNas's own comment) and is checked
+  // first, before any of that machinery.
   const startUpload = (share: CreateShare, mode: Mode = "link") => {
+    if (nasImportSelection) {
+      importFromNas(share, nasImportSelection.paths, nasImportSelection.preview);
+      return;
+    }
+
     submittedSenderEmailRef.current = share.senderEmail || null;
     submittedModeRef.current = mode;
 
@@ -363,6 +383,10 @@ const Upload = ({
       );
       setisUploading(false);
       setNasImportProgress(null);
+      // Only cleared on real success — left intact on any of the errors
+      // above so "Partager" retries the same selection, the same way a
+      // failed regular upload leaves `files` alone for its own retry.
+      setNasImportSelection(null);
       showCompletedUploadModal(
         modals,
         completedShare,
@@ -382,24 +406,9 @@ const Upload = ({
   };
 
   const openNasImportModal = () => {
-    showNasImportModal(
-      modals,
-      {
-        isUserSignedIn: user ? true : false,
-        allowUnauthenticatedShares: config.get(
-          "share.allowUnauthenticatedShares",
-        ),
-        enableEmailRecepients: config.get("email.enableShareEmailRecipients"),
-        enableUserRecipients: config.get("share.enableUserRecipients"),
-        maxExpiration:
-          user?.isAdmin || user?.canCreatePermanentShares
-            ? { value: 0, unit: "days" }
-            : config.get("share.maxExpiration"),
-        defaultExpiration: config.get("share.defaultExpiration"),
-        shareIdLength: config.get("share.shareIdLength"),
-      },
-      (share, paths, preview) => importFromNas(share, paths, preview),
-    );
+    showNasImportModal(modals, (paths, preview) => {
+      setNasImportSelection({ paths, preview });
+    });
   };
 
   const handleDropzoneFilesChanged = (newFiles: FileUpload[]) => {
@@ -598,11 +607,14 @@ const Upload = ({
   // its own prop comment for the full history of where this used to live
   // and why). Gated here exactly as before: hidden until hasAcceptedTerms,
   // never on the reverse-share flow, admin-only, behind the config toggle.
+  // Only the button's onClick now - once a selection exists, TransferCard
+  // hides the dropzone (and this button along with it) entirely, so
+  // there's nothing left here that ever needs to reflect import progress.
   const nasImport = hasAcceptedTerms &&
     !isReverseShare &&
     user?.isAdmin &&
     config.get("share.enableNasImport")
-      ? { onClick: openNasImportModal, progress: nasImportProgress }
+      ? { onClick: openNasImportModal }
       : undefined;
 
   // The actual content each flow shows once past the terms gate -
@@ -683,6 +695,9 @@ const Upload = ({
       defaultExpiration={config.get("share.defaultExpiration")}
       shareIdLength={config.get("share.shareIdLength")}
       nasImport={nasImport}
+      nasImportPreview={nasImportSelection?.preview ?? null}
+      nasImportProgress={nasImportProgress}
+      onClearNasImport={() => setNasImportSelection(null)}
     />
   );
 

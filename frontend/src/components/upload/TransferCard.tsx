@@ -1,13 +1,16 @@
 import {
   Accordion,
+  ActionIcon,
   Button,
   Checkbox,
   Collapse,
   createStyles,
+  Group,
   MantineProvider,
   MultiSelect,
   NumberInput,
   PasswordInput,
+  Progress,
   SegmentedControl,
   Stack,
   Text,
@@ -20,15 +23,17 @@ import glassFormTheme from "./glassFormTheme";
 import { useForm, yupResolver } from "@mantine/form";
 import moment from "moment";
 import React, { useEffect, useRef, useState } from "react";
-import { TbChevronDown, TbChevronUp } from "react-icons/tb";
+import { TbChevronDown, TbChevronUp, TbTrash } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
 import AnimatedHeight from "../core/AnimatedHeight";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import { FileUpload } from "../../types/File.type";
+import { NasImportPreview } from "../../types/nasImport.type";
 import { CreateShare, Mode } from "../../types/share.type";
 import { Timespan } from "../../types/timespan.type";
+import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import { getExpirationPreview } from "../../utils/date.util";
 import { getDefaultShareName } from "../../utils/file.util";
 import { generateAvailableShareId } from "../../utils/share.util";
@@ -125,6 +130,69 @@ const useSubmitButtonStyles = createStyles((theme) => {
   };
 });
 
+// Stands in for FileList when a NAS selection (rather than real dropped
+// files) is what this card is about to share - same slot, same
+// surrounding form, but there's no per-file list to show (only an
+// aggregate count/size from the server-side preview walk, see
+// showNasImportModal.tsx) and nothing to individually cancel/retry, only
+// the whole selection to clear. `progress` mirrors FileList's own
+// isUploading-gated aggregate bar one-for-one, just sourced from the
+// batch-commit loop (UploadPage's importFromNas) instead of per-file
+// chunk progress.
+const NasImportSummary = ({
+  preview,
+  progress,
+  onClear,
+}: {
+  preview: NasImportPreview;
+  progress: { done: number; total: number } | null;
+  onClear?: () => void;
+}) => {
+  const t = useTranslate();
+
+  return (
+    <Stack spacing={4}>
+      {progress ? (
+        <>
+          <Text size="xs" color="dimmed">
+            {t("upload.nasImport.progress", {
+              done: progress.done,
+              total: progress.total,
+            })}
+          </Text>
+          <Progress
+            value={
+              progress.total > 0 ? (progress.done / progress.total) * 100 : 0
+            }
+            size="sm"
+            animate
+          />
+        </>
+      ) : (
+        <Group position="apart" noWrap>
+          <Text size="sm">
+            {t("upload.nasImport.modal.preview-result", {
+              count: preview.fileCount,
+              size: byteToHumanSizeString(preview.totalSize),
+            })}
+          </Text>
+          {onClear && (
+            <ActionIcon
+              color="red"
+              variant="light"
+              size={25}
+              aria-label={t("common.button.delete")}
+              onClick={onClear}
+            >
+              <TbTrash />
+            </ActionIcon>
+          )}
+        </Group>
+      )}
+    </Stack>
+  );
+};
+
 const TransferCard = ({
   files,
   isUploading,
@@ -143,6 +211,9 @@ const TransferCard = ({
   defaultExpiration,
   shareIdLength,
   nasImport,
+  nasImportPreview,
+  nasImportProgress,
+  onClearNasImport,
 }: {
   files: FileUpload[];
   isUploading: boolean;
@@ -165,10 +236,25 @@ const TransferCard = ({
   shareIdLength: number;
   // Passed straight through to Dropzone - see its own prop comment.
   // Undefined on every caller except UploadPage's direct-upload flow.
-  nasImport?: {
-    onClick: () => void;
-    progress: { done: number; total: number } | null;
-  };
+  nasImport?: { onClick: () => void };
+  // A confirmed NAS selection, not yet submitted - when set, this card
+  // shows a summary of it (and the button to clear it) instead of the
+  // dropzone/file-list, while the rest of the form below (expiration,
+  // name, recipients, security, the "Partager" button itself) stays
+  // exactly the same one already used for a regular upload. null rather
+  // than undefined so a caller with nothing to say here can still pass
+  // it explicitly - this card treats "no prop" and "explicitly nothing
+  // selected" identically either way, but every other caller of this
+  // component simply omits nasImport itself instead, so this one only
+  // needs to exist for UploadPage's own direct-upload flow.
+  nasImportPreview?: NasImportPreview | null;
+  // The live batch-commit progress while isUploading is true and a NAS
+  // selection (above) is what's being submitted - same shape and same
+  // source (UploadPage's own nasImportProgress state) as the progress
+  // bar a real upload's own FileList already shows while isUploading,
+  // just for the NAS-import case's own summary block instead.
+  nasImportProgress?: { done: number; total: number } | null;
+  onClearNasImport?: () => void;
 }) => {
   const t = useTranslate();
   const theme = useMantineTheme();
@@ -423,17 +509,27 @@ const TransferCard = ({
             // decisions about yet. Everything below only makes sense once
             // files exist, so it now follows rather than precedes them.
           }
-          <Dropzone
-            maxShareSize={maxShareSize}
-            currentFilesSize={currentFilesSize}
-            onFilesChanged={onFilesChanged}
-            isUploading={isUploading}
-            waiting={files.length === 0}
-            compact={files.length > 0}
-            tightenWhenEmpty
-            glass
-            nasImport={nasImport}
-          />
+          {
+            // Hidden rather than just disabled once a NAS selection is
+            // pending — mixing a real drag-and-drop upload with a NAS
+            // import in the same share was never a thing this supported
+            // (see importFromNas's own comment: a share is one or the
+            // other), and hiding the drop target entirely says that more
+            // clearly than a disabled-but-still-there one would.
+          }
+          {!nasImportPreview && (
+            <Dropzone
+              maxShareSize={maxShareSize}
+              currentFilesSize={currentFilesSize}
+              onFilesChanged={onFilesChanged}
+              isUploading={isUploading}
+              waiting={files.length === 0}
+              compact={files.length > 0}
+              tightenWhenEmpty
+              glass
+              nasImport={nasImport}
+            />
+          )}
           {
             // Everything from here down — the file list, delivery mode,
             // name, recipients, how long the transfer lives — is what
@@ -461,15 +557,23 @@ const TransferCard = ({
             // on this region whether it has anything to show or not.
           }
           <AnimatedHeight duration={300} gapWhenOpen={16}>
-            {files.length > 0 ? (
+            {files.length > 0 || nasImportPreview ? (
               <Stack align="stretch">
-                <FileList<FileUpload>
-                  files={files}
-                  setFiles={setFiles}
-                  isUploading={isUploading}
-                  onCancel={onCancelUpload}
-                  onRetry={onRetryFile}
-                />
+                {nasImportPreview ? (
+                  <NasImportSummary
+                    preview={nasImportPreview}
+                    progress={isUploading ? nasImportProgress ?? null : null}
+                    onClear={onClearNasImport}
+                  />
+                ) : (
+                  <FileList<FileUpload>
+                    files={files}
+                    setFiles={setFiles}
+                    isUploading={isUploading}
+                    onCancel={onCancelUpload}
+                    onRetry={onRetryFile}
+                  />
+                )}
                 {
                   // Moved below the dropzone (it used to open the card) —
                   // asking how a transfer will be delivered before a single
@@ -835,10 +939,10 @@ const TransferCard = ({
                 <Button
                   type="submit"
                   size="md"
-                  disabled={files.length === 0}
+                  disabled={files.length === 0 && !nasImportPreview}
                   loading={isUploading}
                   className={
-                    !isUploading && files.length > 0
+                    !isUploading && (files.length > 0 || nasImportPreview)
                       ? submitButtonClasses.ready
                       : undefined
                   }

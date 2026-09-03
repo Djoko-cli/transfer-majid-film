@@ -5,7 +5,6 @@ import {
   Collapse,
   createStyles,
   Group,
-  Progress,
   Stack,
   Text,
   Menu,
@@ -274,13 +273,12 @@ const Dropzone = ({
   // cascaded into BrandPanel's caption overlapping the real footer.
   // Rendering here instead means it never sits outside the card's own
   // already-correctly-stacked box in the first place.
+  // Once clicked, TransferCard hides this whole Dropzone in favor of its
+  // own NasImportSummary (see that component's own comment) - so this
+  // button is only ever visible before a selection exists, never needing
+  // to reflect progress or anything else about one already in flight.
   nasImport?: {
     onClick: () => void;
-    // Replaces the button row with a progress readout for the duration of
-    // an import, the same "trigger becomes its own status" idea as the
-    // submit button's own `loading` state elsewhere in this app - rather
-    // than reserving extra vertical space here for both at once.
-    progress: { done: number; total: number } | null;
   };
 }) => {
   const t = useTranslate();
@@ -471,26 +469,7 @@ const Dropzone = ({
             className={classes.control}
             sx={{ bottom: compact ? -14 : -20 }}
           >
-            {nasImport?.progress ? (
-              <Stack spacing={2} sx={{ minWidth: 200 }}>
-                <Text size="xs" color="dimmed" align="center">
-                  {t("upload.nasImport.progress", {
-                    done: nasImport.progress.done,
-                    total: nasImport.progress.total,
-                  })}
-                </Text>
-                <Progress
-                  value={
-                    nasImport.progress.total > 0
-                      ? (nasImport.progress.done / nasImport.progress.total) *
-                        100
-                      : 0
-                  }
-                  size="sm"
-                  animate
-                />
-              </Stack>
-            ) : (
+            {
               // Stack, not a side-by-side Group: measured live, "Importer
               // un dossier" and "Importer depuis le NAS" at this button
               // size come to ~215px each - together wider than this card's
@@ -502,39 +481,39 @@ const Dropzone = ({
               // size or label to shrink just to force a fit that isn't
               // there - matches the "or just above" alternative offered
               // alongside "juxtaposed" for exactly this case.
-              <Stack spacing="xs" align="center">
-                {isFolderUploadSupported && (
-                  <Button
-                    variant={dark ? "filled" : "light"}
-                    size="sm"
-                    radius="xl"
-                    disabled={isUploading}
-                    onClick={() => folderInputRef.current?.click()}
-                  >
-                    <TbFolder style={{ marginRight: 6 }} />
-                    <FormattedMessage
-                      id={
-                        currentFilesSize > 0
-                          ? "upload.button.folder.append"
-                          : "upload.button.folder"
-                      }
-                    />
-                  </Button>
-                )}
-                {nasImport && (
-                  <Button
-                    variant={dark ? "filled" : "light"}
-                    size="sm"
-                    radius="xl"
-                    disabled={isUploading}
-                    onClick={nasImport.onClick}
-                  >
-                    <TbServer style={{ marginRight: 6 }} />
-                    <FormattedMessage id="upload.nasImport.button" />
-                  </Button>
-                )}
-              </Stack>
-            )}
+            }
+            <Stack spacing="xs" align="center">
+              {isFolderUploadSupported && (
+                <Button
+                  variant={dark ? "filled" : "light"}
+                  size="sm"
+                  radius="xl"
+                  disabled={isUploading}
+                  onClick={() => folderInputRef.current?.click()}
+                >
+                  <TbFolder style={{ marginRight: 6 }} />
+                  <FormattedMessage
+                    id={
+                      currentFilesSize > 0
+                        ? "upload.button.folder.append"
+                        : "upload.button.folder"
+                    }
+                  />
+                </Button>
+              )}
+              {nasImport && (
+                <Button
+                  variant={dark ? "filled" : "light"}
+                  size="sm"
+                  radius="xl"
+                  disabled={isUploading}
+                  onClick={nasImport.onClick}
+                >
+                  <TbServer style={{ marginRight: 6 }} />
+                  <FormattedMessage id="upload.nasImport.button" />
+                </Button>
+              )}
+            </Stack>
           </Box>
         )}
       </Center>
