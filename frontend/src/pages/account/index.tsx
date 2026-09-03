@@ -430,39 +430,46 @@ const Account = () => {
           </Paper>
           {/* Light mode is retired from display for now — ThemeSwitcher and
             its translations are untouched, just not rendered here. */}
-          <Center mt={80} mb="lg">
-            <Stack>
-              <Button
-                variant="light"
-                color="red"
-                onClick={() =>
-                  modals.openConfirmModal({
-                    title: t("account.modal.delete.title"),
-                    styles: glassModalStyles,
-                    children: (
-                      <Text size="sm">
-                        <FormattedMessage id="account.modal.delete.description" />
-                      </Text>
-                    ),
+          {/* Hidden for admins - deleteCurrentUser has no isAdmin check on
+            the backend (unlike every admin-scoped mutation elsewhere in
+            this app), so this was one accidental click away from an admin
+            deleting their own account with no "last admin" or role guard
+            catching it. */}
+          {!user?.isAdmin && (
+            <Center mt={80} mb="lg">
+              <Stack>
+                <Button
+                  variant="light"
+                  color="red"
+                  onClick={() =>
+                    modals.openConfirmModal({
+                      title: t("account.modal.delete.title"),
+                      styles: glassModalStyles,
+                      children: (
+                        <Text size="sm">
+                          <FormattedMessage id="account.modal.delete.description" />
+                        </Text>
+                      ),
 
-                    labels: {
-                      confirm: t("common.button.delete"),
-                      cancel: t("common.button.cancel"),
-                    },
-                    confirmProps: { color: "red" },
-                    onConfirm: async () => {
-                      await userService
-                        .removeCurrentUser()
-                        .then(() => window.location.reload())
-                        .catch(toast.axiosError);
-                    },
-                  })
-                }
-              >
-                <FormattedMessage id="account.button.delete" />
-              </Button>
-            </Stack>
-          </Center>
+                      labels: {
+                        confirm: t("common.button.delete"),
+                        cancel: t("common.button.cancel"),
+                      },
+                      confirmProps: { color: "red" },
+                      onConfirm: async () => {
+                        await userService
+                          .removeCurrentUser()
+                          .then(() => window.location.reload())
+                          .catch(toast.axiosError);
+                      },
+                    })
+                  }
+                >
+                  <FormattedMessage id="account.button.delete" />
+                </Button>
+              </Stack>
+            </Center>
+          )}
         </Container>
       </MantineProvider>
     </>
