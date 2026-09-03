@@ -142,6 +142,7 @@ const TransferCard = ({
   maxExpiration,
   defaultExpiration,
   shareIdLength,
+  nasImport,
 }: {
   files: FileUpload[];
   isUploading: boolean;
@@ -162,6 +163,12 @@ const TransferCard = ({
   maxExpiration: Timespan;
   defaultExpiration: Timespan;
   shareIdLength: number;
+  // Passed straight through to Dropzone - see its own prop comment.
+  // Undefined on every caller except UploadPage's direct-upload flow.
+  nasImport?: {
+    onClick: () => void;
+    progress: { done: number; total: number } | null;
+  };
 }) => {
   const t = useTranslate();
   const theme = useMantineTheme();
@@ -425,6 +432,7 @@ const TransferCard = ({
             compact={files.length > 0}
             tightenWhenEmpty
             glass
+            nasImport={nasImport}
           />
           {
             // Everything from here down — the file list, delivery mode,

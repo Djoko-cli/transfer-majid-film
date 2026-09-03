@@ -1,4 +1,4 @@
-import { Box, Button, Group, Progress, Stack, Text } from "@mantine/core";
+import { Box, Button, Stack } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { cleanNotifications } from "@mantine/notifications";
 import { AxiosError } from "axios";
@@ -602,59 +602,16 @@ const Upload = ({
     }
   }, [files]);
 
-  // The NAS-import button is another way to add files, same as the
-  // dropzone itself - stays behind the same gate, hidden until
-  // hasAcceptedTerms, rather than only ever having lived in a return
-  // branch the gate made unreachable (see git history: before this was
-  // merged into one shared structure below, it simply never rendered
-  // while gated, as a side effect of which branch that was in — this
-  // condition keeps that same effective behavior on purpose, now that
-  // there's no separate branch to rely on for it).
-  const nasImportPanel = hasAcceptedTerms &&
+  // Passed to TransferCard (which forwards it straight to Dropzone - see
+  // its own prop comment for the full history of where this used to live
+  // and why). Gated here exactly as before: hidden until hasAcceptedTerms,
+  // never on the reverse-share flow, admin-only, behind the config toggle.
+  const nasImport = hasAcceptedTerms &&
     !isReverseShare &&
     user?.isAdmin &&
-    config.get("share.enableNasImport") && (
-      // position+zIndex required: this renders as a plain static-flow
-      // sibling *before* SplitTransferLayout (see the return below), and
-      // BrandPanel's fixed photo backdrop inside it paints above static
-      // content regardless of DOM order once it's positioned - confirmed
-      // live (document.elementFromPoint at this button's own coordinates
-      // returned BrandPanel's <img>, not the button) after it was reported
-      // uploading fine but the button itself invisible. zIndex: 2 matches
-      // SplitTransferLayout's own cardSlot, already proven sufficient to
-      // sit above the same photo.
-      <Stack spacing={4} mb="sm" sx={{ position: "relative", zIndex: 2 }}>
-        <Group position="right">
-          <Button
-            variant="subtle"
-            size="xs"
-            disabled={isUploading}
-            onClick={openNasImportModal}
-          >
-            <FormattedMessage id="upload.nasImport.button" />
-          </Button>
-        </Group>
-        {nasImportProgress && (
-          <Stack spacing={2}>
-            <Text size="xs" color="dimmed" align="right">
-              {t("upload.nasImport.progress", {
-                done: nasImportProgress.done,
-                total: nasImportProgress.total,
-              })}
-            </Text>
-            <Progress
-              value={
-                nasImportProgress.total > 0
-                  ? (nasImportProgress.done / nasImportProgress.total) * 100
-                  : 0
-              }
-              size="sm"
-              animate
-            />
-          </Stack>
-        )}
-      </Stack>
-    );
+    config.get("share.enableNasImport")
+      ? { onClick: openNasImportModal, progress: nasImportProgress }
+      : undefined;
 
   // The actual content each flow shows once past the terms gate -
   // pulled out so both this and TermsGate itself can sit as siblings
@@ -733,6 +690,7 @@ const Upload = ({
       }
       defaultExpiration={config.get("share.defaultExpiration")}
       shareIdLength={config.get("share.shareIdLength")}
+      nasImport={nasImport}
     />
   );
 
@@ -781,10 +739,7 @@ const Upload = ({
         // exactly like TransferCard's own).
         <AuthGlassLayout>{gatedContent}</AuthGlassLayout>
       ) : (
-        <>
-          {nasImportPanel}
-          <SplitTransferLayout>{gatedContent}</SplitTransferLayout>
-        </>
+        <SplitTransferLayout>{gatedContent}</SplitTransferLayout>
       )}
     </>
   );

@@ -1,16 +1,19 @@
 import {
+  Box,
   Button,
   Center,
   Collapse,
   createStyles,
   Group,
+  Progress,
+  Stack,
   Text,
   Menu,
   useMantineColorScheme,
 } from "@mantine/core";
 import { Dropzone as MantineDropzone } from "@mantine/dropzone";
 import React, { ForwardedRef, useEffect, useRef, useState } from "react";
-import { TbCloudUpload, TbUpload, TbFolder } from "react-icons/tb";
+import { TbCloudUpload, TbUpload, TbFolder, TbServer } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import { fromEvent } from "file-selector";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -24,30 +27,42 @@ const useStyles = createStyles(
     {
       compact,
       tightenWhenEmpty,
-    }: { compact: boolean; tightenWhenEmpty: boolean },
+      hasNasImport,
+    }: { compact: boolean; tightenWhenEmpty: boolean; hasNasImport: boolean },
   ) => {
     const dark = theme.colorScheme === "dark";
     const accent = theme.colors[theme.primaryColor][dark ? 4 : 6];
 
     return {
-      // Reserves room for the floating "add a folder" button below
-      // (control, further down), which hangs outside the dropzone's own box
-      // via `bottom: -20`. 30 — the original, unconditional value — unless
-      // both compact is false (nothing has narrowed this to the slim bar
-      // yet) *and* the caller opted into tightenWhenEmpty: with
-      // files.length === 0, this dropzone usually *is* the entire visible
-      // card, so any slack here stacks directly on top of the card's own
-      // bottom padding — the top of the dropzone has no equivalent floating
-      // element eating into its own margin, and the mismatch reads as an
-      // off-center card. Opt-in rather than unconditional: a caller that
-      // doesn't sit inside a padded glass card (there isn't one left in
-      // this app any more — both TransferCard and UploadPage's reverse-share
-      // flow now render inside one, see SplitTransferLayout/AuthGlassLayout)
-      // would want the original 30 instead, so this stays a per-caller
-      // choice rather than the new default.
+      // Reserves room for the floating control row below (control, further
+      // down), which hangs outside the dropzone's own box via `bottom:
+      // -20`. 30 — the original, unconditional value — unless both compact
+      // is false (nothing has narrowed this to the slim bar yet) *and* the
+      // caller opted into tightenWhenEmpty: with files.length === 0, this
+      // dropzone usually *is* the entire visible card, so any slack here
+      // stacks directly on top of the card's own bottom padding — the top
+      // of the dropzone has no equivalent floating element eating into its
+      // own margin, and the mismatch reads as an off-center card. Opt-in
+      // rather than unconditional: a caller that doesn't sit inside a
+      // padded glass card (there isn't one left in this app any more —
+      // both TransferCard and UploadPage's reverse-share flow now render
+      // inside one, see SplitTransferLayout/AuthGlassLayout) would want
+      // the original 30 instead, so this stays a per-caller choice rather
+      // than the new default.
+      //
+      // +46 when nasImport is set: that control now stacks two buttons
+      // (see its own comment further down for why a stack rather than a
+      // side-by-side row) instead of one, and this reservation only ever
+      // accounted for one row's worth of height. 46 ≈ one button's own
+      // height (~36px) plus the xs gap between them (theme.spacing.xs,
+      // 10px) - confirmed against a live measurement showing the
+      // single-row reservation left the floating control's real bottom
+      // edge overlapping the next sibling by exactly that much once it
+      // became two rows.
       wrapper: {
         position: "relative",
-        marginBottom: !compact && tightenWhenEmpty ? 20 : 30,
+        marginBottom:
+          (!compact && tightenWhenEmpty ? 20 : 30) + (hasNasImport ? 46 : 0),
       },
 
       dropzone: {
@@ -216,6 +231,7 @@ const Dropzone = ({
   waiting = false,
   compact = false,
   tightenWhenEmpty = false,
+  nasImport,
 }: {
   title?: string;
   isUploading: boolean;
@@ -236,9 +252,34 @@ const Dropzone = ({
   // can be the entire visible card with nothing padded around it to absorb
   // the extra. See wrapper's own comment in useStyles for the full reasoning.
   tightenWhenEmpty?: boolean;
+  // Only ever set by UploadPage's own direct (non-reverse-share) flow,
+  // already gated there on hasAcceptedTerms/isReverseShare/isAdmin/the
+  // config toggle — undefined here means exactly "don't show it", the same
+  // gate this dropzone already applies to the plain folder button via
+  // isFolderUploadSupported. Was its own floating panel above the whole
+  // card (see git history) - moved to sit right next to "Importer un
+  // dossier" instead, same style, at the user's own request, once it
+  // turned out that panel's mere presence (even before it was reliably
+  // visible - see UploadPage.tsx's own history) was pushing
+  // SplitTransferLayout's full-bleed photo down by its own height, which
+  // cascaded into BrandPanel's caption overlapping the real footer.
+  // Rendering here instead means it never sits outside the card's own
+  // already-correctly-stacked box in the first place.
+  nasImport?: {
+    onClick: () => void;
+    // Replaces the button row with a progress readout for the duration of
+    // an import, the same "trigger becomes its own status" idea as the
+    // submit button's own `loading` state elsewhere in this app - rather
+    // than reserving extra vertical space here for both at once.
+    progress: { done: number; total: number } | null;
+  };
 }) => {
   const t = useTranslate();
-  const { classes, cx } = useStyles({ compact, tightenWhenEmpty });
+  const { classes, cx } = useStyles({
+    compact,
+    tightenWhenEmpty,
+    hasNasImport: !!nasImport,
+  });
   const openRef = useRef<() => void>();
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -416,25 +457,76 @@ const Dropzone = ({
         </div>
       </MantineDropzone>
       <Center>
-        {isFolderUploadSupported && (
-          <Button
+        {(isFolderUploadSupported || nasImport) && (
+          <Box
             className={classes.control}
             sx={{ bottom: compact ? -14 : -20 }}
-            variant={dark ? "filled" : "light"}
-            size="sm"
-            radius="xl"
-            disabled={isUploading}
-            onClick={() => folderInputRef.current?.click()}
           >
-            <TbFolder style={{ marginRight: 6 }} />
-            <FormattedMessage
-              id={
-                currentFilesSize > 0
-                  ? "upload.button.folder.append"
-                  : "upload.button.folder"
-              }
-            />
-          </Button>
+            {nasImport?.progress ? (
+              <Stack spacing={2} sx={{ minWidth: 200 }}>
+                <Text size="xs" color="dimmed" align="center">
+                  {t("upload.nasImport.progress", {
+                    done: nasImport.progress.done,
+                    total: nasImport.progress.total,
+                  })}
+                </Text>
+                <Progress
+                  value={
+                    nasImport.progress.total > 0
+                      ? (nasImport.progress.done / nasImport.progress.total) *
+                        100
+                      : 0
+                  }
+                  size="sm"
+                  animate
+                />
+              </Stack>
+            ) : (
+              // Stack, not a side-by-side Group: measured live, "Importer
+              // un dossier" and "Importer depuis le NAS" at this button
+              // size come to ~215px each - together wider than this card's
+              // own content width (~390px minus the pair's own gap), so a
+              // wrap-based Group either overflowed past the card's edges
+              // (no width constraint) or wrapped unpredictably depending on
+              // viewport width once one was added. A deterministic vertical
+              // stack, centered, sidesteps needing either button's existing
+              // size or label to shrink just to force a fit that isn't
+              // there - matches the "or just above" alternative offered
+              // alongside "juxtaposed" for exactly this case.
+              <Stack spacing="xs" align="center">
+                {isFolderUploadSupported && (
+                  <Button
+                    variant={dark ? "filled" : "light"}
+                    size="sm"
+                    radius="xl"
+                    disabled={isUploading}
+                    onClick={() => folderInputRef.current?.click()}
+                  >
+                    <TbFolder style={{ marginRight: 6 }} />
+                    <FormattedMessage
+                      id={
+                        currentFilesSize > 0
+                          ? "upload.button.folder.append"
+                          : "upload.button.folder"
+                      }
+                    />
+                  </Button>
+                )}
+                {nasImport && (
+                  <Button
+                    variant={dark ? "filled" : "light"}
+                    size="sm"
+                    radius="xl"
+                    disabled={isUploading}
+                    onClick={nasImport.onClick}
+                  >
+                    <TbServer style={{ marginRight: 6 }} />
+                    <FormattedMessage id="upload.nasImport.button" />
+                  </Button>
+                )}
+              </Stack>
+            )}
+          </Box>
         )}
       </Center>
     </div>
