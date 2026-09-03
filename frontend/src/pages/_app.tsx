@@ -263,8 +263,13 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                                 // normal last element would — without this,
                                 // a page whose content reaches the bottom of
                                 // the viewport would have its last bit hidden
-                                // underneath it.
-                                paddingBottom: "var(--footer-height, 40px)",
+                                // underneath it. --cookie-notice-clearance
+                                // (see CookieNotice.tsx) stacks the same way
+                                // for the notice floating just above the
+                                // footer - 0px once it's dismissed or never
+                                // shown.
+                                paddingBottom:
+                                  "calc(var(--footer-height, 40px) + var(--cookie-notice-clearance, 0px))",
                               }}
                             >
                               <Header pushContentRef={pageContentRef} />

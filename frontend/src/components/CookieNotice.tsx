@@ -5,8 +5,9 @@ import {
   Text,
   Transition,
   createStyles,
+  useMantineTheme,
 } from "@mantine/core";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TbX } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import useTranslate from "../hooks/useTranslate.hook";
@@ -94,6 +95,7 @@ const useStyles = createStyles((theme) => {
 
 const CookieNotice = () => {
   const { classes } = useStyles();
+  const theme = useMantineTheme();
   const t = useTranslate();
   // Starts dismissed (hidden) on every render, server and client alike -
   // same hydration-safety reasoning as TermsGate's hasAcceptedTerms:
@@ -105,6 +107,60 @@ const CookieNotice = () => {
   useEffect(() => {
     setDismissed(userPreferences.get("cookieNoticeDismissed") === "true");
   }, []);
+
+  // Published as a CSS var, same reasoning and pattern as Footer's own
+  // --footer-height (see Footer.tsx): pages whose bottom content needs to
+  // stay clear of this card - not just the footer beneath it - live
+  // several components away with no shared parent, and this card's real
+  // height varies (locale, font size). --footer-height alone used to be
+  // what _app.tsx's own paddingBottom reserved, which left this card
+  // overlapping tall in-flow content on mobile (e.g. the upload page's
+  // terms gate) whenever both happened to be visible at once - reported
+  // from the user's own screenshot.
+  //
+  // A callback ref, not a plain useRef read from a `dismissed`-keyed
+  // effect: Transition (react-transition-group underneath) doesn't
+  // guarantee the Box is actually attached in the same commit `dismissed`
+  // flips to false, so an effect keyed on `dismissed` can fire while
+  // cardRef.current is still null, find nothing to measure, and never get
+  // another chance (nothing re-triggers it afterward) - confirmed live,
+  // this is exactly what happened. A callback ref instead fires precisely
+  // on real attach/detach, so it naturally publishes the real height once
+  // mounted and reverts to 0px only once Transition actually removes the
+  // node - i.e. after the exit animation finishes, not the instant the
+  // close button is clicked.
+  const observerRef = useRef<ResizeObserver | null>(null);
+  const publishClearance = useCallback(
+    (el: HTMLDivElement | null) => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+
+      if (!el) {
+        document.documentElement.style.setProperty(
+          "--cookie-notice-clearance",
+          "0px",
+        );
+        return;
+      }
+
+      // theme.spacing.md is a rem string ("1rem"), not a number - built as
+      // a calc() expression rather than added in JS, same reasoning as
+      // this card's own `bottom` above (mixing px and rem needs the
+      // browser to resolve it; adding "1rem" to a number in JS would
+      // silently string-concatenate instead of erroring).
+      const publish = () =>
+        document.documentElement.style.setProperty(
+          "--cookie-notice-clearance",
+          `calc(${el.offsetHeight}px + ${theme.spacing.md})`,
+        );
+      publish();
+
+      const observer = new ResizeObserver(publish);
+      observer.observe(el);
+      observerRef.current = observer;
+    },
+    [theme.spacing.md],
+  );
 
   // useCallback rather than a plain function, so the effect below (and any
   // future caller) can list it as a real dependency instead of needing an
@@ -133,7 +189,11 @@ const CookieNotice = () => {
       timingFunction="ease"
     >
       {(transitionStyles) => (
-        <Box className={classes.card} style={transitionStyles}>
+        <Box
+          ref={publishClearance}
+          className={classes.card}
+          style={transitionStyles}
+        >
           <ActionIcon
             className={classes.closeButton}
             size="sm"
