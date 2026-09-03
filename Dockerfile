@@ -47,7 +47,7 @@ RUN deluser --remove-home node
 
 RUN apk update --no-cache \
     && apk upgrade --no-cache \
-    && apk add --no-cache curl caddy su-exec openssl \
+    && apk add --no-cache curl caddy su-exec openssl ffmpeg \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 WORKDIR /opt/app/frontend
