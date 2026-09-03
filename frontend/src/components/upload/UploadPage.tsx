@@ -274,7 +274,12 @@ const Upload = ({
   // first, before any of that machinery.
   const startUpload = (share: CreateShare, mode: Mode = "link") => {
     if (nasImportSelection) {
-      importFromNas(share, nasImportSelection.paths, nasImportSelection.preview);
+      importFromNas(
+        share,
+        nasImportSelection.paths,
+        nasImportSelection.preview,
+        mode,
+      );
       return;
     }
 
@@ -332,6 +337,7 @@ const Upload = ({
     share: CreateShare,
     paths: string[],
     preview: NasImportPreview,
+    mode: Mode,
   ) => {
     setisUploading(true);
     setNasImportProgress({ done: 0, total: preview.fileCount });
@@ -394,7 +400,7 @@ const Upload = ({
         config.get("general.appUrl", true),
         undefined,
         !isReverseShare,
-        "link",
+        mode,
         config.get("smtp.enabled") &&
           config.get("email.enableShareDownloadNotifications"),
       );

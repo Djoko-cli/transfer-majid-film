@@ -38,10 +38,14 @@ const showCompletedUploadModal = (
   // step for the legacy reverse-share flow, which has no brand image
   // behind it and stays on its plain opaque styling.
   glass = false,
-  // "link" hides the raw share URL entirely — declutters the confirmation
-  // and, for an anonymous sender, relies on the (now unconditional) email
-  // backstop instead. Undefined (the legacy reverse-share call site, which
-  // never set this) behaves exactly like "email" — link shown, unchanged.
+  // Distinguishes "link" from every other mode only for the extra "we'll
+  // notify you on download" line below — every mode shows the real link
+  // (CopyTextField) the same way. Hiding the link specifically for "link"
+  // mode used to be the design here, but that's exactly the one thing a
+  // sender picking "link" mode is asking for, so showing it is the whole
+  // point rather than something to declutter away. Undefined (the legacy
+  // reverse-share call site, which never set this) just never shows that
+  // extra line — link shown, unchanged.
   mode?: Mode,
   // Whether a download-notification email is actually possible right now
   // (smtp.enabled && email.enableShareDownloadNotifications) — only shown
@@ -228,24 +232,14 @@ const Body = ({
           </Group>
         )}
 
-        {mode === "link" ? (
-          <Stack spacing={4}>
-            <Text size="sm">
-              {t("upload.modal.completed.link-mode.description")}
-            </Text>
-            {canNotifyOnDownload && (
-              <Text size="sm" color="dimmed">
-                {t("upload.modal.completed.link-mode.download-notification")}
-              </Text>
-            )}
-          </Stack>
-        ) : (
-          <>
-            <CopyTextField link={link} toggleQR={handleToggleQR} />
-            <Collapse in={showQR}>
-              <QRCode link={link} />
-            </Collapse>
-          </>
+        <CopyTextField link={link} toggleQR={handleToggleQR} />
+        <Collapse in={showQR}>
+          <QRCode link={link} />
+        </Collapse>
+        {mode === "link" && canNotifyOnDownload && (
+          <Text size="sm" color="dimmed">
+            {t("upload.modal.completed.link-mode.download-notification")}
+          </Text>
         )}
         {share.notifyReverseShareCreator === true && (
           <Text

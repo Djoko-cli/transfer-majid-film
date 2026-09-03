@@ -559,10 +559,8 @@ export default {
   "upload.modal.completed.share-ready": "Share ready",
   "upload.modal.completed.share-ready-named": "“{name}” is ready!",
   "upload.modal.completed.link-mode.title": "All done!",
-  "upload.modal.completed.link-mode.description":
-    "Your transfer was sent successfully.",
   "upload.modal.completed.link-mode.download-notification":
-    "We'll email you as soon as your recipient downloads it.",
+    "We'll email you as soon as this share gets downloaded.",
   "upload.modal.completed.summary.singular": "{count} file · {size}",
   "upload.modal.completed.summary.plural": "{count} files · {size}",
   "upload.modal.completed.notified-reverse-share-creator":

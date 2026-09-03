@@ -533,10 +533,8 @@ export default {
   "upload.modal.completed.share-ready": "Partage prêt",
   "upload.modal.completed.share-ready-named": "« {name} » est prêt !",
   "upload.modal.completed.link-mode.title": "Hop, c'est envoyé !",
-  "upload.modal.completed.link-mode.description":
-    "Votre transfert a été envoyé avec succès.",
   "upload.modal.completed.link-mode.download-notification":
-    "Nous vous préviendrons par e-mail dès que votre destinataire l'aura téléchargé.",
+    "Nous vous préviendrons par e-mail dès que ce partage aura été téléchargé.",
   "upload.modal.completed.summary.singular": "{count} fichier · {size}",
   "upload.modal.completed.summary.plural": "{count} fichiers · {size}",
   "upload.modal.completed.notified-reverse-share-creator":
