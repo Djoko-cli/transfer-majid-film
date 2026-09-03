@@ -911,6 +911,10 @@ export default {
   "admin.config.share.enable-video-thumbnails": "Enable video thumbnails",
   "admin.config.share.enable-video-thumbnails.description":
     "Generates a small poster-frame thumbnail for video files in a share, shown next to the file name in the file list.",
+  "admin.config.share.enable-video-range-requests":
+    "Enable scrubbable video/audio preview",
+  "admin.config.share.enable-video-range-requests.description":
+    "Lets the inline preview player seek instantly to any point in a local video or audio file instead of streaming from the start. Has no effect on S3-backed shares, which already support this natively.",
   "admin.config.share.file-retention-period": "File retention period",
   "admin.config.share.file-retention-period.description":
     "How long files are kept after a share expires or gets deleted. Only useful if the 'Allow admin access to all shares' is also enabled. Set to -1 to keep files forever.",

@@ -445,4 +445,5 @@ export interface File {
   };
   file: Readable;
   range?: { start: number; end: number } | null;
+  rangeRequestsEnabled?: boolean;
 }

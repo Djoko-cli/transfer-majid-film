@@ -890,6 +890,10 @@ export default {
     "Activer les miniatures vidéo",
   "admin.config.share.enable-video-thumbnails.description":
     "Génère une petite miniature (image extraite de la vidéo) pour les fichiers vidéo d'un partage, affichée à côté du nom du fichier dans la liste.",
+  "admin.config.share.enable-video-range-requests":
+    "Activer l'aperçu vidéo/audio par tranches",
+  "admin.config.share.enable-video-range-requests.description":
+    "Permet au lecteur d'aperçu intégré de sauter instantanément à n'importe quel point d'un fichier vidéo ou audio local, au lieu de le lire depuis le début. Sans effet sur les partages stockés sur S3, qui le prennent déjà en charge nativement.",
   "admin.config.share.file-retention-period":
     "Période de conservation des fichiers",
   "admin.config.share.file-retention-period.description":

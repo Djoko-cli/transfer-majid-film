@@ -181,7 +181,12 @@ export class LocalFileService {
     if (!fileMetaData)
       throw new NotFoundException(this.i18n.t("file.notFound"));
 
-    const range = parseRangeHeader(rangeHeader, parseInt(fileMetaData.size));
+    const rangeRequestsEnabled = this.config.get(
+      "share.enableVideoRangeRequests",
+    );
+    const range = rangeRequestsEnabled
+      ? parseRangeHeader(rangeHeader, parseInt(fileMetaData.size))
+      : null;
 
     // Confirmed openable *before* returning, same pattern as getZip()
     // below — FileController.getFile() sets response headers (status,
@@ -213,6 +218,7 @@ export class LocalFileService {
       },
       file,
       range,
+      rangeRequestsEnabled,
     };
   }
 

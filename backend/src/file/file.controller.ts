@@ -187,8 +187,15 @@ export class FileController {
         file.metaData.name,
         isDownload ? undefined : { type: "inline" },
       ),
-      "Accept-Ranges": "bytes",
     };
+
+    // Only advertised when actually honored — a client that trusts this
+    // header to mean "sending a Range request is worth it" would otherwise
+    // be lied to while share.enableVideoRangeRequests is off, since every
+    // Range it sends would still come back as a full 200 (see local.service.ts).
+    if (file.rangeRequestsEnabled ?? true) {
+      headers["Accept-Ranges"] = "bytes";
+    }
 
     if (file.range) {
       const totalSize = parseInt(file.metaData.size);

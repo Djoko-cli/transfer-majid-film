@@ -155,6 +155,17 @@ export const configVariables = {
       defaultValue: "true",
       secret: false,
     },
+    // Gates the HTTP Range handling in LocalFileService.get() — see
+    // range.util.ts. Off reverts a local video/audio file to always
+    // streaming from byte 0 (no 206, no seeking in the inline preview
+    // player), same "instant full revert" shape as every other toggle
+    // here. Doesn't affect S3 shares, which already get Range for free
+    // from S3 itself regardless of this setting.
+    enableVideoRangeRequests: {
+      type: "boolean",
+      defaultValue: "true",
+      secret: false,
+    },
     fileRetentionPeriod: {
       type: "timespan",
       defaultValue: "0 days",
