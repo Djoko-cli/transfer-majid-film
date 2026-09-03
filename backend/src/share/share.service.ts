@@ -580,6 +580,15 @@ export class ShareService {
     return (await this.prisma.share.findUnique({ where: { id } })).uploadLocked;
   }
 
+  // No existence check here - ShareOwnerGuard already threw NotFoundException
+  // upstream if shareId doesn't resolve to a real share.
+  async getDownloads(shareId: string) {
+    return this.prisma.shareDownload.findMany({
+      where: { shareId },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
   async getReceivedShares(userId: string) {
     return this.prisma.shareUserRecipient.findMany({
       where: { userId },

@@ -198,6 +198,7 @@ export default {
   "account.shares.table.visitor-count": "{count} sur {max}",
   "account.shares.table.expiry-never": "Jamais",
   "account.shares.modal.share-informations": "Détails du partage",
+  "account.shares.modal.view-downloads": "Voir l'historique des téléchargements",
   "account.shares.modal.share-link": "Lien de partage",
   "account.shares.modal.edit.password.keep":
     "Laissez le champ vide pour conserver le mot de passe actuel",
@@ -603,6 +604,21 @@ export default {
     "Une erreur est survenue durant le traitement de votre partage.",
   "share.edit.notify.save-success": "Partage mis à jour avec succès",
   // END /share/[id]/edit
+
+  // /share/[id]/downloads
+  "share.downloads.title": "Historique des téléchargements pour {shareId}",
+  "share.downloads.table.date": "Date",
+  "share.downloads.table.file": "Fichier",
+  "share.downloads.table.recipient": "Téléchargé par",
+  "share.downloads.table.whole-archive": "Toute l'archive (zip)",
+  "share.downloads.table.anonymous": "Anonyme",
+  "share.downloads.empty.title": "Aucun téléchargement pour l'instant",
+  "share.downloads.empty.description":
+    "Personne n'a encore téléchargé ce partage.",
+  "share.downloads.error.access-denied.title": "Accès refusé",
+  "share.downloads.error.access-denied.description":
+    "Vous n'avez pas la permission de consulter l'historique des téléchargements de ce partage.",
+  // END /share/[id]/downloads
 
   // CookieNotice.tsx - shown site-wide, not tied to one page
   "cookieNotice.text":

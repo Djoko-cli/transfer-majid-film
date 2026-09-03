@@ -136,6 +136,7 @@ model Share {
   recipients      ShareRecipient[]
   userRecipients  ShareUserRecipient[]
   files           File[]
+  downloads       ShareDownload[]
   storageProvider String               @default("LOCAL")
 }
 
@@ -222,6 +223,38 @@ model ShareUserRecipient {
   share   Share  @relation(fields: [shareId], references: [id], onDelete: Cascade)
 
   @@unique([userId, shareId])
+}
+
+// One row per real download FileService.notifyDownload() is called for -
+// a zip of the whole share or a single file, by a named Email-mode
+// recipient or an anonymous/Link-mode visitor. Separate from Share.views
+// (a page/token-access counter, see ShareService.increaseViewCount) and
+// from ShareRecipient.downloadedAt (a single first-download timestamp
+// used only by JobsService.notifyExpiringRecipients) - this is the first
+// place either signal becomes a real, replayable log instead of a
+// counter or a flag.
+//
+// fileName and recipientEmail are snapshotted plain strings, not
+// relations to File/ShareRecipient: a file can be removed from its share
+// independently (DELETE shares/:shareId/files/:fileId) without touching
+// the share itself, and this audit trail must outlive that removal
+// rather than cascade away with it. fileName is null for a whole-share
+// zip download. recipientEmail is null for an anonymous/Link-mode
+// download, or when a signed-in ShareUserRecipient reaches a file
+// without the emailed link's own ?recipient= query param (see
+// account/received.tsx) - the same blind spot ShareRecipient.downloadedAt
+// already has today, not a new one.
+model ShareDownload {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  fileName       String?
+  recipientEmail String?
+
+  shareId String
+  share   Share  @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  @@index([shareId, createdAt])
 }
 
 model Config {

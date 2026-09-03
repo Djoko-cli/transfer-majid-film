@@ -279,17 +279,23 @@ const MyShares = () => {
                       </td>
                       {!isMobile && (
                       <td>
-                        {share.security?.maxViews ? (
-                          <FormattedMessage
-                            id="account.shares.table.visitor-count"
-                            values={{
-                              count: share.views,
-                              max: share.security.maxViews,
-                            }}
-                          />
-                        ) : (
-                          share.views
-                        )}
+                        <Anchor
+                          component={Link}
+                          href={`/share/${share.id}/downloads`}
+                          title={t("account.shares.modal.view-downloads")}
+                        >
+                          {share.security?.maxViews ? (
+                            <FormattedMessage
+                              id="account.shares.table.visitor-count"
+                              values={{
+                                count: share.views,
+                                max: share.security.maxViews,
+                              }}
+                            />
+                          ) : (
+                            share.views
+                          )}
+                        </Anchor>
                       </td>
                       )}
                       <td>

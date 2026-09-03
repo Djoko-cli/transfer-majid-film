@@ -209,6 +209,7 @@ export default {
   "account.shares.table.expiry-never": "Never",
 
   "account.shares.modal.share-informations": "Share informations",
+  "account.shares.modal.view-downloads": "View download history",
   "account.shares.modal.share-link": "Share link",
   "account.shares.modal.edit.password.keep":
     "Leave blank to keep the current password",
@@ -632,6 +633,21 @@ export default {
     "An error occurred while finishing your share.",
   "share.edit.notify.save-success": "Share updated successfully",
   // END /share/[id]/edit
+
+  // /share/[id]/downloads
+  "share.downloads.title": "Download history for {shareId}",
+  "share.downloads.table.date": "Date",
+  "share.downloads.table.file": "File",
+  "share.downloads.table.recipient": "Downloaded by",
+  "share.downloads.table.whole-archive": "Whole transfer (zip)",
+  "share.downloads.table.anonymous": "Anonymous",
+  "share.downloads.empty.title": "No downloads yet",
+  "share.downloads.empty.description":
+    "Nobody has downloaded this transfer yet.",
+  "share.downloads.error.access-denied.title": "Access denied",
+  "share.downloads.error.access-denied.description":
+    "You don't have permission to view this share's download history.",
+  // END /share/[id]/downloads
 
   // CookieNotice.tsx - shown site-wide, not tied to one page
   "cookieNotice.text":

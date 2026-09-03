@@ -8,6 +8,7 @@ import {
   MyReverseShare,
   MyShare,
   Share,
+  ShareDownload,
   ShareMetaData,
   UpdateShare,
 } from "../types/share.type";
@@ -53,6 +54,11 @@ const getFromOwner = async (id: string): Promise<Share> => {
 const getMetaData = async (id: string): Promise<ShareMetaData> => {
   if (!isValidId(id)) throw new Error("Invalid ID");
   return (await api.get(`shares/${id}/metaData`)).data;
+};
+
+const getDownloads = async (id: string): Promise<ShareDownload[]> => {
+  if (!isValidId(id)) throw new Error("Invalid ID");
+  return (await api.get(`shares/${id}/downloads`)).data;
 };
 
 const remove = async (id: string) => {
@@ -416,6 +422,7 @@ export default {
   remove,
   expire,
   getMetaData,
+  getDownloads,
   doesFileSupportPreview,
   isShareTextFile,
   getMyShares,

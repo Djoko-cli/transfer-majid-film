@@ -15,8 +15,10 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useForm, yupResolver } from "@mantine/form";
+import { useModals } from "@mantine/modals";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
 import moment from "moment";
+import Link from "next/link";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
 import { translateOutsideContext } from "../../hooks/useTranslate.hook";
@@ -80,6 +82,7 @@ const Body = ({
   initiallyEditing: boolean;
 }) => {
   const t = translateOutsideContext();
+  const modals = useModals();
   const [currentShare, setCurrentShare] = useState(share);
   const [showQR, setShowQR] = useState(false);
   const [isEditing, setIsEditing] = useState(initiallyEditing);
@@ -201,6 +204,14 @@ const Body = ({
       </Flex>
       <Button variant="light" onClick={() => setIsEditing(true)}>
         {t("common.button.edit")}
+      </Button>
+      <Button
+        variant="light"
+        component={Link}
+        href={`/share/${currentShare.id}/downloads`}
+        onClick={() => modals.closeAll()}
+      >
+        {t("account.shares.modal.view-downloads")}
       </Button>
     </Stack>
   );

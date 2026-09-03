@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Anchor,
   Box,
   Group,
   MediaQuery,
@@ -10,6 +11,7 @@ import {
 import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
 import moment from "moment";
+import Link from "next/link";
 import { TbInfoCircle, TbLink, TbTrash } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import useConfig from "../../../hooks/config.hook";
@@ -90,7 +92,15 @@ const ManageShareTable = ({
                       </Text>
                     )}
                   </td>
-                  <td>{share.views}</td>
+                  <td>
+                    <Anchor
+                      component={Link}
+                      href={`/share/${share.id}/downloads`}
+                      title={t("account.shares.modal.view-downloads")}
+                    >
+                      {share.views}
+                    </Anchor>
+                  </td>
                   <td>{byteToHumanSizeString(share.size)}</td>
                   <td>
                     {moment(share.expiration).unix() === 0

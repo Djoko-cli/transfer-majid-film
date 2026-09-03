@@ -25,6 +25,7 @@ import { AdminShareDTO } from "./dto/adminShare.dto";
 import { CreateShareDTO } from "./dto/createShare.dto";
 import { MyShareDTO } from "./dto/myShare.dto";
 import { ShareDTO } from "./dto/share.dto";
+import { ShareDownloadDTO } from "./dto/shareDownload.dto";
 import { ShareMetaDataDTO } from "./dto/shareMetaData.dto";
 import { SharePasswordDto } from "./dto/sharePassword.dto";
 import { UpdateShareDTO } from "./dto/updateShare.dto";
@@ -83,6 +84,17 @@ export class ShareController {
   @UseGuards(IdValidation, ShareSecurityGuard)
   async getMetaData(@Param("id") id: string) {
     return new ShareMetaDataDTO().from(await this.shareService.getMetaData(id));
+  }
+
+  // Same guard pair as PATCH :id below - creator or admin, and (matching
+  // that same route's own existing behavior, not a new exception) anyone
+  // holding an anonymous share's id.
+  @Get(":id/downloads")
+  @UseGuards(IdValidation, ShareOwnerGuard)
+  async getDownloads(@Param("id") id: string) {
+    return new ShareDownloadDTO().fromList(
+      await this.shareService.getDownloads(id),
+    );
   }
 
   @Post()

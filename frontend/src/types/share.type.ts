@@ -55,6 +55,15 @@ export type ShareMetaData = {
   isZipReady: boolean;
 };
 
+export type ShareDownload = {
+  id: string;
+  createdAt: Date;
+  // null = the whole share (a zip download), not a single file
+  fileName: string | null;
+  // null = anonymous / Link-mode visitor, not a named Email-mode recipient
+  recipientEmail: string | null;
+};
+
 export type MyShare = Omit<Share, "hasPassword"> & {
   views: number;
   createdAt: Date;

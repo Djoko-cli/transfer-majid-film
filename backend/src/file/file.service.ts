@@ -237,6 +237,13 @@ export class FileService {
         );
     }
 
+    // Same "unconditional, ahead of the toggle below" reasoning as the
+    // block above — the download-history log (see ShareDownload's own
+    // schema comment) fires regardless of whether email notifications are
+    // even on, and regardless of email/count history the block above
+    // already tracks: this records every download, not just the first.
+    await this.recordShareDownload(shareId, fileName, recipientId);
+
     if (!this.configService.get("email.enableShareDownloadNotifications"))
       return;
 
@@ -244,6 +251,43 @@ export class FileService {
       await this.notifyRecipientDownload(shareId, fileName, recipientId);
     } else {
       await this.notifyOwnerDownload(shareId, fileName);
+    }
+  }
+
+  // Every FileController call site invokes notifyDownload unawaited
+  // (`void ...`) — an uncaught throw here would become an unhandled
+  // rejection, so this fails closed exactly like the updateMany() above.
+  private async recordShareDownload(
+    shareId: string,
+    fileName: string,
+    recipientId?: string,
+  ) {
+    try {
+      const recipient = recipientId
+        ? await this.prisma.shareRecipient.findUnique({
+            where: { id: recipientId },
+            select: { email: true },
+          })
+        : null;
+
+      // FileController.getZip() always calls notifyDownload with this
+      // synthesized name (it's what Content-Disposition sends too) —
+      // recognized here and stored as null so the downloads page can
+      // render "whole transfer" instead of a name nobody actually typed.
+      const isWholeShareZip = fileName === `${shareId}.zip`;
+
+      await this.prisma.shareDownload.create({
+        data: {
+          shareId,
+          fileName: isWholeShareZip ? null : fileName,
+          recipientEmail: recipient?.email ?? null,
+        },
+      });
+    } catch (e) {
+      this.logger.error(
+        `Failed to record ShareDownload for share ${shareId}`,
+        e,
+      );
     }
   }
 
