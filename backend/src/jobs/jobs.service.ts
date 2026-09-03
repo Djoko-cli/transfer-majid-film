@@ -213,6 +213,7 @@ export class JobsService {
         expiration: { lte: threshold, gt: new Date() },
         NOT: { expiration: moment(0).toDate() }, // "never expires" sentinel
         OR: [{ creatorId: { not: null } }, { senderEmail: { not: null } }],
+        downloads: { none: {} }, // nobody has downloaded anything yet
       },
       include: { creator: true, files: true },
     });
