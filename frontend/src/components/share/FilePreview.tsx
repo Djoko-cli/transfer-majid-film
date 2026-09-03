@@ -83,7 +83,7 @@ const AudioPreview = () => {
   return (
     <Center style={{ minHeight: 200 }}>
       <Stack align="center" spacing={10} style={{ width: "100%" }}>
-        <audio controls style={{ width: "100%" }}>
+        <audio controls preload="metadata" style={{ width: "100%" }}>
           <source
             src={`/api/shares/${shareId}/files/${fileId}?download=false`}
             onError={() => setIsNotSupported(true)}
@@ -98,7 +98,7 @@ const VideoPreview = () => {
   const { shareId, fileId, setIsNotSupported } =
     React.useContext(FilePreviewContext);
   return (
-    <video width="100%" controls>
+    <video width="100%" controls preload="metadata">
       <source
         src={`/api/shares/${shareId}/files/${fileId}?download=false`}
         onError={() => setIsNotSupported(true)}

@@ -173,22 +173,44 @@ export class FileController {
       return;
     }
 
-    const file = await this.fileService.get(shareId, fileId);
+    const file = await this.fileService.get(
+      shareId,
+      fileId,
+      request.headers.range,
+    );
 
-    const headers = {
+    const headers: Record<string, string> = {
       "Content-Type":
         mime?.lookup?.(file.metaData.name) || "application/octet-stream",
-      "Content-Length": file.metaData.size,
       "Content-Security-Policy": "sandbox",
       "Content-Disposition": contentDisposition(
         file.metaData.name,
         isDownload ? undefined : { type: "inline" },
       ),
+      "Accept-Ranges": "bytes",
     };
+
+    if (file.range) {
+      const totalSize = parseInt(file.metaData.size);
+      headers["Content-Range"] =
+        `bytes ${file.range.start}-${file.range.end}/${totalSize}`;
+      headers["Content-Length"] = (
+        file.range.end -
+        file.range.start +
+        1
+      ).toString();
+      res.status(206);
+    } else {
+      headers["Content-Length"] = file.metaData.size;
+    }
 
     res.set(headers);
 
-    if (isDownload) {
+    // Fires once per real download, not once per resumed byte-range chunk
+    // — a scrubbed/resumed <video>/<audio> preview issues many Range
+    // requests for one logical playback, only the first of which (start
+    // === 0) should count as "downloaded".
+    if (isDownload && (!file.range || file.range.start === 0)) {
       void this.fileService.notifyDownload(
         shareId,
         file.metaData.name,

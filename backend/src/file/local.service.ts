@@ -15,6 +15,7 @@ import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { byteToHumanSizeString } from "src/utils/fileSize.util";
+import { parseRangeHeader } from "src/utils/range.util";
 import { getUserActiveStorageUsage } from "src/utils/storageQuota.util";
 import { validate as isValidUUID } from "uuid";
 import { QUARANTINE_DIRECTORY, SHARE_DIRECTORY } from "../constants";
@@ -167,7 +168,7 @@ export class LocalFileService {
     return file;
   }
 
-  async get(shareId: string, fileId: string) {
+  async get(shareId: string, fileId: string, rangeHeader?: string) {
     // Scoped by shareId *and* fileId together, not fileId alone — id is
     // globally unique so a bare findUnique({where:{id}}) would resolve any
     // share's file, relying only on the on-disk path (built from the URL's
@@ -179,6 +180,8 @@ export class LocalFileService {
 
     if (!fileMetaData)
       throw new NotFoundException(this.i18n.t("file.notFound"));
+
+    const range = parseRangeHeader(rangeHeader, parseInt(fileMetaData.size));
 
     // Confirmed openable *before* returning, same pattern as getZip()
     // below — FileController.getFile() sets response headers (status,
@@ -193,6 +196,7 @@ export class LocalFileService {
       (resolve, reject) => {
         const stream = createReadStream(
           `${SHARE_DIRECTORY}/${shareId}/${fileId}`,
+          range ? { start: range.start, end: range.end } : undefined,
         );
         stream.on("open", () => resolve(stream));
         stream.on("error", () =>
@@ -208,6 +212,7 @@ export class LocalFileService {
         size: fileMetaData.size,
       },
       file,
+      range,
     };
   }
 

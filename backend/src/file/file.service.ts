@@ -155,11 +155,21 @@ export class FileService {
     );
   }
 
-  async get(shareId: string, fileId: string): Promise<File> {
+  async get(
+    shareId: string,
+    fileId: string,
+    rangeHeader?: string,
+  ): Promise<File> {
     const share = await this.prisma.share.findFirst({
       where: { id: shareId },
     });
     const storageService = this.getStorageService(share.storageProvider);
+    // Range support is LOCAL-only — S3FileService.get()'s 2-arg signature
+    // never changes, and it's unreachable from a range-aware call anyway:
+    // FileController.getFile()'s S3 branch always returns early via
+    // redirect before ever calling fileService.get().
+    if (storageService instanceof LocalFileService)
+      return storageService.get(shareId, fileId, rangeHeader);
     return storageService.get(shareId, fileId);
   }
 
@@ -434,4 +444,5 @@ export interface File {
     shareId: string;
   };
   file: Readable;
+  range?: { start: number; end: number } | null;
 }
