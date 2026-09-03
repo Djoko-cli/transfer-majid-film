@@ -65,9 +65,18 @@ const useStyles = createStyles(
           (!compact && tightenWhenEmpty ? 20 : 30) + (hasNasImport ? 46 : 0),
       },
 
+      // paddingBottom clears the floating control (further down) from the
+      // *inside*, same idea as wrapper's own marginBottom clearing it from
+      // the outside - both were tuned for that control being one button
+      // tall. A two-row stack, still anchored from the same `bottom: -20`,
+      // reaches exactly 46px further up into the dropzone's own box than a
+      // single row did (its top edge is `-bottom + own height`, and the
+      // second row adds that same ~46px this file's other +46 already
+      // accounts for) - without matching padding here it crowds the
+      // description text right above it, reported live from a screenshot.
       dropzone: {
         borderWidth: 1,
-        paddingBottom: 50,
+        paddingBottom: 50 + (hasNasImport ? 46 : 0),
       },
 
       // Once files are already selected, the full "how to drop files"
@@ -77,7 +86,7 @@ const useStyles = createStyles(
       dropzoneCompact: {
         borderWidth: 1,
         paddingTop: 14,
-        paddingBottom: 34,
+        paddingBottom: 34 + (hasNasImport ? 46 : 0),
       },
 
       // Reuses liquidGlassKeyframes' global @keyframes (see TransferCard,
