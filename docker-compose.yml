@@ -86,6 +86,38 @@ services:
       # (this folder is a personal video archive - deliberately not the
       # lightest fix available, isolation was worth the one-time chgrp
       # -R over every file in it).
+      #
+      # That chgrp/chmod had a side effect nobody anticipated at the
+      # time: a recursive chmod from the shell silently converts a DSM
+      # shared folder out of ACL mode into plain "Linux" (POSIX-only)
+      # mode - confirmed after the fact via `synoacltool -get` returning
+      # "It's Linux mode" here, versus a real `+` suffix on `ls -la`
+      # still showing for an untouched sibling share (/volume1/Formations)
+      # that never had this done to it. Converting out of ACL mode threw
+      # away the very ACL that had been granting Majid his own real
+      # access - the thing this whole fix was working around for the
+      # container in the first place - locking him out of his own
+      # archive via SMB and DSM's own File Station alike, not just the
+      # container. Restored, additively, once discovered:
+      #   sudo synogroup --member transfer-nas-ro Majid
+      #   sudo chmod -R u+w "/volume1/Archives Photo et Video"
+      #   sudo chmod g+w "/volume1/Archives Photo et Video"    # root only, not -R
+      # The first makes Majid a second member of the same container-only
+      # group (still nobody else); the second restores his own owner-write
+      # on everything that already existed (chmod -R g+rX above never
+      # touched owner bits, but the ACL→Linux conversion itself had
+      # apparently zeroed them); the third, deliberately non-recursive,
+      # gives just the root folder's group entry write so he can create
+      # new top-level folders (e.g. next year's), without handing every
+      # subfolder underneath group-write it doesn't need.
+      #
+      # None of this touches what the container itself can do: it stays
+      # strictly read-only regardless of any of the above, guaranteed by
+      # this mount's own :ro flag independent of whatever the host-side
+      # POSIX bits say - even the root folder's group now having write
+      # doesn't matter, since the container can't write through a
+      # read-only bind mount no matter what the underlying permissions
+      # allow.
       - "/volume1/Archives Photo et Video:/opt/app/backend/nas-import:ro"
       # Read-only, same reasoning as the NAS-import mount just above:
       # BrandSyncService only ever reads brand-manifest.json and
