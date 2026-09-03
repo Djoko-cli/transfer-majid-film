@@ -33,6 +33,7 @@ import Config from "../types/config.type";
 import { CurrentUser } from "../types/user.type";
 import i18nUtil from "../utils/i18n.util";
 import userPreferences from "../utils/userPreferences.util";
+import { setCurrentLanguage } from "../utils/fileSize.util";
 import Footer from "../components/footer/Footer";
 import CookieNotice from "../components/CookieNotice";
 import { getDefaultConfig } from "../utils/defaultConfig.util";
@@ -155,6 +156,12 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
 
   const [language, setLanguage] = useState(pageProps.language);
   moment.locale(language);
+  // Same pattern as moment.locale() just above - set unconditionally in
+  // the render body (not a useEffect) so it's already correct by the time
+  // any descendant renders, server-side included. See fileSize.util.ts's
+  // own comment for why this needs to be synchronous with render rather
+  // than a cookie read from inside that plain utility.
+  setCurrentLanguage(language);
 
   // Cookie first, then the state update that actually makes IntlProvider
   // below re-render with the new locale/messages - no reload. Also
