@@ -6,8 +6,21 @@ services:
 
     environment:
       - TRUST_PROXY=true
-      - PUID=1026
-      - PGID=100
+      # Dedicated, no-login service identity (synouser --get Transfer),
+      # not the operator's own personal DSM account - see the NAS-import
+      # mount's own comment below for why this matters specifically for
+      # that mount, and docker-compose.yml's git history for how this was
+      # arrived at (a real permission investigation, not a default choice).
+      - PUID=1031
+      # transfer-nas-ro: a group created solely to grant this container
+      # read access to the NAS-import mount below - not the default
+      # Synology "users" group (100), which every DSM account belongs to.
+      # Confirmed live: DSM's own ACL system (however it's configured via
+      # the Control Panel) is completely invisible through a Docker bind
+      # mount - only classic POSIX owner/group/other bits are ever
+      # enforced here, so this group's access is real chgrp -R + chmod
+      # g+rX on the host path, not a DSM permission-panel grant.
+      - PGID=65539
       - DATABASE_URL=file:/db/transfer.db?connection_limit=1
       # Admin-only "import from NAS" (share.enableNasImport in the admin
       # panel, off by default) — lets a share reference a file already on
@@ -23,6 +36,13 @@ services:
       - MAJIDFILM_SOURCE_ROOT=/opt/app/backend/majidfilm-source
 
     volumes:
+      # Unlike /opt/app/backend/data below, nothing auto-chowns this one
+      # at container start - create-user.sh only ever touches
+      # backend/data and frontend/public. Must already be owned by (or at
+      # least writable by) PUID:PGID above, same requirement as
+      # config.yaml/secrets.env further down - this bit us for real the
+      # one time PUID/PGID actually changed (1026:100 → 1031:65539, see
+      # their own comment), which is why it's spelled out here now.
       - /volume2/docker/transfer/db:/db
       - /volume1/Transfer:/opt/app/backend/data
       # Mirrors the admin config panel: a change on either side (the file
@@ -45,11 +65,27 @@ services:
       # symlinks *into* the volume above, never writes here) — :ro makes
       # that true at the filesystem level too, so even a bug in the
       # listing/import code could never touch anything under this path.
-      # The path has spaces, so the quoting matters. Confirm PUID 1026
-      # actually has read access to this Synology shared folder's ACL
-      # before relying on this — it's a different identity than whatever
-      # already owns the folder, unlike the Transfer volume above which
-      # was set up for this app from the start.
+      # The path has spaces, so the quoting matters.
+      #
+      # This folder's real access control turned out to be entirely
+      # DSM's own ACL system, which a plain Docker bind mount cannot see
+      # at all - confirmed live, the classic POSIX bits every real folder
+      # under here showed (d---------, zero for owner/group/other, even
+      # though PUID 1026 was that owner at the time) are the *only* thing
+      # actually enforced from inside the container; the ACL that grants
+      # "Majid" real access through DSM's own services doesn't extend to
+      # a raw bind mount's kernel-level view at all, and setfacl (which
+      # would have let a single UID be granted without touching anything
+      # else) isn't available on this DSM's shell. The fix had to be at
+      # the classic Unix layer: a group created solely for this
+      # (transfer-nas-ro, see PGID above), then on the host -
+      #   chgrp -R transfer-nas-ro "/volume1/Archives Photo et Video"
+      #   chmod -R g+rX "/volume1/Archives Photo et Video"
+      # - and PUID/PGID above switched to match, rather than broadening
+      # this to the default "users" group every DSM account belongs to
+      # (this folder is a personal video archive - deliberately not the
+      # lightest fix available, isolation was worth the one-time chgrp
+      # -R over every file in it).
       - "/volume1/Archives Photo et Video:/opt/app/backend/nas-import:ro"
       # Read-only, same reasoning as the NAS-import mount just above:
       # BrandSyncService only ever reads brand-manifest.json and
