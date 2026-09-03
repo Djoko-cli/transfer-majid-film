@@ -601,6 +601,22 @@ const Upload = ({
         return;
       }
 
+      // Pasting into an actual text field (the recipient/name/message/
+      // email inputs below, or a searchable MultiSelect's own input) must
+      // paste text there as normal — without this, Cmd+V anywhere on the
+      // page always landed here first and turned the clipboard into a new
+      // .txt file dropped into the share instead, reported directly after
+      // it ate an email address someone meant to paste into "Votre
+      // e-mail". Confined to genuinely blank space (or a click that
+      // landed on non-editable page chrome) is exactly this feature's own
+      // intent — quickly turning clipboard text/images into a shareable
+      // file — so this only needs to step aside for editable targets, not
+      // stop doing that anywhere else.
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, textarea, [contenteditable='true']")) {
+        return;
+      }
+
       const clipboardData = e.clipboardData;
 
       if (!clipboardData) {
