@@ -524,15 +524,41 @@ export class EmailService {
   // field rather than anything hand-concatenated into raw headers the way
   // ContactController's own upstream DTO validation already guards against
   // on the way in.
-  async sendContactMessage(subject: string, message: string, replyTo?: string) {
+  async sendContactMessage(
+    subject: string,
+    message: string,
+    replyTo?: string,
+    ip?: string,
+    userAgent?: string,
+    referer?: string,
+  ) {
     const lang = this.config.get("general.defaultLanguage");
     const sender =
       replyTo ?? this.i18n.t("email.contactAnonymousSender", { lang });
 
+    // Same labeled-line metadata block majid.film's own contact form
+    // already sends (IP, device, page), just localized through this app's
+    // i18n instead of hardcoded French — requested directly, matched as
+    // closely as this app's own conventions allow. Truncated and stripped
+    // of newlines for the same reason majid.film's contact.php does it:
+    // a malformed/oversized User-Agent or Referer shouldn't be able to
+    // break the block's own line-per-field layout (this is plain-text
+    // sendMail(), not raw SMTP headers, so it's a readability safeguard
+    // here, not the header-injection defense it is in PHP's mail()).
+    const sanitize = (value?: string) =>
+      (value ?? "—").slice(0, 300).replace(/[\r\n]/g, " ");
+
+    const metadata = [
+      `${this.i18n.t("email.contactFromLabel", { lang })} ${sender}`,
+      `${this.i18n.t("email.contactIpLabel", { lang })} ${sanitize(ip)}`,
+      `${this.i18n.t("email.contactDeviceLabel", { lang })} ${sanitize(userAgent)}`,
+      `${this.i18n.t("email.contactPageLabel", { lang })} ${sanitize(referer)}`,
+    ].join("\n");
+
     await this.sendMail(
       CONTACT_EMAIL,
       `[Contact] ${subject}`,
-      `${this.i18n.t("email.contactFromLabel", { lang })} ${sender}\n\n${message}`,
+      `${metadata}\n\n${message}`,
       {
         replyTo,
         headline: this.i18n.t("email.contactHeadline", { lang }),

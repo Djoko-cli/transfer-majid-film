@@ -1,5 +1,6 @@
-import { Body, Controller, HttpCode, Post } from "@nestjs/common";
+import { Body, Controller, HttpCode, Post, Req } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
+import { Request } from "express";
 import { SendContactMessageDTO } from "./dto/sendContactMessage.dto";
 import { ContactService } from "./contact.service";
 
@@ -20,15 +21,27 @@ export class ContactController {
       ttl: 10 * 60 * 1000,
     },
   })
-  async sendMessage(@Body() dto: SendContactMessageDTO) {
+  async sendMessage(
+    @Body() dto: SendContactMessageDTO,
+    @Req() request: Request,
+  ) {
     // See SendContactMessageDTO.website's own comment — silently pretend
     // this succeeded rather than telling a bot its honeypot field mattered.
     if (dto.website) return;
 
+    // Server-observed, not client-submitted — same reasoning as
+    // ShareDownload's own ipAddress capture: request.ip already resolves
+    // correctly through the DSM reverse proxy (TRUST_PROXY=true, see
+    // main.ts), so this is the real visitor, not the proxy's own address.
+    // Mirrors majid.film's own contact.php notification (IP/device/page
+    // labeled lines ahead of the message), requested directly to match.
     await this.contactService.sendMessage(
       dto.subject,
       dto.message,
       dto.replyTo,
+      request.ip,
+      request.headers["user-agent"],
+      request.headers["referer"],
     );
   }
 }

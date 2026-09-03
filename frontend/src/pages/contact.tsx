@@ -75,11 +75,24 @@ const Contact = () => {
           }}
         >
           {sent ? (
+            // Previously had no way back to the form at all - "sent" only
+            // ever flips true on a successful submit, never false again,
+            // so this used to be a genuine dead end once shown. Reported
+            // directly as "the success modal doesn't disappear."
             <Stack align="center" spacing="sm" py="md">
               <TbCircleCheck color={accent} size={48} />
               <Text align="center" weight={600}>
                 <FormattedMessage id="contact.notify.success" />
               </Text>
+              <Button
+                variant="light"
+                onClick={() => {
+                  form.reset();
+                  setSent(false);
+                }}
+              >
+                <FormattedMessage id="contact.button.send-another" />
+              </Button>
             </Stack>
           ) : (
             <>

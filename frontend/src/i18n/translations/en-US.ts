@@ -672,6 +672,7 @@ export default {
   "contact.input.subject": "Subject",
   "contact.input.message": "Message",
   "contact.button.send": "Send",
+  "contact.button.send-another": "Send another message",
   "contact.notify.success": "Your message has been sent",
   // END /contact
 

@@ -643,6 +643,7 @@ export default {
   "contact.input.subject": "Sujet",
   "contact.input.message": "Message",
   "contact.button.send": "Envoyer",
+  "contact.button.send-another": "Envoyer un autre message",
   "contact.notify.success": "Votre message a bien été envoyé",
   // END /contact
 
