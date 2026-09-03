@@ -27,8 +27,15 @@ import { glassModalStyles } from "../glassModalTheme";
 // wasn't what they wanted: the whole point was for the *existing* inline
 // form to handle it, not a second copy of those same fields anywhere,
 // modal or not.)
+//
+// initialSelected seeds the checkbox state from whatever's already
+// confirmed (UploadPage's own nasImportSelection.paths, or [] the first
+// time) - reopening this modal after a selection already exists is how
+// "add more from the NAS" works, browsing back in with everything
+// already picked still checked rather than starting over.
 const showNasImportModal = (
   modals: ModalsContextProps,
+  initialSelected: string[],
   onConfirm: (paths: string[], preview: NasImportPreview) => void,
 ) => {
   const t = translateOutsideContext();
@@ -39,20 +46,27 @@ const showNasImportModal = (
     styles: glassModalStyles,
     children: (
       <MantineProvider inherit theme={glassFormTheme}>
-        <NasImportModalBody onConfirm={onConfirm} />
+        <NasImportModalBody
+          initialSelected={initialSelected}
+          onConfirm={onConfirm}
+        />
       </MantineProvider>
     ),
   });
 };
 
 const NasImportModalBody = ({
+  initialSelected,
   onConfirm,
 }: {
+  initialSelected: string[];
   onConfirm: (paths: string[], preview: NasImportPreview) => void;
 }) => {
   const modals = useModals();
   const t = useTranslate();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(initialSelected),
+  );
   const [previewResult, setPreviewResult] = useState<NasImportPreview | null>(
     null,
   );

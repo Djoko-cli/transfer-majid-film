@@ -273,10 +273,12 @@ const Dropzone = ({
   // cascaded into BrandPanel's caption overlapping the real footer.
   // Rendering here instead means it never sits outside the card's own
   // already-correctly-stacked box in the first place.
-  // Once clicked, TransferCard hides this whole Dropzone in favor of its
-  // own NasImportSummary (see that component's own comment) - so this
-  // button is only ever visible before a selection exists, never needing
-  // to reflect progress or anything else about one already in flight.
+  // TransferCard keeps this whole Dropzone visible (just compact)
+  // alongside its own NasImportSummary once a selection exists, precisely
+  // so this button stays reachable to add more from the NAS on top of an
+  // existing selection, rather than needing to clear it first. Confirming
+  // more in the browse modal folds into the same selection - see
+  // showNasImportModal's own initialSelected handling.
   nasImport?: {
     onClick: () => void;
   };

@@ -238,15 +238,16 @@ const TransferCard = ({
   // Undefined on every caller except UploadPage's direct-upload flow.
   nasImport?: { onClick: () => void };
   // A confirmed NAS selection, not yet submitted - when set, this card
-  // shows a summary of it (and the button to clear it) instead of the
-  // dropzone/file-list, while the rest of the form below (expiration,
-  // name, recipients, security, the "Partager" button itself) stays
-  // exactly the same one already used for a regular upload. null rather
-  // than undefined so a caller with nothing to say here can still pass
-  // it explicitly - this card treats "no prop" and "explicitly nothing
-  // selected" identically either way, but every other caller of this
-  // component simply omits nasImport itself instead, so this one only
-  // needs to exist for UploadPage's own direct-upload flow.
+  // shows a summary of it (and the button to clear it) alongside the
+  // dropzone/file-list rather than replacing them, since a share can
+  // combine a NAS selection with dropped files - while the rest of the
+  // form below (expiration, name, recipients, security, the "Partager"
+  // button itself) stays exactly the same one already used for a regular
+  // upload. null rather than undefined so a caller with nothing to say
+  // here can still pass it explicitly - this card treats "no prop" and
+  // "explicitly nothing selected" identically either way, but every other
+  // caller of this component simply omits nasImport itself instead, so
+  // this one only needs to exist for UploadPage's own direct-upload flow.
   nasImportPreview?: NasImportPreview | null;
   // The live batch-commit progress while isUploading is true and a NAS
   // selection (above) is what's being submitted - same shape and same
@@ -510,26 +511,26 @@ const TransferCard = ({
             // files exist, so it now follows rather than precedes them.
           }
           {
-            // Hidden rather than just disabled once a NAS selection is
-            // pending — mixing a real drag-and-drop upload with a NAS
-            // import in the same share was never a thing this supported
-            // (see importFromNas's own comment: a share is one or the
-            // other), and hiding the drop target entirely says that more
-            // clearly than a disabled-but-still-there one would.
+            // Stays visible (just compact) even once a NAS selection
+            // exists — a share can now combine both, and its own
+            // "Importer depuis le NAS" control living inside this is the
+            // only way back into that browse modal to add more, so hiding
+            // the whole thing would hide that too. waiting/compact fold in
+            // nasImportPreview alongside files.length so a NAS-only
+            // selection (nothing dropped yet) still gets the same compact
+            // treatment a dropped file would.
           }
-          {!nasImportPreview && (
-            <Dropzone
-              maxShareSize={maxShareSize}
-              currentFilesSize={currentFilesSize}
-              onFilesChanged={onFilesChanged}
-              isUploading={isUploading}
-              waiting={files.length === 0}
-              compact={files.length > 0}
-              tightenWhenEmpty
-              glass
-              nasImport={nasImport}
-            />
-          )}
+          <Dropzone
+            maxShareSize={maxShareSize}
+            currentFilesSize={currentFilesSize}
+            onFilesChanged={onFilesChanged}
+            isUploading={isUploading}
+            waiting={files.length === 0 && !nasImportPreview}
+            compact={files.length > 0 || !!nasImportPreview}
+            tightenWhenEmpty
+            glass
+            nasImport={nasImport}
+          />
           {
             // Everything from here down — the file list, delivery mode,
             // name, recipients, how long the transfer lives — is what
@@ -559,13 +560,20 @@ const TransferCard = ({
           <AnimatedHeight duration={300} gapWhenOpen={16}>
             {files.length > 0 || nasImportPreview ? (
               <Stack align="stretch">
-                {nasImportPreview ? (
+                {
+                  // Both can be present at once now — a NAS selection and
+                  // dropped files combine into the same share rather than
+                  // one replacing the other, so both summaries render
+                  // together when both exist.
+                }
+                {nasImportPreview && (
                   <NasImportSummary
                     preview={nasImportPreview}
                     progress={isUploading ? nasImportProgress ?? null : null}
                     onClear={onClearNasImport}
                   />
-                ) : (
+                )}
+                {files.length > 0 && (
                   <FileList<FileUpload>
                     files={files}
                     setFiles={setFiles}

@@ -101,6 +101,16 @@ const Upload = ({
   // previous approach here) — a fresh pair every time this component mounts.
   const createdShareRef = useRef<Share | null>(null);
   const cancelledRef = useRef(false);
+  // True for the whole duration of any importFromNas-driven submission —
+  // NAS-only, or combined with dropped files. Suppresses the plain
+  // upload-completion effect further down (see its own comment): that
+  // effect still needs to watch `files` unconditionally so dropped files'
+  // progress bars keep updating during a combined submission, but must
+  // not independently call completeShare() on its own the moment those
+  // finish — importFromNas already awaits everything (NAS commit, and any
+  // dropped files) together and drives completion itself once both are
+  // actually done.
+  const nasSubmissionActiveRef = useRef(false);
   // The request payload never round-trips back through the completion
   // response (ShareDTO deliberately doesn't echo senderEmail — see
   // ShareService.complete()'s reasoning), so the modal that reacts to that
@@ -137,7 +147,16 @@ const Upload = ({
     );
   };
 
-  const uploadOneFile = async (file: FileUpload, fileIndex: number) => {
+  // Returns whether the file made it all the way through — read by
+  // importFromNas's combined path (below) to know, once every dropped
+  // file has settled, whether it's clear to complete the share; ignored
+  // by this function's other two callers (uploadFiles's own Promise.all,
+  // retryFile), which learn the same thing by watching `files` state
+  // instead.
+  const uploadOneFile = async (
+    file: FileUpload,
+    fileIndex: number,
+  ): Promise<boolean> => {
     let fileId;
 
     setFileProgress(fileIndex, 1);
@@ -150,7 +169,7 @@ const Upload = ({
     let attempts = 0;
 
     for (let chunkIndex = 0; chunkIndex < chunks; chunkIndex++) {
-      if (cancelledRef.current) return;
+      if (cancelledRef.current) return false;
 
       const from = chunkIndex * chunkSize.current;
       const to = from + chunkSize.current;
@@ -187,7 +206,7 @@ const Upload = ({
         setFileProgress(fileIndex, ((chunkIndex + 1) / chunks) * 100);
         attempts = 0;
       } catch (e) {
-        if (cancelledRef.current) return;
+        if (cancelledRef.current) return false;
         if (
           e instanceof AxiosError &&
           e.response?.data.error == "unexpected_chunk_index"
@@ -204,7 +223,7 @@ const Upload = ({
           // Give up on this file — it stays at -1 (an honest, terminal
           // "failed" state) until the visitor retries it manually via
           // FileList's retry action, rather than looping forever unseen.
-          return;
+          return false;
         }
 
         await new Promise((resolve) =>
@@ -214,6 +233,7 @@ const Upload = ({
         continue;
       }
     }
+    return true;
   };
 
   const uploadFiles = async (share: CreateShare, files: FileUpload[]) => {
@@ -269,9 +289,12 @@ const Upload = ({
   // required. share.senderEmail is already populated whenever the sender
   // typed their email into TransferCard (any mode, not just "email"), so
   // the OTP modal only needs to ask for the code, not the address again.
-  // A pending NAS selection takes a completely different path (no bytes to
-  // upload, no OTP gate - see importFromNas's own comment) and is checked
-  // first, before any of that machinery.
+  // A pending NAS selection takes a completely different path (no OTP
+  // gate - see importFromNas's own comment) and is checked first, before
+  // any of that machinery - including when dropped files are also
+  // present: NAS import only ever runs for a signed-in admin, and the OTP
+  // gate only ever applies to an anonymous sender, so the two conditions
+  // can never both apply to the same submission.
   const startUpload = (share: CreateShare, mode: Mode = "link") => {
     if (nasImportSelection) {
       importFromNas(
@@ -279,6 +302,7 @@ const Upload = ({
         nasImportSelection.paths,
         nasImportSelection.preview,
         mode,
+        files,
       );
       return;
     }
@@ -325,38 +349,56 @@ const Upload = ({
     });
   };
 
-  // Mirrors uploadFiles above (create → wait → complete → show the same
-  // completion modal), but there's no byte upload at all: the share is
-  // created without `size` (ShareService.create() skips its disk-space/
-  // quota pre-check entirely when it's omitted — correct here, since a
-  // symlinked import consumes ~0 real local disk regardless of the NAS
-  // content's actual size), and instead of uploadOneFile's chunk loop this
-  // repeatedly calls the resumable nas-import commit endpoint until it
-  // reports done, updating nasImportProgress from each batch's count.
+  // Drives a NAS-import submission, alone or combined with dropped files
+  // sharing the same share (droppedFiles, possibly []). Mirrors
+  // uploadFiles above (create → wait → complete → show the same
+  // completion modal) but stays entirely self-contained rather than
+  // reactive: the plain-upload completion effect further down explicitly
+  // steps aside for the whole duration (nasSubmissionActiveRef) since
+  // this function already awaits everything itself — the resumable NAS
+  // commit loop and any dropped files' own chunk uploads, run
+  // concurrently via Promise.allSettled rather than one after the other,
+  // since neither depends on the other finishing first.
+  //
+  // size passed to shareService.create() only covers droppedFiles' real
+  // bytes (undefined when there are none, exactly like a NAS-only
+  // submission today) — a symlinked NAS import consumes ~0 real local
+  // disk regardless of the NAS content's actual size, so it was never
+  // counted toward the disk-space/quota pre-check that size triggers,
+  // and folding it in would only make that check needlessly stricter for
+  // the part that isn't actually using local disk.
   const importFromNas = async (
     share: CreateShare,
     paths: string[],
     preview: NasImportPreview,
     mode: Mode,
+    droppedFiles: FileUpload[],
   ) => {
+    nasSubmissionActiveRef.current = true;
     setisUploading(true);
     setNasImportProgress({ done: 0, total: preview.fileCount });
 
     try {
       createdShareRef.current = await shareService.create(
-        share,
+        droppedFiles.length > 0
+          ? {
+              ...share,
+              size: droppedFiles.reduce((acc, file) => acc + file.size, 0),
+            }
+          : share,
         isReverseShare,
       );
     } catch (e) {
       toast.axiosError(e);
       setisUploading(false);
       setNasImportProgress(null);
+      nasSubmissionActiveRef.current = false;
       return;
     }
 
-    let cursor: number | undefined;
-    let importedSoFar = 0;
-    try {
+    const runNasCommit = async () => {
+      let cursor: number | undefined;
+      let importedSoFar = 0;
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const result = await nasImportService.commit(
@@ -376,10 +418,49 @@ const Upload = ({
         if (result.done) break;
         cursor = result.cursor!;
       }
-    } catch (e) {
-      toast.axiosError(e);
+    };
+
+    // A file already at 100 is skipped rather than re-uploaded — matters
+    // on a retry after a partial failure (e.g. the NAS commit failed but
+    // these had already finished): re-running them from scratch would
+    // create duplicate file entries instead of actually retrying
+    // anything, since the regular upload endpoint has no name-collision
+    // dedup the way NAS import's own commit does.
+    const runDroppedUploads = () =>
+      Promise.all(
+        droppedFiles.map((file, fileIndex) =>
+          file.uploadingProgress >= 100
+            ? Promise.resolve(true)
+            : promiseLimit(() => uploadOneFile(file, fileIndex)),
+        ),
+      );
+
+    const [nasResult, droppedResult] = await Promise.allSettled([
+      runNasCommit(),
+      runDroppedUploads(),
+    ]);
+
+    if (nasResult.status === "rejected") {
+      toast.axiosError(nasResult.reason);
       setisUploading(false);
       setNasImportProgress(null);
+      nasSubmissionActiveRef.current = false;
+      return;
+    }
+    setNasImportProgress(null);
+
+    // droppedResult can't itself reject (uploadOneFile never throws), but
+    // individual files inside it can still have failed. Same rule as the
+    // plain-upload path below: don't complete until every file's
+    // through — step aside instead (the effect below already shows its
+    // own error toast off the same `files` state) so FileList's per-file
+    // retry can pick up from here, the NAS side already being done.
+    const droppedOk =
+      droppedResult.status === "fulfilled"
+        ? droppedResult.value.every((ok) => ok)
+        : false;
+    if (!droppedOk) {
+      nasSubmissionActiveRef.current = false;
       return;
     }
 
@@ -388,11 +469,12 @@ const Upload = ({
         createdShareRef.current!.id,
       );
       setisUploading(false);
-      setNasImportProgress(null);
+      nasSubmissionActiveRef.current = false;
       // Only cleared on real success — left intact on any of the errors
       // above so "Partager" retries the same selection, the same way a
       // failed regular upload leaves `files` alone for its own retry.
       setNasImportSelection(null);
+      setFiles([]);
       showCompletedUploadModal(
         modals,
         completedShare,
@@ -407,14 +489,21 @@ const Upload = ({
     } catch {
       toast.error(t("upload.notify.generic-error"));
       setisUploading(false);
-      setNasImportProgress(null);
+      nasSubmissionActiveRef.current = false;
     }
   };
 
+  // Reopening seeds the browse modal's own selection from whatever's
+  // already confirmed, so picking more paths adds to it instead of
+  // starting over — see showNasImportModal's own initialSelected comment.
   const openNasImportModal = () => {
-    showNasImportModal(modals, (paths, preview) => {
-      setNasImportSelection({ paths, preview });
-    });
+    showNasImportModal(
+      modals,
+      nasImportSelection?.paths ?? [],
+      (paths, preview) => {
+        setNasImportSelection({ paths, preview });
+      },
+    );
   };
 
   const handleDropzoneFilesChanged = (newFiles: FileUpload[]) => {
@@ -580,8 +669,13 @@ const Upload = ({
       cleanNotifications();
     }
 
-    // Complete share
+    // Complete share — stands aside while importFromNas is driving this
+    // submission itself (see nasSubmissionActiveRef's own comment), even
+    // though this effect keeps running unconditionally above so dropped
+    // files' progress/error toast still update live during a combined
+    // submission.
     if (
+      !nasSubmissionActiveRef.current &&
       files.length > 0 &&
       files.every((file) => file.uploadingProgress >= 100) &&
       fileErrorCount == 0
