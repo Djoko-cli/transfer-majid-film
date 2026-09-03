@@ -50,19 +50,19 @@ const useStyles = createStyles(
       // the original 30 instead, so this stays a per-caller choice rather
       // than the new default.
       //
-      // +46 when nasImport is set: that control now stacks two buttons
-      // (see its own comment further down for why a stack rather than a
-      // side-by-side row) instead of one, and this reservation only ever
-      // accounted for one row's worth of height. 46 ≈ one button's own
-      // height (~36px) plus the xs gap between them (theme.spacing.xs,
-      // 10px) - confirmed against a live measurement showing the
-      // single-row reservation left the floating control's real bottom
-      // edge overlapping the next sibling by exactly that much once it
-      // became two rows.
+      // Deliberately *not* also bumped when nasImport adds a second row -
+      // dropzone's own paddingBottom below already absorbs that (a
+      // two-row control is still anchored `bottom: -20` off this same
+      // wrapper, so pushing the wrapper's own box taller via paddingBottom
+      // pushes *that anchor point* down by the same amount, which already
+      // restores the original single-row clearance here too). An earlier
+      // version of this fix bumped both, on the assumption each needed its
+      // own correction - they don't, that was counting the same 46px
+      // twice, and it showed: a visibly oversized gap beneath the buttons,
+      // reported directly from a screenshot.
       wrapper: {
         position: "relative",
-        marginBottom:
-          (!compact && tightenWhenEmpty ? 20 : 30) + (hasNasImport ? 46 : 0),
+        marginBottom: !compact && tightenWhenEmpty ? 20 : 30,
       },
 
       // paddingBottom clears the floating control (further down) from the
