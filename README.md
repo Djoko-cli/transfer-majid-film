@@ -4,6 +4,8 @@
   <h1>Transfer</h1>
 
   <p><strong>Partage de fichiers auto-hébergé façon WeTransfer — envoyez de gros fichiers via un lien, sans compte.</strong></p>
+
+  <p><em><a href="README.en.md">Read this in English</a></em></p>
 </div>
 
 ---
