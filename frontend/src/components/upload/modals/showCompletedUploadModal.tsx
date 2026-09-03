@@ -63,10 +63,9 @@ const showCompletedUploadModal = (
     // off-balance for what should be this flow's confident closing moment.
     centered: true,
     // A short link field, a line of expiration text, and a button don't
-    // fill a "xl"-wide modal without going wide and flat (778x215 measured
-    // live — a 3.6:1 rectangle). Narrower, with generous padding around
-    // that same compact content instead of stretching it sideways, lands
-    // close to a balanced, roughly-square block.
+    // fill a "xl"-wide modal without going wide and flat (778px measured
+    // live at that size) — narrower keeps this compact content from
+    // stretching sideways into a banner.
     size: 480,
     // Named when the share has one (true for essentially every share now
     // that naming isn't hidden behind a mode toggle — see TransferCard) so
@@ -92,13 +91,15 @@ const showCompletedUploadModal = (
         // Mantine forces the body's own padding-top to 0 whenever a header
         // is present (a built-in `:not(:only-child)` rule, unbeatable from
         // here) — so the gap above the content has to live in the header's
-        // bottom padding instead, not the body's top padding.
-        header: { ...base.header, paddingTop: 40, paddingBottom: 120 },
-        // Generous bottom padding around the same compact content (link
-        // field, expiration line, button) turns the box from a wide banner
-        // into a balanced block closer to the 480 width — matching a
-        // confirmation-sheet feel rather than stretching content sideways.
-        body: { ...base.body, padding: "0px 32px 130px" },
+        // bottom padding instead, not the body's top padding. Both this and
+        // the body's own bottom padding used to be inflated way past this
+        // (120/130) chasing a specific roughly-square aspect ratio for the
+        // modal box itself — reported directly as reading like dead space
+        // once the content it was padding out actually included the link
+        // field. Just comfortable, ordinary spacing now; the box is whatever
+        // height its real content needs.
+        header: { ...base.header, paddingTop: 32, paddingBottom: 20 },
+        body: { ...base.body, padding: "0px 32px 32px" },
       };
     },
     children: (
