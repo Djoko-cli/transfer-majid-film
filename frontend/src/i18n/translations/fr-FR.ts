@@ -464,11 +464,13 @@ export default {
   "upload.nasImport.modal.title": "Importer depuis le NAS",
   "upload.nasImport.modal.selected-count": "{count} sélectionné(s)",
   "upload.nasImport.modal.preview-button": "Aperçu",
-  "upload.nasImport.modal.preview-result": "{count} fichiers, {size}",
+  "upload.nasImport.modal.preview-result.singular": "{count} fichier, {size}",
+  "upload.nasImport.modal.preview-result.plural": "{count} fichiers, {size}",
   "upload.nasImport.modal.empty-selection": "La sélection est vide",
   "upload.nasImport.notify.collisions":
     "{count} fichier(s) ignoré(s) (déjà présents dans ce partage)",
-  "upload.nasImport.progress": "{done} / {total} fichiers importés",
+  "upload.nasImport.progress.singular": "{done} / {total} fichier importé",
+  "upload.nasImport.progress.plural": "{done} / {total} fichiers importés",
 
   // TransferCard.tsx's own inline share-options form (name, recipients,
   // expiration, security) — shared by both a regular drag-and-drop upload

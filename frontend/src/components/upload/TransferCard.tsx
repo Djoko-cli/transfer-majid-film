@@ -155,10 +155,12 @@ const NasImportSummary = ({
       {progress ? (
         <>
           <Text size="xs" color="dimmed">
-            {t("upload.nasImport.progress", {
-              done: progress.done,
-              total: progress.total,
-            })}
+            {t(
+              progress.total === 1
+                ? "upload.nasImport.progress.singular"
+                : "upload.nasImport.progress.plural",
+              { done: progress.done, total: progress.total },
+            )}
           </Text>
           <Progress
             value={
@@ -171,10 +173,15 @@ const NasImportSummary = ({
       ) : (
         <Group position="apart" noWrap>
           <Text size="sm">
-            {t("upload.nasImport.modal.preview-result", {
-              count: preview.fileCount,
-              size: byteToHumanSizeString(preview.totalSize),
-            })}
+            {t(
+              preview.fileCount === 1
+                ? "upload.nasImport.modal.preview-result.singular"
+                : "upload.nasImport.modal.preview-result.plural",
+              {
+                count: preview.fileCount,
+                size: byteToHumanSizeString(preview.totalSize),
+              },
+            )}
           </Text>
           {onClear && (
             <ActionIcon

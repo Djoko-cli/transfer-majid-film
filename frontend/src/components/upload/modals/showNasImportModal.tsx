@@ -129,10 +129,15 @@ const NasImportModalBody = ({
       </Group>
       {previewResult && previewResult.fileCount > 0 && (
         <Alert color="primary" icon={<TbAlertCircle size={16} />}>
-          {t("upload.nasImport.modal.preview-result", {
-            count: previewResult.fileCount,
-            size: byteToHumanSizeString(previewResult.totalSize),
-          })}
+          {t(
+            previewResult.fileCount === 1
+              ? "upload.nasImport.modal.preview-result.singular"
+              : "upload.nasImport.modal.preview-result.plural",
+            {
+              count: previewResult.fileCount,
+              size: byteToHumanSizeString(previewResult.totalSize),
+            },
+          )}
         </Alert>
       )}
       <Group position="right">
