@@ -15,7 +15,6 @@ import SplitTransferLayout from "./SplitTransferLayout";
 import TermsGate from "./TermsGate";
 import TransferCard from "./TransferCard";
 import showCompletedUploadModal from "./modals/showCompletedUploadModal";
-import showCreateUploadModal from "./modals/showCreateUploadModal";
 import showEmailVerificationModal from "./modals/showEmailVerificationModal";
 import showNasImportModal from "./modals/showNasImportModal";
 import useConfig from "../../hooks/config.hook";
@@ -383,31 +382,24 @@ const Upload = ({
   };
 
   const openNasImportModal = () => {
-    showNasImportModal(modals, (paths, preview) => {
-      const syntheticFiles = paths.map((p) => ({
-        name: p.split("/").pop() || p,
-        size: preview.totalSize,
-      }));
-      showCreateUploadModal(
-        modals,
-        {
-          isUserSignedIn: user ? true : false,
-          allowUnauthenticatedShares: config.get(
-            "share.allowUnauthenticatedShares",
-          ),
-          enableEmailRecepients: config.get("email.enableShareEmailRecipients"),
-          enableUserRecipients: config.get("share.enableUserRecipients"),
-          maxExpiration:
-            user?.isAdmin || user?.canCreatePermanentShares
-              ? { value: 0, unit: "days" }
-              : config.get("share.maxExpiration"),
-          defaultExpiration: config.get("share.defaultExpiration"),
-          shareIdLength: config.get("share.shareIdLength"),
-        },
-        syntheticFiles,
-        (share) => importFromNas(share, paths, preview),
-      );
-    });
+    showNasImportModal(
+      modals,
+      {
+        isUserSignedIn: user ? true : false,
+        allowUnauthenticatedShares: config.get(
+          "share.allowUnauthenticatedShares",
+        ),
+        enableEmailRecepients: config.get("email.enableShareEmailRecipients"),
+        enableUserRecipients: config.get("share.enableUserRecipients"),
+        maxExpiration:
+          user?.isAdmin || user?.canCreatePermanentShares
+            ? { value: 0, unit: "days" }
+            : config.get("share.maxExpiration"),
+        defaultExpiration: config.get("share.defaultExpiration"),
+        shareIdLength: config.get("share.shareIdLength"),
+      },
+      (share, paths, preview) => importFromNas(share, paths, preview),
+    );
   };
 
   const handleDropzoneFilesChanged = (newFiles: FileUpload[]) => {

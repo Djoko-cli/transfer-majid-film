@@ -493,7 +493,9 @@ export default {
     "{count} file(s) skipped (already in this share)",
   "upload.nasImport.progress": "{done} / {total} files imported",
 
-  // showCreateUploadModal.tsx
+  // showNasImportModal.tsx (its options step - formerly a separate
+  // showCreateUploadModal.tsx, folded in when the two-modal NAS-import
+  // flow became one continuous modal)
   "upload.modal.title": "Create Share",
   "upload.modal.link.error.invalid":
     "Can only contain letters, numbers, underscores, and hyphens",

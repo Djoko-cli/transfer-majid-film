@@ -470,7 +470,9 @@ export default {
     "{count} fichier(s) ignoré(s) (déjà présents dans ce partage)",
   "upload.nasImport.progress": "{done} / {total} fichiers importés",
 
-  // showCreateUploadModal.tsx
+  // showNasImportModal.tsx (its options step - formerly a separate
+  // showCreateUploadModal.tsx, folded in when the two-modal NAS-import
+  // flow became one continuous modal)
   "upload.modal.title": "Créer un partage",
   "upload.modal.link.error.invalid":
     "Ne peut contenir que des lettres, des chiffres, des tirets bas et des traits d'union",
