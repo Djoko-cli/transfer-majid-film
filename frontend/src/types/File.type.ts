@@ -6,6 +6,7 @@ export type FileMetaData = {
   id: string;
   name: string;
   size: string;
+  thumbnailStatus?: string | null;
 };
 
 export type FileListItem = FileUpload | (FileMetaData & { deleted?: boolean });

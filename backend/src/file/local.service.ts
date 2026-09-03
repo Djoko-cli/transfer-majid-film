@@ -19,6 +19,7 @@ import { getUserActiveStorageUsage } from "src/utils/storageQuota.util";
 import { validate as isValidUUID } from "uuid";
 import { QUARANTINE_DIRECTORY, SHARE_DIRECTORY } from "../constants";
 import { Readable } from "stream";
+import { ThumbnailService } from "./thumbnail.service";
 
 @Injectable()
 export class LocalFileService {
@@ -26,6 +27,7 @@ export class LocalFileService {
     private prisma: PrismaService,
     private config: ConfigService,
     private readonly i18n: I18nService,
+    private thumbnailService: ThumbnailService,
   ) {}
 
   async create(
@@ -159,14 +161,20 @@ export class LocalFileService {
           share: { connect: { id: shareId } },
         },
       });
+      void this.thumbnailService.generate(shareId, file.id, file.name);
     }
 
     return file;
   }
 
   async get(shareId: string, fileId: string) {
-    const fileMetaData = await this.prisma.file.findUnique({
-      where: { id: fileId },
+    // Scoped by shareId *and* fileId together, not fileId alone — id is
+    // globally unique so a bare findUnique({where:{id}}) would resolve any
+    // share's file, relying only on the on-disk path (built from the URL's
+    // own shareId) to accidentally 404 a cross-share request instead of
+    // rejecting it as unauthorized at the query itself.
+    const fileMetaData = await this.prisma.file.findFirst({
+      where: { id: fileId, shareId },
     });
 
     if (!fileMetaData)
@@ -203,6 +211,34 @@ export class LocalFileService {
     };
   }
 
+  // Mirrors get() above: 404s unless the row is actually "ready" (covers
+  // "pending"/"failed"/"unsupported"/null alike — none of those have a
+  // .thumb.jpg on disk to stream), then confirms the file is openable
+  // before returning, same reasoning as get()'s own comment.
+  async getThumbnail(shareId: string, fileId: string) {
+    // Same shareId+fileId scoping as get() above, for the same reason.
+    const fileMetaData = await this.prisma.file.findFirst({
+      where: { id: fileId, shareId },
+    });
+
+    if (!fileMetaData || fileMetaData.thumbnailStatus !== "ready")
+      throw new NotFoundException(this.i18n.t("file.notFound"));
+
+    const file = await new Promise<ReturnType<typeof createReadStream>>(
+      (resolve, reject) => {
+        const stream = createReadStream(
+          `${SHARE_DIRECTORY}/${shareId}/${fileId}.thumb.jpg`,
+        );
+        stream.on("open", () => resolve(stream));
+        stream.on("error", () =>
+          reject(new NotFoundException(this.i18n.t("file.notFound"))),
+        );
+      },
+    );
+
+    return { file };
+  }
+
   async remove(shareId: string, fileId: string) {
     const fileMetaData = await this.prisma.file.findUnique({
       where: { id: fileId },
@@ -212,6 +248,12 @@ export class LocalFileService {
       throw new NotFoundException(this.i18n.t("file.notFound"));
 
     await fs.unlink(`${SHARE_DIRECTORY}/${shareId}/${fileId}`);
+    // Best-effort — most files never had a thumbnail generated at all
+    // (non-video, or generation still pending/failed), so ENOENT here is
+    // the common case, not an error.
+    await fs
+      .unlink(`${SHARE_DIRECTORY}/${shareId}/${fileId}.thumb.jpg`)
+      .catch(() => {});
 
     await this.prisma.file.delete({ where: { id: fileId } });
   }

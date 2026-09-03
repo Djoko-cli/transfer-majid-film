@@ -204,7 +204,32 @@ const FileList = ({
                       verticalAlign: "top",
                     }}
                   >
-                    {renderFileName(file.name)}
+                    {file.thumbnailStatus === "ready" ? (
+                      <Group spacing="xs" noWrap>
+                        <img
+                          src={shareService.getThumbnailUrl(
+                            share.id,
+                            file.id,
+                            recipientId,
+                          )}
+                          alt=""
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                          style={{
+                            width: 48,
+                            height: 32,
+                            objectFit: "cover",
+                            borderRadius: 6,
+                            flexShrink: 0,
+                          }}
+                        />
+                        {renderFileName(file.name)}
+                      </Group>
+                    ) : (
+                      renderFileName(file.name)
+                    )}
                   </td>
                   <td style={{ whiteSpace: "nowrap", verticalAlign: "top" }}>
                     {byteToHumanSizeString(parseInt(file.size))}

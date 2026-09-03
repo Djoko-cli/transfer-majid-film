@@ -146,6 +146,15 @@ export const configVariables = {
       defaultValue: "false",
       secret: false,
     },
+    // Gates ThumbnailService.generate() — see thumbnail.service.ts. On by
+    // default; an instance without ffmpeg installed just gets every video
+    // file's thumbnailStatus stuck at "failed"/"unsupported", same
+    // fail-open shape as every other best-effort toggle in this category.
+    enableVideoThumbnails: {
+      type: "boolean",
+      defaultValue: "true",
+      secret: false,
+    },
     fileRetentionPeriod: {
       type: "timespan",
       defaultValue: "0 days",

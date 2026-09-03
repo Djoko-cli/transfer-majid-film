@@ -136,6 +136,17 @@ const downloadFile = async (
   window.location.href = getFileUrl(shareId, fileId, recipientId);
 };
 
+const getThumbnailUrl = (
+  shareId: string,
+  fileId: string,
+  recipientId?: string,
+) => {
+  const recipientQuery = recipientId
+    ? `?recipient=${encodeURIComponent(recipientId)}`
+    : "";
+  return `${window.location.origin}/api/shares/${shareId}/files/${fileId}/thumbnail${recipientQuery}`;
+};
+
 const removeFile = async (shareId: string, fileId: string) => {
   if (!isValidId(shareId)) throw new Error("Invalid Share ID");
   await api.delete(`shares/${shareId}/files/${fileId}`);
@@ -431,6 +442,7 @@ export default {
   isReverseShareTokenAvailable,
   downloadFile,
   getFileUrl,
+  getThumbnailUrl,
   removeFile,
   uploadFile,
   setReverseShare,

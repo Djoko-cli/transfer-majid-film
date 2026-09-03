@@ -232,7 +232,9 @@ export class ClamScanService {
       try {
         files = fs
           .readdirSync(`${SHARE_DIRECTORY}/${shareId}`)
-          .filter((file) => file != "archive.zip");
+          .filter(
+            (file) => file != "archive.zip" && !file.endsWith(".thumb.jpg"),
+          );
       } catch (e) {
         void e;
         return { infectedFiles: [], scanId: null };

@@ -200,6 +200,26 @@ export class FileController {
     return new StreamableFile(file.file);
   }
 
+  @Get(":fileId/thumbnail")
+  @UseGuards(FileSecurityGuard)
+  async getThumbnail(
+    @Res({ passthrough: true }) res: Response,
+    @Param("shareId") shareId: string,
+    @Param("fileId") fileId: string,
+  ) {
+    const thumbnail = await this.fileService.getThumbnail(shareId, fileId);
+
+    // Not a real download — no notifyDownload call. Immutable once
+    // "ready": a re-upload gets a fresh fileId, so this URL's content
+    // never changes underneath a cached copy.
+    res.set({
+      "Content-Type": "image/jpeg",
+      "Cache-Control": "public, max-age=31536000, immutable",
+    });
+
+    return new StreamableFile(thumbnail.file);
+  }
+
   @Delete(":fileId")
   @SkipThrottle()
   @UseGuards(StrictShareOwnerGuard)

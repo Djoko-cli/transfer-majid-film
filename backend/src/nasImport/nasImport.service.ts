@@ -10,6 +10,7 @@ import * as path from "path";
 import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
 import { PrismaService } from "src/prisma/prisma.service";
+import { ThumbnailService } from "src/file/thumbnail.service";
 import { NAS_IMPORT_ROOT, SHARE_DIRECTORY } from "src/constants";
 
 // Synology (and general junk) entries that should never show up in a
@@ -47,6 +48,7 @@ export class NasImportService {
     private prisma: PrismaService,
     private config: ConfigService,
     private readonly i18n: I18nService,
+    private thumbnailService: ThumbnailService,
   ) {}
 
   private ensureEnabled() {
@@ -155,9 +157,7 @@ export class NasImportService {
   // validating every symlink hop against the root as it descends (not
   // just the top-level selection) — a directory *inside* the tree could
   // itself be a symlink pointing outside it.
-  private async *walk(
-    relativePaths: string[],
-  ): AsyncGenerator<WalkedFile> {
+  private async *walk(relativePaths: string[]): AsyncGenerator<WalkedFile> {
     const root = await fs.realpath(NAS_IMPORT_ROOT);
     for (const relativePath of relativePaths) {
       const real = await this.resolveSafePath(relativePath);
@@ -276,6 +276,12 @@ export class NasImportService {
           where: { id: shareId },
           data: { hasNasImportedFiles: true },
         });
+      }
+      // This path never goes through LocalFileService.create(), so without
+      // this, every NAS-imported video would silently never get a
+      // thumbnail — see ThumbnailService.generate's own comment.
+      for (const f of batch) {
+        void this.thumbnailService.generate(shareId, f.id, f.name);
       }
     }
 

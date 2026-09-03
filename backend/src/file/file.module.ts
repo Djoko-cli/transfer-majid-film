@@ -8,6 +8,7 @@ import { FileController } from "./file.controller";
 import { FileService } from "./file.service";
 import { LocalFileService } from "./local.service";
 import { S3FileService } from "./s3.service";
+import { ThumbnailService } from "./thumbnail.service";
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { S3FileService } from "./s3.service";
     VerificationModule,
   ],
   controllers: [FileController],
-  providers: [FileService, LocalFileService, S3FileService],
-  exports: [FileService],
+  providers: [FileService, LocalFileService, S3FileService, ThumbnailService],
+  exports: [FileService, ThumbnailService],
 })
 export class FileModule {}

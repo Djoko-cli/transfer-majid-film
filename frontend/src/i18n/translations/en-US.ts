@@ -908,6 +908,9 @@ export default {
   "admin.config.share.enable-nas-import": "Enable NAS import",
   "admin.config.share.enable-nas-import.description":
     "Lets an administrator create a share from files already on the NAS, without duplicating their content. Also requires the NAS_IMPORT_ROOT environment variable to be set to a mounted directory.",
+  "admin.config.share.enable-video-thumbnails": "Enable video thumbnails",
+  "admin.config.share.enable-video-thumbnails.description":
+    "Generates a small poster-frame thumbnail for video files in a share, shown next to the file name in the file list.",
   "admin.config.share.file-retention-period": "File retention period",
   "admin.config.share.file-retention-period.description":
     "How long files are kept after a share expires or gets deleted. Only useful if the 'Allow admin access to all shares' is also enabled. Set to -1 to keep files forever.",

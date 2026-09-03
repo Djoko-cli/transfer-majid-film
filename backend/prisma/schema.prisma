@@ -196,6 +196,13 @@ model File {
   name String
   size String
 
+  // "pending" | "ready" | "failed" | "unsupported" — set by ThumbnailService.
+  // null for every file that predates this column, and for a non-video file
+  // ThumbnailService never touches. No stored path: a "ready" thumbnail
+  // always lives at the same implicit on-disk spot as the file itself, see
+  // SHARE_DIRECTORY/<shareId>/<id>.thumb.jpg in local.service.ts.
+  thumbnailStatus String?
+
   shareId String
   share   Share  @relation(fields: [shareId], references: [id], onDelete: Cascade)
 }

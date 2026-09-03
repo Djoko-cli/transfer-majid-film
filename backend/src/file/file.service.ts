@@ -163,6 +163,15 @@ export class FileService {
     return storageService.get(shareId, fileId);
   }
 
+  // LOCAL-storage only, v1 — no S3 branch: an S3 share's File rows never
+  // reach thumbnailStatus "ready" in the first place (ThumbnailService
+  // only ever runs against a local on-disk path), so this naturally 404s
+  // for one via localFileService.getThumbnail's own status check, with no
+  // special-casing needed here.
+  async getThumbnail(shareId: string, fileId: string) {
+    return this.localFileService.getThumbnail(shareId, fileId);
+  }
+
   async remove(shareId: string, fileId: string) {
     const share = await this.prisma.share.findFirst({
       where: { id: shareId },

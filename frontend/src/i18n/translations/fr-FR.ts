@@ -886,6 +886,10 @@ export default {
   "admin.config.share.enable-nas-import": "Activer l'import depuis le NAS",
   "admin.config.share.enable-nas-import.description":
     "Permet à un administrateur de créer un partage à partir de fichiers déjà présents sur le NAS, sans en dupliquer le contenu. Nécessite également que la variable d'environnement NAS_IMPORT_ROOT soit définie sur un dossier monté.",
+  "admin.config.share.enable-video-thumbnails":
+    "Activer les miniatures vidéo",
+  "admin.config.share.enable-video-thumbnails.description":
+    "Génère une petite miniature (image extraite de la vidéo) pour les fichiers vidéo d'un partage, affichée à côté du nom du fichier dans la liste.",
   "admin.config.share.file-retention-period":
     "Période de conservation des fichiers",
   "admin.config.share.file-retention-period.description":
