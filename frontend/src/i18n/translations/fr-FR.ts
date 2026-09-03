@@ -610,6 +610,7 @@ export default {
   "share.downloads.table.date": "Date",
   "share.downloads.table.file": "Fichier",
   "share.downloads.table.recipient": "Téléchargé par",
+  "share.downloads.table.ip": "Adresse IP",
   "share.downloads.table.whole-archive": "Toute l'archive (zip)",
   "share.downloads.table.anonymous": "Anonyme",
   "share.downloads.empty.title": "Aucun téléchargement pour l'instant",

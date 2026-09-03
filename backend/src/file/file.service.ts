@@ -217,6 +217,7 @@ export class FileService {
     shareId: string,
     fileName: string,
     recipientId?: string,
+    ipAddress?: string,
   ) {
     // Recorded unconditionally, ahead of the notification toggle below —
     // JobsService.notifyExpiringRecipients() needs to know a named
@@ -242,7 +243,7 @@ export class FileService {
     // schema comment) fires regardless of whether email notifications are
     // even on, and regardless of email/count history the block above
     // already tracks: this records every download, not just the first.
-    await this.recordShareDownload(shareId, fileName, recipientId);
+    await this.recordShareDownload(shareId, fileName, recipientId, ipAddress);
 
     if (!this.configService.get("email.enableShareDownloadNotifications"))
       return;
@@ -261,6 +262,7 @@ export class FileService {
     shareId: string,
     fileName: string,
     recipientId?: string,
+    ipAddress?: string,
   ) {
     try {
       const recipient = recipientId
@@ -281,6 +283,7 @@ export class FileService {
           shareId,
           fileName: isWholeShareZip ? null : fileName,
           recipientEmail: recipient?.email ?? null,
+          ipAddress: ipAddress ?? null,
         },
       });
     } catch (e) {

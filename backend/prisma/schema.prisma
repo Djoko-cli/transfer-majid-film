@@ -250,6 +250,7 @@ model ShareDownload {
 
   fileName       String?
   recipientEmail String?
+  ipAddress      String?
 
   shareId String
   share   Share  @relation(fields: [shareId], references: [id], onDelete: Cascade)

@@ -13,6 +13,9 @@ export class ShareDownloadDTO {
   @Expose()
   recipientEmail: string | null;
 
+  @Expose()
+  ipAddress: string | null;
+
   from(partial: Partial<ShareDownloadDTO>) {
     return plainToClass(ShareDownloadDTO, partial, {
       excludeExtraneousValues: true,

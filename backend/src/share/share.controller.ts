@@ -91,9 +91,10 @@ export class ShareController {
   // holding an anonymous share's id.
   @Get(":id/downloads")
   @UseGuards(IdValidation, ShareOwnerGuard)
-  async getDownloads(@Param("id") id: string) {
+  async getDownloads(@Param("id") id: string, @GetUser() user: User) {
+    const downloads = await this.shareService.getDownloads(id);
     return new ShareDownloadDTO().fromList(
-      await this.shareService.getDownloads(id),
+      user?.isAdmin ? downloads : downloads.map((d) => ({ ...d, ipAddress: null })),
     );
   }
 

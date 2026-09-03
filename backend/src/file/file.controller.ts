@@ -6,13 +6,14 @@ import {
   Param,
   Post,
   Query,
+  Req,
   Res,
   StreamableFile,
   UseGuards,
 } from "@nestjs/common";
 import { SkipThrottle } from "@nestjs/throttler";
 import * as contentDisposition from "content-disposition";
-import { Response } from "express";
+import { Request, Response } from "express";
 import { CreateShareGuard } from "src/share/guard/createShare.guard";
 import { StrictShareOwnerGuard } from "src/share/guard/strictShareOwner.guard";
 import { IdValidation } from "src/share/guard/shareIdValidation.guard";
@@ -119,6 +120,7 @@ export class FileController {
   @UseGuards(FileSecurityGuard)
   async getZip(
     @Res({ passthrough: true }) res: Response,
+    @Req() request: Request,
     @Param("shareId") shareId: string,
     @Query("recipient") recipientId?: string,
   ) {
@@ -133,6 +135,7 @@ export class FileController {
       shareId,
       `${shareId}.zip`,
       getValidRecipientId(recipientId),
+      request.ip,
     );
 
     return new StreamableFile(zipStream);
@@ -142,6 +145,7 @@ export class FileController {
   @UseGuards(FileSecurityGuard)
   async getFile(
     @Res({ passthrough: true }) res: Response,
+    @Req() request: Request,
     @Param("shareId") shareId: string,
     @Param("fileId") fileId: string,
     @Query("download") download = "true",
@@ -162,6 +166,7 @@ export class FileController {
           shareId,
           fileName,
           getValidRecipientId(recipientId),
+          request.ip,
         );
       }
       res.status(302).setHeader("Location", url);
@@ -188,6 +193,7 @@ export class FileController {
         shareId,
         file.metaData.name,
         getValidRecipientId(recipientId),
+        request.ip,
       );
     }
 

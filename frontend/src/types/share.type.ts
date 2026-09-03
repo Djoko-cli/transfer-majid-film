@@ -62,6 +62,7 @@ export type ShareDownload = {
   fileName: string | null;
   // null = anonymous / Link-mode visitor, not a named Email-mode recipient
   recipientEmail: string | null;
+  ipAddress: string | null;
 };
 
 export type MyShare = Omit<Share, "hasPassword"> & {

@@ -18,6 +18,7 @@ import CenterLoader from "../../../components/core/CenterLoader";
 import GlassPageBackdrop from "../../../components/core/GlassPageBackdrop";
 import showErrorModal from "../../../components/share/showErrorModal";
 import glassFormTheme from "../../../components/upload/glassFormTheme";
+import useUser from "../../../hooks/user.hook";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import shareService from "../../../services/share.service";
 import { ShareDownload } from "../../../types/share.type";
@@ -35,6 +36,7 @@ export function getServerSideProps(context: GetServerSidePropsContext) {
 const Downloads = ({ shareId }: { shareId: string }) => {
   const t = useTranslate();
   const modals = useModals();
+  const { user } = useUser();
 
   const [isLoading, setIsLoading] = useState(true);
   const [downloads, setDownloads] = useState<ShareDownload[]>([]);
@@ -109,6 +111,11 @@ const Downloads = ({ shareId }: { shareId: string }) => {
                   <th>
                     <FormattedMessage id="share.downloads.table.recipient" />
                   </th>
+                  {user?.isAdmin && (
+                    <th>
+                      <FormattedMessage id="share.downloads.table.ip" />
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -123,6 +130,7 @@ const Downloads = ({ shareId }: { shareId: string }) => {
                       {download.recipientEmail ??
                         t("share.downloads.table.anonymous")}
                     </td>
+                    {user?.isAdmin && <td>{download.ipAddress ?? "—"}</td>}
                   </tr>
                 ))}
               </tbody>
