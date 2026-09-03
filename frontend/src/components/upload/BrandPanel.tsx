@@ -710,6 +710,36 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
 
   const activeSlide = order[current];
 
+  // Only ever renders the previous/current/next indices, not the whole
+  // catalog (order.length is 106+ in production) — this carousel only
+  // ever moves forward one step at a time, so at any given moment
+  // exactly three slides can matter: the one sliding out (still finishing
+  // its own exit transition — see Slide's own comment on why nothing
+  // touches a slide once it's inactive), the one showing, and the one
+  // already fetched ahead of its own turn (delta === 1, see Slide's
+  // `loading` prop). Every other slide sitting off in transform-space is
+  // invisible and, before this, stayed mounted with a fully decoded image
+  // in memory for the rest of the session regardless — reported directly
+  // as the likely cause of real-device memory pressure severe enough to
+  // crash the tab (WebKit degrading/dropping the header's backdrop-filter
+  // blur first, then killing the page outright). A slide that cycles back
+  // into this window later mounts fresh and starts its own zoom from
+  // scale(1) exactly like a first activation — see Slide's own
+  // useLayoutEffect, which doesn't distinguish "never mounted before"
+  // from "remounted after a while away."
+  //
+  // Set() dedupes for a very small catalog (e.g. 2 slides, where
+  // current-1 and current+1 land on the same index) rather than crashing
+  // on a duplicate React key.
+  const mountedIndices = [
+    ...new Set(
+      [-1, 0, 1].map(
+        (offset) =>
+          (((current + offset) % order.length) + order.length) % order.length,
+      ),
+    ),
+  ];
+
   return (
     <>
       <Box className={classes.panel}>
@@ -727,16 +757,19 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
                 : "brandPanelFadeIn 500ms ease",
             }}
           >
-            {order.map((slide, index) => (
-              <Slide
-                key={`${slide.slug}-s${slide.still}`}
-                slide={slide}
-                delta={cyclicDelta(current, index, order.length)}
-                isActive={index === current}
-                prefersReducedMotion={prefersReducedMotion}
-                isPaused={isPaused}
-              />
-            ))}
+            {mountedIndices.map((index) => {
+              const slide = order[index];
+              return (
+                <Slide
+                  key={`${slide.slug}-s${slide.still}`}
+                  slide={slide}
+                  delta={cyclicDelta(current, index, order.length)}
+                  isActive={index === current}
+                  prefersReducedMotion={prefersReducedMotion}
+                  isPaused={isPaused}
+                />
+              );
+            })}
           </Box>
         )}
       </Box>
