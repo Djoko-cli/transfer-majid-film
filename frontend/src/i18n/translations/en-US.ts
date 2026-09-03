@@ -561,6 +561,8 @@ export default {
   "upload.modal.completed.link-mode.title": "All done!",
   "upload.modal.completed.link-mode.download-notification":
     "We'll email you as soon as this share gets downloaded.",
+  "upload.modal.completed.email-mode.recipients-notified":
+    "We've emailed this share to your recipients.",
   "upload.modal.completed.summary.singular": "{count} file · {size}",
   "upload.modal.completed.summary.plural": "{count} files · {size}",
   "upload.modal.completed.notified-reverse-share-creator":

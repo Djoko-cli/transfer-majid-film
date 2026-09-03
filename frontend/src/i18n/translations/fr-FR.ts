@@ -535,6 +535,8 @@ export default {
   "upload.modal.completed.link-mode.title": "Hop, c'est envoyé !",
   "upload.modal.completed.link-mode.download-notification":
     "Nous vous préviendrons par e-mail dès que ce partage aura été téléchargé.",
+  "upload.modal.completed.email-mode.recipients-notified":
+    "Nous avons envoyé ce partage par e-mail à vos destinataires.",
   "upload.modal.completed.summary.singular": "{count} fichier · {size}",
   "upload.modal.completed.summary.plural": "{count} fichiers · {size}",
   "upload.modal.completed.notified-reverse-share-creator":

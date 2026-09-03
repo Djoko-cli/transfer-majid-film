@@ -38,14 +38,13 @@ const showCompletedUploadModal = (
   // step for the legacy reverse-share flow, which has no brand image
   // behind it and stays on its plain opaque styling.
   glass = false,
-  // Distinguishes "link" from every other mode only for the extra "we'll
-  // notify you on download" line below — every mode shows the real link
-  // (CopyTextField) the same way. Hiding the link specifically for "link"
-  // mode used to be the design here, but that's exactly the one thing a
-  // sender picking "link" mode is asking for, so showing it is the whole
-  // point rather than something to declutter away. Undefined (the legacy
-  // reverse-share call site, which never set this) just never shows that
-  // extra line — link shown, unchanged.
+  // "link" shows the real link (CopyTextField) plus the download-
+  // notification line below when possible — showing it is the whole
+  // point of a sender picking this mode. "email" hides the link instead
+  // (recipients already have it directly) and shows a short confirmation
+  // that they were notified. Undefined (the legacy reverse-share call
+  // site, which never sets this) behaves like "link" minus that extra
+  // line — shows the link, same as it always has.
   mode?: Mode,
   // Whether a download-notification email is actually possible right now
   // (smtp.enabled && email.enableShareDownloadNotifications) — only shown
@@ -233,10 +232,32 @@ const Body = ({
           </Group>
         )}
 
-        <CopyTextField link={link} toggleQR={handleToggleQR} />
-        <Collapse in={showQR}>
-          <QRCode link={link} />
-        </Collapse>
+        {
+          // Shown for "link" and for undefined (the legacy reverse-share
+          // call site, which never sets mode and has always shown the
+          // link — untouched here). Hidden specifically for "email":
+          // recipients already got the link directly, so showing it again
+          // here just as raw text reads as something the sender still
+          // needs to go share themselves, which isn't true in this mode -
+          // reported directly after link-mode's own fix above (which
+          // showed the link there for the first time) also made it show,
+          // as it always had, in email mode, prompting a second look at
+          // what email mode should actually confirm instead: that
+          // recipients were already notified, not a link to still pass on.
+        }
+        {mode !== "email" && (
+          <>
+            <CopyTextField link={link} toggleQR={handleToggleQR} />
+            <Collapse in={showQR}>
+              <QRCode link={link} />
+            </Collapse>
+          </>
+        )}
+        {mode === "email" && (
+          <Text size="sm">
+            {t("upload.modal.completed.email-mode.recipients-notified")}
+          </Text>
+        )}
         {mode === "link" && canNotifyOnDownload && (
           <Text size="sm" color="dimmed">
             {t("upload.modal.completed.link-mode.download-notification")}
