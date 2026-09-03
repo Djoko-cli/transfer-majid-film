@@ -614,7 +614,16 @@ const Upload = ({
     !isReverseShare &&
     user?.isAdmin &&
     config.get("share.enableNasImport") && (
-      <Stack spacing={4} mb="sm">
+      // position+zIndex required: this renders as a plain static-flow
+      // sibling *before* SplitTransferLayout (see the return below), and
+      // BrandPanel's fixed photo backdrop inside it paints above static
+      // content regardless of DOM order once it's positioned - confirmed
+      // live (document.elementFromPoint at this button's own coordinates
+      // returned BrandPanel's <img>, not the button) after it was reported
+      // uploading fine but the button itself invisible. zIndex: 2 matches
+      // SplitTransferLayout's own cardSlot, already proven sufficient to
+      // sit above the same photo.
+      <Stack spacing={4} mb="sm" sx={{ position: "relative", zIndex: 2 }}>
         <Group position="right">
           <Button
             variant="subtle"
