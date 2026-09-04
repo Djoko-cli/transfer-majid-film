@@ -14,6 +14,7 @@ import { useDisclosure } from "@mantine/hooks";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { TbChevronLeft } from "react-icons/tb";
 import { APP_NAME } from "../../constants";
 import useConfig from "../../hooks/config.hook";
@@ -104,21 +105,11 @@ const useStyles = createStyles((theme) => {
     // which broke the instant that margin was replaced with padding for
     // unrelated reasons).
     mobileMenuReveal: {
-      // fixed, not absolute, and a sibling of MantineHeader in the JSX
-      // below rather than nested inside it — the header itself
-      // (`root` above) already carries its own backdrop-filter, and a
-      // backdrop-filter element (the Paper inside this box) nested
-      // *inside* another backdrop-filter's own subtree is a real WebKit
-      // bug: Safari can fail to compute the inner blur against an
-      // already-filtered backdrop at all, rendering it as a flat,
-      // unblurred fill. Confirmed directly — the header bar and other
-      // glass surfaces on the same page blurred correctly in real
-      // Safari, only this nested one didn't, and an earlier fix that
-      // addressed a *different* compositing trap (an overflow+transform
-      // ancestor) left this one untouched. `top: HEADER_HEIGHT` replaces
-      // the old `top: 100%`, which relied on being positioned relative
-      // to the header's own box; as a sibling this now needs the real
-      // pixel offset instead.
+      // fixed, not absolute — and portaled to document.body in the JSX
+      // below rather than rendered in place; see that portal's own
+      // comment for why. `top: HEADER_HEIGHT` + `right: 16` position it
+      // relative to the true viewport regardless of where in the DOM it
+      // actually lives.
       //
       // The reveal itself is a clip-path transition on this box (see its
       // own inline style at the JSX below), not transform+opacity on
@@ -131,31 +122,10 @@ const useStyles = createStyles((theme) => {
       // category entirely: nothing in Paper's chain, or Paper itself,
       // touches transform or opacity anymore, only how much of this
       // already fully-rendered box is visible.
-      //
-      // isolation: isolate — forces this box into its own stacking
-      // context on purpose. Before the mobile menu became an overlay
-      // (see this file's own history), the page-content push applied a
-      // `transform` to _app.tsx's root content container while open,
-      // which — as a side effect neither this box nor that push's own
-      // reasoning ever depended on — also gave that whole subtree
-      // (including SplitTransferLayout's own backdrop-filter card) a new
-      // stacking context, incidentally keeping its compositing separate
-      // from this box's. Removing the push removed that incidental
-      // isolation too: reported directly as this Paper losing its blur
-      // entirely (rendering flat, no trace of the photo behind it) once
-      // it could end up on-screen at the same time as another
-      // backdrop-filter element in the *same* stacking context — Safari
-      // has a known history of failing to correctly composite multiple
-      // concurrent backdrop-filter layers sharing one context, distinct
-      // from (if related to) the nested-DOM-ancestor version of this bug
-      // described above. isolation is the standards-based way to get an
-      // explicit stacking context without a transform (or any other
-      // property with unrelated side effects) doing it as an accident.
       position: "fixed",
       top: HEADER_HEIGHT,
       right: 16,
       zIndex: 100,
-      isolation: "isolate",
 
       [theme.fn.largerThan("sm")]: {
         display: "none",
@@ -348,6 +318,18 @@ const Header = () => {
     close();
     setMobileMenuView("root");
   }, [close, router.pathname]);
+
+  // Gates the portal below (see its own comment) — document.body doesn't
+  // exist during SSR, and rendering straight into it on the client's
+  // first pass, before hydration has reconciled against the server-
+  // rendered markup, is the classic hydration-mismatch trap. Starting
+  // false and flipping true in an effect means the first client render
+  // still matches the server's, and the portal only takes over one
+  // commit later — invisible either way, since `opened` also starts
+  // false (see useDisclosure above), so there's nothing on-screen for
+  // this to change during that one-render gap.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Shared by the two inline-styled transitions in the JSX below (the menu
   // reveal Box and its Paper) — computed per render rather than a live-
@@ -588,43 +570,62 @@ const Header = () => {
         // this app that keeps a collapsed region mounted: something has
         // to still be there for the *next* open to animate from.
         //
-        // A sibling of MantineHeader, not a child of it — see
-        // mobileMenuReveal's own comment in useStyles for why (nested
-        // backdrop-filter under the header's own).
+        // Portaled to document.body (see `mounted` above) rather than
+        // rendered inline here — being a plain JSX sibling of
+        // MantineHeader already solved the nested-backdrop-filter case
+        // (this box no longer sits *inside* another backdrop-filter's own
+        // DOM subtree), but this element is still earlier in raw DOM/
+        // paint order than page content rendered later in _app.tsx (the
+        // upload card among it, itself backdrop-filter) and only ends up
+        // visually on top of it via zIndex: 100 — a paint-order/stacking-
+        // order mismatch that Safari's backdrop-filter reportedly fails
+        // to composite correctly, once the mobile-menu-overlay change
+        // stopped moving that content out of the way first. Portaling to
+        // the very end of the document makes DOM order and stacking order
+        // agree, the same reason every floating-UI library (Mantine's own
+        // Menu/Popover/Modal included, just not used for this hand-rolled
+        // panel) portals dropdowns/modals by default rather than
+        // rendering them in place.
       }
-      <Box
-        className={classes.mobileMenuReveal}
-        style={{
-          clipPath: opened ? "inset(0% 0% 0% 0%)" : "inset(0% 0% 100% 0%)",
-          transition: `clip-path ${mobileMenuDuration}ms ease-out`,
-          pointerEvents: opened ? "auto" : "none",
-        }}
-        aria-hidden={!opened}
-      >
-        {
-          // Paper itself no longer animates anything — transform/opacity
-          // here would reintroduce the exact black-flash bug clip-path
-          // above exists to avoid. It renders at its final, fully-styled
-          // state at all times; the clip-path on the box above is the
-          // only thing controlling how much of it is actually visible.
-        }
-        <Paper className={classes.mobilePanel} withBorder>
-          <Stack spacing={0}>
-            {mobileMenuView !== "root" && (
-              <UnstyledButton
-                className={classes.mobileMenuButton}
-                onClick={() => setMobileMenuView("root")}
-                aria-label={t("common.button.back")}
-              >
-                <span className={classes.mobileMenuButtonContent}>
-                  <TbChevronLeft size={18} />
-                </span>
-              </UnstyledButton>
-            )}
-            {currentMobileLinks.map((link) => renderMobileEntry(link))}
-          </Stack>
-        </Paper>
-      </Box>
+      {mounted &&
+        createPortal(
+          <Box
+            className={classes.mobileMenuReveal}
+            style={{
+              clipPath: opened
+                ? "inset(0% 0% 0% 0%)"
+                : "inset(0% 0% 100% 0%)",
+              transition: `clip-path ${mobileMenuDuration}ms ease-out`,
+              pointerEvents: opened ? "auto" : "none",
+            }}
+            aria-hidden={!opened}
+          >
+            {
+              // Paper itself no longer animates anything — transform/opacity
+              // here would reintroduce the exact black-flash bug clip-path
+              // above exists to avoid. It renders at its final, fully-styled
+              // state at all times; the clip-path on the box above is the
+              // only thing controlling how much of it is actually visible.
+            }
+            <Paper className={classes.mobilePanel} withBorder>
+              <Stack spacing={0}>
+                {mobileMenuView !== "root" && (
+                  <UnstyledButton
+                    className={classes.mobileMenuButton}
+                    onClick={() => setMobileMenuView("root")}
+                    aria-label={t("common.button.back")}
+                  >
+                    <span className={classes.mobileMenuButtonContent}>
+                      <TbChevronLeft size={18} />
+                    </span>
+                  </UnstyledButton>
+                )}
+                {currentMobileLinks.map((link) => renderMobileEntry(link))}
+              </Stack>
+            </Paper>
+          </Box>,
+          document.body,
+        )}
       {
         // Constant regardless of `opened` — see mobileSpacer's own comment
         // in useStyles for why.
