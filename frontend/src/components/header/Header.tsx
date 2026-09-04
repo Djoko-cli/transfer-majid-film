@@ -151,6 +151,19 @@ const useStyles = createStyles((theme) => {
       minWidth: 220,
       maxWidth: "calc(100vw - 32px)",
       borderRadius: theme.radius.md,
+      // Forces this onto its own stable GPU layer *before* the open/close
+      // transition starts, rather than letting Safari promote/demote it
+      // on the fly as transform and opacity animate — a backdrop-filter
+      // element (or one with a backdrop-filter descendant, see the scaleY
+      // wrapper's own comment below) that gets promoted mid-transition is
+      // a known WebKit trigger for a brief black flash instead of a
+      // smooth cross-fade, reported directly as still happening even
+      // after the nested-backdrop-filter fix resolved the at-rest
+      // frosting. willChange is a static hint (unlike the actually-
+      // animated transform/opacity above), so it stays on regardless of
+      // `opened` — the cost of one permanently-promoted layer for a
+      // small, rarely-mounted-differently menu panel is negligible.
+      willChange: "transform, opacity",
       // Same tint/blur recipe as `root` above (the header bar itself) —
       // Mantine's own Paper default is a flat opaque fill from this app's
       // near-black palette, which reads as a solid slab dropped onto the
@@ -745,6 +758,13 @@ const Header = ({
             transform: opened ? "scaleY(1)" : "scaleY(0)",
             transformOrigin: "top",
             transition: `transform ${mobileMenuDuration}ms ease-out`,
+            // Same reason as mobilePanel's own willChange — this box's
+            // transform is what's actively animating while the Paper
+            // (backdrop-filter) sits inside it as a descendant; promoting
+            // it to its own layer ahead of time avoids the on-the-fly
+            // promotion Safari otherwise does mid-transition, which is
+            // where the black flash came from.
+            willChange: "transform",
           }}
         >
           <Paper
