@@ -15,7 +15,14 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ReactNode, RefObject, useEffect, useRef, useState } from "react";
+import {
+  ReactNode,
+  RefObject,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { TbChevronLeft } from "react-icons/tb";
 import { APP_NAME } from "../../constants";
 import useConfig from "../../hooks/config.hook";
@@ -26,6 +33,18 @@ import Logo from "../Logo";
 import ActionAvatar from "./ActionAvatar";
 import LanguageToggle from "./LanguageToggle";
 import NavbarShareMenu from "./NavbarShareMenu";
+
+// React warns on every SSR render if useLayoutEffect is used directly —
+// "does nothing on the server", which is true but harmless here (the
+// effect that needs it below early-returns until a real DOM ref exists,
+// long before any server render could reach it) — this app is
+// server-rendered by default (no getLayout opt-out on most pages), so
+// the plain hook would print that warning on every one of them. Falling
+// back to useEffect (a no-op either way during SSR) sidesteps the
+// warning without changing behavior in the browser, where this always
+// resolves to the real useLayoutEffect.
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export const HEADER_HEIGHT = 60;
 
@@ -497,7 +516,20 @@ const Header = ({
   // The ResizeObserver above only fires on an actual size change, not on
   // `opened` itself flipping with the menu's size unchanged (the common
   // case) — this applies the transform for that transition directly.
-  useEffect(applyPush, [opened, pushContentRef]);
+  //
+  // useLayoutEffect, not useEffect: the menu's own reveal (Paper's
+  // transform/opacity, the scaleY wrapper's transform) is set inline
+  // during this same render, so the browser sees it and starts
+  // transitioning the instant this commit paints. A plain useEffect runs
+  // *after* that paint — pushEl's transform and --mobile-menu-push, read
+  // by BrandPanel's own compensating transform, would then start their
+  // own transition a frame (or more, under any load) later than the menu
+  // itself. Reported directly as a visible parasitic motion: the
+  // background image drops with the menu, then visibly snaps to catch up
+  // once this effect finally ran. useLayoutEffect fires synchronously
+  // before paint instead, so both sides commit in the same frame and
+  // animate in lockstep from the same starting instant.
+  useIsomorphicLayoutEffect(applyPush, [opened, pushContentRef]);
 
   const authenticatedLinks: NavLink[] = [
     {
