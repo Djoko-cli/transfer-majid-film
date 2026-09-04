@@ -147,11 +147,30 @@ const useStyles = createStyles((theme) => {
       // the old `top: 100%`, which relied on being positioned relative
       // to the header's own box; as a sibling this now needs the real
       // pixel offset instead.
+      //
+      // The reveal itself is a clip-path transition on this box (see its
+      // own inline style at the JSX below), not transform+opacity on
+      // Paper — reapplied after being tried and reverted once already.
+      // The first attempt was tested and reported as changing nothing,
+      // but at that point the *separate* page-content-push timing bug
+      // (see the useIsomorphicLayoutEffect above applyPush) was still
+      // live — that bug's own visible symptom (BrandPanel's photo
+      // genuinely dropping and snapping back) was large enough to fully
+      // mask whatever this fixed underneath it. With that one now fixed
+      // independently, what's left matches this one's own signature
+      // exactly: a real-device recording caught the Paper rendering
+      // flat black *specifically during* its own transform/opacity
+      // transition, correctly frosted again the instant it settled —
+      // the textbook shape of backdrop-filter combined with an animating
+      // transform/opacity on the filtered element (or an ancestor of
+      // it) failing to composite correctly on WebKit. clip-path
+      // sidesteps the category entirely: nothing in Paper's chain, or
+      // Paper itself, touches transform or opacity anymore, only how
+      // much of this already fully-rendered box is visible.
       position: "fixed",
       top: HEADER_HEIGHT,
       right: 16,
       zIndex: 100,
-      overflow: "hidden",
 
       [theme.fn.largerThan("sm")]: {
         display: "none",
@@ -170,19 +189,6 @@ const useStyles = createStyles((theme) => {
       minWidth: 220,
       maxWidth: "calc(100vw - 32px)",
       borderRadius: theme.radius.md,
-      // Forces this onto its own stable GPU layer *before* the open/close
-      // transition starts, rather than letting Safari promote/demote it
-      // on the fly as transform and opacity animate — a backdrop-filter
-      // element (or one with a backdrop-filter descendant, see the scaleY
-      // wrapper's own comment below) that gets promoted mid-transition is
-      // a known WebKit trigger for a brief black flash instead of a
-      // smooth cross-fade, reported directly as still happening even
-      // after the nested-backdrop-filter fix resolved the at-rest
-      // frosting. willChange is a static hint (unlike the actually-
-      // animated transform/opacity above), so it stays on regardless of
-      // `opened` — the cost of one permanently-promoted layer for a
-      // small, rarely-mounted-differently menu panel is negligible.
-      willChange: "transform, opacity",
       // Same tint/blur recipe as `root` above (the header bar itself) —
       // Mantine's own Paper default is a flat opaque fill from this app's
       // near-black palette, which reads as a solid slab dropped onto the
@@ -748,83 +754,53 @@ const Header = ({
         </Container>
       </MantineHeader>
       {
-        // GPU-only reveal: transform + opacity only, nothing here or on
-        // the Paper inside ever animates a layout property (see
-        // mobileMenuReveal's own comment in useStyles for the full
-        // reasoning, and menuBoxRef's effect above for how page content
-        // still visually tracks this opening/closing). scaleY(0) rather
-        // than unmounting while closed — same reason as everywhere else
-        // in this app that keeps a collapsed region mounted: something
-        // has to still be there for the *next* open to animate from.
-        // No opacity here (only on the Paper below) deliberately: opacity
-        // is multiplicative across nested elements, so fading both would
-        // combine into a slower, non-linear curve instead of the single
-        // clean fade this had before.
+        // Reveal is a clip-path transition on this box, not
+        // transform/opacity — see mobileMenuReveal's own comment in
+        // useStyles for why (backdrop-filter + an animating
+        // transform/opacity, on the Paper below or any ancestor of it,
+        // renders as flat black on real Safari specifically during the
+        // transition). inset(0 0 100% 0)-equivalent rather than
+        // unmounting while closed — same reason as everywhere else in
+        // this app that keeps a collapsed region mounted: something has
+        // to still be there for the *next* open to animate from.
         //
-        // A sibling of MantineHeader now, not a child of it — see
+        // A sibling of MantineHeader, not a child of it — see
         // mobileMenuReveal's own comment in useStyles for why (nested
         // backdrop-filter under the header's own).
       }
       <Box
         ref={menuBoxRef}
         className={classes.mobileMenuReveal}
-        style={{ pointerEvents: opened ? "auto" : "none" }}
+        style={{
+          clipPath: opened ? "inset(0% 0% 0% 0%)" : "inset(0% 0% 100% 0%)",
+          transition: `clip-path ${mobileMenuDuration}ms ease-out`,
+          pointerEvents: opened ? "auto" : "none",
+        }}
         aria-hidden={!opened}
       >
         {
-          // The scaleY reveal lives on this inner box, not the outer one
-          // above — an ancestor that combines overflow:hidden (needed
-          // there to clip the grow animation) with an active CSS
-          // transform is a separate, also-real WebKit compositing trap
-          // for a backdrop-filter descendant (the Paper below). Splitting
-          // "clip" (outer Box, no transform) from "animate" (this Box, no
-          // overflow:hidden) means no single ancestor in Paper's chain
-          // carries both, without changing the reveal itself — still
-          // pure transform, still GPU-only, still measured the same way
-          // by the ResizeObserver on the outer box above (overflow:hidden
-          // alone doesn't affect that box's own layout height, only what
-          // paints past its edge).
+          // Paper itself no longer animates anything — transform/opacity
+          // here would reintroduce the exact black-flash bug clip-path
+          // above exists to avoid. It renders at its final, fully-styled
+          // state at all times; the clip-path on the box above is the
+          // only thing controlling how much of it is actually visible.
         }
-        <Box
-          style={{
-            transform: opened ? "scaleY(1)" : "scaleY(0)",
-            transformOrigin: "top",
-            transition: `transform ${mobileMenuDuration}ms ease-out`,
-            // Same reason as mobilePanel's own willChange — this box's
-            // transform is what's actively animating while the Paper
-            // (backdrop-filter) sits inside it as a descendant; promoting
-            // it to its own layer ahead of time avoids the on-the-fly
-            // promotion Safari otherwise does mid-transition, which is
-            // where the black flash came from.
-            willChange: "transform",
-          }}
-        >
-          <Paper
-            className={classes.mobilePanel}
-            withBorder
-            style={{
-              transform: opened ? "scale(1)" : "scale(0.94)",
-              opacity: opened ? 1 : 0,
-              transformOrigin: "top right",
-              transition: `transform ${mobileMenuDuration}ms ease-out, opacity ${mobileMenuDuration}ms ease-out`,
-            }}
-          >
-            <Stack spacing={0}>
-              {mobileMenuView !== "root" && (
-                <UnstyledButton
-                  className={classes.mobileMenuButton}
-                  onClick={() => setMobileMenuView("root")}
-                  aria-label={t("common.button.back")}
-                >
-                  <span className={classes.mobileMenuButtonContent}>
-                    <TbChevronLeft size={18} />
-                  </span>
-                </UnstyledButton>
-              )}
-              {currentMobileLinks.map((link) => renderMobileEntry(link))}
-            </Stack>
-          </Paper>
-        </Box>
+        <Paper className={classes.mobilePanel} withBorder>
+          <Stack spacing={0}>
+            {mobileMenuView !== "root" && (
+              <UnstyledButton
+                className={classes.mobileMenuButton}
+                onClick={() => setMobileMenuView("root")}
+                aria-label={t("common.button.back")}
+              >
+                <span className={classes.mobileMenuButtonContent}>
+                  <TbChevronLeft size={18} />
+                </span>
+              </UnstyledButton>
+            )}
+            {currentMobileLinks.map((link) => renderMobileEntry(link))}
+          </Stack>
+        </Paper>
       </Box>
       {
         // Shrinks in step with the menu's own growth (same duration)
