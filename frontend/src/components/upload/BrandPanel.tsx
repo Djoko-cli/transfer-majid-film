@@ -283,35 +283,6 @@ const cyclicDelta = (from: number, to: number, length: number) => {
 
 const useStyles = createStyles(
   (theme, { isPaused }: { isPaused: boolean }) => ({
-    // Split from `.panel` below into its own outer box specifically so its
-    // transform can have NO transition at all — see its own comment for why
-    // that's load-bearing, not an oversight.
-    panelOffset: {
-      [theme.fn.smallerThan("sm")]: {
-        position: "fixed",
-        inset: 0,
-        height: "100dvh",
-        // A *step*, not a ramp: --mobile-menu-header-offset (see Header's
-        // applyPush) is either HEADER_HEIGHT or 0, snapping instantly the
-        // moment pushContentRef becomes/stops being a transformed
-        // containing block for this fixed box — never eased. That switch
-        // itself isn't gradual (a spec-level on/off, not proportional to
-        // how far the menu has opened), but it used to be folded into the
-        // *same* animated custom property as the actual push amount below,
-        // both riding one shared `transition: transform` — which forced
-        // this fixed HEADER_HEIGHT contribution to ease in/out right along
-        // with it, under-compensating for most of every open/close by
-        // however much of that ease hadn't caught up yet. Visible directly
-        // on a real device: a navbar-sized band that slides down with the
-        // menu opening, then gets "caught up" and closes as the eased
-        // value finally reached its target — reported precisely enough to
-        // trace back to this. No `transition` property here at all is the
-        // fix, not a smaller/faster one — this value is designed to jump.
-        transform:
-          "translateY(calc(-1 * var(--mobile-menu-header-offset, 0px)))",
-      },
-    },
-
     panel: {
       position: "absolute",
       inset: 0,
@@ -323,29 +294,16 @@ const useStyles = createStyles(
       // generic file-transfer tool was effectively invisible on mobile. Fixed
       // full-screen instead, same
       // as desktop's own `position: absolute` base above, just switched to
-      // filling `panelOffset` (now the fixed, viewport-pinned box) at this
-      // size rather than being fixed itself.
+      // `fixed` since `.bleed` is back in normal document flow at this size
+      // (position:fixed pins to the viewport regardless of the parent). The
+      // mobile menu is a floating overlay (see Header.tsx's mobileMenuReveal)
+      // rather than something that pushes page content around, so this
+      // never needs to compensate for anything while the menu opens/closes
+      // — it just always resolves against the true viewport.
       [theme.fn.smallerThan("sm")]: {
-        position: "absolute",
+        position: "fixed",
         inset: 0,
-        // Cancels out the mobile menu's own page-content push (see
-        // Header's applyPush and its own comment on --mobile-menu-push) —
-        // a transform on an ancestor while the menu is open makes *that*
-        // ancestor this element's containing block instead of the true
-        // viewport, which without this shows as a black gap where the
-        // photo should be, for as long as the menu stays open (the
-        // containing block's own box doesn't start until further down
-        // than true 0). This is the *animated* remainder only now —
-        // menuHeight + gap, no longer HEADER_HEIGHT, see panelOffset above
-        // for that part — so this transition genuinely tracks the menu's
-        // own real growth/shrink the whole time, nothing left for it to
-        // under- or over-shoot. The transition duration is read from the
-        // same custom property Header sets, so this tracks its push amount
-        // in lockstep — including respecting prefers-reduced-motion, which
-        // only affects that duration, nothing here directly.
-        transform: "translateY(calc(-1 * var(--mobile-menu-push, 0px)))",
-        transition:
-          "transform var(--mobile-menu-push-duration, 200ms) ease-out",
+        height: "100dvh",
       },
     },
 
@@ -419,18 +377,16 @@ const useStyles = createStyles(
     // where the link re-enables itself below, so the rest of the caption
     // never blocks the card's own controls just because it now paints above.
     caption: {
-      // Rendered as a sibling of `panelOffset`, not nested inside it (see
-      // BrandPanel's return) — `position: fixed` on `panelOffset` for the
-      // mobile backdrop always creates its own stacking context (unlike
-      // absolute/relative without an explicit z-index, which don't), so a
-      // caption nested inside it would have its z-index:3 trapped there,
-      // comparable only to other things inside `panelOffset` and never able
-      // to outrank the card sitting outside it — this is the same
-      // stacking-context constraint the comment above (on the wrapper this
-      // used to sit in) already worked around for the desktop case, just
-      // reintroduced by the mobile backdrop being `fixed` at all (originally
-      // on `.panel` itself, now on `panelOffset` after the header-offset
-      // split — same constraint, same fix, different element).
+      // Rendered as a sibling of `.panel`, not nested inside it (see
+      // BrandPanel's return) — `position: fixed` on `.panel` for the mobile
+      // backdrop always creates its own stacking context (unlike absolute/
+      // relative without an explicit z-index, which don't), so a caption
+      // nested inside it would have its z-index:3 trapped there, comparable
+      // only to other things inside `.panel` and never able to outrank the
+      // card sitting outside it — this is the same stacking-context
+      // constraint the comment above (on the wrapper this used to sit in)
+      // already worked around for the desktop case, just reintroduced by
+      // `.panel` switching to `fixed`.
       position: "absolute",
       left: 0,
       right: 0,
@@ -778,50 +734,40 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
 
   return (
     <>
-      {
-        // panelOffset owns the fixed, viewport-pinned position at mobile
-        // sizes now (see its own comment in useStyles) — .panel fills it
-        // via position:absolute and only carries the *animated* half of
-        // the push compensation.
-      }
-      <Box className={classes.panelOffset}>
-        <Box className={classes.panel}>
-          {isReady && (
-            <Box
-              // Fades the whole reveal in once there's something real to show,
-              // rather than popping in the instant the shuffle resolves (which
-              // can be before the chosen image has actually loaded) — a beat
-              // of the panel's own dark background reads as an intentional
-              // transition, not a stall.
-              style={{
-                opacity: 1,
-                animation: prefersReducedMotion
-                  ? undefined
-                  : "brandPanelFadeIn 500ms ease",
-              }}
-            >
-              {mountedIndices.map((index) => {
-                const slide = order[index];
-                return (
-                  <Slide
-                    key={`${slide.slug}-s${slide.still}`}
-                    slide={slide}
-                    delta={cyclicDelta(current, index, order.length)}
-                    isActive={index === current}
-                    prefersReducedMotion={prefersReducedMotion}
-                    isPaused={isPaused}
-                  />
-                );
-              })}
-            </Box>
-          )}
-        </Box>
+      <Box className={classes.panel}>
+        {isReady && (
+          <Box
+            // Fades the whole reveal in once there's something real to show,
+            // rather than popping in the instant the shuffle resolves (which
+            // can be before the chosen image has actually loaded) — a beat
+            // of the panel's own dark background reads as an intentional
+            // transition, not a stall.
+            style={{
+              opacity: 1,
+              animation: prefersReducedMotion
+                ? undefined
+                : "brandPanelFadeIn 500ms ease",
+            }}
+          >
+            {mountedIndices.map((index) => {
+              const slide = order[index];
+              return (
+                <Slide
+                  key={`${slide.slug}-s${slide.still}`}
+                  slide={slide}
+                  delta={cyclicDelta(current, index, order.length)}
+                  isActive={index === current}
+                  prefersReducedMotion={prefersReducedMotion}
+                  isPaused={isPaused}
+                />
+              );
+            })}
+          </Box>
+        )}
       </Box>
       {
-        // Sibling of `panelOffset` on purpose, not nested inside it — see
-        // `.caption`'s own styles for why (the same stacking-context
-        // reasoning, now against panelOffset instead of .panel, since
-        // that's the element carrying position:fixed at mobile sizes).
+        // Sibling of `.panel` on purpose, not nested inside it — see
+        // `.caption`'s own styles for why.
       }
       {isReady && activeSlide && showCaption && (
         <Box className={classes.caption}>

@@ -18,16 +18,6 @@ const useStyles = createStyles((theme) => {
       inset: 0,
       zIndex: -1,
       overflow: "hidden",
-      // Same fix, same reasoning, as BrandPanel's own mobile .panel rule
-      // — this is a position:fixed descendant of _app.tsx's page-content
-      // Container, which Header transforms while the mobile menu is
-      // open (see its own --mobile-menu-push comment). A no-op on
-      // desktop (the burger, and so this custom property, only exist
-      // below the "sm" breakpoint), so no need to gate this on a media
-      // query the way the panel/height rules above it are.
-      transform: "translateY(calc(-1 * var(--mobile-menu-push, 0px)))",
-      transition:
-        "transform var(--mobile-menu-push-duration, 200ms) ease-out",
     },
     scrim: {
       position: "absolute",

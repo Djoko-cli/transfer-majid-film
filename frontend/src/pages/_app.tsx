@@ -16,7 +16,7 @@ import "moment/min/locales";
 import { GetServerSidePropsContext } from "next";
 import type { AppProps } from "next/app";
 import Head from "next/head";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { IntlProvider } from "react-intl";
 import Header, { HEADER_HEIGHT } from "../components/header/Header";
 import { ConfigContext } from "../hooks/config.hook";
@@ -52,14 +52,6 @@ type AppPropsWithLayout = AppProps & { Component: NextPageWithLayout };
 
 function App({ Component, pageProps }: AppPropsWithLayout) {
   const systemTheme = useColorScheme(pageProps.colorScheme);
-
-  // Handed to Header so it can shift this element down (GPU-only transform,
-  // not layout) by exactly its mobile menu's own height while open — see
-  // Header's own comment on pushContentRef for the full reasoning. Only
-  // meaningful for the default layout below (Container is what Header's
-  // menu sits directly above); pages with their own getLayout don't render
-  // Header here at all.
-  const pageContentRef = useRef<HTMLDivElement>(null);
 
   const [colorScheme, setColorScheme] = useState<ColorScheme>(systemTheme);
 
@@ -279,8 +271,8 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                                   "calc(var(--footer-height, 40px) + var(--cookie-notice-clearance, 0px))",
                               }}
                             >
-                              <Header pushContentRef={pageContentRef} />
-                              <Container ref={pageContentRef}>
+                              <Header />
+                              <Container>
                                 <Component {...pageProps} />
                               </Container>
                             </div>
