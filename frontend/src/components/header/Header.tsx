@@ -1,7 +1,6 @@
 import {
   Box,
   Burger,
-  Collapse,
   Container,
   createStyles,
   Group,
@@ -28,9 +27,9 @@ import NavbarShareMenu from "./NavbarShareMenu";
 
 export const HEADER_HEIGHT = 60;
 
-// Real, always-in-flow height of the collapsed mobile-menu spacer below
-// (see mobileSpacer/Collapse further down) — exported so anything that
-// needs to know the true vertical space between the header and a mobile
+// Real, always-in-flow height of the mobile-menu spacer below (see
+// mobileSpacer further down) — exported so anything that needs to know
+// the true vertical space between the header and a mobile
 // page's own content (currently just SplitTransferLayout's centering
 // band) can subtract it explicitly instead of leaning on margin collapse
 // to absorb it silently, which is exactly what broke the last time this
@@ -95,15 +94,15 @@ const useStyles = createStyles((theme) => {
     // it while open — the glass blur (see mobilePanel below) is what keeps
     // that content legible, not any attempt to shift it out of the way.
     // mobileSpacer below is unrelated to this box's own open/close — a
-    // small, fixed-size real Collapse reserving breathing room under the
-    // header while the menu is closed, cheap enough that converting it to
-    // a transform-driven equivalent wasn't worth the added complexity. Its
-    // height is real, uncollapsed flow space sitting between the header
-    // and every page's own content (see MOBILE_MENU_SPACER_HEIGHT —
-    // SplitTransferLayout's mobile centering band subtracts it explicitly,
-    // having previously relied on a plain margin quietly collapsing with
-    // this box instead, which broke the instant that margin was replaced
-    // with padding for unrelated reasons).
+    // small, constant-height spacer reserving breathing room under the
+    // header regardless of the menu's state (see its own comment in
+    // useStyles for why it doesn't animate). Its height is real,
+    // always-in-flow space sitting between the header and every page's
+    // own content (see MOBILE_MENU_SPACER_HEIGHT — SplitTransferLayout's
+    // mobile centering band subtracts it explicitly, having previously
+    // relied on a plain margin quietly collapsing with this box instead,
+    // which broke the instant that margin was replaced with padding for
+    // unrelated reasons).
     mobileMenuReveal: {
       // fixed, not absolute, and a sibling of MantineHeader in the JSX
       // below rather than nested inside it — the header itself
@@ -166,16 +165,26 @@ const useStyles = createStyles((theme) => {
       border: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
     },
 
-    // Reserves a little breathing room below the fixed header specifically
-    // for the collapsed mobile menu (see the Collapse pair below) — it
-    // must not render past the "sm" breakpoint like `mobilePanel` above,
-    // otherwise it silently adds an unaccounted-for gap under the header on
-    // every desktop page too, throwing off any layout (e.g. the upload
-    // card, auth cards) that centers its content symmetrically between the
-    // header and the viewport/footer. Height rather than the old `mb` prop
-    // (margin) — Collapse measures the wrapped element's own box height to
-    // animate it, and margin isn't part of that box, so a margin-only
-    // spacer would always measure ~0 and never visibly collapse.
+    // Reserves a little constant breathing room below the fixed header on
+    // mobile, regardless of the menu's own open/closed state — the menu is
+    // a `position: fixed` overlay (see mobileMenuReveal above) that never
+    // participates in this element's document flow either way, so there's
+    // nothing for opening it to make room for. Was itself a Collapse tied
+    // to `opened` (shrinking to 0 the instant the menu opened) back when
+    // the menu still pushed page content down — real height animations
+    // change actual document height, and with the push gone this had
+    // nothing left to justify it: on a page that's meant to fit the
+    // viewport exactly (see global.style.tsx's own overscrollBehaviorY
+    // comment), a height change at the very top of the document on every
+    // toggle was enough to visibly perturb scroll position, reported
+    // directly as a scroll that "cancels itself" the instant the menu
+    // opens. Always-rendered at a plain, constant height fixes that by
+    // removing the animation entirely rather than retuning it. Must not
+    // render past the "sm" breakpoint like `mobilePanel` above, otherwise
+    // it silently adds an unaccounted-for gap under the header on every
+    // desktop page too, throwing off any layout (e.g. the upload card,
+    // auth cards) that centers its content symmetrically between the
+    // header and the viewport/footer.
     mobileSpacer: {
       height: MOBILE_MENU_SPACER_HEIGHT,
 
@@ -596,19 +605,10 @@ const Header = () => {
         </Paper>
       </Box>
       {
-        // Shrinks in step with the menu's own growth (same duration)
-        // rather than vanishing the instant `opened` flips — same
-        // teleport problem as the Paper above, just in the other
-        // direction: this used to reserve 40px right up until the exact
-        // frame the menu appeared, then snap to 0.
+        // Constant regardless of `opened` — see mobileSpacer's own comment
+        // in useStyles for why.
       }
-      <Collapse
-        in={!opened}
-        transitionDuration={200}
-        transitionTimingFunction="ease-out"
-      >
-        <Box className={classes.mobileSpacer} />
-      </Collapse>
+      <Box className={classes.mobileSpacer} />
     </>
   );
 };
