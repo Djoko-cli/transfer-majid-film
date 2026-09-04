@@ -81,19 +81,19 @@ const useStyles = createStyles((theme) => {
       borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
     },
 
-    // Outer wrapper for the mobile dropdown — a floating overlay anchored
-    // under the burger button, not something page content ever needs to
-    // make room for. Absolutely positioned (see `position: fixed` below)
+    // The mobile dropdown — a floating overlay anchored under the burger
+    // button, not something page content ever needs to make room for.
+    // Fixed positioning (see `position: fixed` on mobilePanel below)
     // rather than the previous `position: relative` + Collapse-driven
     // height specifically so opening/closing the menu never touches
     // layout: a real height animation (Collapse, like AnimatedHeight
     // elsewhere in this app) forces the browser to recompute layout every
     // frame, which is what showed up as visible jank on iOS. Taking this
-    // out of flow means its own reveal (clip-path, see mobileMenuReveal's
-    // own comment below) is compositor-only, no per-frame layout, and it
+    // out of flow means its own reveal (clip-path, see mobilePanel's own
+    // comment below) is compositor-only, no per-frame layout, and it
     // simply floats over whatever page content happens to sit underneath
-    // it while open — the glass blur (see mobilePanel below) is what keeps
-    // that content legible, not any attempt to shift it out of the way.
+    // it while open — its own glass blur is what keeps that content
+    // legible, not any attempt to shift it out of the way.
     // mobileSpacer below is unrelated to this box's own open/close — a
     // small, constant-height spacer reserving breathing room under the
     // header regardless of the menu's state (see its own comment in
@@ -104,35 +104,51 @@ const useStyles = createStyles((theme) => {
     // relied on a plain margin quietly collapsing with this box instead,
     // which broke the instant that margin was replaced with padding for
     // unrelated reasons).
-    mobileMenuReveal: {
+    mobilePanel: {
       // fixed, not absolute — and portaled to document.body in the JSX
-      // below rather than rendered in place; see that portal's own
-      // comment for why. `top: HEADER_HEIGHT` + `right: 16` position it
-      // relative to the true viewport regardless of where in the DOM it
-      // actually lives.
-      //
-      // The reveal itself is a clip-path transition on this box (see its
-      // own inline style at the JSX below), not transform+opacity on
-      // Paper — a real-device recording caught Paper rendering flat black
-      // *specifically during* its own transform/opacity transition,
-      // correctly frosted again the instant it settled — the textbook
-      // shape of backdrop-filter combined with an animating
-      // transform/opacity on the filtered element (or an ancestor of it)
-      // failing to composite correctly on WebKit. clip-path sidesteps the
-      // category entirely: nothing in Paper's chain, or Paper itself,
-      // touches transform or opacity anymore, only how much of this
-      // already fully-rendered box is visible.
+      // below rather than rendered in place; position is relative to the
+      // true viewport regardless of where in the DOM it actually lives.
+      // `top: HEADER_HEIGHT` + `right: 16` anchor it under the burger.
       position: "fixed",
       top: HEADER_HEIGHT,
       right: 16,
       zIndex: 100,
 
-      [theme.fn.largerThan("sm")]: {
-        display: "none",
-      },
-    },
-
-    mobilePanel: {
+      // The reveal itself is a clip-path transition on this same element
+      // (see its own inline style at the JSX below), not transform+
+      // opacity — a real-device recording caught this Paper rendering
+      // flat black *specifically during* its own transform/opacity
+      // transition, correctly frosted again the instant it settled — the
+      // textbook shape of backdrop-filter combined with an animating
+      // transform/opacity on the filtered element (or an ancestor of it)
+      // failing to composite correctly on WebKit.
+      //
+      // clip-path now lives directly on this backdrop-filter element
+      // rather than on a separate wrapper around it, which is where it
+      // sat from the fix above through the portal below. A wrapper
+      // carrying clip-path is, per spec, exactly as much a stacking-
+      // context-creating ancestor as one carrying backdrop-filter or
+      // transform — Safari's known failure to correctly composite a
+      // backdrop-filter descendant of such an ancestor doesn't care which
+      // specific property caused it. That went unnoticed as long as the
+      // mobile menu still pushed page content away (nothing else
+      // backdrop-filtered was ever visually nearby to expose it), and
+      // survived the later portal fix too (portal addresses paint order,
+      // not ancestor nesting) — reported as this panel rendering
+      // completely flat, no trace of anything behind it, the entire time
+      // it's open, on a device where the header bar's own backdrop-filter
+      // (no clip-path ancestor at all) kept rendering correctly the whole
+      // time. Collapsing the wrapper into this element removes the
+      // nesting entirely: nothing above this element in the DOM (its
+      // parent is document.body) touches transform, opacity, filter, or
+      // clip-path, and nothing below it does either — clip-path here
+      // controls only how much of this already fully-rendered element is
+      // visible, the same job it did on the wrapper, without an ancestor
+      // relationship to a backdrop-filter element in the way.
+      width: "fit-content",
+      minWidth: 220,
+      maxWidth: "calc(100vw - 32px)",
+      borderRadius: theme.radius.md,
       // Was width:100% with square top corners flush under the header —
       // full viewport width for 2-3 short text links (or an empty state
       // with just "Accueil"/"Se connecter") reads as far bigger than its
@@ -140,10 +156,7 @@ const useStyles = createStyles((theme) => {
       // content and anchored under the burger button, same idea as the
       // desktop nav's own compact inline links, or any other dropdown in
       // this app (the share/avatar menus) — instead of a full-bleed band.
-      width: "fit-content",
-      minWidth: 220,
-      maxWidth: "calc(100vw - 32px)",
-      borderRadius: theme.radius.md,
+      //
       // Same tint/blur recipe as `root` above (the header bar itself) —
       // Mantine's own Paper default is a flat opaque fill from this app's
       // near-black palette, which reads as a solid slab dropped onto the
@@ -154,11 +167,15 @@ const useStyles = createStyles((theme) => {
       backdropFilter: "blur(18px) saturate(160%)",
       WebkitBackdropFilter: "blur(18px) saturate(160%)",
       border: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
+
+      [theme.fn.largerThan("sm")]: {
+        display: "none",
+      },
     },
 
     // Reserves a little constant breathing room below the fixed header on
     // mobile, regardless of the menu's own open/closed state — the menu is
-    // a `position: fixed` overlay (see mobileMenuReveal above) that never
+    // a `position: fixed` overlay (see mobilePanel above) that never
     // participates in this element's document flow either way, so there's
     // nothing for opening it to make room for. Was itself a Collapse tied
     // to `opened` (shrinking to 0 the instant the menu opened) back when
@@ -560,37 +577,28 @@ const Header = () => {
         </Container>
       </MantineHeader>
       {
-        // Reveal is a clip-path transition on this box, not
-        // transform/opacity — see mobileMenuReveal's own comment in
-        // useStyles for why (backdrop-filter + an animating
-        // transform/opacity, on the Paper below or any ancestor of it,
-        // renders as flat black on real Safari specifically during the
-        // transition). inset(0 0 100% 0)-equivalent rather than
-        // unmounting while closed — same reason as everywhere else in
-        // this app that keeps a collapsed region mounted: something has
-        // to still be there for the *next* open to animate from.
+        // Reveal is a clip-path transition on this same Paper, not
+        // transform/opacity, and not on a separate wrapper around it
+        // either — see mobilePanel's own comment in useStyles for the
+        // full reasoning on both counts. inset(0 0 100% 0)-equivalent
+        // rather than unmounting while closed — same reason as everywhere
+        // else in this app that keeps a collapsed region mounted:
+        // something has to still be there for the *next* open to animate
+        // from.
         //
         // Portaled to document.body (see `mounted` above) rather than
-        // rendered inline here — being a plain JSX sibling of
-        // MantineHeader already solved the nested-backdrop-filter case
-        // (this box no longer sits *inside* another backdrop-filter's own
-        // DOM subtree), but this element is still earlier in raw DOM/
-        // paint order than page content rendered later in _app.tsx (the
-        // upload card among it, itself backdrop-filter) and only ends up
-        // visually on top of it via zIndex: 100 — a paint-order/stacking-
-        // order mismatch that Safari's backdrop-filter reportedly fails
-        // to composite correctly, once the mobile-menu-overlay change
-        // stopped moving that content out of the way first. Portaling to
-        // the very end of the document makes DOM order and stacking order
-        // agree, the same reason every floating-UI library (Mantine's own
-        // Menu/Popover/Modal included, just not used for this hand-rolled
-        // panel) portals dropdowns/modals by default rather than
-        // rendering them in place.
+        // rendered inline here — puts DOM/paint order and stacking order
+        // in agreement (see mobilePanel's own comment for why that
+        // matters here), the same reason every floating-UI library
+        // (Mantine's own Menu/Popover/Modal included, just not used for
+        // this hand-rolled panel) portals dropdowns/modals by default
+        // rather than rendering them in place.
       }
       {mounted &&
         createPortal(
-          <Box
-            className={classes.mobileMenuReveal}
+          <Paper
+            className={classes.mobilePanel}
+            withBorder
             style={{
               clipPath: opened
                 ? "inset(0% 0% 0% 0%)"
@@ -600,30 +608,21 @@ const Header = () => {
             }}
             aria-hidden={!opened}
           >
-            {
-              // Paper itself no longer animates anything — transform/opacity
-              // here would reintroduce the exact black-flash bug clip-path
-              // above exists to avoid. It renders at its final, fully-styled
-              // state at all times; the clip-path on the box above is the
-              // only thing controlling how much of it is actually visible.
-            }
-            <Paper className={classes.mobilePanel} withBorder>
-              <Stack spacing={0}>
-                {mobileMenuView !== "root" && (
-                  <UnstyledButton
-                    className={classes.mobileMenuButton}
-                    onClick={() => setMobileMenuView("root")}
-                    aria-label={t("common.button.back")}
-                  >
-                    <span className={classes.mobileMenuButtonContent}>
-                      <TbChevronLeft size={18} />
-                    </span>
-                  </UnstyledButton>
-                )}
-                {currentMobileLinks.map((link) => renderMobileEntry(link))}
-              </Stack>
-            </Paper>
-          </Box>,
+            <Stack spacing={0}>
+              {mobileMenuView !== "root" && (
+                <UnstyledButton
+                  className={classes.mobileMenuButton}
+                  onClick={() => setMobileMenuView("root")}
+                  aria-label={t("common.button.back")}
+                >
+                  <span className={classes.mobileMenuButtonContent}>
+                    <TbChevronLeft size={18} />
+                  </span>
+                </UnstyledButton>
+              )}
+              {currentMobileLinks.map((link) => renderMobileEntry(link))}
+            </Stack>
+          </Paper>,
           document.body,
         )}
       {
