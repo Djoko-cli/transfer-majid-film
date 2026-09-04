@@ -118,7 +118,6 @@ const useStyles = createStyles((theme) => {
       right: 16,
       zIndex: 100,
       overflow: "hidden",
-      transformOrigin: "top",
 
       [theme.fn.largerThan("sm")]: {
         display: "none",
@@ -704,38 +703,62 @@ const Header = ({
         <Box
           ref={menuBoxRef}
           className={classes.mobileMenuReveal}
-          style={{
-            transform: opened ? "scaleY(1)" : "scaleY(0)",
-            transition: `transform ${mobileMenuDuration}ms ease-out`,
-            pointerEvents: opened ? "auto" : "none",
-          }}
+          style={{ pointerEvents: opened ? "auto" : "none" }}
           aria-hidden={!opened}
         >
-          <Paper
-            className={classes.mobilePanel}
-            withBorder
+          {
+            // The scaleY reveal lives on this inner box now, not the
+            // outer one above — an ancestor that combines overflow:hidden
+            // (needed there to clip the grow animation) with an active
+            // CSS transform is a known WebKit compositing trap for a
+            // backdrop-filter descendant (the Paper below): Safari can
+            // fail to correctly snapshot what's behind the blur through
+            // that combination, rendering it as a flat, unblurred fill
+            // instead of frosted glass, with real paint glitches during
+            // the transition itself — reported directly on a real
+            // iPhone, both the missing frost and a brief black gap while
+            // opening/closing. Splitting "clip" (outer Box, no transform)
+            // from "animate" (this Box, no overflow:hidden) means no
+            // single ancestor in Paper's chain carries both, without
+            // changing the reveal itself — still pure transform, still
+            // GPU-only, still measured the same way by the ResizeObserver
+            // on the outer box above (overflow:hidden alone doesn't
+            // affect that box's own layout height, only what paints past
+            // its edge).
+          }
+          <Box
             style={{
-              transform: opened ? "scale(1)" : "scale(0.94)",
-              opacity: opened ? 1 : 0,
-              transformOrigin: "top right",
-              transition: `transform ${mobileMenuDuration}ms ease-out, opacity ${mobileMenuDuration}ms ease-out`,
+              transform: opened ? "scaleY(1)" : "scaleY(0)",
+              transformOrigin: "top",
+              transition: `transform ${mobileMenuDuration}ms ease-out`,
             }}
           >
-            <Stack spacing={0}>
-              {mobileMenuView !== "root" && (
-                <UnstyledButton
-                  className={classes.mobileMenuButton}
-                  onClick={() => setMobileMenuView("root")}
-                  aria-label={t("common.button.back")}
-                >
-                  <span className={classes.mobileMenuButtonContent}>
-                    <TbChevronLeft size={18} />
-                  </span>
-                </UnstyledButton>
-              )}
-              {currentMobileLinks.map((link) => renderMobileEntry(link))}
-            </Stack>
-          </Paper>
+            <Paper
+              className={classes.mobilePanel}
+              withBorder
+              style={{
+                transform: opened ? "scale(1)" : "scale(0.94)",
+                opacity: opened ? 1 : 0,
+                transformOrigin: "top right",
+                transition: `transform ${mobileMenuDuration}ms ease-out, opacity ${mobileMenuDuration}ms ease-out`,
+              }}
+            >
+              <Stack spacing={0}>
+                {mobileMenuView !== "root" && (
+                  <UnstyledButton
+                    className={classes.mobileMenuButton}
+                    onClick={() => setMobileMenuView("root")}
+                    aria-label={t("common.button.back")}
+                  >
+                    <span className={classes.mobileMenuButtonContent}>
+                      <TbChevronLeft size={18} />
+                    </span>
+                  </UnstyledButton>
+                )}
+                {currentMobileLinks.map((link) => renderMobileEntry(link))}
+              </Stack>
+            </Paper>
+          </Box>
         </Box>
       </MantineHeader>
       {
