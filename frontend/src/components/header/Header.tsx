@@ -113,8 +113,23 @@ const useStyles = createStyles((theme) => {
     // margin quietly collapsing with this box instead, which broke the
     // instant that margin was replaced with padding for unrelated reasons).
     mobileMenuReveal: {
-      position: "absolute",
-      top: "100%",
+      // fixed, not absolute, and a sibling of MantineHeader in the JSX
+      // below rather than nested inside it — the header itself
+      // (`root` above) already carries its own backdrop-filter, and a
+      // backdrop-filter element (the Paper inside this box) nested
+      // *inside* another backdrop-filter's own subtree is a real WebKit
+      // bug: Safari can fail to compute the inner blur against an
+      // already-filtered backdrop at all, rendering it as a flat,
+      // unblurred fill. Confirmed directly — the header bar and other
+      // glass surfaces on the same page blurred correctly in real
+      // Safari, only this nested one didn't, and an earlier fix that
+      // addressed a *different* compositing trap (an overflow+transform
+      // ancestor) left this one untouched. `top: HEADER_HEIGHT` replaces
+      // the old `top: 100%`, which relied on being positioned relative
+      // to the header's own box; as a sibling this now needs the real
+      // pixel offset instead.
+      position: "fixed",
+      top: HEADER_HEIGHT,
       right: 16,
       zIndex: 100,
       overflow: "hidden",
@@ -686,81 +701,79 @@ const Header = ({
             />
           </Group>
         </Container>
+      </MantineHeader>
+      {
+        // GPU-only reveal: transform + opacity only, nothing here or on
+        // the Paper inside ever animates a layout property (see
+        // mobileMenuReveal's own comment in useStyles for the full
+        // reasoning, and menuBoxRef's effect above for how page content
+        // still visually tracks this opening/closing). scaleY(0) rather
+        // than unmounting while closed — same reason as everywhere else
+        // in this app that keeps a collapsed region mounted: something
+        // has to still be there for the *next* open to animate from.
+        // No opacity here (only on the Paper below) deliberately: opacity
+        // is multiplicative across nested elements, so fading both would
+        // combine into a slower, non-linear curve instead of the single
+        // clean fade this had before.
+        //
+        // A sibling of MantineHeader now, not a child of it — see
+        // mobileMenuReveal's own comment in useStyles for why (nested
+        // backdrop-filter under the header's own).
+      }
+      <Box
+        ref={menuBoxRef}
+        className={classes.mobileMenuReveal}
+        style={{ pointerEvents: opened ? "auto" : "none" }}
+        aria-hidden={!opened}
+      >
         {
-          // GPU-only reveal: transform + opacity only, nothing here or on
-          // the Paper inside ever animates a layout property (see
-          // mobileMenuReveal's own comment in useStyles for the full
-          // reasoning, and menuBoxRef's effect above for how page content
-          // still visually tracks this opening/closing). scaleY(0) rather
-          // than unmounting while closed — same reason as everywhere else
-          // in this app that keeps a collapsed region mounted: something
-          // has to still be there for the *next* open to animate from.
-          // No opacity here (only on the Paper below) deliberately: opacity
-          // is multiplicative across nested elements, so fading both would
-          // combine into a slower, non-linear curve instead of the single
-          // clean fade this had before.
+          // The scaleY reveal lives on this inner box, not the outer one
+          // above — an ancestor that combines overflow:hidden (needed
+          // there to clip the grow animation) with an active CSS
+          // transform is a separate, also-real WebKit compositing trap
+          // for a backdrop-filter descendant (the Paper below). Splitting
+          // "clip" (outer Box, no transform) from "animate" (this Box, no
+          // overflow:hidden) means no single ancestor in Paper's chain
+          // carries both, without changing the reveal itself — still
+          // pure transform, still GPU-only, still measured the same way
+          // by the ResizeObserver on the outer box above (overflow:hidden
+          // alone doesn't affect that box's own layout height, only what
+          // paints past its edge).
         }
         <Box
-          ref={menuBoxRef}
-          className={classes.mobileMenuReveal}
-          style={{ pointerEvents: opened ? "auto" : "none" }}
-          aria-hidden={!opened}
+          style={{
+            transform: opened ? "scaleY(1)" : "scaleY(0)",
+            transformOrigin: "top",
+            transition: `transform ${mobileMenuDuration}ms ease-out`,
+          }}
         >
-          {
-            // The scaleY reveal lives on this inner box now, not the
-            // outer one above — an ancestor that combines overflow:hidden
-            // (needed there to clip the grow animation) with an active
-            // CSS transform is a known WebKit compositing trap for a
-            // backdrop-filter descendant (the Paper below): Safari can
-            // fail to correctly snapshot what's behind the blur through
-            // that combination, rendering it as a flat, unblurred fill
-            // instead of frosted glass, with real paint glitches during
-            // the transition itself — reported directly on a real
-            // iPhone, both the missing frost and a brief black gap while
-            // opening/closing. Splitting "clip" (outer Box, no transform)
-            // from "animate" (this Box, no overflow:hidden) means no
-            // single ancestor in Paper's chain carries both, without
-            // changing the reveal itself — still pure transform, still
-            // GPU-only, still measured the same way by the ResizeObserver
-            // on the outer box above (overflow:hidden alone doesn't
-            // affect that box's own layout height, only what paints past
-            // its edge).
-          }
-          <Box
+          <Paper
+            className={classes.mobilePanel}
+            withBorder
             style={{
-              transform: opened ? "scaleY(1)" : "scaleY(0)",
-              transformOrigin: "top",
-              transition: `transform ${mobileMenuDuration}ms ease-out`,
+              transform: opened ? "scale(1)" : "scale(0.94)",
+              opacity: opened ? 1 : 0,
+              transformOrigin: "top right",
+              transition: `transform ${mobileMenuDuration}ms ease-out, opacity ${mobileMenuDuration}ms ease-out`,
             }}
           >
-            <Paper
-              className={classes.mobilePanel}
-              withBorder
-              style={{
-                transform: opened ? "scale(1)" : "scale(0.94)",
-                opacity: opened ? 1 : 0,
-                transformOrigin: "top right",
-                transition: `transform ${mobileMenuDuration}ms ease-out, opacity ${mobileMenuDuration}ms ease-out`,
-              }}
-            >
-              <Stack spacing={0}>
-                {mobileMenuView !== "root" && (
-                  <UnstyledButton
-                    className={classes.mobileMenuButton}
-                    onClick={() => setMobileMenuView("root")}
-                    aria-label={t("common.button.back")}
-                  >
-                    <span className={classes.mobileMenuButtonContent}>
-                      <TbChevronLeft size={18} />
-                    </span>
-                  </UnstyledButton>
-                )}
-                {currentMobileLinks.map((link) => renderMobileEntry(link))}
-              </Stack>
-            </Paper>
-          </Box>
+            <Stack spacing={0}>
+              {mobileMenuView !== "root" && (
+                <UnstyledButton
+                  className={classes.mobileMenuButton}
+                  onClick={() => setMobileMenuView("root")}
+                  aria-label={t("common.button.back")}
+                >
+                  <span className={classes.mobileMenuButtonContent}>
+                    <TbChevronLeft size={18} />
+                  </span>
+                </UnstyledButton>
+              )}
+              {currentMobileLinks.map((link) => renderMobileEntry(link))}
+            </Stack>
+          </Paper>
         </Box>
-      </MantineHeader>
+      </Box>
       {
         // Shrinks in step with the menu's own growth (same duration)
         // rather than vanishing the instant `opened` flips — same
