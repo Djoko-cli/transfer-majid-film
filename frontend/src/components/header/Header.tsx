@@ -414,6 +414,17 @@ const Header = ({
   // transform-blind — size below) only ever fires once, on mount.
   const menuHeightRef = useRef(0);
 
+  // Guards the delayed removal of --mobile-menu-header-offset on close —
+  // see applyPush's own comment on that property for why removal is
+  // delayed at all. Tracked so a rapid re-open (before the delay from a
+  // just-started close has elapsed) can cancel it — otherwise that stale
+  // timer would fire mid-way through the *new* open and yank the offset
+  // back to 0 while pushEl is still very much a transformed containing
+  // block.
+  const headerOffsetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
   // Reads only refs and pushContentRef (both stable) — safe to call from
   // any effect below regardless of that effect's own dependency array,
   // since nothing here is captured stale.
@@ -460,26 +471,67 @@ const Header = ({
     // fixed element, transitioned with the matching duration below so
     // the two move in lockstep instead of drifting apart mid-open/close.
     //
-    // HEADER_HEIGHT, not just the push amount: BrandPanel's containing
-    // block only ever becomes this element once it's already a
-    // transformed containing block — at that point BrandPanel's inset:0
-    // resolves against this element's own *flow* position too (padded
-    // HEADER_HEIGHT down from the true viewport top by _app.tsx, on top
-    // of whatever this transform itself adds), not just the transform.
-    // Leaving HEADER_HEIGHT out of the cancellation left BrandPanel
-    // permanently HEADER_HEIGHT off — a visibly smaller black strip than
-    // before this fix existed at all, but still a black strip, the whole
-    // time the menu was open.
+    // Only the *animated* remainder now — menuHeight + gap, no
+    // HEADER_HEIGHT — see --mobile-menu-header-offset below for that part
+    // and why it moved out of this value entirely.
     pushEl.style.setProperty(
       "--mobile-menu-push",
       openedRef.current
-        ? `calc(${HEADER_HEIGHT}px + ${menuHeightRef.current}px + ${menuGapRef.current})`
+        ? `calc(${menuHeightRef.current}px + ${menuGapRef.current})`
         : "0px",
     );
     pushEl.style.setProperty(
       "--mobile-menu-push-duration",
       `${mobileMenuDuration}ms`,
     );
+
+    // BrandPanel's containing block only ever becomes this element once
+    // it's already a transformed containing block — at that point
+    // BrandPanel's inset:0 resolves against this element's own *flow*
+    // position too (padded HEADER_HEIGHT down from the true viewport top
+    // by _app.tsx, on top of whatever the push transform itself adds),
+    // not just the transform. This needs cancelling out separately from
+    // --mobile-menu-push above, in its own property, read by
+    // BrandPanel.tsx's panelOffset box specifically because that
+    // switch — pushEl becomes/stops being a containing block — isn't
+    // proportional to how far the menu has opened; it's a spec-level
+    // on/off that's already fully "on" the instant pushEl's transform
+    // becomes anything other than none. Folding it into the same
+    // *animated* --mobile-menu-push above (as an earlier version of this
+    // did) forced it to ease in/out right along with the actual push
+    // amount, under-compensating for most of every open/close by however
+    // much of that ease hadn't caught up yet — visible directly as a
+    // navbar-sized band sliding with the menu, then "catching up" to
+    // disappear once the eased value finally reached its target.
+    //
+    // Applied and removed on two different schedules, deliberately
+    // asymmetric:
+    // - Opening: set synchronously, right here, in the same
+    //   (useIsomorphicLayoutEffect-driven) commit as pushEl's own
+    //   transform first becoming non-none — correct, since that's the
+    //   exact instant BrandPanel needs it.
+    // - Closing: pushEl's *computed* transform doesn't actually settle
+    //   back to none until its own transition finishes, mobileMenuDuration
+    //   from now — interpolated (non-none) values are still a transformed
+    //   containing block for essentially that whole window. Removing this
+    //   offset immediately would recreate the identical desync on the way
+    //   out instead of in, so it's kept until that same window has
+    //   actually elapsed.
+    if (openedRef.current) {
+      if (headerOffsetTimeoutRef.current) {
+        clearTimeout(headerOffsetTimeoutRef.current);
+        headerOffsetTimeoutRef.current = null;
+      }
+      pushEl.style.setProperty(
+        "--mobile-menu-header-offset",
+        `${HEADER_HEIGHT}px`,
+      );
+    } else if (!headerOffsetTimeoutRef.current) {
+      headerOffsetTimeoutRef.current = setTimeout(() => {
+        pushEl.style.setProperty("--mobile-menu-header-offset", "0px");
+        headerOffsetTimeoutRef.current = null;
+      }, mobileMenuDuration);
+    }
   };
 
   useEffect(() => {
@@ -502,6 +554,14 @@ const Header = ({
 
     return () => {
       observer.disconnect();
+      // A pending delayed removal (see applyPush's own comment on
+      // --mobile-menu-header-offset) firing after this element is torn
+      // down would be a no-op at best, but there's no reason to let a
+      // stray timer outlive the component that scheduled it.
+      if (headerOffsetTimeoutRef.current) {
+        clearTimeout(headerOffsetTimeoutRef.current);
+        headerOffsetTimeoutRef.current = null;
+      }
       // Leaving mid-animation (e.g. a route change while open — the
       // pathname effect above already calls close(), but that only starts
       // this same transition, it doesn't wait for it) shouldn't strand the
@@ -510,6 +570,7 @@ const Header = ({
       // for why a literal zero transform is never actually harmless here.
       pushEl.style.transition = "none";
       pushEl.style.transform = "";
+      pushEl.style.setProperty("--mobile-menu-header-offset", "0px");
     };
     // pushContentRef's identity is stable for the component's lifetime
     // (owned by _app.tsx, created once) — this intentionally only runs

@@ -281,165 +281,201 @@ const cyclicDelta = (from: number, to: number, length: number) => {
   return delta;
 };
 
-const useStyles = createStyles((theme, { isPaused }: { isPaused: boolean }) => ({
-  panel: {
-    position: "absolute",
-    inset: 0,
-    overflow: "hidden",
-    backgroundColor: theme.colors.dark[8],
+const useStyles = createStyles(
+  (theme, { isPaused }: { isPaused: boolean }) => ({
+    // Split from `.panel` below into its own outer box specifically so its
+    // transform can have NO transition at all — see its own comment for why
+    // that's load-bearing, not an oversight.
+    panelOffset: {
+      [theme.fn.smallerThan("sm")]: {
+        position: "fixed",
+        inset: 0,
+        height: "100dvh",
+        // A *step*, not a ramp: --mobile-menu-header-offset (see Header's
+        // applyPush) is either HEADER_HEIGHT or 0, snapping instantly the
+        // moment pushContentRef becomes/stops being a transformed
+        // containing block for this fixed box — never eased. That switch
+        // itself isn't gradual (a spec-level on/off, not proportional to
+        // how far the menu has opened), but it used to be folded into the
+        // *same* animated custom property as the actual push amount below,
+        // both riding one shared `transition: transform` — which forced
+        // this fixed HEADER_HEIGHT contribution to ease in/out right along
+        // with it, under-compensating for most of every open/close by
+        // however much of that ease hadn't caught up yet. Visible directly
+        // on a real device: a navbar-sized band that slides down with the
+        // menu opening, then gets "caught up" and closes as the eased
+        // value finally reached its target — reported precisely enough to
+        // trace back to this. No `transition` property here at all is the
+        // fix, not a smaller/faster one — this value is designed to jump.
+        transform:
+          "translateY(calc(-1 * var(--mobile-menu-header-offset, 0px)))",
+      },
+    },
 
-    // Was a 240px inline banner the visitor scrolled past in one flick,
-    // never to see again — the one thing that sets this app apart from a
-    // generic file-transfer tool was effectively invisible on mobile. Fixed
-    // full-screen instead, same
-    // as desktop's own `position: absolute` base above, just switched to
-    // `fixed` since `.bleed` is back in normal document flow at this size
-    // (position:fixed pins to the viewport regardless of the parent).
-    [theme.fn.smallerThan("sm")]: {
-      position: "fixed",
+    panel: {
+      position: "absolute",
       inset: 0,
-      height: "100dvh",
-      // Cancels out the mobile menu's own page-content push (see
-      // Header's applyPush and its own comment on --mobile-menu-push) —
-      // a transform on an ancestor while the menu is open makes *that*
-      // ancestor this element's containing block instead of the true
-      // viewport, which without this shows as a black gap where the
-      // photo should be, for as long as the menu stays open (the
-      // containing block's own box doesn't start until further down
-      // than true 0). The transition duration is read from the same
-      // custom property Header sets, so this tracks its push amount in
-      // lockstep — including respecting prefers-reduced-motion, which
-      // only affects that duration, nothing here directly.
-      transform: "translateY(calc(-1 * var(--mobile-menu-push, 0px)))",
-      transition:
-        "transform var(--mobile-menu-push-duration, 200ms) ease-out",
+      overflow: "hidden",
+      backgroundColor: theme.colors.dark[8],
+
+      // Was a 240px inline banner the visitor scrolled past in one flick,
+      // never to see again — the one thing that sets this app apart from a
+      // generic file-transfer tool was effectively invisible on mobile. Fixed
+      // full-screen instead, same
+      // as desktop's own `position: absolute` base above, just switched to
+      // filling `panelOffset` (now the fixed, viewport-pinned box) at this
+      // size rather than being fixed itself.
+      [theme.fn.smallerThan("sm")]: {
+        position: "absolute",
+        inset: 0,
+        // Cancels out the mobile menu's own page-content push (see
+        // Header's applyPush and its own comment on --mobile-menu-push) —
+        // a transform on an ancestor while the menu is open makes *that*
+        // ancestor this element's containing block instead of the true
+        // viewport, which without this shows as a black gap where the
+        // photo should be, for as long as the menu stays open (the
+        // containing block's own box doesn't start until further down
+        // than true 0). This is the *animated* remainder only now —
+        // menuHeight + gap, no longer HEADER_HEIGHT, see panelOffset above
+        // for that part — so this transition genuinely tracks the menu's
+        // own real growth/shrink the whole time, nothing left for it to
+        // under- or over-shoot. The transition duration is read from the
+        // same custom property Header sets, so this tracks its push amount
+        // in lockstep — including respecting prefers-reduced-motion, which
+        // only affects that duration, nothing here directly.
+        transform: "translateY(calc(-1 * var(--mobile-menu-push, 0px)))",
+        transition:
+          "transform var(--mobile-menu-push-duration, 200ms) ease-out",
+      },
     },
-  },
 
-  slide: {
-    position: "absolute",
-    inset: 0,
-    overflow: "hidden",
-    transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`,
-  },
-
-  // Sized slightly larger than its wrapper so the gentle zoom below never
-  // uncovers an edge — the slide's own overflow:hidden clips it back down.
-  slideImageWrap: {
-    position: "absolute",
-    inset: "-4%",
-  },
-
-  slideImage: {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    objectPosition: "center",
-  },
-
-  // Unconditional on isActive (only reduced-motion turns it off, in the
-  // Slide component below) — deliberately not removed the instant a slide
-  // stops being current. The previous version did remove it then, which
-  // stopped the animation from controlling `transform` and snapped it
-  // straight back to scale(1) with nothing to ease the change: a real,
-  // visible "de-zoom" flash on the outgoing slide, right as it started
-  // sliding away.
-  //
-  // The fix isn't reversing the zoom on exit at all — it's not needing to.
-  // Once a slide stops being current, this box is simply never touched
-  // again until Slide's own key bumps on its *next* activation and mounts
-  // a fresh instance: it keeps whatever scale it last reached (held
-  // indefinitely by fill: forwards below, all the way through sliding
-  // off-screen and however long it sits inactive after that), and the new
-  // instance for the *next* slide starts its own animation from a clean
-  // scale(1) simply by virtue of being a brand new element — a @keyframes
-  // animation applied to a freshly-mounted node always plays from its own
-  // `from` state, no extra reset step required the way a transition would
-  // need one (nothing to interpolate *from* on a node that didn't exist a
-  // moment ago).
-  living: {
-    animation: `gentleZoom ${LIVING_DURATION_MS}ms linear ${TRANSITION_MS}ms forwards`,
-    // The pause button (see BrandPanel's own isPaused) only ever gated
-    // the interval that advances `current` - it had no connection to
-    // this CSS animation at all, which runs on the browser's own
-    // compositor timeline regardless of React/JS state. Reported by the
-    // user: pausing stopped the slide from changing but the zoom kept
-    // visibly animating in real time underneath it. animation-play-state
-    // is the correct primitive for this - unlike removing the class
-    // (which would lose the current scale and restart from 1 on
-    // resume), "paused" freezes the animation at its exact current
-    // computed value and resumes from precisely there.
-    animationPlayState: isPaused ? "paused" : "running",
-  },
-
-  // On tall content the transfer card (z-index 2, see SplitTransferLayout)
-  // can reach far enough down to visually and functionally sit over this
-  // bottom-left corner of the image, swallowing clicks meant for the credit
-  // link underneath it. Because this box has its own z-index, it's a
-  // stacking context — a descendant's z-index (however high) is scoped
-  // *inside* it and can never outrank a sibling subtree like the card, only
-  // raising this box's own z-index above the card's actually escapes that.
-  // pointer-events: none here then lets clicks fall through everywhere in
-  // this now-higher box (to the card, if it's there, or the image) except
-  // where the link re-enables itself below, so the rest of the caption
-  // never blocks the card's own controls just because it now paints above.
-  caption: {
-    // Rendered as a sibling of `.panel`, not nested inside it (see
-    // BrandPanel's return) — `position: fixed` on `.panel` for the mobile
-    // backdrop always creates its own stacking context (unlike absolute/
-    // relative without an explicit z-index, which don't), so a caption
-    // nested inside it would have its z-index:3 trapped there, comparable
-    // only to other things inside `.panel` and never able to outrank the
-    // card sitting outside it — this is the same stacking-context
-    // constraint the comment above (on the wrapper this used to sit in)
-    // already worked around for the desktop case, just reintroduced by
-    // `.panel` switching to `fixed`.
-    position: "absolute",
-    left: 0,
-    right: 0,
-    // Sits just above the fixed, translucent footer (see Footer.tsx)
-    // rather than at the panel's own true bottom edge — since that footer
-    // now floats on top of the image (z-index 100) with the image showing
-    // through its glass, a caption placed underneath it would be readable
-    // only as a faint blur, not legible text.
-    bottom: "var(--footer-height, 40px)",
-    padding: `${theme.spacing.xl} ${theme.spacing.lg} ${theme.spacing.md}`,
-    zIndex: 3,
-    pointerEvents: "none",
-    textAlign: "right",
-    // A text-shadow (inherited by the Text/Anchor children) keeps the
-    // credit legible against a busy photo without painting a visible dark
-    // rectangle behind it the way a background scrim would. A third, tight
-    // layer added on top of the original two — measured contrast against a
-    // bright slide was still marginal with just the outer glow alone.
-    textShadow:
-      "0 1px 2px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8), 0 1px 12px rgba(0, 0, 0, 0.5)",
-
-    // Mobile isn't where this product shows off the photography — that's
-    // desktop's job; on mobile the images are purely atmospheric variety
-    // behind the glass. Dropped entirely below "sm" rather than kept
-    // visible-but-inert: on a screen this narrow the card spans nearly
-    // the full width, so the credit (and the carousel pause control that
-    // lived next to it) would sit right where the submit button lands the
-    // moment a visitor scrolls down to reach it — not worth the layout
-    // gymnastics for something that isn't the point on this surface.
-    [theme.fn.smallerThan("sm")]: {
-      display: "none",
+    slide: {
+      position: "absolute",
+      inset: 0,
+      overflow: "hidden",
+      transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`,
     },
-  },
 
-  captionLink: {
-    pointerEvents: "auto",
-  },
+    // Sized slightly larger than its wrapper so the gentle zoom below never
+    // uncovers an edge — the slide's own overflow:hidden clips it back down.
+    slideImageWrap: {
+      position: "absolute",
+      inset: "-4%",
+    },
 
-  pauseButton: {
-    pointerEvents: "auto",
-    color: theme.white,
-    filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6))",
-  },
-}));
+    slideImage: {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      objectPosition: "center",
+    },
+
+    // Unconditional on isActive (only reduced-motion turns it off, in the
+    // Slide component below) — deliberately not removed the instant a slide
+    // stops being current. The previous version did remove it then, which
+    // stopped the animation from controlling `transform` and snapped it
+    // straight back to scale(1) with nothing to ease the change: a real,
+    // visible "de-zoom" flash on the outgoing slide, right as it started
+    // sliding away.
+    //
+    // The fix isn't reversing the zoom on exit at all — it's not needing to.
+    // Once a slide stops being current, this box is simply never touched
+    // again until Slide's own key bumps on its *next* activation and mounts
+    // a fresh instance: it keeps whatever scale it last reached (held
+    // indefinitely by fill: forwards below, all the way through sliding
+    // off-screen and however long it sits inactive after that), and the new
+    // instance for the *next* slide starts its own animation from a clean
+    // scale(1) simply by virtue of being a brand new element — a @keyframes
+    // animation applied to a freshly-mounted node always plays from its own
+    // `from` state, no extra reset step required the way a transition would
+    // need one (nothing to interpolate *from* on a node that didn't exist a
+    // moment ago).
+    living: {
+      animation: `gentleZoom ${LIVING_DURATION_MS}ms linear ${TRANSITION_MS}ms forwards`,
+      // The pause button (see BrandPanel's own isPaused) only ever gated
+      // the interval that advances `current` - it had no connection to
+      // this CSS animation at all, which runs on the browser's own
+      // compositor timeline regardless of React/JS state. Reported by the
+      // user: pausing stopped the slide from changing but the zoom kept
+      // visibly animating in real time underneath it. animation-play-state
+      // is the correct primitive for this - unlike removing the class
+      // (which would lose the current scale and restart from 1 on
+      // resume), "paused" freezes the animation at its exact current
+      // computed value and resumes from precisely there.
+      animationPlayState: isPaused ? "paused" : "running",
+    },
+
+    // On tall content the transfer card (z-index 2, see SplitTransferLayout)
+    // can reach far enough down to visually and functionally sit over this
+    // bottom-left corner of the image, swallowing clicks meant for the credit
+    // link underneath it. Because this box has its own z-index, it's a
+    // stacking context — a descendant's z-index (however high) is scoped
+    // *inside* it and can never outrank a sibling subtree like the card, only
+    // raising this box's own z-index above the card's actually escapes that.
+    // pointer-events: none here then lets clicks fall through everywhere in
+    // this now-higher box (to the card, if it's there, or the image) except
+    // where the link re-enables itself below, so the rest of the caption
+    // never blocks the card's own controls just because it now paints above.
+    caption: {
+      // Rendered as a sibling of `panelOffset`, not nested inside it (see
+      // BrandPanel's return) — `position: fixed` on `panelOffset` for the
+      // mobile backdrop always creates its own stacking context (unlike
+      // absolute/relative without an explicit z-index, which don't), so a
+      // caption nested inside it would have its z-index:3 trapped there,
+      // comparable only to other things inside `panelOffset` and never able
+      // to outrank the card sitting outside it — this is the same
+      // stacking-context constraint the comment above (on the wrapper this
+      // used to sit in) already worked around for the desktop case, just
+      // reintroduced by the mobile backdrop being `fixed` at all (originally
+      // on `.panel` itself, now on `panelOffset` after the header-offset
+      // split — same constraint, same fix, different element).
+      position: "absolute",
+      left: 0,
+      right: 0,
+      // Sits just above the fixed, translucent footer (see Footer.tsx)
+      // rather than at the panel's own true bottom edge — since that footer
+      // now floats on top of the image (z-index 100) with the image showing
+      // through its glass, a caption placed underneath it would be readable
+      // only as a faint blur, not legible text.
+      bottom: "var(--footer-height, 40px)",
+      padding: `${theme.spacing.xl} ${theme.spacing.lg} ${theme.spacing.md}`,
+      zIndex: 3,
+      pointerEvents: "none",
+      textAlign: "right",
+      // A text-shadow (inherited by the Text/Anchor children) keeps the
+      // credit legible against a busy photo without painting a visible dark
+      // rectangle behind it the way a background scrim would. A third, tight
+      // layer added on top of the original two — measured contrast against a
+      // bright slide was still marginal with just the outer glow alone.
+      textShadow:
+        "0 1px 2px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8), 0 1px 12px rgba(0, 0, 0, 0.5)",
+
+      // Mobile isn't where this product shows off the photography — that's
+      // desktop's job; on mobile the images are purely atmospheric variety
+      // behind the glass. Dropped entirely below "sm" rather than kept
+      // visible-but-inert: on a screen this narrow the card spans nearly
+      // the full width, so the credit (and the carousel pause control that
+      // lived next to it) would sit right where the submit button lands the
+      // moment a visitor scrolls down to reach it — not worth the layout
+      // gymnastics for something that isn't the point on this surface.
+      [theme.fn.smallerThan("sm")]: {
+        display: "none",
+      },
+    },
+
+    captionLink: {
+      pointerEvents: "auto",
+    },
+
+    pauseButton: {
+      pointerEvents: "auto",
+      color: theme.white,
+      filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6))",
+    },
+  }),
+);
 
 // One instance per slide, mounted once and never torn down for the whole
 // session — only its own zoom wrapper (see `activation` below) remounts,
@@ -742,40 +778,50 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
 
   return (
     <>
-      <Box className={classes.panel}>
-        {isReady && (
-          <Box
-            // Fades the whole reveal in once there's something real to show,
-            // rather than popping in the instant the shuffle resolves (which
-            // can be before the chosen image has actually loaded) — a beat
-            // of the panel's own dark background reads as an intentional
-            // transition, not a stall.
-            style={{
-              opacity: 1,
-              animation: prefersReducedMotion
-                ? undefined
-                : "brandPanelFadeIn 500ms ease",
-            }}
-          >
-            {mountedIndices.map((index) => {
-              const slide = order[index];
-              return (
-                <Slide
-                  key={`${slide.slug}-s${slide.still}`}
-                  slide={slide}
-                  delta={cyclicDelta(current, index, order.length)}
-                  isActive={index === current}
-                  prefersReducedMotion={prefersReducedMotion}
-                  isPaused={isPaused}
-                />
-              );
-            })}
-          </Box>
-        )}
+      {
+        // panelOffset owns the fixed, viewport-pinned position at mobile
+        // sizes now (see its own comment in useStyles) — .panel fills it
+        // via position:absolute and only carries the *animated* half of
+        // the push compensation.
+      }
+      <Box className={classes.panelOffset}>
+        <Box className={classes.panel}>
+          {isReady && (
+            <Box
+              // Fades the whole reveal in once there's something real to show,
+              // rather than popping in the instant the shuffle resolves (which
+              // can be before the chosen image has actually loaded) — a beat
+              // of the panel's own dark background reads as an intentional
+              // transition, not a stall.
+              style={{
+                opacity: 1,
+                animation: prefersReducedMotion
+                  ? undefined
+                  : "brandPanelFadeIn 500ms ease",
+              }}
+            >
+              {mountedIndices.map((index) => {
+                const slide = order[index];
+                return (
+                  <Slide
+                    key={`${slide.slug}-s${slide.still}`}
+                    slide={slide}
+                    delta={cyclicDelta(current, index, order.length)}
+                    isActive={index === current}
+                    prefersReducedMotion={prefersReducedMotion}
+                    isPaused={isPaused}
+                  />
+                );
+              })}
+            </Box>
+          )}
+        </Box>
       </Box>
       {
-        // Sibling of `.panel` on purpose, not nested inside it — see
-        // `.caption`'s own styles for why.
+        // Sibling of `panelOffset` on purpose, not nested inside it — see
+        // `.caption`'s own styles for why (the same stacking-context
+        // reasoning, now against panelOffset instead of .panel, since
+        // that's the element carrying position:fixed at mobile sizes).
       }
       {isReady && activeSlide && showCaption && (
         <Box className={classes.caption}>
