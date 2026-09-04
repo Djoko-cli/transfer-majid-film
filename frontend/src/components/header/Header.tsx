@@ -131,10 +131,31 @@ const useStyles = createStyles((theme) => {
       // category entirely: nothing in Paper's chain, or Paper itself,
       // touches transform or opacity anymore, only how much of this
       // already fully-rendered box is visible.
+      //
+      // isolation: isolate — forces this box into its own stacking
+      // context on purpose. Before the mobile menu became an overlay
+      // (see this file's own history), the page-content push applied a
+      // `transform` to _app.tsx's root content container while open,
+      // which — as a side effect neither this box nor that push's own
+      // reasoning ever depended on — also gave that whole subtree
+      // (including SplitTransferLayout's own backdrop-filter card) a new
+      // stacking context, incidentally keeping its compositing separate
+      // from this box's. Removing the push removed that incidental
+      // isolation too: reported directly as this Paper losing its blur
+      // entirely (rendering flat, no trace of the photo behind it) once
+      // it could end up on-screen at the same time as another
+      // backdrop-filter element in the *same* stacking context — Safari
+      // has a known history of failing to correctly composite multiple
+      // concurrent backdrop-filter layers sharing one context, distinct
+      // from (if related to) the nested-DOM-ancestor version of this bug
+      // described above. isolation is the standards-based way to get an
+      // explicit stacking context without a transform (or any other
+      // property with unrelated side effects) doing it as an accident.
       position: "fixed",
       top: HEADER_HEIGHT,
       right: 16,
       zIndex: 100,
+      isolation: "isolate",
 
       [theme.fn.largerThan("sm")]: {
         display: "none",
