@@ -609,6 +609,7 @@ const TransferCard = ({
                   isUploading={isUploading}
                   onCancel={onCancelUpload}
                   onRetry={onRetryFile}
+                  animateRowEnter
                 />
               )}
               {

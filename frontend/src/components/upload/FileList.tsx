@@ -1,11 +1,12 @@
 import {
   ActionIcon,
-  Table,
-  Group,
-  Stack,
-  Progress,
-  Text,
+  Box,
   Button,
+  createStyles,
+  Group,
+  Progress,
+  Stack,
+  Text,
 } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { TbTrash, TbEdit, TbRefresh, TbX } from "react-icons/tb";
@@ -51,6 +52,106 @@ const ACTIONS_COLUMN_WIDTH =
   2 * CELL_PADDING;
 const SIZE_COLUMN_WIDTH = 80;
 
+// Matches Mantine Collapse's own default feel (`ease`, ~200ms for a row-
+// sized height) so a row arriving reads like the rest of the card's
+// reveals, not like a different animation vocabulary.
+const ROW_ENTER_MS = 200;
+
+// A CSS grid rather than Mantine's <Table>, though it reproduces that
+// table's rendered geometry exactly (measured live: cells 7px/10px padding,
+// 14px text, 700-weight 70%-alpha header with a 1px hairline under it,
+// no separators between body rows). The reason is animation: a table row
+// cannot animate its own height - `<tr>` ignores height transitions, a
+// `<div>` can't legally wrap it inside `<tbody>`, and an animated height on
+// `<tbody>` is mishandled by table layout, Safari especially. A grid row
+// is a plain block that can. Each row owns its own height, so when one
+// animates in, the card above (height: auto all the way up - see
+// TransferCard) follows in the same layout pass, exactly like the card's
+// Collapse-driven reveals; nothing measures or chases anything. role=
+// table/row/cell/columnheader keep the semantics a real table gave.
+//
+// Column widths are the same constants the <Table> used: the name column
+// takes the remainder (this is what `tableLayout: fixed` + explicit
+// <th> widths achieved), and it needs minWidth: 0 - a grid item's default
+// min-width is its content, which would silently disable the ellipsis.
+const useStyles = createStyles((theme) => {
+  const dark = theme.colorScheme === "dark";
+  return {
+    grid: {
+      width: "100%",
+      fontSize: theme.fontSizes.sm,
+      // The <Table> this replaces rendered body text pure white in dark
+      // mode (measured), not the card's inherited dark[0] grey - set
+      // explicitly so file names keep the same weight against the glass.
+      color: dark ? theme.white : theme.black,
+    },
+    row: {
+      display: "grid",
+      gridTemplateColumns: `minmax(0, 1fr) ${SIZE_COLUMN_WIDTH}px ${ACTIONS_COLUMN_WIDTH}px`,
+      alignItems: "center",
+    },
+    headerRow: {
+      borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(0, 0, 0, 0.12)"}`,
+    },
+    cell: {
+      padding: `7px ${CELL_PADDING}px`,
+      lineHeight: 1.55,
+    },
+    headerCell: {
+      fontWeight: 700,
+      color: dark ? "rgba(255, 255, 255, 0.7)" : theme.colors.gray[7],
+    },
+    nameCell: {
+      minWidth: 0,
+      overflow: "hidden",
+      whiteSpace: "nowrap",
+      textOverflow: "ellipsis",
+    },
+    sizeCell: {
+      whiteSpace: "nowrap",
+    },
+    // The enter reveal, opt-in per FileList (see animateRowEnter), on a
+    // presentational wrapper around each row (ARIA allows a
+    // role=presentation node between table and row). A pure CSS @keyframes
+    // animation, not a transition: an animation plays its `from` state on
+    // an element's very first paint, which is exactly the moment a new
+    // row exists - no mount-then-flip state, no timer. It animates the
+    // wrapper's single grid track from 0fr to 1fr (fileRowIn, global in
+    // liquidGlassKeyframes.tsx like every other @keyframes in this
+    // codebase), i.e. the row's real layout height from 0 to whatever its
+    // content needs - so everything above it grows with it, in lockstep,
+    // the same way the card's Collapses work. The row itself is the sole
+    // item in that track and stretches with it; its own content overflows
+    // downward and is clipped, so the reveal is anchored at the top -
+    // Collapse's look. (Putting the track on `.row` directly would put
+    // its `alignItems: center` inside a 0px track and reveal the content
+    // from the middle outward instead.) Removal is not animated: a
+    // removed row unmounts and the list reflows at once - a plain
+    // relayout, not a desync.
+    //
+    // `& > *` minHeight: 0 is load-bearing, not tidiness. A grid item's
+    // default min-height is `auto` = its own content height, and a track
+    // can never be sized below its item's minimum - so a 0fr track holding
+    // a 39px row still resolves to 39px, and the animation runs from 39px
+    // to 39px: declared, running, invisible. Measured exactly that before
+    // this line existed (resolved grid-template-rows read 39px from the
+    // first frame). Letting the item shrink to 0 is what lets the track
+    // actually start at 0.
+    enterAnimated: {
+      display: "grid",
+      gridTemplateRows: "1fr",
+      overflow: "hidden",
+      animation: `fileRowIn ${ROW_ENTER_MS}ms ease`,
+      "& > *": {
+        minHeight: 0,
+      },
+      "@media (prefers-reduced-motion: reduce)": {
+        animation: "none",
+      },
+    },
+  };
+});
+
 const getFileNameOrPath = (file: FileListItem) => {
   const pathName =
     "webkitRelativePath" in file && file.webkitRelativePath
@@ -65,14 +166,17 @@ const FileListRow = ({
   onRestore,
   onEdit,
   onRetry,
+  animateEnter = false,
 }: {
   file: FileListItem;
   onRemove?: () => void;
   onRestore?: () => void;
   onEdit?: () => void;
   onRetry?: () => void;
+  animateEnter?: boolean;
 }) => {
   {
+    const { classes, cx } = useStyles();
     const uploadable = "uploadingProgress" in file;
     const uploading = uploadable && file.uploadingProgress !== 0;
     const failed = uploadable && file.uploadingProgress === -1;
@@ -92,85 +196,86 @@ const FileListRow = ({
     const t = useTranslate();
 
     return (
-      <tr
-        style={{
-          color: deleted ? "rgba(120, 120, 120, 0.5)" : "inherit",
-          textDecoration: deleted ? "line-through" : "none",
-        }}
+      <Box
+        role="presentation"
+        className={cx(animateEnter && classes.enterAnimated)}
       >
-        <td
+        <Box
+          role="row"
+          className={classes.row}
           style={{
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            textOverflow: "ellipsis",
+            color: deleted ? "rgba(120, 120, 120, 0.5)" : "inherit",
+            textDecoration: deleted ? "line-through" : "none",
           }}
         >
-          <HoverTip label={fileNameOrPath}>
-            <span>{renderFileName(fileNameOrPath)}</span>
-          </HoverTip>
-        </td>
-        <td style={{ whiteSpace: "nowrap" }}>
-          {byteToHumanSizeString(+file.size)}
-        </td>
-        <td>
-          <Group position="right" spacing="xs" noWrap>
-            {editable && (
-              <HoverTip label={t("common.button.edit")}>
-                <ActionIcon
-                  color="blue"
-                  variant="light"
-                  size={25}
-                  aria-label={t("common.button.edit")}
-                  onClick={onEdit}
-                >
-                  <TbEdit />
-                </ActionIcon>
-              </HoverTip>
-            )}
-            {removable && (
-              <HoverTip label={t("common.button.delete")}>
-                <ActionIcon
-                  color="red"
-                  variant="light"
-                  size={25}
-                  aria-label={t("common.button.delete")}
-                  onClick={onRemove}
-                >
-                  <TbTrash />
-                </ActionIcon>
-              </HoverTip>
-            )}
-            {uploading && (
-              <UploadProgressIndicator progress={file.uploadingProgress} />
-            )}
-            {failed && onRetry && (
-              <HoverTip label={t("common.button.retry")}>
-                <ActionIcon
-                  color="orange"
-                  variant="light"
-                  size={25}
-                  aria-label={t("common.button.retry")}
-                  onClick={onRetry}
-                >
-                  <TbRefresh />
-                </ActionIcon>
-              </HoverTip>
-            )}
-            {restorable && (
-              <HoverTip label={t("common.button.undo")}>
-                <ActionIcon
-                  variant="light"
-                  size={25}
-                  aria-label={t("common.button.undo")}
-                  onClick={onRestore}
-                >
-                  <GrUndo />
-                </ActionIcon>
-              </HoverTip>
-            )}
-          </Group>
-        </td>
-      </tr>
+          <Box role="cell" className={cx(classes.cell, classes.nameCell)}>
+            <HoverTip label={fileNameOrPath}>
+              <span>{renderFileName(fileNameOrPath)}</span>
+            </HoverTip>
+          </Box>
+          <Box role="cell" className={cx(classes.cell, classes.sizeCell)}>
+            {byteToHumanSizeString(+file.size)}
+          </Box>
+          <Box role="cell" className={classes.cell}>
+            <Group position="right" spacing="xs" noWrap>
+              {editable && (
+                <HoverTip label={t("common.button.edit")}>
+                  <ActionIcon
+                    color="blue"
+                    variant="light"
+                    size={25}
+                    aria-label={t("common.button.edit")}
+                    onClick={onEdit}
+                  >
+                    <TbEdit />
+                  </ActionIcon>
+                </HoverTip>
+              )}
+              {removable && (
+                <HoverTip label={t("common.button.delete")}>
+                  <ActionIcon
+                    color="red"
+                    variant="light"
+                    size={25}
+                    aria-label={t("common.button.delete")}
+                    onClick={onRemove}
+                  >
+                    <TbTrash />
+                  </ActionIcon>
+                </HoverTip>
+              )}
+              {uploading && (
+                <UploadProgressIndicator progress={file.uploadingProgress} />
+              )}
+              {failed && onRetry && (
+                <HoverTip label={t("common.button.retry")}>
+                  <ActionIcon
+                    color="orange"
+                    variant="light"
+                    size={25}
+                    aria-label={t("common.button.retry")}
+                    onClick={onRetry}
+                  >
+                    <TbRefresh />
+                  </ActionIcon>
+                </HoverTip>
+              )}
+              {restorable && (
+                <HoverTip label={t("common.button.undo")}>
+                  <ActionIcon
+                    variant="light"
+                    size={25}
+                    aria-label={t("common.button.undo")}
+                    onClick={onRestore}
+                  >
+                    <GrUndo />
+                  </ActionIcon>
+                </HoverTip>
+              )}
+            </Group>
+          </Box>
+        </Box>
+      </Box>
     );
   }
 };
@@ -181,15 +286,25 @@ const FileList = <T extends FileListItem = FileListItem>({
   isUploading,
   onCancel,
   onRetry,
+  animateRowEnter = false,
 }: {
   files: T[];
   setFiles: (files: T[]) => void;
   isUploading?: boolean;
   onCancel?: () => void;
   onRetry?: (index: number) => void;
+  // Animate a newly added row's height in (see useStyles.enterAnimated).
+  // Opt-in rather than default: this list also renders inside
+  // EditableUpload's AnimatedHeight, and a row animating its own height
+  // inside a ResizeObserver-driven box is precisely the nested-animation
+  // conflict TransferCard just got rid of. Callers whose surrounding
+  // chain is height: auto all the way up (TransferCard, the reverse-share
+  // card) turn it on; nothing else changes behavior.
+  animateRowEnter?: boolean;
 }) => {
   const modals = useModals();
   const t = useTranslate();
+  const { classes, cx } = useStyles();
   const remove = (index: number) => {
     const file = files[index];
 
@@ -221,14 +336,27 @@ const FileList = <T extends FileListItem = FileListItem>({
     showTextEditorModal(index, files, setFiles, text, modals);
   };
 
+  // Keyed on identity, not index. With index keys, removing a middle file
+  // made React reuse every following row's element for the file that
+  // shifted into its slot and unmount the *last* one - harmless for a
+  // static table, wrong the moment rows animate (the entering/leaving
+  // element must be the row that was actually added/removed). Uploaded
+  // files (FileMetaData) carry an id; dropped ones are File objects with
+  // no id, but their normalized path is already unique within a share -
+  // filterDuplicateFiles rejects a second file with the same one - so it
+  // is the same identity the rest of the upload flow relies on.
+  const rowKey = (file: T) =>
+    "id" in file ? file.id : getFileNameOrPath(file);
+
   const rows = files.map((file, i) => (
     <FileListRow
-      key={i}
+      key={rowKey(file)}
       file={file}
       onRemove={() => remove(i)}
       onRestore={() => restore(i)}
       onEdit={() => edit(i)}
       onRetry={onRetry ? () => onRetry(i) : undefined}
+      animateEnter={animateRowEnter}
     />
   ));
 
@@ -280,20 +408,27 @@ const FileList = <T extends FileListItem = FileListItem>({
           />
         </Stack>
       )}
-      <Table style={{ tableLayout: "fixed", width: "100%" }}>
-        <thead>
-          <tr>
-            <th>
-              <FormattedMessage id="upload.filelist.name" />
-            </th>
-            <th style={{ width: SIZE_COLUMN_WIDTH }}>
-              <FormattedMessage id="upload.filelist.size" />
-            </th>
-            <th style={{ width: ACTIONS_COLUMN_WIDTH }}></th>
-          </tr>
-        </thead>
-        <tbody>{rows}</tbody>
-      </Table>
+      <Box role="table" className={classes.grid}>
+        <Box role="row" className={cx(classes.row, classes.headerRow)}>
+          <Box
+            role="columnheader"
+            className={cx(classes.cell, classes.headerCell)}
+          >
+            <FormattedMessage id="upload.filelist.name" />
+          </Box>
+          <Box
+            role="columnheader"
+            className={cx(classes.cell, classes.headerCell)}
+          >
+            <FormattedMessage id="upload.filelist.size" />
+          </Box>
+          <Box
+            role="columnheader"
+            className={cx(classes.cell, classes.headerCell)}
+          />
+        </Box>
+        {rows}
+      </Box>
     </Stack>
   );
 };

@@ -794,6 +794,7 @@ const Upload = ({
             isUploading={isUploading}
             onCancel={cancelUpload}
             onRetry={retryFile}
+            animateRowEnter
           />
           <Button
             fullWidth
