@@ -56,6 +56,10 @@ const CSS = `
   from { grid-template-rows: 0fr; }
   to   { grid-template-rows: 1fr; }
 }
+@keyframes fileRowOut {
+  from { grid-template-rows: 1fr; }
+  to   { grid-template-rows: 0fr; }
+}
 `;
 
 const LiquidGlassKeyframes = () => (
