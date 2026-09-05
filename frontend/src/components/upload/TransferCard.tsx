@@ -1,9 +1,9 @@
 import {
   Accordion,
   ActionIcon,
-  Box,
   Button,
   Checkbox,
+  Collapse,
   createStyles,
   Group,
   MantineProvider,
@@ -26,7 +26,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { TbChevronDown, TbChevronUp, TbTrash } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
-import AnimatedHeight from "../core/AnimatedHeight";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import { FileUpload } from "../../types/File.type";
@@ -322,78 +321,6 @@ const TransferCard = ({
   const [mode, setMode] = useState<Mode>("link");
   const [emailSearch, setEmailSearch] = useState("");
 
-  // The recipient field's own reveal (see its render further down) rides
-  // a clip-path transition on the field itself rather than an inner
-  // Collapse animating its own height, which used to fight the outer
-  // AnimatedHeight measuring this whole region — see that render's own
-  // comment for the full history of why. clip-path doesn't affect layout
-  // size at all, so it can't retrigger AnimatedHeight's ResizeObserver
-  // the way a height-changing inner animation did; this is the same
-  // technique (and the same reasoning) as the mobile nav menu's own
-  // reveal, ported here for the same kind of "backdrop-filter or
-  // ResizeObserver-driven ancestor" conflict.
-  //
-  // recipientFieldWanted (derived, instant) is the source of truth.
-  // recipientFieldMounted (state) drives whether the field is in the DOM
-  // at all — i.e. whether it contributes to what AnimatedHeight measures.
-  // recipientFieldRevealed (state) drives the clip-path target — kept
-  // separate from "mounted" specifically so mounting and revealing can
-  // land in two different commits on the way in: a brand-new DOM node
-  // born already at its final clip-path has nothing to transition *from*
-  // (CSS transitions animate a change to an already-rendered value, not
-  // an element's very first paint), so opening this any other way just
-  // reintroduces the same instant pop this whole reveal exists to avoid.
-  // Mount this render, flip revealed true one tick later once the hidden
-  // state has actually painted - same shape as AnimatedHeight's own
-  // skipTransition dance, just inverted (that one wants the first paint
-  // instant and later changes animated; this wants the first paint
-  // hidden so *it* can animate too).
-  //
-  // Closing reverses which half is instant: revealed flips false right
-  // away (an ordinary style change on an element that's been sitting in
-  // the DOM this whole time, which transitions correctly with no special
-  // handling), while mounted stays true for the same duration that
-  // transition takes. Unmounting immediately instead would drop the
-  // field out of AnimatedHeight's measurement before its own clip-path
-  // has had any chance to visually close - the outer box would shrink
-  // first, with nothing left inside it still animating away. Two clean,
-  // sequential phases (field closes, then the box shrinks to match)
-  // rather than one racing the other.
-  const RECIPIENT_FIELD_TRANSITION_MS = 300;
-  const recipientFieldWanted = mode === "email" && enableEmailRecepients;
-  const [recipientFieldMounted, setRecipientFieldMounted] =
-    useState(recipientFieldWanted);
-  const [recipientFieldRevealed, setRecipientFieldRevealed] =
-    useState(recipientFieldWanted);
-  const recipientFieldTimeoutRef = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null);
-  useEffect(() => {
-    if (recipientFieldTimeoutRef.current) {
-      clearTimeout(recipientFieldTimeoutRef.current);
-      recipientFieldTimeoutRef.current = null;
-    }
-    if (recipientFieldWanted) {
-      setRecipientFieldMounted(true);
-      recipientFieldTimeoutRef.current = setTimeout(() => {
-        setRecipientFieldRevealed(true);
-        recipientFieldTimeoutRef.current = null;
-      }, 0);
-    } else {
-      setRecipientFieldRevealed(false);
-      recipientFieldTimeoutRef.current = setTimeout(() => {
-        setRecipientFieldMounted(false);
-        recipientFieldTimeoutRef.current = null;
-      }, RECIPIENT_FIELD_TRANSITION_MS);
-    }
-    return () => {
-      if (recipientFieldTimeoutRef.current) {
-        clearTimeout(recipientFieldTimeoutRef.current);
-        recipientFieldTimeoutRef.current = null;
-      }
-    };
-  }, [recipientFieldWanted]);
-
   const validationSchema = yup.object().shape({
     name: yup
       .string()
@@ -577,13 +504,14 @@ const TransferCard = ({
     <MantineProvider inherit theme={glassFormTheme}>
       <form onSubmit={onFormSubmit}>
         {
-          // spacing={0}: this Stack's only two children now are the
-          // dropzone and the single AnimatedHeight below — gap between
-          // them is handled by that AnimatedHeight's own gapWhenOpen
-          // instead of a blanket Stack gap, specifically so a collapsed
-          // (files.length === 0) card doesn't pay for a gap next to
-          // content that isn't there. See that AnimatedHeight's own
-          // comment for the full reasoning.
+          // spacing={0}: this Stack's only two children are the dropzone
+          // and the single Collapse below — the gap between them lives
+          // *inside* that Collapse (as padding on its own content, see the
+          // Stack it wraps) rather than as a blanket Stack gap, so it
+          // collapses away with the content: a collapsed (files.length ===
+          // 0) card has zero dead space below the dropzone's floating "add
+          // a folder" button instead of paying for a gap next to content
+          // that isn't there.
         }
         <Stack align="stretch" spacing={0}>
           {
@@ -620,146 +548,153 @@ const TransferCard = ({
             // entirely (not just visually) rather than shown-but-inert, so
             // the initial card is only ever the drop target: one clear
             // thing to do, not a form's worth of fields with nowhere yet to
-            // apply them. AnimatedHeight rather than Collapse — Collapse
-            // only animates its own `in` toggle, not this region growing or
-            // shrinking further while already open (e.g. the file table
-            // gaining a row), which ResizeObserver-driven AnimatedHeight
-            // catches the same way regardless of what caused it. Re-hides
-            // just as readily if every file is removed again: nothing is
-            // lost when it does, since useForm's state lives in this
-            // component, not in the unmounted fields below.
+            // apply them. Re-hides just as readily if every file is removed
+            // again: nothing is lost when it does, since useForm's state
+            // lives in this component, not in the fields below.
             //
-            // One AnimatedHeight for the file list *and* everything below
-            // it, not two — both are gated on the exact same condition and
-            // always reveal together, so a single measured region avoids
-            // reserving gap twice for what is visually one event. That
-            // reservation is real: the Stack above sets its own spacing to
-            // 0 and this passes gapWhenOpen instead, so a collapsed card
-            // has zero dead space below the dropzone's floating "add a
-            // folder" button — a plain Stack gap would otherwise be spent
-            // on this region whether it has anything to show or not.
+            // A single Mantine Collapse for the file list *and* everything
+            // below it, with the card itself at height:auto simply
+            // following its content. This replaces an AnimatedHeight
+            // (ResizeObserver measuring the content, then animating its
+            // *own* box height to catch up) that was here from fe91ec5
+            // through 52f24ec. That design is two animations by
+            // construction - the content re-lays-out instantly, and only
+            // the box around it transitions - so any change inside it
+            // read as the content popping into place while the box (and,
+            // on desktop, the flex-centered card around it: see
+            // SplitTransferLayout's cardSlot) slid to catch up over the
+            // next 300ms. Every attempt to hide that seam (nesting a
+            // Collapse inside it, which then fought its ResizeObserver;
+            // unmounting the field outright; a clip-path reveal timed to
+            // match) was choreography on top of a split that shouldn't
+            // exist. Collapse animates the content's own height directly,
+            // so content, box and centering move as one motion, with
+            // nothing to synchronize - the same primitive, and the same
+            // behavior, this card had before fe91ec5.
+            //
+            // The trade-off it reintroduces, knowingly: Collapse animates
+            // only its own `in` toggle, so this region growing or shrinking
+            // further while already open (the file table gaining a row)
+            // reflows instantly rather than animating - a plain, immediate
+            // relayout, not a desync. Content stays mounted while closed
+            // (Collapse needs it there to animate from) and settles at
+            // display:none, so nothing inside is focusable or in flow.
+            // `!!nasImportPreview`: Collapse's `in` is a boolean, and
+            // nasImportPreview is an object-or-null.
+            //
+            // pt on the inner Stack is the gap between the dropzone above
+            // and this region - inside the Collapse so it collapses away
+            // with the content (the Stack above sets its own spacing to 0
+            // for exactly this reason; see its comment).
           }
-          <AnimatedHeight duration={300} gapWhenOpen={16}>
-            {files.length > 0 || nasImportPreview ? (
-              <Stack align="stretch">
-                {
-                  // Both can be present at once now — a NAS selection and
-                  // dropped files combine into the same share rather than
-                  // one replacing the other, so both summaries render
-                  // together when both exist.
-                }
-                {nasImportPreview && (
-                  <NasImportSummary
-                    preview={nasImportPreview}
-                    progress={isUploading ? (nasImportProgress ?? null) : null}
-                    onClear={onClearNasImport}
-                  />
+          <Collapse in={files.length > 0 || !!nasImportPreview}>
+            <Stack align="stretch" pt={16}>
+              {
+                // Both can be present at once now — a NAS selection and
+                // dropped files combine into the same share rather than
+                // one replacing the other, so both summaries render
+                // together when both exist.
+              }
+              {nasImportPreview && (
+                <NasImportSummary
+                  preview={nasImportPreview}
+                  progress={isUploading ? (nasImportProgress ?? null) : null}
+                  onClear={onClearNasImport}
+                />
+              )}
+              {files.length > 0 && (
+                <FileList<FileUpload>
+                  files={files}
+                  setFiles={setFiles}
+                  isUploading={isUploading}
+                  onCancel={onCancelUpload}
+                  onRetry={onRetryFile}
+                />
+              )}
+              {
+                // Moved below the dropzone (it used to open the card) —
+                // asking how a transfer will be delivered before a single
+                // file has been chosen answers a question that doesn't
+                // exist yet.
+              }
+              <SegmentedControl
+                fullWidth
+                value={mode}
+                onChange={(value) => setMode(value as Mode)}
+                data={[
+                  { label: t("upload.transfer.mode.link"), value: "link" },
+                  { label: t("upload.transfer.mode.email"), value: "email" },
+                ]}
+              />
+
+              {
+                // Always shown, in both Lien and E-mail mode: this names the
+                // share itself (it's what a recipient sees as the page title,
+                // and what the owner sees as the row label in "Mes partages"),
+                // not who it's addressed to — a link shared with no particular
+                // recipient still deserves its own identity. Left blank, the
+                // fallback in onFormSubmit derives one from the files being
+                // sent, so a share is never stuck showing its raw random ID as
+                // its only name.
+              }
+              <TextInput
+                variant="filled"
+                label={t("upload.transfer.share-name.label")}
+                {...form.getInputProps("name")}
+              />
+
+              {
+                // Grouped with the name field above rather than down by
+                // expiration/recipients — both describe *what's being sent*,
+                // not *how* it's delivered.
+              }
+              <Textarea
+                variant="filled"
+                label={t("upload.transfer.message.label")}
+                placeholder={t(
+                  "upload.modal.accordion.name-and-description.description.placeholder",
                 )}
-                {files.length > 0 && (
-                  <FileList<FileUpload>
-                    files={files}
-                    setFiles={setFiles}
-                    isUploading={isUploading}
-                    onCancel={onCancelUpload}
-                    onRetry={onRetryFile}
-                  />
-                )}
-                {
-                  // Moved below the dropzone (it used to open the card) —
-                  // asking how a transfer will be delivered before a single
-                  // file has been chosen answers a question that doesn't
-                  // exist yet.
-                }
-                <SegmentedControl
-                  fullWidth
-                  value={mode}
-                  onChange={(value) => setMode(value as Mode)}
-                  data={[
-                    { label: t("upload.transfer.mode.link"), value: "link" },
-                    { label: t("upload.transfer.mode.email"), value: "email" },
-                  ]}
-                />
+                {...form.getInputProps("description")}
+              />
 
-                {
-                  // Always shown, in both Lien and E-mail mode: this names the
-                  // share itself (it's what a recipient sees as the page title,
-                  // and what the owner sees as the row label in "Mes partages"),
-                  // not who it's addressed to — a link shared with no particular
-                  // recipient still deserves its own identity. Left blank, the
-                  // fallback in onFormSubmit derives one from the files being
-                  // sent, so a share is never stuck showing its raw random ID as
-                  // its only name.
-                }
-                <TextInput
-                  variant="filled"
-                  label={t("upload.transfer.share-name.label")}
-                  {...form.getInputProps("name")}
-                />
-
-                {
-                  // Grouped with the name field above rather than down by
-                  // expiration/recipients — both describe *what's being sent*,
-                  // not *how* it's delivered.
-                }
-                <Textarea
-                  variant="filled"
-                  label={t("upload.transfer.message.label")}
-                  placeholder={t(
-                    "upload.modal.accordion.name-and-description.description.placeholder",
-                  )}
-                  {...form.getInputProps("description")}
-                />
-
-                {
-                  // Who actually receives the transfer, on the other hand,
-                  // only applies once the sender has committed to
-                  // addressing it to someone, i.e. "E-mail" mode — also
-                  // gated on enableEmailRecepients so switching to
-                  // "E-mail" mode doesn't expand an empty box when that
-                  // feature is off.
-                  //
-                  // Used to be a nested Collapse animating its own height
-                  // independently while the outer AnimatedHeight's
-                  // ResizeObserver watched the very subtree that inner
-                  // animation was continuously resizing — retargeting the
-                  // outer transition mid-flight on every tick of the inner
-                  // one, which is what a real-device recording caught as
-                  // both a lagging box and visibly stepped motion.
-                  // Unmounting it outright (a plain conditional, no reveal
-                  // of its own) fixed that, but traded it for a different
-                  // real-device report: the field just popping into
-                  // existence while only the box around it animated, with
-                  // a follow-up recording catching this card's own
-                  // position visibly settling for a few hundred ms
-                  // afterward too — the *outer* box hadn't actually
-                  // finished growing/shrinking by the time this region's
-                  // own instant content swap made it look done.
-                  //
-                  // recipientFieldMounted/recipientFieldRevealed (see their
-                  // own comment above, by the `mode`/`emailSearch` state)
-                  // split "is it in the DOM" from "how visible is it" so
-                  // this field can have its own reveal — clip-path, same
-                  // technique and reasoning as the mobile nav menu's own —
-                  // without that reveal being a second height animation
-                  // for AnimatedHeight's ResizeObserver to fight.
-                  // Recipients/search state both already live in
-                  // `form`/`emailSearch` above, not inside this field, so
-                  // there's nothing to lose by unmounting it at all -
-                  // recipientFieldMounted just delays that unmount long
-                  // enough for the field's own close to actually finish
-                  // first.
-                }
-                {recipientFieldMounted && (
-                  <Box
-                    style={{
-                      clipPath: recipientFieldRevealed
-                        ? "inset(0%)"
-                        : "inset(0% 0% 100% 0%)",
-                      transition: `clip-path ${RECIPIENT_FIELD_TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`,
-                    }}
-                  >
+              {
+                // Who actually receives the transfer, on the other hand,
+                // only applies once the sender has committed to
+                // addressing it to someone, i.e. "E-mail" mode — also
+                // gated on enableEmailRecepients so switching to
+                // "E-mail" mode doesn't expand an empty box when that
+                // feature is off. Collapsed in place rather than
+                // unmounted, so the height animation has something to
+                // animate - the same Collapse this field had before
+                // fe91ec5 nested it inside an AnimatedHeight (see the
+                // outer Collapse's comment above for why that nesting,
+                // and everything tried to paper over it since, is gone).
+                // With the enclosing region now a Collapse too, this is
+                // a Collapse inside a Collapse - fine: the outer one is
+                // at height:auto while open and only animates its own
+                // `in` toggle, so it never measures or fights this one.
+                //
+                // Same display:block-instead-of-none trick as the old
+                // sender-email field used to need: a Collapse settles
+                // closed at display:none, which drops the item out of
+                // the Stack's flex gap calculation and snaps the layout
+                // by one gap-width right after the height animation
+                // finishes. Kept a permanent zero-height block instead,
+                // so there's nothing left to snap. Because it therefore
+                // never leaves the DOM or flow while collapsed,
+                // tabIndex=-1 keeps it out of the tab order and the
+                // asterisk is only shown once it's actually required.
+              }
+              <Collapse
+                in={mode === "email" && enableEmailRecepients}
+                sx={{
+                  "&[aria-hidden='true']": { display: "block !important" },
+                }}
+              >
+                <Stack align="stretch">
+                  {enableEmailRecepients && (
                     <MultiSelect
-                      withAsterisk
+                      withAsterisk={mode === "email"}
                       label={t("upload.transfer.recipient.email.label")}
                       data={form.values.recipients}
                       placeholder={t(
@@ -770,6 +705,7 @@ const TransferCard = ({
                       variant="filled"
                       id="recipient-emails"
                       inputMode="email"
+                      tabIndex={mode === "email" ? undefined : -1}
                       searchValue={emailSearch}
                       onSearchChange={setEmailSearch}
                       getCreateLabel={(query) => `+ ${query}`}
@@ -818,259 +754,259 @@ const TransferCard = ({
                         }
                       }}
                     />
-                  </Box>
-                )}
+                  )}
+                </Stack>
+              </Collapse>
 
-                {
-                  // Always shown regardless of Lien/E-mail mode — it's the
-                  // sender's own identity, not tied to how the recipient gets the
-                  // transfer. Anonymous senders must type and verify it (see
-                  // the OTP flow this feeds); a signed-in sender's is already
-                  // known, so it's pre-filled from their account and locked
-                  // rather than asked for again.
+              {
+                // Always shown regardless of Lien/E-mail mode — it's the
+                // sender's own identity, not tied to how the recipient gets the
+                // transfer. Anonymous senders must type and verify it (see
+                // the OTP flow this feeds); a signed-in sender's is already
+                // known, so it's pre-filled from their account and locked
+                // rather than asked for again.
+              }
+              <TextInput
+                variant="filled"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                withAsterisk={!isUserSignedIn}
+                label={t("upload.transfer.sender.label")}
+                description={
+                  requiresEmailVerification &&
+                  t("upload.transfer.sender.otp-description")
                 }
-                <TextInput
-                  variant="filled"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  withAsterisk={!isUserSignedIn}
-                  label={t("upload.transfer.sender.label")}
-                  description={
-                    requiresEmailVerification &&
-                    t("upload.transfer.sender.otp-description")
-                  }
-                  placeholder={t("upload.transfer.sender.placeholder")}
-                  disabled={isUserSignedIn}
-                  {...form.getInputProps("senderEmail")}
-                />
+                placeholder={t("upload.transfer.sender.placeholder")}
+                disabled={isUserSignedIn}
+                {...form.getInputProps("senderEmail")}
+              />
 
-                {enableUserRecipients && enableEmailRecepients && (
-                  <Checkbox
-                    label={t(
-                      "upload.modal.accordion.email.restrict-to-recipients",
-                    )}
-                    checked={form.values.restrictToRecipients}
-                    onChange={(e) =>
-                      handleRestrictToggle(e.currentTarget.checked)
-                    }
-                  />
-                )}
-
-                <NumberInput
-                  hideControls
-                  min={1}
-                  max={30}
-                  precision={0}
-                  variant="filled"
-                  label={t("upload.transfer.expires.label")}
-                  disabled={form.values.never_expires}
-                  {...form.getInputProps("expiration_num")}
-                  styles={stepperFieldStyles}
-                  rightSection={
-                    <Stack spacing={0} sx={{ alignSelf: "stretch" }}>
-                      <UnstyledButton
-                        disabled={form.values.never_expires}
-                        sx={{
-                          ...stepperButtonSx,
-                          ...(form.values.never_expires && {
-                            opacity: 0.4,
-                            cursor: "not-allowed",
-                          }),
-                        }}
-                        onPointerDown={(
-                          e: React.PointerEvent<HTMLButtonElement>,
-                        ) => {
-                          e.currentTarget.focus();
-                          expirationHold.start(1);
-                        }}
-                        onPointerUp={expirationHold.stop}
-                        onPointerLeave={expirationHold.stop}
-                        onPointerCancel={expirationHold.stop}
-                        aria-label={t("upload.transfer.expires.increase")}
-                      >
-                        <TbChevronUp size={12} />
-                      </UnstyledButton>
-                      <UnstyledButton
-                        disabled={form.values.never_expires}
-                        sx={{
-                          ...stepperButtonSx,
-                          ...(form.values.never_expires && {
-                            opacity: 0.4,
-                            cursor: "not-allowed",
-                          }),
-                        }}
-                        onPointerDown={(
-                          e: React.PointerEvent<HTMLButtonElement>,
-                        ) => {
-                          e.currentTarget.focus();
-                          expirationHold.start(-1);
-                        }}
-                        onPointerUp={expirationHold.stop}
-                        onPointerLeave={expirationHold.stop}
-                        onPointerCancel={expirationHold.stop}
-                        aria-label={t("upload.transfer.expires.decrease")}
-                      >
-                        <TbChevronDown size={12} />
-                      </UnstyledButton>
-                    </Stack>
+              {enableUserRecipients && enableEmailRecepients && (
+                <Checkbox
+                  label={t(
+                    "upload.modal.accordion.email.restrict-to-recipients",
+                  )}
+                  checked={form.values.restrictToRecipients}
+                  onChange={(e) =>
+                    handleRestrictToggle(e.currentTarget.checked)
                   }
                 />
-                {maxExpiration.value == 0 && (
-                  <Checkbox
-                    label={t("upload.modal.expires.never-long")}
-                    {...form.getInputProps("never_expires")}
-                  />
-                )}
-                <Text italic size="xs" color="dimmed">
-                  {mounted &&
-                    getExpirationPreview(
-                      {
-                        neverExpires: t("upload.modal.completed.never-expires"),
-                        expiresOn: t("upload.modal.completed.expires-on"),
-                      },
-                      form,
-                    )}
-                </Text>
+              )}
 
-                <Accordion>
-                  <Accordion.Item value="options" sx={{ borderBottom: "none" }}>
-                    <Accordion.Control>
-                      <FormattedMessage id="upload.transfer.options" />
-                    </Accordion.Control>
-                    <Accordion.Panel>
-                      <Stack align="stretch">
-                        {!form.values.restrictToRecipients && (
-                          <PasswordInput
-                            variant="filled"
-                            placeholder={t(
-                              "upload.modal.accordion.security.password.placeholder",
-                            )}
-                            label={t(
-                              "upload.modal.accordion.security.password.label",
-                            )}
-                            visibilityToggleLabel={t(
-                              "common.button.toggle-password-visibility",
-                            )}
-                            autoComplete="new-password"
-                            {...form.getInputProps("password")}
-                          />
-                        )}
-                        <NumberInput
-                          hideControls
-                          min={1}
-                          type="number"
+              <NumberInput
+                hideControls
+                min={1}
+                max={30}
+                precision={0}
+                variant="filled"
+                label={t("upload.transfer.expires.label")}
+                disabled={form.values.never_expires}
+                {...form.getInputProps("expiration_num")}
+                styles={stepperFieldStyles}
+                rightSection={
+                  <Stack spacing={0} sx={{ alignSelf: "stretch" }}>
+                    <UnstyledButton
+                      disabled={form.values.never_expires}
+                      sx={{
+                        ...stepperButtonSx,
+                        ...(form.values.never_expires && {
+                          opacity: 0.4,
+                          cursor: "not-allowed",
+                        }),
+                      }}
+                      onPointerDown={(
+                        e: React.PointerEvent<HTMLButtonElement>,
+                      ) => {
+                        e.currentTarget.focus();
+                        expirationHold.start(1);
+                      }}
+                      onPointerUp={expirationHold.stop}
+                      onPointerLeave={expirationHold.stop}
+                      onPointerCancel={expirationHold.stop}
+                      aria-label={t("upload.transfer.expires.increase")}
+                    >
+                      <TbChevronUp size={12} />
+                    </UnstyledButton>
+                    <UnstyledButton
+                      disabled={form.values.never_expires}
+                      sx={{
+                        ...stepperButtonSx,
+                        ...(form.values.never_expires && {
+                          opacity: 0.4,
+                          cursor: "not-allowed",
+                        }),
+                      }}
+                      onPointerDown={(
+                        e: React.PointerEvent<HTMLButtonElement>,
+                      ) => {
+                        e.currentTarget.focus();
+                        expirationHold.start(-1);
+                      }}
+                      onPointerUp={expirationHold.stop}
+                      onPointerLeave={expirationHold.stop}
+                      onPointerCancel={expirationHold.stop}
+                      aria-label={t("upload.transfer.expires.decrease")}
+                    >
+                      <TbChevronDown size={12} />
+                    </UnstyledButton>
+                  </Stack>
+                }
+              />
+              {maxExpiration.value == 0 && (
+                <Checkbox
+                  label={t("upload.modal.expires.never-long")}
+                  {...form.getInputProps("never_expires")}
+                />
+              )}
+              <Text italic size="xs" color="dimmed">
+                {mounted &&
+                  getExpirationPreview(
+                    {
+                      neverExpires: t("upload.modal.completed.never-expires"),
+                      expiresOn: t("upload.modal.completed.expires-on"),
+                    },
+                    form,
+                  )}
+              </Text>
+
+              <Accordion>
+                <Accordion.Item value="options" sx={{ borderBottom: "none" }}>
+                  <Accordion.Control>
+                    <FormattedMessage id="upload.transfer.options" />
+                  </Accordion.Control>
+                  <Accordion.Panel>
+                    <Stack align="stretch">
+                      {!form.values.restrictToRecipients && (
+                        <PasswordInput
                           variant="filled"
                           placeholder={t(
-                            "upload.modal.accordion.security.max-views.placeholder",
+                            "upload.modal.accordion.security.password.placeholder",
                           )}
                           label={t(
-                            "upload.modal.accordion.security.max-views.label",
+                            "upload.modal.accordion.security.password.label",
                           )}
-                          {...form.getInputProps("maxViews")}
-                          // Mantine's own +/- controls compute their next value
-                          // internally and only tell us the result, so "0" from
-                          // decrementing 1 and "0" from incrementing empty (its
-                          // own floor-start logic) are indistinguishable — and
-                          // fixing that up afterward needs a blur to force a
-                          // resync (Mantine ignores external value changes while
-                          // focused), which is exactly the visible focus-ring
-                          // flash this replaces. Custom buttons compute the next
-                          // value directly from current form state instead, so
-                          // there's never an ambiguous intermediate value and
-                          // never a need to steal focus to correct one. They also
-                          // support press-and-hold, which native controls don't.
-                          //
-                          // The active-look border is still wanted while using
-                          // the buttons, though — done with a plain :focus-within
-                          // on the wrapper (matching the field's own focus style
-                          // from glassFieldStyles) rather than by focusing the
-                          // input itself, which would resurrect the exact sync
-                          // problem above. The buttons explicitly focus
-                          // *themselves* on press below, since Safari doesn't
-                          // focus buttons on click by default the way other
-                          // browsers do, and :focus-within needs a real focus
-                          // target inside the wrapper to trigger from.
-                          styles={stepperFieldStyles}
-                          rightSection={
-                            <Stack spacing={0} sx={{ alignSelf: "stretch" }}>
-                              <UnstyledButton
-                                sx={stepperButtonSx}
-                                onPointerDown={(
-                                  e: React.PointerEvent<HTMLButtonElement>,
-                                ) => {
-                                  e.currentTarget.focus();
-                                  maxViewsHold.start(1);
-                                }}
-                                onPointerUp={maxViewsHold.stop}
-                                onPointerLeave={maxViewsHold.stop}
-                                onPointerCancel={maxViewsHold.stop}
-                                aria-label={t(
-                                  "upload.modal.accordion.security.max-views.increase",
-                                )}
-                              >
-                                <TbChevronUp size={12} />
-                              </UnstyledButton>
-                              <UnstyledButton
-                                sx={stepperButtonSx}
-                                onPointerDown={(
-                                  e: React.PointerEvent<HTMLButtonElement>,
-                                ) => {
-                                  e.currentTarget.focus();
-                                  maxViewsHold.start(-1);
-                                }}
-                                onPointerUp={maxViewsHold.stop}
-                                onPointerLeave={maxViewsHold.stop}
-                                onPointerCancel={maxViewsHold.stop}
-                                aria-label={t(
-                                  "upload.modal.accordion.security.max-views.decrease",
-                                )}
-                              >
-                                <TbChevronDown size={12} />
-                              </UnstyledButton>
-                            </Stack>
-                          }
+                          visibilityToggleLabel={t(
+                            "common.button.toggle-password-visibility",
+                          )}
+                          autoComplete="new-password"
+                          {...form.getInputProps("password")}
                         />
-                      </Stack>
-                    </Accordion.Panel>
-                  </Accordion.Item>
-                </Accordion>
+                      )}
+                      <NumberInput
+                        hideControls
+                        min={1}
+                        type="number"
+                        variant="filled"
+                        placeholder={t(
+                          "upload.modal.accordion.security.max-views.placeholder",
+                        )}
+                        label={t(
+                          "upload.modal.accordion.security.max-views.label",
+                        )}
+                        {...form.getInputProps("maxViews")}
+                        // Mantine's own +/- controls compute their next value
+                        // internally and only tell us the result, so "0" from
+                        // decrementing 1 and "0" from incrementing empty (its
+                        // own floor-start logic) are indistinguishable — and
+                        // fixing that up afterward needs a blur to force a
+                        // resync (Mantine ignores external value changes while
+                        // focused), which is exactly the visible focus-ring
+                        // flash this replaces. Custom buttons compute the next
+                        // value directly from current form state instead, so
+                        // there's never an ambiguous intermediate value and
+                        // never a need to steal focus to correct one. They also
+                        // support press-and-hold, which native controls don't.
+                        //
+                        // The active-look border is still wanted while using
+                        // the buttons, though — done with a plain :focus-within
+                        // on the wrapper (matching the field's own focus style
+                        // from glassFieldStyles) rather than by focusing the
+                        // input itself, which would resurrect the exact sync
+                        // problem above. The buttons explicitly focus
+                        // *themselves* on press below, since Safari doesn't
+                        // focus buttons on click by default the way other
+                        // browsers do, and :focus-within needs a real focus
+                        // target inside the wrapper to trigger from.
+                        styles={stepperFieldStyles}
+                        rightSection={
+                          <Stack spacing={0} sx={{ alignSelf: "stretch" }}>
+                            <UnstyledButton
+                              sx={stepperButtonSx}
+                              onPointerDown={(
+                                e: React.PointerEvent<HTMLButtonElement>,
+                              ) => {
+                                e.currentTarget.focus();
+                                maxViewsHold.start(1);
+                              }}
+                              onPointerUp={maxViewsHold.stop}
+                              onPointerLeave={maxViewsHold.stop}
+                              onPointerCancel={maxViewsHold.stop}
+                              aria-label={t(
+                                "upload.modal.accordion.security.max-views.increase",
+                              )}
+                            >
+                              <TbChevronUp size={12} />
+                            </UnstyledButton>
+                            <UnstyledButton
+                              sx={stepperButtonSx}
+                              onPointerDown={(
+                                e: React.PointerEvent<HTMLButtonElement>,
+                              ) => {
+                                e.currentTarget.focus();
+                                maxViewsHold.start(-1);
+                              }}
+                              onPointerUp={maxViewsHold.stop}
+                              onPointerLeave={maxViewsHold.stop}
+                              onPointerCancel={maxViewsHold.stop}
+                              aria-label={t(
+                                "upload.modal.accordion.security.max-views.decrease",
+                              )}
+                            >
+                              <TbChevronDown size={12} />
+                            </UnstyledButton>
+                          </Stack>
+                        }
+                      />
+                    </Stack>
+                  </Accordion.Panel>
+                </Accordion.Item>
+              </Accordion>
 
-                {
-                  // Downgraded from a dismissible yellow warning banner that used
-                  // to open the whole card — the same information, but as a
-                  // quiet aside right where it's actually relevant (about to
-                  // submit), not the first thing a visitor reads before they've
-                  // even seen what this page does.
+              {
+                // Downgraded from a dismissible yellow warning banner that used
+                // to open the whole card — the same information, but as a
+                // quiet aside right where it's actually relevant (about to
+                // submit), not the first thing a visitor reads before they've
+                // even seen what this page does.
+              }
+              {!isUserSignedIn && (
+                <Text size="xs" color="dimmed">
+                  <FormattedMessage id="upload.transfer.anonymous-notice" />
+                </Text>
+              )}
+
+              <Button
+                type="submit"
+                size="md"
+                disabled={files.length === 0 && !nasImportPreview}
+                loading={isUploading}
+                className={
+                  !isUploading && (files.length > 0 || nasImportPreview)
+                    ? submitButtonClasses.ready
+                    : undefined
                 }
-                {!isUserSignedIn && (
-                  <Text size="xs" color="dimmed">
-                    <FormattedMessage id="upload.transfer.anonymous-notice" />
-                  </Text>
-                )}
-
-                <Button
-                  type="submit"
-                  size="md"
-                  disabled={files.length === 0 && !nasImportPreview}
-                  loading={isUploading}
-                  className={
-                    !isUploading && (files.length > 0 || nasImportPreview)
-                      ? submitButtonClasses.ready
-                      : undefined
+              >
+                <FormattedMessage
+                  id={
+                    mode === "link"
+                      ? "upload.transfer.submit.link"
+                      : "upload.transfer.submit"
                   }
-                >
-                  <FormattedMessage
-                    id={
-                      mode === "link"
-                        ? "upload.transfer.submit.link"
-                        : "upload.transfer.submit"
-                    }
-                  />
-                </Button>
-              </Stack>
-            ) : null}
-          </AnimatedHeight>
+                />
+              </Button>
+            </Stack>
+          </Collapse>
         </Stack>
       </form>
     </MantineProvider>

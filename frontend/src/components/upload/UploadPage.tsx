@@ -1,4 +1,4 @@
-import { Box, Button, Stack } from "@mantine/core";
+import { Button, Collapse, Stack } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { cleanNotifications } from "@mantine/notifications";
 import { AxiosError } from "axios";
@@ -6,7 +6,6 @@ import pLimit from "p-limit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import AuthGlassLayout from "../auth/AuthGlassLayout";
-import AnimatedHeight from "../core/AnimatedHeight";
 import Meta from "../Meta";
 import Dropzone, { getFilesFromEvent } from "./Dropzone";
 import FileList from "./FileList";
@@ -730,7 +729,8 @@ const Upload = ({
   // Only the button's onClick now - once a selection exists, TransferCard
   // hides the dropzone (and this button along with it) entirely, so
   // there's nothing left here that ever needs to reflect import progress.
-  const nasImport = hasAcceptedTerms &&
+  const nasImport =
+    hasAcceptedTerms &&
     !isReverseShare &&
     user?.isAdmin &&
     config.get("share.enableNasImport")
@@ -738,14 +738,13 @@ const Upload = ({
       : undefined;
 
   // The actual content each flow shows once past the terms gate -
-  // pulled out so both this and TermsGate itself can sit as siblings
-  // inside the *same* AnimatedHeight below, one glass card that morphs
-  // smoothly from the gate's height to this one instead of the two
-  // being separate return branches (and so separate mounts of
+  // pulled out so both this and TermsGate itself can sit as siblings in
+  // the Collapse pair below (see gatedContent), one glass card whose
+  // height morphs from the gate's to this one's instead of the two being
+  // separate return branches (and so separate mounts of
   // SplitTransferLayout/AuthGlassLayout) with nothing animating the cut
   // between them at all. Reported by the user from their own viewing:
-  // it read as a hard jump, not remotely as smooth as AnimatedHeight's
-  // own file-list transitions elsewhere on this same page.
+  // it read as a hard jump.
   const realContent = isReverseShare ? (
     <Stack align="stretch" spacing={0}>
       <Dropzone
@@ -767,35 +766,49 @@ const Upload = ({
         // (TransferCard's own submit, every modal's) once this became a
         // narrow centered card. Moved below the file list, full width,
         // and — same reasoning as TransferCard's own progressive
-        // disclosure — not rendered at all until there's something to
-        // share, rather than shown-but-inert: nothing to decide about,
-        // nothing to click, before a file exists.
+        // disclosure — collapsed until there's something to share, rather
+        // than shown-but-inert: nothing to decide about, nothing to
+        // click, before a file exists.
+        //
+        // A Mantine Collapse, mirroring TransferCard's own progressive
+        // disclosure exactly (see the comment there for the full
+        // reasoning): it animates the content's own height, so the card
+        // around it (height: auto) follows in the same layout pass with
+        // nothing to synchronize — unlike the ResizeObserver-driven
+        // AnimatedHeight this replaces, which animated its *own* box
+        // height to catch up with content that had already re-laid-out,
+        // and re-targeted that transition on every tick whenever anything
+        // inside it changed size. Same trade-off as TransferCard's: a
+        // row added to an already-open list reflows instantly rather
+        // than animating. Children stay mounted while closed (Collapse
+        // needs them there to animate from) and settle at display:none.
+        // pt on the Stack is the gap between the dropzone above and this
+        // region, inside the Collapse so it collapses away with it (the
+        // Stack above sets its own spacing to 0 for exactly this reason).
       }
-      <AnimatedHeight duration={300} gapWhenOpen={16}>
-        {files.length > 0 ? (
-          <Stack align="stretch">
-            <FileList<FileUpload>
-              files={files}
-              setFiles={setFiles}
-              isUploading={isUploading}
-              onCancel={cancelUpload}
-              onRetry={retryFile}
-            />
-            <Button
-              fullWidth
-              loading={isUploading}
-              onClick={submitReverseShare}
-              className={
-                !isUploading && files.length > 0
-                  ? submitButtonClasses.ready
-                  : undefined
-              }
-            >
-              <FormattedMessage id="common.button.share" />
-            </Button>
-          </Stack>
-        ) : null}
-      </AnimatedHeight>
+      <Collapse in={files.length > 0}>
+        <Stack align="stretch" pt={16}>
+          <FileList<FileUpload>
+            files={files}
+            setFiles={setFiles}
+            isUploading={isUploading}
+            onCancel={cancelUpload}
+            onRetry={retryFile}
+          />
+          <Button
+            fullWidth
+            loading={isUploading}
+            onClick={submitReverseShare}
+            className={
+              !isUploading && files.length > 0
+                ? submitButtonClasses.ready
+                : undefined
+            }
+          >
+            <FormattedMessage id="common.button.share" />
+          </Button>
+        </Stack>
+      </Collapse>
     </Stack>
   ) : (
     <TransferCard
@@ -826,33 +839,51 @@ const Upload = ({
     />
   );
 
-  // AnimatedHeight itself must stay mounted across the swap (see its own
-  // doc comment — that's what keeps its ResizeObserver alive through the
-  // transition instead of just snapping to the new content's height).
-  // The inner Box is what actually swaps, keyed on hasAcceptedTerms so
-  // it remounts fresh right when that happens — a brand new element is
-  // what lets a @keyframes animation play its `from` state on mount
-  // (same reasoning as BrandPanel's own Slide component), which is what
-  // gives the incoming content a fade-in rather than an instant pop the
-  // moment AnimatedHeight has made room for it. brandPanelFadeIn is
-  // already global (see LiquidGlassKeyframes, rendered inside both
-  // layouts below) — reused rather than a second copy of the same fade.
+  // Gate and content as a pair of Mantine Collapses, one closing while
+  // the other opens, so the card's height morphs from one to the other
+  // without a hard cut. This replaces an AnimatedHeight wrapping the
+  // whole swap - and that AnimatedHeight was the root cause of the
+  // card's animation desync reported from a desktop recording: as the
+  // *only* child of SplitTransferLayout's `.card`, it governed the box
+  // height of the entire card for the whole session, not just the one
+  // gate-to-content morph it was added for (95cdc2b). Every content
+  // change inside TransferCard (a field appearing on Lien/E-mail, a file
+  // row added) re-laid-out instantly, then this wrapper's ResizeObserver
+  // saw the new size and re-targeted its own height transition - on
+  // every tick, for as long as anything inside was still animating -
+  // so the visible card grew in steps behind its own content, then
+  // eased on alone for another 300ms after the content had stopped.
+  // Removing TransferCard's inner AnimatedHeight (its own history) moved
+  // the seam up one level; it had to go here too. Measured directly:
+  // with this in place, `.card` moved 929 -> 933 -> 947 -> 960 in
+  // discrete jumps while its content grew every frame, then 969 -> 989
+  // on its own after the content was done.
+  //
+  // Collapse animates the content's own height directly, so `.card`
+  // (height: auto, no transition of its own) follows in the same layout
+  // pass - content, box and SplitTransferLayout's flex-centering move as
+  // one, deterministically, with nothing measuring anything. Both
+  // children stay mounted (Collapse needs them there to animate; the
+  // closed one settles at display:none, so nothing in it is focusable or
+  // in flow). SSR-correct for a returning visitor by construction:
+  // useCollapse derives its very first styles from `in`, so a visitor
+  // whose terms cookie already says yes gets the content on the first
+  // painted byte and the gate at display:none - the flash 95cdc2b fixed
+  // can't come back through this. The keyed fade-in Box this used to
+  // wrap is gone with it: Collapse's own animateOpacity (on by default)
+  // already fades the incoming half in as it opens. One shared duration
+  // for the pair rather than Mantine's per-height auto duration, which
+  // would close the short gate (~230ms) well before the tall content
+  // finished opening (~430ms) and dip the card's height mid-swap.
   const gatedContent = (
-    <AnimatedHeight duration={300}>
-      <Box
-        key={hasAcceptedTerms ? "content" : "gate"}
-        sx={{
-          animation: "brandPanelFadeIn 300ms ease",
-          "@media (prefers-reduced-motion: reduce)": { animation: "none" },
-        }}
-      >
-        {hasAcceptedTerms ? (
-          realContent
-        ) : (
-          <TermsGate onAccept={acceptTerms} maxShareSize={maxShareSize} />
-        )}
-      </Box>
-    </AnimatedHeight>
+    <>
+      <Collapse in={!hasAcceptedTerms} transitionDuration={300}>
+        <TermsGate onAccept={acceptTerms} maxShareSize={maxShareSize} />
+      </Collapse>
+      <Collapse in={hasAcceptedTerms} transitionDuration={300}>
+        {realContent}
+      </Collapse>
+    </>
   );
 
   return (
