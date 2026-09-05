@@ -578,13 +578,16 @@ const Header = () => {
       </MantineHeader>
       {
         // Reveal is a clip-path transition on this same Paper, not
-        // transform/opacity, and not on a separate wrapper around it
-        // either — see mobilePanel's own comment in useStyles for the
-        // full reasoning on both counts. inset(0 0 100% 0)-equivalent
-        // rather than unmounting while closed — same reason as everywhere
-        // else in this app that keeps a collapsed region mounted:
-        // something has to still be there for the *next* open to animate
-        // from.
+        // transform/opacity on Paper itself or on a wrapper around it —
+        // see mobilePanel's own comment in useStyles for the full
+        // reasoning on both counts. The scale+fade pop this menu used to
+        // have lives on a plain Box *inside* Paper instead (see its own
+        // comment further down) — safe in a way animating Paper itself
+        // never was, since it's a descendant, not Paper or an ancestor of
+        // it. inset(0 0 100% 0)-equivalent rather than unmounting while
+        // closed — same reason as everywhere else in this app that keeps
+        // a collapsed region mounted: something has to still be there for
+        // the *next* open to animate from.
         //
         // Portaled to document.body (see `mounted` above) rather than
         // rendered inline here — puts DOM/paint order and stacking order
@@ -608,20 +611,46 @@ const Header = () => {
             }}
             aria-hidden={!opened}
           >
-            <Stack spacing={0}>
-              {mobileMenuView !== "root" && (
-                <UnstyledButton
-                  className={classes.mobileMenuButton}
-                  onClick={() => setMobileMenuView("root")}
-                  aria-label={t("common.button.back")}
-                >
-                  <span className={classes.mobileMenuButtonContent}>
-                    <TbChevronLeft size={18} />
-                  </span>
-                </UnstyledButton>
-              )}
-              {currentMobileLinks.map((link) => renderMobileEntry(link))}
-            </Stack>
+            {
+              // The scale+fade "pop" this menu had before clip-path
+              // replaced its reveal — moved onto this plain inner Box
+              // (a child of Paper, not Paper itself and not an ancestor
+              // of it) rather than restored on Paper directly, where it
+              // used to live. backdrop-filter only cares about what's
+              // already composited *behind* the element it's on; a
+              // transform/opacity animating on a descendant paints on
+              // top of that already-resolved result and can't disturb
+              // it, unlike the same animation on Paper itself or an
+              // ancestor of it (the exact shape of the black-flash bug
+              // clip-path was introduced to avoid, and of the nested-
+              // stacking-context nesting bug the clip-path wrapper
+              // itself turned out to reproduce). Same values as the
+              // original pop: a subtle 6% scale-in from the same corner
+              // the menu is anchored to, not a generic center pop.
+            }
+            <Box
+              style={{
+                transform: opened ? "scale(1)" : "scale(0.94)",
+                opacity: opened ? 1 : 0,
+                transformOrigin: "top right",
+                transition: `transform ${mobileMenuDuration}ms ease-out, opacity ${mobileMenuDuration}ms ease-out`,
+              }}
+            >
+              <Stack spacing={0}>
+                {mobileMenuView !== "root" && (
+                  <UnstyledButton
+                    className={classes.mobileMenuButton}
+                    onClick={() => setMobileMenuView("root")}
+                    aria-label={t("common.button.back")}
+                  >
+                    <span className={classes.mobileMenuButtonContent}>
+                      <TbChevronLeft size={18} />
+                    </span>
+                  </UnstyledButton>
+                )}
+                {currentMobileLinks.map((link) => renderMobileEntry(link))}
+              </Stack>
+            </Box>
           </Paper>,
           document.body,
         )}
