@@ -3,7 +3,6 @@ import {
   ActionIcon,
   Button,
   Checkbox,
-  Collapse,
   createStyles,
   Group,
   MantineProvider,
@@ -639,92 +638,91 @@ const TransferCard = ({
                 />
 
                 {
-                  // Who actually receives the transfer, on the other hand, only
-                  // applies once the sender has committed to addressing it to
-                  // someone, i.e. "E-mail" mode — collapsed (rather than
-                  // unmounted) so the height animation has something to animate.
-                  // Also gated on enableEmailRecepients so switching to "E-mail"
-                  // mode doesn't expand an empty box when that feature is off.
-                  // Same display:block-instead-of-none trick as the old
-                  // sender-email field used to need: a Collapse settles closed at
-                  // display:none, which drops the item out of the Stack's flex
-                  // gap calculation and snaps the layout by one gap-width right
-                  // after the height animation finishes.
+                  // Who actually receives the transfer, on the other hand,
+                  // only applies once the sender has committed to
+                  // addressing it to someone, i.e. "E-mail" mode — also
+                  // gated on enableEmailRecepients so switching to
+                  // "E-mail" mode doesn't expand an empty box when that
+                  // feature is off. A plain conditional, unmounting this
+                  // field rather than keeping it collapsed-in-place: it
+                  // used to be a nested Collapse animating its own height
+                  // independently while the outer AnimatedHeight's
+                  // ResizeObserver watched the very subtree that inner
+                  // animation was continuously resizing — retargeting the
+                  // outer transition mid-flight on every tick of the inner
+                  // one, which is what a real-device recording caught as
+                  // both a lagging box (the outer transition chasing a
+                  // moving target for far longer than its own specified
+                  // duration) and visibly stepped motion, not smoothly
+                  // interpolated. Recipients/search state both already
+                  // live in `form`/`emailSearch` above, not inside this
+                  // field, so unmounting it on every mode switch loses
+                  // nothing. All state this field needs is controlled
+                  // from outside it either way, so there's nothing to
+                  // preserve by keeping it mounted-but-invisible.
                 }
-                <Collapse
-                  in={mode === "email" && enableEmailRecepients}
-                  sx={{
-                    "&[aria-hidden='true']": { display: "block !important" },
-                  }}
-                >
-                  <Stack align="stretch">
-                    {enableEmailRecepients && (
-                      <MultiSelect
-                        withAsterisk={mode === "email"}
-                        label={t("upload.transfer.recipient.email.label")}
-                        data={form.values.recipients}
-                        placeholder={t(
-                          "upload.transfer.recipient.email.placeholder",
-                        )}
-                        searchable
-                        creatable
-                        variant="filled"
-                        id="recipient-emails"
-                        inputMode="email"
-                        tabIndex={mode === "email" ? undefined : -1}
-                        searchValue={emailSearch}
-                        onSearchChange={setEmailSearch}
-                        getCreateLabel={(query) => `+ ${query}`}
-                        onCreate={(query) => {
-                          if (!query.match(/^\S+@\S+\.\S+$/)) {
-                            form.setFieldError(
-                              "recipients",
-                              t("upload.modal.accordion.email.invalid-email"),
-                            );
-                            return undefined;
-                          }
-                          form.setFieldError("recipients", null);
-                          const newRecipients = form.values.recipients.includes(
-                            query,
-                          )
-                            ? form.values.recipients
-                            : [...form.values.recipients, query];
-                          form.setFieldValue("recipients", newRecipients);
-                          return query;
-                        }}
-                        {...form.getInputProps("recipients")}
-                        onChange={(value: string[]) => {
-                          form.setFieldValue("recipients", value);
-                        }}
-                        onKeyDown={(
-                          e: React.KeyboardEvent<HTMLInputElement>,
-                        ) => {
-                          if (
-                            e.key === "Enter" ||
-                            e.key === "," ||
-                            e.key === ";"
-                          ) {
-                            e.preventDefault();
-                            const inputValue = emailSearch.trim();
-                            if (
-                              inputValue.match(/^\S+@\S+\.\S+$/) &&
-                              !form.values.recipients.includes(inputValue)
-                            ) {
-                              form.setFieldValue("recipients", [
-                                ...form.values.recipients,
-                                inputValue,
-                              ]);
-                            }
-                            setEmailSearch("");
-                          } else if (e.key === " ") {
-                            e.preventDefault();
-                            setEmailSearch("");
-                          }
-                        }}
-                      />
+                {mode === "email" && enableEmailRecepients && (
+                  <MultiSelect
+                    withAsterisk
+                    label={t("upload.transfer.recipient.email.label")}
+                    data={form.values.recipients}
+                    placeholder={t(
+                      "upload.transfer.recipient.email.placeholder",
                     )}
-                  </Stack>
-                </Collapse>
+                    searchable
+                    creatable
+                    variant="filled"
+                    id="recipient-emails"
+                    inputMode="email"
+                    searchValue={emailSearch}
+                    onSearchChange={setEmailSearch}
+                    getCreateLabel={(query) => `+ ${query}`}
+                    onCreate={(query) => {
+                      if (!query.match(/^\S+@\S+\.\S+$/)) {
+                        form.setFieldError(
+                          "recipients",
+                          t("upload.modal.accordion.email.invalid-email"),
+                        );
+                        return undefined;
+                      }
+                      form.setFieldError("recipients", null);
+                      const newRecipients = form.values.recipients.includes(
+                        query,
+                      )
+                        ? form.values.recipients
+                        : [...form.values.recipients, query];
+                      form.setFieldValue("recipients", newRecipients);
+                      return query;
+                    }}
+                    {...form.getInputProps("recipients")}
+                    onChange={(value: string[]) => {
+                      form.setFieldValue("recipients", value);
+                    }}
+                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                      if (
+                        e.key === "Enter" ||
+                        e.key === "," ||
+                        e.key === ";"
+                      ) {
+                        e.preventDefault();
+                        const inputValue = emailSearch.trim();
+                        if (
+                          inputValue.match(/^\S+@\S+\.\S+$/) &&
+                          !form.values.recipients.includes(inputValue)
+                        ) {
+                          form.setFieldValue("recipients", [
+                            ...form.values.recipients,
+                            inputValue,
+                          ]);
+                        }
+                        setEmailSearch("");
+                      } else if (e.key === " ") {
+                        e.preventDefault();
+                        setEmailSearch("");
+                      }
+                    }}
+                  />
+                )}
 
                 {
                   // Always shown regardless of Lien/E-mail mode — it's the
