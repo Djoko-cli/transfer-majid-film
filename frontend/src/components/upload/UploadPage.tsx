@@ -134,17 +134,26 @@ const Upload = ({
   const MAX_CHUNK_ATTEMPTS = 3;
   const CHUNK_RETRY_DELAY_MS = 2000;
 
-  const setFileProgress = (fileIndex: number, progress: number) => {
+  // Addressed by the file itself, never by its position. A visitor can
+  // remove a queued or failed file while other uploads are still running
+  // (FileList keeps the delete action on those rows on purpose), which
+  // shifts every later index: progress then landed on the neighbouring
+  // row, and the file that had moved up read its predecessor's 100% - so
+  // the share completed while that file was still in flight, or its own
+  // updates addressed a slot past the end of the array and its row sat
+  // frozen forever with the submit button spinning. Identity survives a
+  // removal; a position does not.
+  const setFileProgress = (file: FileUpload, progress: number) => {
     // Mutates in place rather than spreading — `FileUpload` extends the
     // browser's native `File`, whose real data (name, size, slice()...)
     // lives in internal slots, not enumerable own properties. `{...file}`
     // silently produces a plain object missing all of it.
-    setFiles((files) =>
-      files.map((file, i) => {
-        if (i === fileIndex) file.uploadingProgress = progress;
-        return file;
-      }),
-    );
+    file.uploadingProgress = progress;
+    // A new array so this renders and the completion effect re-runs. A
+    // file the visitor removed mid-upload is no longer in the list: its
+    // late progress updates simply have nothing to show, and skipping the
+    // state write keeps them from re-rendering the card for nothing.
+    setFiles((files) => (files.includes(file) ? [...files] : files));
   };
 
   // Returns whether the file made it all the way through — read by
@@ -153,13 +162,10 @@ const Upload = ({
   // by this function's other two callers (uploadFiles's own Promise.all,
   // retryFile), which learn the same thing by watching `files` state
   // instead.
-  const uploadOneFile = async (
-    file: FileUpload,
-    fileIndex: number,
-  ): Promise<boolean> => {
+  const uploadOneFile = async (file: FileUpload): Promise<boolean> => {
     let fileId;
 
-    setFileProgress(fileIndex, 1);
+    setFileProgress(file, 1);
 
     let chunks = Math.ceil(file.size / chunkSize.current);
 
@@ -195,7 +201,7 @@ const Upload = ({
                 const totalUploaded =
                   uploadedBytesBeforeThisChunk + uploadedBytesInThisChunk;
                 const overallPercent = (totalUploaded / file.size) * 100;
-                setFileProgress(fileIndex, Math.min(overallPercent, 99.9));
+                setFileProgress(file, Math.min(overallPercent, 99.9));
               }
             },
           )
@@ -203,7 +209,7 @@ const Upload = ({
             fileId = response.id;
           });
 
-        setFileProgress(fileIndex, ((chunkIndex + 1) / chunks) * 100);
+        setFileProgress(file, ((chunkIndex + 1) / chunks) * 100);
         attempts = 0;
       } catch (e) {
         if (cancelledRef.current) return false;
@@ -218,7 +224,7 @@ const Upload = ({
         }
 
         attempts++;
-        setFileProgress(fileIndex, -1);
+        setFileProgress(file, -1);
         if (attempts >= MAX_CHUNK_ATTEMPTS) {
           // Give up on this file — it stays at -1 (an honest, terminal
           // "failed" state) until the visitor retries it manually via
@@ -258,9 +264,9 @@ const Upload = ({
     }
 
     Promise.all(
-      files.map((file, fileIndex) =>
+      files.map((file) =>
         // Limit the number of concurrent uploads to 3
-        promiseLimit(() => uploadOneFile(file, fileIndex)),
+        promiseLimit(() => uploadOneFile(file)),
       ),
     );
   };
@@ -270,7 +276,7 @@ const Upload = ({
   // already returned and nothing else is still touching it.
   const retryFile = (fileIndex: number) => {
     const file = files[fileIndex] as FileUpload;
-    promiseLimit(() => uploadOneFile(file, fileIndex));
+    promiseLimit(() => uploadOneFile(file));
   };
 
   const cancelUpload = async () => {
@@ -428,10 +434,10 @@ const Upload = ({
     // dedup the way NAS import's own commit does.
     const runDroppedUploads = () =>
       Promise.all(
-        droppedFiles.map((file, fileIndex) =>
+        droppedFiles.map((file) =>
           file.uploadingProgress >= 100
             ? Promise.resolve(true)
-            : promiseLimit(() => uploadOneFile(file, fileIndex)),
+            : promiseLimit(() => uploadOneFile(file)),
         ),
       );
 

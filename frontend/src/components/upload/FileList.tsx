@@ -138,15 +138,29 @@ const useStyles = createStyles((theme) => {
     // its `alignItems: center` inside a 0px track and reveal the content
     // from the middle outward instead.)
     //
+    // data-entering rather than an animation on the base class: a row
+    // mounting in the same commit that OPENS the parent Collapse must not
+    // animate. Mantine's Collapse un-hides its content, then reads
+    // scrollHeight one frame later to know what height to transition to -
+    // and one frame in, an animating row is still ~1px tall. Measured: the
+    // Collapse aimed at 658px when the settled content was 697px (775px
+    // for a three-file drop, i.e. short by exactly one row each), ran its
+    // 200ms transition to that wrong height with the submit button clipped
+    // off the bottom, then re-measured at transitionend and ran a SECOND
+    // transition for the missing rows. A visible stop-and-restart on the
+    // most common action in the app. It is also redundant motion: when the
+    // section opens, the section's own reveal is the animation - the row's
+    // belongs to rows arriving in a list that is already open.
+    //
     // Removal is the same track run backwards (fileRowOut, 1fr to 0fr) on
-    // the same wrapper, switched on by data-exiting while FileList keeps
-    // the file in the list; the animation's own end event is what finally
-    // removes it (FileListRow -> FileList.finishExit) - no timer to keep
-    // equal to the CSS duration. `forwards` holds the closed 0fr state
-    // until React unmounts the row: animationend fires before this frame
-    // paints, but React commits the removal in a later task, so without it
-    // the row would snap back to full height for a frame. pointer-events:
-    // none because a row on its way out has no actions left to offer.
+    // the same wrapper, switched on by data-exiting. It wins over
+    // data-entering by declaration order, both selectors having equal
+    // specificity, which is what lets a row removed mid-entry turn around.
+    // `forwards` holds the closed 0fr state until React unmounts the row:
+    // animationend fires before this frame paints, but React commits the
+    // removal in a later task, so without it the row would snap back to
+    // full height for a frame. pointer-events: none because a row on its
+    // way out has no actions left to offer.
     //
     // Not a transition to 0fr, though that would let a row removed while
     // still entering turn back from where it was: measured in Chromium, a
@@ -175,10 +189,12 @@ const useStyles = createStyles((theme) => {
       display: "grid",
       gridTemplateRows: "1fr",
       overflow: "hidden",
-      animation: `${ROW_ENTER_KEYFRAMES} ${ROW_ANIM_MS}ms ease`,
       "& > *": {
         minHeight: 0,
         alignSelf: "start",
+      },
+      "&[data-entering]": {
+        animation: `${ROW_ENTER_KEYFRAMES} ${ROW_ANIM_MS}ms ease`,
       },
       "&[data-exiting]": {
         animation: `${ROW_EXIT_KEYFRAMES} ${ROW_ANIM_MS}ms ease forwards`,
@@ -186,9 +202,11 @@ const useStyles = createStyles((theme) => {
       },
       // Both directions dropped. An exit that never animates would never
       // end either - FileListRow checks for the animation it is waiting on
-      // and removes the row at once when there is none (its useEffect).
+      // and finishes at once when there is none (its useEffect).
       "@media (prefers-reduced-motion: reduce)": {
-        animation: "none",
+        "&[data-entering]": {
+          animation: "none",
+        },
         "&[data-exiting]": {
           animation: "none",
         },
@@ -212,6 +230,7 @@ const FileListRow = ({
   onEdit,
   onRetry,
   animate = false,
+  animateEnter = false,
   exiting = false,
   onExited,
 }: {
@@ -221,6 +240,7 @@ const FileListRow = ({
   onEdit?: () => void;
   onRetry?: () => void;
   animate?: boolean;
+  animateEnter?: boolean;
   exiting?: boolean;
   onExited?: () => void;
 }) => {
@@ -243,6 +263,12 @@ const FileListRow = ({
     const editable = isTextFile && uploadable && file.uploadingProgress === 0;
 
     const t = useTranslate();
+
+    // Read once, at mount: whether this row plays the enter animation is a
+    // fact about the moment it appeared (see useStyles.animated), and a
+    // later parent render must not put the attribute back on a row that is
+    // long settled - or worse, on one currently animating out.
+    const [entering] = useState(animateEnter);
 
     const wrapperRef = useRef<HTMLDivElement>(null);
     // Latest callback without making it an effect dependency: the effect
@@ -272,6 +298,7 @@ const FileListRow = ({
         ref={wrapperRef}
         role="presentation"
         className={cx(animate && classes.animated)}
+        data-entering={entering || undefined}
         data-exiting={exiting || undefined}
         onAnimationEnd={(e: ReactAnimationEvent<HTMLDivElement>) => {
           // Only this wrapper's own exit: the enter animation ends on the
@@ -387,18 +414,31 @@ const FileList = <T extends FileListItem = FileListItem>({
   const t = useTranslate();
   const { classes, cx } = useStyles();
 
-  // Files whose row is currently closing. They stay in `files` (and so in
-  // the DOM, where the row can animate) until the exit animation's own end
-  // event calls finishExit - the CSS decides when the row is gone, not a
-  // timer that would have to be kept equal to it. Held by identity, not by
-  // key: a stale entry (a file the parent replaced or cleared mid-exit) can
-  // then never be mistaken for a later file that happens to share its name.
-  const [exiting, setExiting] = useState<T[]>([]);
-  // Always the list as last rendered. finishExit reads this rather than the
-  // closure's `files` so that two rows finishing in the same React batch
+  // Rows whose file has ALREADY left `files` and that stay mounted only
+  // long enough to close. The animation never holds the data: a deleted
+  // file is gone from the parent's array in the same tick the visitor
+  // clicks, so nothing downstream can act on it - the upload flow reads
+  // `files` at submit time, and a Share click landing during those 200ms
+  // used to create a share sized for, and containing, a file the visitor
+  // had just removed. Each entry remembers the slot it held so the row
+  // closes where it stood rather than jumping to the end.
+  //
+  // Identity, not key: a stale entry can then never be mistaken for a
+  // later file that happens to share its name.
+  const [exiting, setExiting] = useState<{ file: T; index: number }[]>([]);
+  // Always the list as last rendered. removeNow reads this rather than the
+  // closure's `files` so that two rows removed in the same React batch
   // remove two files, instead of the second call resurrecting the first.
   const latestFiles = useRef(files);
   latestFiles.current = files;
+
+  // Whether the list already had rows in the last committed render. A row
+  // mounting when it did not is a row appearing as the parent's Collapse
+  // opens, and must not animate - see useStyles.animated.
+  const hadRows = useRef(false);
+  useEffect(() => {
+    hadRows.current = files.length > 0;
+  }, [files.length]);
 
   const removeNow = (file: T) => {
     const next = latestFiles.current.filter((f) => f !== file);
@@ -406,12 +446,8 @@ const FileList = <T extends FileListItem = FileListItem>({
     setFiles(next);
   };
 
-  const finishExit = (file: T) => {
-    removeNow(file);
-    setExiting((prev) =>
-      prev.filter((f) => f !== file && latestFiles.current.includes(f)),
-    );
-  };
+  const finishExit = (file: T) =>
+    setExiting((prev) => prev.filter((e) => e.file !== file));
 
   const remove = (index: number) => {
     const file = files[index];
@@ -425,19 +461,22 @@ const FileList = <T extends FileListItem = FileListItem>({
       return;
     }
 
-    if (exiting.includes(file)) return;
+    removeNow(file);
 
-    // The last row standing goes at once, not through its own exit: with
-    // no file left the parent's Collapse closes the whole disclosure,
-    // header row included, and that single motion should own the removal
-    // rather than follow a 200ms row-only prelude.
-    const survivors = files.filter((f) => !exiting.includes(f)).length;
-    if (!animateRows || survivors <= 1) {
-      removeNow(file);
-      return;
+    // The last row standing is not animated: with no file left the
+    // parent's Collapse closes the whole disclosure, header row included,
+    // and that single motion should own the removal rather than follow a
+    // 200ms row-only prelude.
+    if (animateRows && files.length > 1) {
+      // Deduplicated inside the updater, not against the `exiting` of this
+      // render: two clicks landing in the same tick both see the row as
+      // live (React has not re-rendered between them, and a programmatic
+      // click ignores the exiting row's pointer-events: none), so an
+      // outside check lets the same file in twice - two rows, one key.
+      setExiting((prev) =>
+        prev.some((e) => e.file === file) ? prev : [...prev, { file, index }],
+      );
     }
-
-    setExiting((prev) => [...prev, file]);
   };
 
   const restore = (index: number) => {
@@ -471,16 +510,33 @@ const FileList = <T extends FileListItem = FileListItem>({
   const rowKey = (file: T) =>
     "id" in file ? file.id : getFileNameOrPath(file);
 
-  const rows = files.map((file, i) => (
+  // The rows actually rendered: the real list, plus the closing rows put
+  // back in the slots they held. Indices are resolved at click time
+  // (indexOf) rather than captured here, because a closing row shifts what
+  // a position means - and the callbacks below all address `files`, which
+  // no longer contains it.
+  const display: { file: T; live: boolean }[] = files.map((file) => ({
+    file,
+    live: true,
+  }));
+  for (const e of [...exiting].sort((a, b) => a.index - b.index)) {
+    display.splice(Math.min(e.index, display.length), 0, {
+      file: e.file,
+      live: false,
+    });
+  }
+
+  const rows = display.map(({ file, live }) => (
     <FileListRow
       key={rowKey(file)}
       file={file}
-      onRemove={() => remove(i)}
-      onRestore={() => restore(i)}
-      onEdit={() => edit(i)}
-      onRetry={onRetry ? () => onRetry(i) : undefined}
+      onRemove={live ? () => remove(files.indexOf(file)) : undefined}
+      onRestore={live ? () => restore(files.indexOf(file)) : undefined}
+      onEdit={live ? () => edit(files.indexOf(file)) : undefined}
+      onRetry={live && onRetry ? () => onRetry(files.indexOf(file)) : undefined}
       animate={animateRows}
-      exiting={exiting.includes(file)}
+      animateEnter={animateRows && hadRows.current}
+      exiting={!live}
       onExited={() => finishExit(file)}
     />
   ));
