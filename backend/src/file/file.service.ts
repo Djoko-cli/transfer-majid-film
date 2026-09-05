@@ -209,10 +209,12 @@ export class FileService {
     return storageService.quarantineAllFiles(shareId);
   }
 
-  async getZip(shareId: string): Promise<Readable> {
+  async getZip(
+    shareId: string,
+  ): Promise<{ stream: Readable; name: string | null }> {
     const share = await this.prisma.share.findFirst({
       where: { id: shareId },
-      select: { storageProvider: true, hasNasImportedFiles: true },
+      select: { name: true, storageProvider: true, hasNasImportedFiles: true },
     });
 
     // A NAS-import share is always local (NasImportService.ensureEnabled
@@ -221,10 +223,16 @@ export class FileService {
     // for why generating one on completion would defeat the whole
     // feature. Built live instead, straight into this response.
     if (share?.hasNasImportedFiles)
-      return await this.localFileService.streamZip(shareId);
+      return {
+        stream: await this.localFileService.streamZip(shareId),
+        name: share.name,
+      };
 
     const storageService = this.getStorageService(share?.storageProvider);
-    return await storageService.getZip(shareId);
+    return {
+      stream: await storageService.getZip(shareId),
+      name: share?.name ?? null,
+    };
   }
 
   // recipientId present: a named Email-mode recipient downloaded — notify
@@ -237,6 +245,7 @@ export class FileService {
     fileName: string,
     recipientId?: string,
     ipAddress?: string,
+    isWholeShareZip = false,
   ) {
     // Recorded unconditionally, ahead of the notification toggle below —
     // JobsService.notifyExpiringRecipients() needs to know a named
@@ -262,7 +271,13 @@ export class FileService {
     // schema comment) fires regardless of whether email notifications are
     // even on, and regardless of email/count history the block above
     // already tracks: this records every download, not just the first.
-    await this.recordShareDownload(shareId, fileName, recipientId, ipAddress);
+    await this.recordShareDownload(
+      shareId,
+      fileName,
+      recipientId,
+      ipAddress,
+      isWholeShareZip,
+    );
 
     if (!this.configService.get("email.enableShareDownloadNotifications"))
       return;
@@ -282,6 +297,7 @@ export class FileService {
     fileName: string,
     recipientId?: string,
     ipAddress?: string,
+    isWholeShareZip = false,
   ) {
     try {
       const recipient = recipientId
@@ -291,12 +307,12 @@ export class FileService {
           })
         : null;
 
-      // FileController.getZip() always calls notifyDownload with this
-      // synthesized name (it's what Content-Disposition sends too) —
-      // recognized here and stored as null so the downloads page can
-      // render "whole transfer" instead of a name nobody actually typed.
-      const isWholeShareZip = fileName === `${shareId}.zip`;
-
+      // FileController.getZip() always passes isWholeShareZip: true —
+      // stored as a null fileName here so the downloads page can render
+      // "whole transfer" instead of whatever name the zip happened to be
+      // given (the share's own name, falling back to its id — see
+      // getZip's own comment — neither of which is "a name someone
+      // actually typed for this specific download").
       await this.prisma.shareDownload.create({
         data: {
           shareId,

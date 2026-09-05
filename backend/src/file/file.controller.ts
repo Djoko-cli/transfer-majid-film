@@ -124,21 +124,26 @@ export class FileController {
     @Param("shareId") shareId: string,
     @Query("recipient") recipientId?: string,
   ) {
-    const zipStream = await this.fileService.getZip(shareId);
+    const { stream, name } = await this.fileService.getZip(shareId);
+    // Falls back to the share's id only when it has no name to give the
+    // download instead — every share created through the normal upload
+    // flow gets one, so in practice this is just a safety net.
+    const zipName = `${name?.trim() || shareId}.zip`;
 
     res.set({
       "Content-Type": "application/zip",
-      "Content-Disposition": contentDisposition(`${shareId}.zip`),
+      "Content-Disposition": contentDisposition(zipName),
     });
 
     void this.fileService.notifyDownload(
       shareId,
-      `${shareId}.zip`,
+      zipName,
       getValidRecipientId(recipientId),
       request.ip,
+      true,
     );
 
-    return new StreamableFile(zipStream);
+    return new StreamableFile(stream);
   }
 
   @Get(":fileId")
