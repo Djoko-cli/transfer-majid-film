@@ -1,6 +1,7 @@
 import {
   Accordion,
   ActionIcon,
+  Box,
   Button,
   Checkbox,
   createStyles,
@@ -321,6 +322,78 @@ const TransferCard = ({
   const [mode, setMode] = useState<Mode>("link");
   const [emailSearch, setEmailSearch] = useState("");
 
+  // The recipient field's own reveal (see its render further down) rides
+  // a clip-path transition on the field itself rather than an inner
+  // Collapse animating its own height, which used to fight the outer
+  // AnimatedHeight measuring this whole region — see that render's own
+  // comment for the full history of why. clip-path doesn't affect layout
+  // size at all, so it can't retrigger AnimatedHeight's ResizeObserver
+  // the way a height-changing inner animation did; this is the same
+  // technique (and the same reasoning) as the mobile nav menu's own
+  // reveal, ported here for the same kind of "backdrop-filter or
+  // ResizeObserver-driven ancestor" conflict.
+  //
+  // recipientFieldWanted (derived, instant) is the source of truth.
+  // recipientFieldMounted (state) drives whether the field is in the DOM
+  // at all — i.e. whether it contributes to what AnimatedHeight measures.
+  // recipientFieldRevealed (state) drives the clip-path target — kept
+  // separate from "mounted" specifically so mounting and revealing can
+  // land in two different commits on the way in: a brand-new DOM node
+  // born already at its final clip-path has nothing to transition *from*
+  // (CSS transitions animate a change to an already-rendered value, not
+  // an element's very first paint), so opening this any other way just
+  // reintroduces the same instant pop this whole reveal exists to avoid.
+  // Mount this render, flip revealed true one tick later once the hidden
+  // state has actually painted - same shape as AnimatedHeight's own
+  // skipTransition dance, just inverted (that one wants the first paint
+  // instant and later changes animated; this wants the first paint
+  // hidden so *it* can animate too).
+  //
+  // Closing reverses which half is instant: revealed flips false right
+  // away (an ordinary style change on an element that's been sitting in
+  // the DOM this whole time, which transitions correctly with no special
+  // handling), while mounted stays true for the same duration that
+  // transition takes. Unmounting immediately instead would drop the
+  // field out of AnimatedHeight's measurement before its own clip-path
+  // has had any chance to visually close - the outer box would shrink
+  // first, with nothing left inside it still animating away. Two clean,
+  // sequential phases (field closes, then the box shrinks to match)
+  // rather than one racing the other.
+  const RECIPIENT_FIELD_TRANSITION_MS = 300;
+  const recipientFieldWanted = mode === "email" && enableEmailRecepients;
+  const [recipientFieldMounted, setRecipientFieldMounted] =
+    useState(recipientFieldWanted);
+  const [recipientFieldRevealed, setRecipientFieldRevealed] =
+    useState(recipientFieldWanted);
+  const recipientFieldTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  useEffect(() => {
+    if (recipientFieldTimeoutRef.current) {
+      clearTimeout(recipientFieldTimeoutRef.current);
+      recipientFieldTimeoutRef.current = null;
+    }
+    if (recipientFieldWanted) {
+      setRecipientFieldMounted(true);
+      recipientFieldTimeoutRef.current = setTimeout(() => {
+        setRecipientFieldRevealed(true);
+        recipientFieldTimeoutRef.current = null;
+      }, 0);
+    } else {
+      setRecipientFieldRevealed(false);
+      recipientFieldTimeoutRef.current = setTimeout(() => {
+        setRecipientFieldMounted(false);
+        recipientFieldTimeoutRef.current = null;
+      }, RECIPIENT_FIELD_TRANSITION_MS);
+    }
+    return () => {
+      if (recipientFieldTimeoutRef.current) {
+        clearTimeout(recipientFieldTimeoutRef.current);
+        recipientFieldTimeoutRef.current = null;
+      }
+    };
+  }, [recipientFieldWanted]);
+
   const validationSchema = yup.object().shape({
     name: yup
       .string()
@@ -578,7 +651,7 @@ const TransferCard = ({
                 {nasImportPreview && (
                   <NasImportSummary
                     preview={nasImportPreview}
-                    progress={isUploading ? nasImportProgress ?? null : null}
+                    progress={isUploading ? (nasImportProgress ?? null) : null}
                     onClear={onClearNasImport}
                   />
                 )}
@@ -643,85 +716,109 @@ const TransferCard = ({
                   // addressing it to someone, i.e. "E-mail" mode — also
                   // gated on enableEmailRecepients so switching to
                   // "E-mail" mode doesn't expand an empty box when that
-                  // feature is off. A plain conditional, unmounting this
-                  // field rather than keeping it collapsed-in-place: it
-                  // used to be a nested Collapse animating its own height
+                  // feature is off.
+                  //
+                  // Used to be a nested Collapse animating its own height
                   // independently while the outer AnimatedHeight's
                   // ResizeObserver watched the very subtree that inner
                   // animation was continuously resizing — retargeting the
                   // outer transition mid-flight on every tick of the inner
                   // one, which is what a real-device recording caught as
-                  // both a lagging box (the outer transition chasing a
-                  // moving target for far longer than its own specified
-                  // duration) and visibly stepped motion, not smoothly
-                  // interpolated. Recipients/search state both already
-                  // live in `form`/`emailSearch` above, not inside this
-                  // field, so unmounting it on every mode switch loses
-                  // nothing. All state this field needs is controlled
-                  // from outside it either way, so there's nothing to
-                  // preserve by keeping it mounted-but-invisible.
+                  // both a lagging box and visibly stepped motion.
+                  // Unmounting it outright (a plain conditional, no reveal
+                  // of its own) fixed that, but traded it for a different
+                  // real-device report: the field just popping into
+                  // existence while only the box around it animated, with
+                  // a follow-up recording catching this card's own
+                  // position visibly settling for a few hundred ms
+                  // afterward too — the *outer* box hadn't actually
+                  // finished growing/shrinking by the time this region's
+                  // own instant content swap made it look done.
+                  //
+                  // recipientFieldMounted/recipientFieldRevealed (see their
+                  // own comment above, by the `mode`/`emailSearch` state)
+                  // split "is it in the DOM" from "how visible is it" so
+                  // this field can have its own reveal — clip-path, same
+                  // technique and reasoning as the mobile nav menu's own —
+                  // without that reveal being a second height animation
+                  // for AnimatedHeight's ResizeObserver to fight.
+                  // Recipients/search state both already live in
+                  // `form`/`emailSearch` above, not inside this field, so
+                  // there's nothing to lose by unmounting it at all -
+                  // recipientFieldMounted just delays that unmount long
+                  // enough for the field's own close to actually finish
+                  // first.
                 }
-                {mode === "email" && enableEmailRecepients && (
-                  <MultiSelect
-                    withAsterisk
-                    label={t("upload.transfer.recipient.email.label")}
-                    data={form.values.recipients}
-                    placeholder={t(
-                      "upload.transfer.recipient.email.placeholder",
-                    )}
-                    searchable
-                    creatable
-                    variant="filled"
-                    id="recipient-emails"
-                    inputMode="email"
-                    searchValue={emailSearch}
-                    onSearchChange={setEmailSearch}
-                    getCreateLabel={(query) => `+ ${query}`}
-                    onCreate={(query) => {
-                      if (!query.match(/^\S+@\S+\.\S+$/)) {
-                        form.setFieldError(
-                          "recipients",
-                          t("upload.modal.accordion.email.invalid-email"),
-                        );
-                        return undefined;
-                      }
-                      form.setFieldError("recipients", null);
-                      const newRecipients = form.values.recipients.includes(
-                        query,
-                      )
-                        ? form.values.recipients
-                        : [...form.values.recipients, query];
-                      form.setFieldValue("recipients", newRecipients);
-                      return query;
+                {recipientFieldMounted && (
+                  <Box
+                    style={{
+                      clipPath: recipientFieldRevealed
+                        ? "inset(0%)"
+                        : "inset(0% 0% 100% 0%)",
+                      transition: `clip-path ${RECIPIENT_FIELD_TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`,
                     }}
-                    {...form.getInputProps("recipients")}
-                    onChange={(value: string[]) => {
-                      form.setFieldValue("recipients", value);
-                    }}
-                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                      if (
-                        e.key === "Enter" ||
-                        e.key === "," ||
-                        e.key === ";"
-                      ) {
-                        e.preventDefault();
-                        const inputValue = emailSearch.trim();
-                        if (
-                          inputValue.match(/^\S+@\S+\.\S+$/) &&
-                          !form.values.recipients.includes(inputValue)
-                        ) {
-                          form.setFieldValue("recipients", [
-                            ...form.values.recipients,
-                            inputValue,
-                          ]);
+                  >
+                    <MultiSelect
+                      withAsterisk
+                      label={t("upload.transfer.recipient.email.label")}
+                      data={form.values.recipients}
+                      placeholder={t(
+                        "upload.transfer.recipient.email.placeholder",
+                      )}
+                      searchable
+                      creatable
+                      variant="filled"
+                      id="recipient-emails"
+                      inputMode="email"
+                      searchValue={emailSearch}
+                      onSearchChange={setEmailSearch}
+                      getCreateLabel={(query) => `+ ${query}`}
+                      onCreate={(query) => {
+                        if (!query.match(/^\S+@\S+\.\S+$/)) {
+                          form.setFieldError(
+                            "recipients",
+                            t("upload.modal.accordion.email.invalid-email"),
+                          );
+                          return undefined;
                         }
-                        setEmailSearch("");
-                      } else if (e.key === " ") {
-                        e.preventDefault();
-                        setEmailSearch("");
-                      }
-                    }}
-                  />
+                        form.setFieldError("recipients", null);
+                        const newRecipients = form.values.recipients.includes(
+                          query,
+                        )
+                          ? form.values.recipients
+                          : [...form.values.recipients, query];
+                        form.setFieldValue("recipients", newRecipients);
+                        return query;
+                      }}
+                      {...form.getInputProps("recipients")}
+                      onChange={(value: string[]) => {
+                        form.setFieldValue("recipients", value);
+                      }}
+                      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (
+                          e.key === "Enter" ||
+                          e.key === "," ||
+                          e.key === ";"
+                        ) {
+                          e.preventDefault();
+                          const inputValue = emailSearch.trim();
+                          if (
+                            inputValue.match(/^\S+@\S+\.\S+$/) &&
+                            !form.values.recipients.includes(inputValue)
+                          ) {
+                            form.setFieldValue("recipients", [
+                              ...form.values.recipients,
+                              inputValue,
+                            ]);
+                          }
+                          setEmailSearch("");
+                        } else if (e.key === " ") {
+                          e.preventDefault();
+                          setEmailSearch("");
+                        }
+                      }}
+                    />
+                  </Box>
                 )}
 
                 {
