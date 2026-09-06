@@ -52,7 +52,14 @@ async function bootstrap() {
     })(req, res, next);
   });
 
-  app.use(cookieParser());
+  // Signed so oauth.guard.ts's CSRF check actually proves the request came
+  // back from the browser this flow started in, not merely that the caller
+  // knows the `state` value — see that guard's own comment. `jwtSecret` is
+  // this app's one existing per-instance secret (256 random bytes, minted
+  // once at install, already trusted for signing every access/refresh
+  // token) rather than a new one: it already exists in every deployed
+  // database, so reusing it needs no migration for anyone upgrading.
+  app.use(cookieParser(config.get("internal.jwtSecret")));
   app.set("trust proxy", process.env.TRUST_PROXY === "true");
 
   await fs.promises.mkdir(`${DATA_DIRECTORY}/uploads/_temp`, {

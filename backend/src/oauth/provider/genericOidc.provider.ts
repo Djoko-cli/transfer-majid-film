@@ -1,6 +1,7 @@
 import { InternalServerErrorException, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Cache } from "cache-manager";
+import * as crypto from "crypto";
 import * as jmespath from "jmespath";
 import { nanoid } from "nanoid";
 import { ConfigService } from "../../config/config.service";
@@ -64,6 +65,35 @@ export abstract class GenericOidcProvider implements OAuthProvider<OidcToken> {
       1000 * 60 * 5,
     );
 
+    // PKCE (RFC 7636). `client_secret` alone already authenticates this
+    // client as *a* legitimate one, but it's one fixed value shared by
+    // every authorization attempt — it does nothing to bind a given
+    // authorization code to the request that requested it. A code that
+    // leaks between the redirect and the token exchange (a referrer
+    // header, a proxy log, a browser-history sync) is redeemable by
+    // anyone who has it. PKCE closes that: the verifier lives only in
+    // this cache entry and this callback's exchange, so a stolen code is
+    // useless without it. Same cache/TTL shape as the nonce above,
+    // because it has the same lifetime — created here, consumed once by
+    // getToken for this same `state`, never needed again.
+    //
+    // Sent unconditionally, with no capability check against the
+    // provider's discovery document: RFC 6749 §3.1/§3.2 require both the
+    // authorization and token endpoints to ignore parameters they don't
+    // recognize, so a provider without PKCE support simply won't look at
+    // `code_challenge` and this is a no-op against it, while one that
+    // does support it gets the protection by default.
+    const codeVerifier = crypto.randomBytes(32).toString("base64url");
+    await this.cache.set(
+      `oauth-${this.name}-verifier-${state}`,
+      codeVerifier,
+      1000 * 60 * 5,
+    );
+    const codeChallenge = crypto
+      .createHash("sha256")
+      .update(codeVerifier)
+      .digest("base64url");
+
     return (
       endpoint +
       "?" +
@@ -77,6 +107,8 @@ export abstract class GenericOidcProvider implements OAuthProvider<OidcToken> {
         redirect_uri: this.getRedirectUri(),
         state,
         nonce,
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256",
       }).toString()
     );
   }
@@ -84,6 +116,20 @@ export abstract class GenericOidcProvider implements OAuthProvider<OidcToken> {
   async getToken(query: OAuthCallbackDto): Promise<OAuthToken<OidcToken>> {
     const configuration = await this.getConfiguration();
     const endpoint = configuration.token_endpoint;
+
+    // The `state` here already passed OAuthGuard's check against the
+    // `oauth_${provider}_state` cookie set alongside it in getAuthEndpoint,
+    // so it's the same attempt this verifier was cached for. Deleted right
+    // away since, like the code itself, it's one-time-use — a retried or
+    // replayed callback for the same `state` must not find it still there.
+    // Its absence (cache eviction, an old link opened twice) isn't treated
+    // as an error: it just means the exchange proceeds without
+    // `code_verifier`, exactly as it did before PKCE existed here, and the
+    // provider's own response tells the real story if it required one.
+    const verifierKey = `oauth-${this.name}-verifier-${query.state}`;
+    const codeVerifier = await this.cache.get<string>(verifierKey);
+    await this.cache.del(verifierKey);
+
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -95,6 +141,7 @@ export abstract class GenericOidcProvider implements OAuthProvider<OidcToken> {
         grant_type: "authorization_code",
         code: query.code,
         redirect_uri: this.getRedirectUri(),
+        ...(codeVerifier ? { code_verifier: codeVerifier } : {}),
       }).toString(),
     });
     const token = (await res.json()) as OidcToken;

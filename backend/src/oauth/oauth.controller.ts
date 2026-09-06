@@ -57,10 +57,13 @@ export class OAuthController {
     const url = await this.providers[provider].getAuthEndpoint(state);
 
     const isSecure = this.config.get("general.secureCookies");
+    // signed: true — see OAuthGuard's own comment on why an unsigned copy
+    // of `state` proves nothing about who is presenting it.
     response.cookie(`oauth_${provider}_state`, state, {
       sameSite: "lax",
       secure: isSecure,
       httpOnly: true,
+      signed: true,
     });
 
     response.redirect(url);
