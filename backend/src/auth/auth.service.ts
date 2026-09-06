@@ -18,6 +18,7 @@ import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
 import { EmailService } from "src/email/email.service";
 import { PrismaService } from "src/prisma/prisma.service";
+import { withUserCredentialsLock } from "src/utils/asyncLock.util";
 import { OAuthService } from "../oauth/oauth.service";
 import { GenericOidcProvider } from "../oauth/provider/genericOidc.provider";
 import { UserSevice } from "../user/user.service";
@@ -184,22 +185,64 @@ export class AuthService {
 
     if (!this.config.get("oauth.disablePassword")) {
       const email = dto.email?.toLowerCase().trim();
-      const user = await this.prisma.user.findFirst({
+      const userLookup = await this.prisma.user.findFirst({
         where: {
           OR: [{ email }, { username: dto.username }],
         },
       });
 
-      if (user?.password && (await argon.verify(user.password, dto.password))) {
-        if (!user.isActivated) {
-          throw new UnauthorizedException(
-            this.i18n.t("auth.accountNotActivated"),
-          );
-        }
-        this.logger.log(
-          `Successful password login for user ${user.email} from IP ${ip}`,
+      // A cheap, unlocked check first: does THIS supplied password even
+      // look right against the copy already in hand? A wrong guess (or
+      // an OAuth-only/LDAP-only account with no local password at all)
+      // fails here and never touches the lock below at all — the same
+      // cost a wrong-password attempt always had, no new contention.
+      // Without this, every attempt against an existing user's email —
+      // right password or not — queued behind the SAME per-user lock
+      // updatePassword/resetPassword/UserService.update now use, so an
+      // unauthenticated caller who merely knew or guessed a victim's
+      // email could fire a burst of wrong-password sign-ins and delay
+      // that victim's own concurrent password change or an admin's
+      // reset, each guess paying a full argon2 verify strictly before
+      // the next queued operation for that user could even start. This
+      // check can never authorize anything by itself — a password that
+      // looks right here but is stale by the time the lock is actually
+      // acquired is re-verified for real, against a fresh row, inside
+      // signInWithPassword below, same as if this check didn't exist.
+      const passwordLooksRight =
+        userLookup?.password &&
+        (await argon.verify(userLookup.password, dto.password));
+
+      if (passwordLooksRight) {
+        // Everything from the real (re-fetched) password check through
+        // minting the session/trusted-device row runs inside one lock,
+        // keyed to this user, shared with resetPassword/updatePassword/
+        // UserService.update's own hash-commit-then-revoke sequences —
+        // see asyncLock.util.ts. Reordering those methods' own deletes to
+        // run after their password commit (done 2026-09-06/07) sounded
+        // sufficient but isn't: argon2's hash/verify cost is comparable
+        // both sides, so a sign-in that reads the row and starts
+        // verifying a moment before a password change commits can still
+        // finish its own verify (correctly, against what was still the
+        // live password at that instant) and mint a brand-new session
+        // AFTER the change's delete has already run and found nothing
+        // yet to sweep — a session born valid that a password change
+        // happening at effectively the same moment was never able to
+        // catch. A lock spanning verify-through-mint on this side, and
+        // commit-through-delete on the other, means whichever request
+        // actually got there first completes in full before the other
+        // even starts — including re-reading the password from inside
+        // the lock rather than trusting `userLookup` from before it, so
+        // a change that landed first is never checked against a value
+        // captured before it existed.
+        const signedIn = await withUserCredentialsLock(userLookup.id, () =>
+          this.signInWithPassword(
+            userLookup.id,
+            dto.password,
+            ip,
+            tokenOptions,
+          ),
         );
-        return this.generateToken(user, undefined, tokenOptions);
+        if (signedIn) return signedIn;
       }
     }
 
@@ -229,6 +272,32 @@ export class AuthService {
       `Failed login attempt for user ${dto.email || dto.username} from IP ${ip}`,
     );
     throw new UnauthorizedException(this.i18n.t("auth.wrongCredentials"));
+  }
+
+  // Only ever called from inside signIn's withUserCredentialsLock above —
+  // re-fetches the user itself rather than trusting a copy read before
+  // the lock was acquired, which is the entire point of doing this under
+  // lock at all (see that call site's comment). Returns null on a wrong
+  // password so signIn can fall through to LDAP, exactly like the
+  // inline check this replaced.
+  private async signInWithPassword(
+    userId: string,
+    password: string,
+    ip: string,
+    tokenOptions: Parameters<AuthService["generateToken"]>[2],
+  ) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.password || !(await argon.verify(user.password, password))) {
+      return null;
+    }
+
+    if (!user.isActivated) {
+      throw new UnauthorizedException(this.i18n.t("auth.accountNotActivated"));
+    }
+    this.logger.log(
+      `Successful password login for user ${user.email} from IP ${ip}`,
+    );
+    return this.generateToken(user, undefined, tokenOptions);
   }
 
   async generateToken(
@@ -345,29 +414,47 @@ export class AuthService {
       where: { token },
     });
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { password: newPasswordHash },
-    });
-
     // A "forgot password" reset is the one flow anyone can trigger with
     // just access to the account's inbox, no prior credential at all — if
-    // that's happening because the account was actually compromised, a
-    // trusted device from before is exactly the kind of standing access
-    // this reset is meant to shut off. Left surviving until 2026-09-06:
-    // this token can prove the requester controls the account's email,
-    // but it said nothing about which devices should still be trusted
-    // afterward, and nothing here ever asked.
+    // that's happening because the account was actually compromised, an
+    // existing session on some other device (a stolen laptop, a synced
+    // browser profile) and a trusted device from before are exactly the
+    // kind of standing access this reset is meant to shut off. This
+    // token can prove the requester controls the account's email, but it
+    // said nothing about which sessions or devices should still be
+    // trusted afterward, and nothing here ever asked.
     //
-    // Runs AFTER the password commits above, not before: an attacker who
-    // already holds the (about-to-be-replaced) password can race this
-    // call with their own sign-in — if that sign-in reads the still-old
-    // hash and mints a trusted-device row a moment after a wipe that ran
-    // first already finished, nothing here would ever catch it. Deleting
-    // last means any such row is necessarily created before this delete
-    // runs, so it gets swept up instead of slipping through.
-    await this.prisma.trustedDevice.deleteMany({
-      where: { userId: user.id },
+    // The whole commit-then-wipe sequence runs inside one lock, shared
+    // with signIn's own password-verification branch (see
+    // withUserCredentialsLock's call there for the full reasoning) —
+    // reordering the deletes to run after the password commit (done
+    // 2026-09-06) sounded sufficient on its own but wasn't: argon2's
+    // verify cost on the sign-in side is comparable to hash here, so a
+    // sign-in already mid-verify against the still-live old password
+    // could still finish and mint a session after these deletes had
+    // already run and found nothing to sweep. The lock means whichever
+    // request actually got here first runs to completion — commit and
+    // both deletes, or verify and mint — before the other starts at all.
+    await withUserCredentialsLock(user.id, async () => {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { password: newPasswordHash },
+      });
+      await this.prisma.refreshToken.deleteMany({
+        where: { userId: user.id },
+      });
+      await this.prisma.trustedDevice.deleteMany({
+        where: { userId: user.id },
+      });
+      // Also closes off any TOTP sign-in still mid-flight: a loginToken
+      // proves a password check that was correct *before* this change,
+      // not that it still is — see AuthTotpService.signInTotp's own lock
+      // and re-read of this same row for why deleting it here (rather
+      // than leaving it to expire on its own, up to 5 minutes later) is
+      // what actually lets that re-read observe the change.
+      await this.prisma.loginToken.deleteMany({
+        where: { userId: user.id },
+      });
     });
   }
 
@@ -471,38 +558,62 @@ export class AuthService {
   }
 
   async updatePassword(user: User, newPassword: string, oldPassword?: string) {
-    const isPasswordValid =
-      !user.password || (await argon.verify(user.password, oldPassword));
+    // Same reasoning as resetPassword's own lock — a self-service
+    // password change is meant to force every other signed-in session to
+    // re-authenticate, and cut off any trusted device skipping password
+    // AND TOTP both, without a concurrent sign-in slipping a fresh
+    // session past the wipe (see withUserCredentialsLock's call in
+    // signIn for the full race description). createRefreshToken for
+    // *this* request's own new session sits inside the same lock too —
+    // harmless (it's this request's own commit, not a race), and keeps
+    // the whole commit-wipe-reissue sequence atomic in one place.
+    //
+    // The oldPassword check itself also moved inside the lock, re-fetching
+    // the user instead of trusting the `user` argument the controller
+    // passes in — that argument comes from @GetUser(), read by
+    // JwtStrategy at the very start of THIS request, before this method
+    // even runs. Checking it outside the lock meant a second, slower
+    // request for the same account (another tab, a phished old password
+    // being replayed) could still be mid-verify against that stale copy
+    // while a first, legitimate change already committed a new password
+    // and released the lock — that slow request's own verify would then
+    // resolve true against the password that USED to be current, let it
+    // acquire the now-free lock, and unconditionally overwrite the
+    // just-committed new password with its own, undoing a real password
+    // change with nothing but a superseded credential. Re-fetching and
+    // re-verifying inside the lock closes this the same way
+    // signInWithPassword does for signIn.
+    return withUserCredentialsLock(user.id, async () => {
+      const current = await this.prisma.user.findUnique({
+        where: { id: user.id },
+      });
+      const isPasswordValid =
+        !current.password ||
+        (await argon.verify(current.password, oldPassword));
 
-    if (!isPasswordValid)
-      throw new ForbiddenException(this.i18n.t("auth.invalidPassword"));
+      if (!isPasswordValid)
+        throw new ForbiddenException(this.i18n.t("auth.invalidPassword"));
 
-    const hash = await argon.hash(newPassword);
+      const hash = await argon.hash(newPassword);
 
-    await this.prisma.refreshToken.deleteMany({
-      where: { userId: user.id },
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { password: hash },
+      });
+      await this.prisma.refreshToken.deleteMany({
+        where: { userId: user.id },
+      });
+      await this.prisma.trustedDevice.deleteMany({
+        where: { userId: user.id },
+      });
+      // Also closes off any TOTP sign-in still mid-flight — see
+      // resetPassword's identical delete for the full reasoning.
+      await this.prisma.loginToken.deleteMany({
+        where: { userId: user.id },
+      });
+
+      return this.createRefreshToken(user.id);
     });
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { password: hash },
-    });
-
-    // Same reasoning as resetPassword's own deleteMany — a self-service
-    // password change already forces every other signed-in session to
-    // re-authenticate; a trusted device silently skipping straight past
-    // that, password AND TOTP both, was the one thing this change didn't
-    // actually reach. Runs AFTER the password commits above, for the
-    // same ordering reason given there: a sign-in racing this call and
-    // reading the still-old hash can mint a new trusted-device row a
-    // moment after a wipe that ran first already finished, and nothing
-    // would ever catch it. Deleting last means any such row is
-    // necessarily created before this delete runs.
-    await this.prisma.trustedDevice.deleteMany({
-      where: { userId: user.id },
-    });
-
-    return this.createRefreshToken(user.id);
   }
 
   async createAccessToken(user: User, refreshTokenId: string) {
@@ -760,16 +871,45 @@ export class AuthService {
         this.i18n.t("auth.tokenInvalidOrExpired"),
       );
 
-    const device = await this.prisma.trustedDevice.findUnique({
+    // A tentative lookup purely to learn which user's lock to acquire —
+    // re-read in full inside that lock below before anything is trusted,
+    // exactly like signInWithPassword's own re-fetch. Without this, the
+    // liveness check and generateToken (which, with skipTotp: true, mints
+    // a RefreshToken directly, no TOTP step to hide behind) ran with no
+    // lock at all: a password change's own trustedDevice.deleteMany could
+    // delete this exact row a moment after this method already read it as
+    // live, and the session minted from that stale read would never be
+    // caught by a wipe that, by the time it ran, had nothing left to see.
+    const tentative = await this.prisma.trustedDevice.findUnique({
       where: { token },
-      include: { user: true },
     });
-    if (!device || device.expiresAt < new Date() || !device.user.isActivated)
+    if (!tentative)
       throw new UnauthorizedException(
         this.i18n.t("auth.tokenInvalidOrExpired"),
       );
 
-    return this.generateToken(device.user, undefined, { skipTotp: true });
+    const result = await withUserCredentialsLock(tentative.userId, async () => {
+      const device = await this.prisma.trustedDevice.findUnique({
+        where: { token },
+        include: { user: true },
+      });
+      if (
+        !device ||
+        device.expiresAt < new Date() ||
+        !device.user.isActivated
+      ) {
+        return null;
+      }
+      return this.generateToken(device.user, undefined, {
+        skipTotp: true,
+      });
+    });
+
+    if (!result)
+      throw new UnauthorizedException(
+        this.i18n.t("auth.tokenInvalidOrExpired"),
+      );
+    return result;
   }
 
   // Backs both the account page's own "your trusted devices" list and the

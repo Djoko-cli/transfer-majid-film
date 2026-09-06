@@ -7,6 +7,7 @@ import { I18nService } from "nestjs-i18n";
 import { AuthSignInDTO } from "src/auth/dto/authSignIn.dto";
 import { EmailService } from "src/email/email.service";
 import { PrismaService } from "src/prisma/prisma.service";
+import { withUserCredentialsLock } from "src/utils/asyncLock.util";
 import { inspect } from "util";
 import { ConfigService } from "../config/config.service";
 import { FileService } from "../file/file.service";
@@ -92,30 +93,49 @@ export class UserSevice {
           : null
         : undefined;
 
-      const updatedUser = await this.prisma.user.update({
-        where: { id },
-        data: { ...user, password: hash },
-      });
+      const applyUpdate = () =>
+        this.prisma.user.update({
+          where: { id },
+          data: { ...user, password: hash },
+        });
 
       // An admin setting a new password here is the same "the account may
       // be compromised, cut standing access" moment AuthService's own
       // resetPassword/updatePassword already treat this way — this path
       // just reaches it from the admin console instead of the account
       // owner acting themselves, often precisely because they no longer
-      // can. Scoped to only when a password is actually part of this
-      // update: every other field this method touches (quota, admin
-      // status, username...) isn't a credential change and has no
-      // business revoking anything.
+      // can (this is, in fact, the more important of the two: an admin
+      // reaches this path specifically when self-service is unavailable).
+      // Scoped to only when a password is actually part of this update:
+      // every other field this method touches (quota, admin status,
+      // username...) isn't a credential change and has no business
+      // revoking anything, or paying for the lock below.
       //
-      // Runs AFTER the password commits above, not before: a sign-in
-      // racing this call can read the OLD hash and mint a brand-new
-      // trusted-device row a moment after a wipe that ran first already
-      // finished — nothing ties the two statements together, so that row
-      // would simply never get swept. Deleting last instead means any
-      // such row is created before this delete and gets caught by it.
-      if (passwordProvided) {
-        await this.prisma.trustedDevice.deleteMany({ where: { userId: id } });
-      }
+      // The whole commit-then-wipe sequence runs inside one lock, shared
+      // with AuthService's signIn/resetPassword/updatePassword (see
+      // withUserCredentialsLock's call in signIn for the full race this
+      // closes) — without it, a sign-in already mid-verify against the
+      // still-live old password could finish and mint a session or
+      // trusted-device row after these deletes had already run and found
+      // nothing to sweep.
+      const updatedUser = passwordProvided
+        ? await withUserCredentialsLock(id, async () => {
+            const updated = await applyUpdate();
+            await this.prisma.refreshToken.deleteMany({
+              where: { userId: id },
+            });
+            await this.prisma.trustedDevice.deleteMany({
+              where: { userId: id },
+            });
+            // Also closes off any TOTP sign-in still mid-flight — see
+            // AuthService.resetPassword's identical delete for the full
+            // reasoning.
+            await this.prisma.loginToken.deleteMany({
+              where: { userId: id },
+            });
+            return updated;
+          })
+        : await applyUpdate();
 
       return updatedUser;
     } catch (e) {

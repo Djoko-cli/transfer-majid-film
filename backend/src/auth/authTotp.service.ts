@@ -17,6 +17,7 @@ import * as qrcode from "qrcode-svg";
 import { I18nService } from "nestjs-i18n";
 import { APP_NAME } from "src/constants";
 import { PrismaService } from "src/prisma/prisma.service";
+import { withUserCredentialsLock } from "src/utils/asyncLock.util";
 import { AuthService, DeviceInfo } from "./auth.service";
 import { AuthSignInTotpDTO } from "./dto/authSignInTotp.dto";
 
@@ -37,65 +38,92 @@ export class AuthTotpService {
     response?: Response,
     deviceInfo?: DeviceInfo,
   ) {
-    const token = await this.prisma.loginToken.findFirst({
-      where: {
-        token: dto.loginToken,
-      },
-      include: {
-        user: true,
-      },
+    // A tentative lookup purely to learn which user's lock to acquire —
+    // re-read in full inside that lock below, exactly like
+    // AuthService.signInWithPassword's own re-fetch. Without a lock here,
+    // this method's own mint (createRefreshToken, and setTrustedDeviceCookie
+    // when rememberDevice is set) ran completely unlocked: a password
+    // change's own RefreshToken/TrustedDevice wipe could run, find nothing
+    // yet to sweep, and moments later this method — redeeming a loginToken
+    // that was legitimately issued *before* the change, from a password
+    // check that was correct *at the time* — would still mint a session
+    // the wipe was never given a chance to catch. Locked on the SAME
+    // per-user key resetPassword/updatePassword/UserService.update already
+    // use, so whichever side gets there first now runs to completion
+    // before the other starts.
+    const tentative = await this.prisma.loginToken.findFirst({
+      where: { token: dto.loginToken },
     });
-
-    if (!token || token.used)
+    if (!tentative)
       throw new UnauthorizedException(this.i18n.t("auth.invalidLoginToken"));
 
-    if (token.expiresAt < new Date())
-      throw new UnauthorizedException(
-        this.i18n.t("auth.loginTokenExpired"),
-        "token_expired",
+    return withUserCredentialsLock(tentative.userId, async () => {
+      const token = await this.prisma.loginToken.findFirst({
+        where: {
+          token: dto.loginToken,
+        },
+        include: {
+          user: true,
+        },
+      });
+
+      // A concurrent password change, having won the lock first, deletes
+      // every outstanding loginToken for this user (see resetPassword/
+      // updatePassword/UserService.update) — so re-reading here, inside
+      // the lock, is what makes that wipe actually able to invalidate an
+      // in-flight TOTP redemption rather than just the sessions that
+      // already existed before it ran.
+      if (!token || token.used)
+        throw new UnauthorizedException(this.i18n.t("auth.invalidLoginToken"));
+
+      if (token.expiresAt < new Date())
+        throw new UnauthorizedException(
+          this.i18n.t("auth.loginTokenExpired"),
+          "token_expired",
+        );
+
+      // Check the TOTP code
+      const { totpSecret } = token.user;
+
+      if (!totpSecret) {
+        throw new BadRequestException(this.i18n.t("auth.totpNotEnabled"));
+      }
+
+      const verified = await verify({
+        token: dto.totp,
+        secret: totpSecret,
+        guardrails: legacyGuardrails,
+      });
+      if (!verified.valid) {
+        throw new BadRequestException(this.i18n.t("auth.invalidCode"));
+      }
+
+      // Set the login token to used
+      await this.prisma.loginToken.update({
+        where: { token: token.token },
+        data: { used: true },
+      });
+
+      // Only reached after TOTP actually succeeds above — unlike a plain
+      // password sign-in, a device is never marked trusted on the strength
+      // of a password alone for a TOTP-enabled account.
+      if (dto.rememberDevice && response) {
+        await this.authService.setTrustedDeviceCookie(
+          response,
+          token.user.id,
+          deviceInfo,
+        );
+      }
+
+      const { refreshToken, refreshTokenId } =
+        await this.authService.createRefreshToken(token.user.id);
+      const accessToken = await this.authService.createAccessToken(
+        token.user,
+        refreshTokenId,
       );
 
-    // Check the TOTP code
-    const { totpSecret } = token.user;
-
-    if (!totpSecret) {
-      throw new BadRequestException(this.i18n.t("auth.totpNotEnabled"));
-    }
-
-    const verified = await verify({
-      token: dto.totp,
-      secret: totpSecret,
-      guardrails: legacyGuardrails,
+      return { accessToken, refreshToken };
     });
-    if (!verified.valid) {
-      throw new BadRequestException(this.i18n.t("auth.invalidCode"));
-    }
-
-    // Set the login token to used
-    await this.prisma.loginToken.update({
-      where: { token: token.token },
-      data: { used: true },
-    });
-
-    // Only reached after TOTP actually succeeds above — unlike a plain
-    // password sign-in, a device is never marked trusted on the strength
-    // of a password alone for a TOTP-enabled account.
-    if (dto.rememberDevice && response) {
-      await this.authService.setTrustedDeviceCookie(
-        response,
-        token.user.id,
-        deviceInfo,
-      );
-    }
-
-    const { refreshToken, refreshTokenId } =
-      await this.authService.createRefreshToken(token.user.id);
-    const accessToken = await this.authService.createAccessToken(
-      token.user,
-      refreshTokenId,
-    );
-
-    return { accessToken, refreshToken };
   }
 
   async enableTotp(user: User, password: string) {
