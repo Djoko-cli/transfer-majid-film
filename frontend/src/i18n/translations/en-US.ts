@@ -152,6 +152,22 @@ export default {
   "account.card.security.totp.disable.description":
     "Enter your current password to disable two-factor authentication",
   "account.card.security.totp.button.start": "Start",
+  "account.card.security.trustedDevices.tab": "Trusted devices",
+  "account.card.security.trustedDevices.description":
+    "A device you checked \"Remember me on this device\" for can sign back in with one click, no password or code, for 30 days. Revoke them all if one no longer feels trustworthy — a shared computer, for instance.",
+  "account.card.security.trustedDevices.empty": "No active trusted devices.",
+  "account.card.security.trustedDevices.column.since": "Since",
+  "account.card.security.trustedDevices.column.device": "Device",
+  "account.card.security.trustedDevices.column.ip": "IP address",
+  "account.card.security.trustedDevices.column.expires": "Expires",
+  "account.card.security.trustedDevices.revoke.button": "Revoke all devices",
+  "account.card.security.trustedDevices.revoke.title":
+    "Revoke trusted devices?",
+  "account.card.security.trustedDevices.revoke.description":
+    "Each of these devices will need to sign in again with the password and, if enabled, two-factor authentication. Your current session isn't affected.",
+  "account.card.security.trustedDevices.revoke.confirm": "Revoke",
+  "account.card.security.trustedDevices.revoke.success":
+    "Trusted devices revoked.",
   "account.modal.totp.title": "Enable two-factor authentication",
   "account.modal.totp.step1": "Step 1: Add your authenticator",
   "account.modal.totp.step2": "Step 2: Validate your code",
@@ -335,6 +351,7 @@ export default {
   "admin.users.edit.update.change-password.title": "Change password",
   "admin.users.edit.update.change-password.field": "New password",
   "admin.users.edit.update.change-password.button": "Save new password",
+  "admin.users.edit.update.trusted-devices.title": "Trusted devices",
   "admin.users.edit.update.notify.password.success":
     "Password changed successfully",
 

@@ -17,12 +17,13 @@ import {
 import { useForm, yupResolver } from "@mantine/form";
 import { useModals } from "@mantine/modals";
 import { useEffect, useState } from "react";
-import { TbAuth2Fa } from "react-icons/tb";
+import { TbAuth2Fa, TbDevices } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
 import Meta from "../../components/Meta";
 import LanguagePicker from "../../components/account/LanguagePicker";
 import showEnableTotpModal from "../../components/account/showEnableTotpModal";
+import TrustedDevicesPanel from "../../components/auth/TrustedDevicesPanel";
 import GlassPageBackdrop from "../../components/core/GlassPageBackdrop";
 import glassFormTheme from "../../components/upload/glassFormTheme";
 import { glassModalStyles } from "../../components/upload/glassModalTheme";
@@ -318,6 +319,9 @@ const Account = () => {
                 <Tabs.Tab value="totp" icon={<TbAuth2Fa size={14} />}>
                   <FormattedMessage id="account.card.security.totp.tab" />
                 </Tabs.Tab>
+                <Tabs.Tab value="trustedDevices" icon={<TbDevices size={14} />}>
+                  <FormattedMessage id="account.card.security.trustedDevices.tab" />
+                </Tabs.Tab>
               </Tabs.List>
 
               <Tabs.Panel value="totp" pt="xs">
@@ -394,6 +398,10 @@ const Account = () => {
                     </form>
                   </>
                 )}
+              </Tabs.Panel>
+
+              <Tabs.Panel value="trustedDevices" pt="xs">
+                <TrustedDevicesPanel modals={modals} />
               </Tabs.Panel>
             </Tabs>
           </Paper>

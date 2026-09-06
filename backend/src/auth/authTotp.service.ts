@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { User } from "@prisma/client";
-import { Response } from "express";
+import { Request, Response } from "express";
 import {
   generateSecret,
   generateURI,
@@ -17,7 +17,7 @@ import * as qrcode from "qrcode-svg";
 import { I18nService } from "nestjs-i18n";
 import { APP_NAME } from "src/constants";
 import { PrismaService } from "src/prisma/prisma.service";
-import { AuthService } from "./auth.service";
+import { AuthService, DeviceInfo } from "./auth.service";
 import { AuthSignInTotpDTO } from "./dto/authSignInTotp.dto";
 
 const legacyGuardrails = createGuardrails({
@@ -32,7 +32,11 @@ export class AuthTotpService {
     private readonly i18n: I18nService,
   ) {}
 
-  async signInTotp(dto: AuthSignInTotpDTO, response?: Response) {
+  async signInTotp(
+    dto: AuthSignInTotpDTO,
+    response?: Response,
+    deviceInfo?: DeviceInfo,
+  ) {
     const token = await this.prisma.loginToken.findFirst({
       where: {
         token: dto.loginToken,
@@ -77,7 +81,11 @@ export class AuthTotpService {
     // password sign-in, a device is never marked trusted on the strength
     // of a password alone for a TOTP-enabled account.
     if (dto.rememberDevice && response) {
-      this.authService.setTrustedDeviceCookie(response, token.user.id);
+      await this.authService.setTrustedDeviceCookie(
+        response,
+        token.user.id,
+        deviceInfo,
+      );
     }
 
     const { refreshToken, refreshTokenId } =
@@ -141,6 +149,7 @@ export class AuthTotpService {
     password: string,
     code: string,
     response: Response,
+    request?: Request,
   ) {
     if (!(await this.authService.verifyPassword(user, password)))
       throw new ForbiddenException(this.i18n.t("auth.invalidPassword"));
@@ -180,7 +189,7 @@ export class AuthTotpService {
     // challenge once (which re-marks it trusted, same as any other device)
     // instead of silently keeping a bypass around for whatever's left of
     // its original 30 days.
-    this.authService.clearTrustedDeviceCookie(response);
+    await this.authService.clearTrustedDeviceCookie(response, request);
 
     return true;
   }

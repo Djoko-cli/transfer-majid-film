@@ -26,8 +26,11 @@ import { AuthSignInDTO } from "./dto/authSignIn.dto";
 import { LdapService } from "./ldap.service";
 
 const TRUSTED_DEVICE_COOKIE = "trusted_device";
-const TRUSTED_DEVICE_PURPOSE = "trusted-device";
 const TRUSTED_DEVICE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+
+// Best-effort labels for a device list a human has to read, not an
+// auth decision — never falls back to blocking or throwing.
+export type DeviceInfo = { ipAddress?: string; userAgent?: string };
 
 @Injectable()
 export class AuthService {
@@ -161,14 +164,23 @@ export class AuthService {
     }
   }
 
-  async signIn(dto: AuthSignInDTO, ip: string, response?: Response) {
+  async signIn(
+    dto: AuthSignInDTO,
+    ip: string,
+    response?: Response,
+    userAgent?: string,
+  ) {
     if (!dto.email && !dto.username) {
       throw new BadRequestException(
         this.i18n.t("auth.emailOrUsernameRequired"),
       );
     }
 
-    const tokenOptions = { response, rememberDevice: dto.rememberDevice };
+    const tokenOptions = {
+      response,
+      rememberDevice: dto.rememberDevice,
+      deviceInfo: { ipAddress: ip, userAgent },
+    };
 
     if (!this.config.get("oauth.disablePassword")) {
       const email = dto.email?.toLowerCase().trim();
@@ -225,11 +237,16 @@ export class AuthService {
     tokenOptions?: {
       response?: Response;
       rememberDevice?: boolean;
+      // Best-effort labels stored on the new TrustedDevice row (see
+      // setTrustedDeviceCookie), purely so a human looking at the account
+      // page or the admin console later has something to recognize —
+      // never part of any auth decision.
+      deviceInfo?: DeviceInfo;
       // Only ever set by signInTrusted() below, and only once it has
       // already verified — server-side, this call — that the trusted-
-      // device cookie is a validly-signed, unexpired token for this exact
-      // user. That cookie is itself only ever issued after a real TOTP
-      // challenge already succeeded once on this device (see
+      // device cookie names a real, unexpired TrustedDevice row for this
+      // exact user. That row is itself only ever created after a real
+      // TOTP challenge already succeeded once on this device (see
       // AuthTotpService.signInTotp and setTrustedDeviceCookie's own
       // comments) — this is what lets a returning trusted device skip
       // TOTP again for up to 30 days, the same "remember this device"
@@ -255,7 +272,11 @@ export class AuthService {
     // device trusted on password alone (see AuthTotpService.signInTotp,
     // which sets this same cookie after TOTP actually succeeds).
     if (tokenOptions?.response && tokenOptions?.rememberDevice) {
-      this.setTrustedDeviceCookie(tokenOptions.response, user.id);
+      await this.setTrustedDeviceCookie(
+        tokenOptions.response,
+        user.id,
+        tokenOptions.deviceInfo,
+      );
     }
 
     const { refreshToken, refreshTokenId } = await this.createRefreshToken(
@@ -327,6 +348,26 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: user.id },
       data: { password: newPasswordHash },
+    });
+
+    // A "forgot password" reset is the one flow anyone can trigger with
+    // just access to the account's inbox, no prior credential at all — if
+    // that's happening because the account was actually compromised, a
+    // trusted device from before is exactly the kind of standing access
+    // this reset is meant to shut off. Left surviving until 2026-09-06:
+    // this token can prove the requester controls the account's email,
+    // but it said nothing about which devices should still be trusted
+    // afterward, and nothing here ever asked.
+    //
+    // Runs AFTER the password commits above, not before: an attacker who
+    // already holds the (about-to-be-replaced) password can race this
+    // call with their own sign-in — if that sign-in reads the still-old
+    // hash and mints a trusted-device row a moment after a wipe that ran
+    // first already finished, nothing here would ever catch it. Deleting
+    // last means any such row is necessarily created before this delete
+    // runs, so it gets swept up instead of slipping through.
+    await this.prisma.trustedDevice.deleteMany({
+      where: { userId: user.id },
     });
   }
 
@@ -445,6 +486,20 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: user.id },
       data: { password: hash },
+    });
+
+    // Same reasoning as resetPassword's own deleteMany — a self-service
+    // password change already forces every other signed-in session to
+    // re-authenticate; a trusted device silently skipping straight past
+    // that, password AND TOTP both, was the one thing this change didn't
+    // actually reach. Runs AFTER the password commits above, for the
+    // same ordering reason given there: a sign-in racing this call and
+    // reading the still-old hash can mint a new trusted-device row a
+    // moment after a wipe that ran first already finished, and nothing
+    // would ever catch it. Deleting last means any such row is
+    // necessarily created before this delete runs.
+    await this.prisma.trustedDevice.deleteMany({
+      where: { userId: user.id },
     });
 
     return this.createRefreshToken(user.id);
@@ -601,11 +656,29 @@ export class AuthService {
   // normal signOut() on purpose: signOut only ever clears access_token/
   // refresh_token, never this one — recognizing a returning device is
   // meant to work again right after logging out, not just before it.
-  setTrustedDeviceCookie(response: Response, userId: string) {
-    const token = this.jwtService.sign(
-      { sub: userId, purpose: TRUSTED_DEVICE_PURPOSE },
-      { secret: this.config.get("internal.jwtSecret"), expiresIn: "30d" },
-    );
+  //
+  // Backed by a real TrustedDevice row rather than a self-contained signed
+  // JWT (which is what this was until 2026-09-06) — a JWT only proves the
+  // server once issued it, which is exactly what made it unrevocable: no
+  // record existed anywhere to delete, so the only way to kill a leaked
+  // cookie, or ANY of a user's trusted devices, was to wait out its full
+  // 30 days or rotate internal.jwtSecret and break every other session and
+  // TOTP flow in the app along with it. This is the same DB-row-as-the-
+  // actual-credential shape RefreshToken already uses just below, for the
+  // identical reason.
+  async setTrustedDeviceCookie(
+    response: Response,
+    userId: string,
+    deviceInfo?: DeviceInfo,
+  ) {
+    const { token } = await this.prisma.trustedDevice.create({
+      data: {
+        userId,
+        expiresAt: moment().add(30, "days").toDate(),
+        ipAddress: deviceInfo?.ipAddress,
+        userAgent: deviceInfo?.userAgent,
+      },
+    });
     response.cookie(TRUSTED_DEVICE_COOKIE, token, {
       path: "/",
       httpOnly: true,
@@ -615,7 +688,19 @@ export class AuthService {
     });
   }
 
-  clearTrustedDeviceCookie(response: Response) {
+  // Clears the cookie on THIS response and, when a request is given (every
+  // caller has one — optional only so a future caller that genuinely can't
+  // provide one still compiles), deletes the row it pointed to. Without
+  // that second half, "Ce n'est pas vous ?" would only ever hide the
+  // account from the browser clicking it — a copy of the same cookie value
+  // taken before that click (the exact leak scenario this whole rework
+  // exists for) would keep working until its natural 30-day expiry,
+  // unrevoked, regardless of anything the real owner clicked here.
+  async clearTrustedDeviceCookie(response: Response, request?: Request) {
+    const token = request?.cookies?.[TRUSTED_DEVICE_COOKIE];
+    if (token) {
+      await this.prisma.trustedDevice.deleteMany({ where: { token } });
+    }
     response.cookie(TRUSTED_DEVICE_COOKIE, "", {
       path: "/",
       maxAge: -1,
@@ -633,23 +718,29 @@ export class AuthService {
     const token = request.cookies?.[TRUSTED_DEVICE_COOKIE];
     if (!token) return { recognized: false };
 
-    try {
-      const claims = await this.jwtService.verifyAsync(token, {
-        secret: this.config.get("internal.jwtSecret"),
-      });
-      if (claims.purpose !== TRUSTED_DEVICE_PURPOSE)
-        return { recognized: false };
+    const device = await this.prisma.trustedDevice.findUnique({
+      where: { token },
+      include: { user: { select: { username: true, isActivated: true } } },
+    });
+    if (!device) return { recognized: false };
 
-      const user = await this.prisma.user.findUnique({
-        where: { id: claims.sub },
-        select: { username: true, isActivated: true },
-      });
-      if (!user?.isActivated) return { recognized: false };
-
-      return { recognized: true, username: user.username };
-    } catch {
+    // Expired rows are deleted on the read that finds them rather than by
+    // a separate sweep — this endpoint is hit on every sign-in page load,
+    // so a table that only ever grows through 30-day-old dead rows gets
+    // trimmed by ordinary traffic without needing a cron job of its own.
+    // deleteMany, not delete: two tabs open on the sign-in page can both
+    // read this same not-yet-cleaned row before either delete runs: the
+    // first delete succeeds, and a singular delete() on a row that's
+    // already gone throws (Prisma P2025), turning a routine expiry into
+    // an uncaught 500 on this public, unguarded endpoint. deleteMany
+    // resolves to a 0-row no-op instead.
+    if (device.expiresAt < new Date()) {
+      await this.prisma.trustedDevice.deleteMany({ where: { token } });
       return { recognized: false };
     }
+    if (!device.user.isActivated) return { recognized: false };
+
+    return { recognized: true, username: device.user.username };
   }
 
   // The actual sign-in triggered by the "Welcome back" button — re-verifies
@@ -660,8 +751,8 @@ export class AuthService {
   // device (see setTrustedDeviceCookie's own comment), so re-solving TOTP
   // again here would just be asking a device that already proved itself
   // to prove itself a second time, not adding real protection against
-  // anyone who doesn't already hold this specific signed, httpOnly,
-  // 30-day cookie.
+  // anyone who doesn't already hold this specific httpOnly, 30-day,
+  // individually-revocable cookie.
   async signInTrusted(request: Request) {
     const token = request.cookies?.[TRUSTED_DEVICE_COOKIE];
     if (!token)
@@ -669,30 +760,48 @@ export class AuthService {
         this.i18n.t("auth.tokenInvalidOrExpired"),
       );
 
-    let claims: { sub?: string; purpose?: string };
-    try {
-      claims = await this.jwtService.verifyAsync(token, {
-        secret: this.config.get("internal.jwtSecret"),
-      });
-    } catch {
-      throw new UnauthorizedException(
-        this.i18n.t("auth.tokenInvalidOrExpired"),
-      );
-    }
-    if (claims.purpose !== TRUSTED_DEVICE_PURPOSE)
-      throw new UnauthorizedException(
-        this.i18n.t("auth.tokenInvalidOrExpired"),
-      );
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: claims.sub },
+    const device = await this.prisma.trustedDevice.findUnique({
+      where: { token },
+      include: { user: true },
     });
-    if (!user?.isActivated)
+    if (!device || device.expiresAt < new Date() || !device.user.isActivated)
       throw new UnauthorizedException(
         this.i18n.t("auth.tokenInvalidOrExpired"),
       );
 
-    return this.generateToken(user, undefined, { skipTotp: true });
+    return this.generateToken(device.user, undefined, { skipTotp: true });
+  }
+
+  // Backs both the account page's own "your trusted devices" list and the
+  // admin console's per-user one — same query either way, just a
+  // different userId (the caller's own, or one an AdministratorGuard
+  // route supplies). Never returns `token` (see the model's own comment).
+  // Excludes already-expired rows: those are dead weight waiting on
+  // getTrustedDeviceInfo's lazy cleanup, not something either audience is
+  // asking "can I still revoke this?" about.
+  async listTrustedDevices(userId: string) {
+    return this.prisma.trustedDevice.findMany({
+      where: { userId, expiresAt: { gt: new Date() } },
+      select: {
+        id: true,
+        createdAt: true,
+        expiresAt: true,
+        ipAddress: true,
+        userAgent: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  // Revokes every currently-live trusted device for a user in one action
+  // rather than one-at-a-time: the realistic reason anyone reaches for
+  // this — a shared computer, a synced browser profile, a leaked cookie —
+  // is "I no longer trust *any* device I didn't just check", not "let me
+  // pick through a list." A device removed this way simply falls back to
+  // a normal password(+TOTP) sign-in next time; nothing else about the
+  // account changes.
+  async revokeTrustedDevices(userId: string) {
+    await this.prisma.trustedDevice.deleteMany({ where: { userId } });
   }
 
   /**

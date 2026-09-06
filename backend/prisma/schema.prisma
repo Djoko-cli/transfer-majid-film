@@ -27,6 +27,7 @@ model User {
   reverseShares         ReverseShare[]
   shareUserRecipients   ShareUserRecipient[]
   adminNoticeDismissals AdminNoticeDismissal[]
+  trustedDevices        TrustedDevice[]
 
   totpEnabled        Boolean             @default(false)
   totpVerified       Boolean             @default(false)
@@ -81,6 +82,30 @@ model ResetPasswordToken {
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Same id/token split as RefreshToken above, for the same reason: `id`
+// is what a list/revoke endpoint can safely return to a client (self-
+// service or admin) - `token` is the actual bearer secret held only in
+// the httpOnly trusted_device cookie, and must never appear in any API
+// response, including to an admin, since anyone who read it back could
+// paste it into their own cookie jar and skip both password and TOTP as
+// that user for however long it has left to live. ipAddress/userAgent
+// are display-only, captured once at creation from the same request
+// headers this app already logs a share download's device from
+// (FileService.notifyDownload) - never re-verified against later use,
+// so purely informational for a human deciding whether to revoke.
+model TrustedDevice {
+  id        String   @id @default(uuid())
+  token     String   @unique @default(uuid())
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  ipAddress String?
+  userAgent String?
 }
 
 model OAuthUser {

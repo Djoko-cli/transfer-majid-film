@@ -76,12 +76,48 @@ export class UserSevice {
 
   async update(id: string, user: UpdateUserDto) {
     try {
-      const hash = user.password && (await argon.hash(user.password));
+      // "in", not truthiness: `password` is a real, valid state on this
+      // model (an OAuth-only account has one — see oauth.service.ts), so
+      // an explicit `password: null` — converting an account to
+      // passwordless — is a real credential change too, not "no password
+      // field in this request". Plain truthiness treated the two the
+      // same and let an explicit null slip past the wipe below entirely
+      // (confirmed: every trusted-device grant on that account stayed
+      // live, skipping straight past the very password field the account
+      // had just lost).
+      const passwordProvided = "password" in user;
+      const hash = passwordProvided
+        ? user.password
+          ? await argon.hash(user.password)
+          : null
+        : undefined;
 
-      return await this.prisma.user.update({
+      const updatedUser = await this.prisma.user.update({
         where: { id },
         data: { ...user, password: hash },
       });
+
+      // An admin setting a new password here is the same "the account may
+      // be compromised, cut standing access" moment AuthService's own
+      // resetPassword/updatePassword already treat this way — this path
+      // just reaches it from the admin console instead of the account
+      // owner acting themselves, often precisely because they no longer
+      // can. Scoped to only when a password is actually part of this
+      // update: every other field this method touches (quota, admin
+      // status, username...) isn't a credential change and has no
+      // business revoking anything.
+      //
+      // Runs AFTER the password commits above, not before: a sign-in
+      // racing this call can read the OLD hash and mint a brand-new
+      // trusted-device row a moment after a wipe that ran first already
+      // finished — nothing ties the two statements together, so that row
+      // would simply never get swept. Deleting last instead means any
+      // such row is created before this delete and gets caught by it.
+      if (passwordProvided) {
+        await this.prisma.trustedDevice.deleteMany({ where: { userId: id } });
+      }
+
+      return updatedUser;
     } catch (e) {
       if (e instanceof PrismaClientKnownRequestError) {
         if (e.code == "P2002") {

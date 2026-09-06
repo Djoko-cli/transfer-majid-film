@@ -144,6 +144,24 @@ export default {
   "account.card.security.totp.disable.description":
     "Entrez votre mot de passe actuel pour désactiver l'authentification à deux facteurs",
   "account.card.security.totp.button.start": "Démarrer",
+  "account.card.security.trustedDevices.tab": "Appareils de confiance",
+  "account.card.security.trustedDevices.description":
+    "Un appareil sur lequel vous avez coché « Se souvenir de moi » peut se reconnecter en un clic, sans mot de passe ni code, pendant 30 jours. Révoquez-les tous si l'un d'eux ne vous semble plus fiable, un ordinateur partagé par exemple.",
+  "account.card.security.trustedDevices.empty":
+    "Aucun appareil de confiance actif.",
+  "account.card.security.trustedDevices.column.since": "Depuis",
+  "account.card.security.trustedDevices.column.device": "Appareil",
+  "account.card.security.trustedDevices.column.ip": "Adresse IP",
+  "account.card.security.trustedDevices.column.expires": "Expire",
+  "account.card.security.trustedDevices.revoke.button":
+    "Révoquer tous les appareils",
+  "account.card.security.trustedDevices.revoke.title":
+    "Révoquer les appareils de confiance ?",
+  "account.card.security.trustedDevices.revoke.description":
+    "Chacun de ces appareils devra se reconnecter avec le mot de passe et, si activée, l'authentification à deux facteurs. Votre session actuelle n'est pas affectée.",
+  "account.card.security.trustedDevices.revoke.confirm": "Révoquer",
+  "account.card.security.trustedDevices.revoke.success":
+    "Appareils de confiance révoqués.",
   "account.modal.totp.title": "Activer l'authentification à deux facteurs",
   "account.modal.totp.step1": "Étape 1 : Ajouter votre authentification",
   "account.modal.totp.step2": "Étape 2 : Valider votre code",
@@ -314,6 +332,7 @@ export default {
   "admin.users.edit.update.change-password.field": "Nouveau mot de passe",
   "admin.users.edit.update.change-password.button":
     "Enregistrer le nouveau mot de passe",
+  "admin.users.edit.update.trusted-devices.title": "Appareils de confiance",
   "admin.users.edit.update.notify.password.success":
     "Le mot de passe a été modifié",
   "admin.users.edit.delete.title": "Supprimer l'utilisateur : {username} ?",

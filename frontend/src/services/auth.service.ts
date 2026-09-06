@@ -48,6 +48,38 @@ const forgetTrustedDevice = async () => {
   await api.post("/auth/trustedDevice/forget");
 };
 
+// Metadata only — the backend never returns the cookie value itself (see
+// TrustedDevice's own comment), so there's nothing here that could be
+// replayed even if this response were somehow read by the wrong party.
+export type TrustedDevice = {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+};
+
+// One pair of functions, self vs. admin-on-another-account, backing the
+// same list+revoke-all panel in both /account and the admin user modal —
+// see TrustedDevicesPanel.
+const listOwnTrustedDevices = async (): Promise<TrustedDevice[]> => {
+  return (await api.get("/auth/trustedDevice/me")).data;
+};
+
+const revokeOwnTrustedDevices = async () => {
+  await api.delete("/auth/trustedDevice/me");
+};
+
+const listUserTrustedDevices = async (
+  userId: string,
+): Promise<TrustedDevice[]> => {
+  return (await api.get(`/auth/trustedDevice/admin/${userId}`)).data;
+};
+
+const revokeUserTrustedDevices = async (userId: string) => {
+  await api.delete(`/auth/trustedDevice/admin/${userId}`);
+};
+
 const signUp = async (email: string, username: string, password: string) => {
   const response = await api.post("auth/signUp", { email, username, password });
 
@@ -179,6 +211,10 @@ export default {
   getTrustedDevice,
   signInTrusted,
   forgetTrustedDevice,
+  listOwnTrustedDevices,
+  revokeOwnTrustedDevices,
+  listUserTrustedDevices,
+  revokeUserTrustedDevices,
   signUp,
   signOut,
   wasRecentlySignedOut,

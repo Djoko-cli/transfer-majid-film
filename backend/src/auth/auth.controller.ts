@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   HttpCode,
@@ -17,6 +18,7 @@ import { User } from "@prisma/client";
 import { Request, Response } from "express";
 import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
+import { AdministratorGuard } from "src/auth/guard/isAdmin.guard";
 import { AuthService } from "./auth.service";
 import { AuthTotpService } from "./authTotp.service";
 import { GetUser } from "./decorator/getUser.decorator";
@@ -88,10 +90,15 @@ export class AuthController {
   @HttpCode(200)
   async signIn(
     @Body() dto: AuthSignInDTO,
-    @Req() { ip }: Request,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.authService.signIn(dto, ip, response);
+    const result = await this.authService.signIn(
+      dto,
+      request.ip,
+      response,
+      request.headers["user-agent"],
+    );
 
     if (result.accessToken && result.refreshToken) {
       this.authService.addTokensToResponse(
@@ -145,11 +152,53 @@ export class AuthController {
 
   // "Ce n'est pas vous ?" — clears the cookie server-side immediately so a
   // fresh page load on this device no longer recognizes the previous user,
-  // rather than only flipping local UI state.
+  // rather than only flipping local UI state. Also deletes the underlying
+  // TrustedDevice row (see AuthService.clearTrustedDeviceCookie's own
+  // comment) — otherwise this only ever hid the account from the one
+  // browser clicking it, not from a copy of the same cookie taken before
+  // that click.
   @Post("trustedDevice/forget")
   @HttpCode(204)
-  async forgetTrustedDevice(@Res({ passthrough: true }) response: Response) {
-    this.authService.clearTrustedDeviceCookie(response);
+  async forgetTrustedDevice(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    await this.authService.clearTrustedDeviceCookie(response, request);
+  }
+
+  // Own trusted devices — every signed-in user can see and revoke their
+  // own, no admin needed. `/admin/:userId` below is the same pair for an
+  // admin acting on someone else's account.
+  @Get("trustedDevice/me")
+  @UseGuards(JwtGuard)
+  async listOwnTrustedDevices(@GetUser() user: User) {
+    return this.authService.listTrustedDevices(user.id);
+  }
+
+  @Delete("trustedDevice/me")
+  @HttpCode(204)
+  @UseGuards(JwtGuard)
+  async revokeOwnTrustedDevices(@GetUser() user: User) {
+    await this.authService.revokeTrustedDevices(user.id);
+  }
+
+  // Support/incident path: an admin revoking a device list the account
+  // owner reported as compromised (or simply can't reach right now) but
+  // hasn't necessarily changed their password over — resetPassword and
+  // updatePassword already clear this as a side effect of a real password
+  // change; this is the same action for when that hasn't happened (yet,
+  // or at all).
+  @Get("trustedDevice/admin/:userId")
+  @UseGuards(JwtGuard, AdministratorGuard)
+  async listUserTrustedDevices(@Param("userId") userId: string) {
+    return this.authService.listTrustedDevices(userId);
+  }
+
+  @Delete("trustedDevice/admin/:userId")
+  @HttpCode(204)
+  @UseGuards(JwtGuard, AdministratorGuard)
+  async revokeUserTrustedDevices(@Param("userId") userId: string) {
+    await this.authService.revokeTrustedDevices(userId);
   }
 
   @Post("signIn/totp")
@@ -162,9 +211,13 @@ export class AuthController {
   @HttpCode(200)
   async signInTotp(
     @Body() dto: AuthSignInTotpDTO,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.authTotpService.signInTotp(dto, response);
+    const result = await this.authTotpService.signInTotp(dto, response, {
+      ipAddress: request.ip,
+      userAgent: request.headers["user-agent"],
+    });
 
     this.authService.addTokensToResponse(
       response,
@@ -307,6 +360,7 @@ export class AuthController {
   async verifyTotp(
     @GetUser() user: User,
     @Body() body: VerifyTotpDTO,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
     return this.authTotpService.verifyTotp(
@@ -314,6 +368,7 @@ export class AuthController {
       body.password,
       body.code,
       response,
+      request,
     );
   }
 

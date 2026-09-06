@@ -18,6 +18,7 @@ import useTranslate, {
 import userService from "../../../services/user.service";
 import User from "../../../types/user.type";
 import toast from "../../../utils/toast.util";
+import TrustedDevicesPanel from "../../auth/TrustedDevicesPanel";
 import FileSizeInput from "../../core/FileSizeInput";
 import glassFormTheme from "../../upload/glassFormTheme";
 import { glassModalStyles } from "../../upload/glassModalTheme";
@@ -212,7 +213,7 @@ const Body = ({
           </Stack>
         </form>
         <Accordion>
-          <Accordion.Item sx={{ borderBottom: "none" }} value="changePassword">
+          <Accordion.Item value="changePassword">
             <Accordion.Control px={0}>
               <FormattedMessage id="admin.users.edit.update.change-password.title" />
             </Accordion.Control>
@@ -241,6 +242,23 @@ const Body = ({
                   </Button>
                 </Stack>
               </form>
+            </Accordion.Panel>
+          </Accordion.Item>
+          {
+            // A password change already revokes these as a side effect
+            // (see AuthService.resetPassword/updatePassword and
+            // UserService.update's own comments) — this is for the
+            // narrower case an admin wants to cut standing trusted-device
+            // access without necessarily resetting the password too, e.g.
+            // a reported-but-unconfirmed compromise, or a shared/public
+            // computer the owner mentioned in passing.
+          }
+          <Accordion.Item sx={{ borderBottom: "none" }} value="trustedDevices">
+            <Accordion.Control px={0}>
+              <FormattedMessage id="admin.users.edit.update.trusted-devices.title" />
+            </Accordion.Control>
+            <Accordion.Panel>
+              <TrustedDevicesPanel userId={user.id} modals={modals} />
             </Accordion.Panel>
           </Accordion.Item>
         </Accordion>
