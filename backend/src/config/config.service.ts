@@ -33,6 +33,20 @@ export class ConfigService extends EventEmitter {
   // edit) never gets mistaken for a second external change and reprocessed.
   private lastWrittenYaml: string | null = null;
 
+  // The last write attempt's outcome for each mirror file - null once it
+  // succeeds (or there was nothing to write), the OS error message while
+  // it's failing. Read by getByCategory() so the admin panel can show a
+  // real warning instead of the silent, log-only failure this used to be:
+  // the DB write it's paired with always succeeds regardless, so an admin
+  // who just changed a setting would see it "saved" with nothing wrong,
+  // right up until a restart re-read the still-stale file and quietly put
+  // the old value back - exactly what happened to this app's own SMTP
+  // config once already (a file-permission ACL blocking the write, found
+  // and fixed 2026-09-06, but any future cause of the same failure mode
+  // would have been just as invisible without this).
+  private yamlWriteError: string | null = null;
+  private secretsWriteError: string | null = null;
+
   // null until a secrets.env is actually found (mirrors yamlConfig above) —
   // only needed to distinguish "no file" for initialize()'s watcher gating
   // and getByCategory's mirroredToSecretsFile flag; the DB is what get()
@@ -73,7 +87,8 @@ export class ConfigService extends EventEmitter {
   // when unset, so callers can `??` past it cleanly.
   private processEnvFallback(variable: Config): string | undefined {
     if (!variable.obscured) return undefined;
-    const raw = process.env[this.envVarNameFor(variable.category, variable.name)];
+    const raw =
+      process.env[this.envVarNameFor(variable.category, variable.name)];
     return raw ? raw : undefined;
   }
 
@@ -260,7 +275,9 @@ export class ConfigService extends EventEmitter {
     try {
       fs.writeFileSync(SECRETS_FILE, content);
       this.lastSecretsRaw = content;
+      this.secretsWriteError = null;
     } catch (e) {
+      this.secretsWriteError = e.message || String(e);
       this.logger.error(
         `Failed to write ${SECRETS_FILE} — the change above is still saved to the database and live, just not mirrored to the file until this is fixed (check the mounted file's permissions): `,
         e,
@@ -332,7 +349,8 @@ export class ConfigService extends EventEmitter {
     type: string,
     rawValue: unknown,
   ): string | number | boolean {
-    if (type === "number" || type === "filesize") return parseInt(String(rawValue));
+    if (type === "number" || type === "filesize")
+      return parseInt(String(rawValue));
     if (type === "boolean") return rawValue === true || rawValue === "true";
     return String(rawValue);
   }
@@ -369,7 +387,9 @@ export class ConfigService extends EventEmitter {
     try {
       fs.writeFileSync(CONFIG_FILE, content);
       this.lastWrittenYaml = content;
+      this.yamlWriteError = null;
     } catch (e) {
+      this.yamlWriteError = e.message || String(e);
       this.logger.error(
         `Failed to write ${CONFIG_FILE} — the change above is still saved to the database and live, just not mirrored to the file until this is fixed (check the mounted file's permissions): `,
         e,
@@ -431,7 +451,10 @@ export class ConfigService extends EventEmitter {
     try {
       raw = fs.readFileSync(CONFIG_FILE, "utf8");
     } catch (e) {
-      this.logger.warn(`Could not read ${CONFIG_FILE} after a change event: `, e);
+      this.logger.warn(
+        `Could not read ${CONFIG_FILE} after a change event: `,
+        e,
+      );
       return;
     }
     if (raw === this.lastWrittenYaml) return; // Our own write echoing back.
@@ -516,6 +539,19 @@ export class ConfigService extends EventEmitter {
         mirroredToFile: !!this.yamlConfig,
         // Same idea, scoped to the obscured fields and secrets.env.
         mirroredToSecretsFile: variable.obscured && !!this.secretsFromFile,
+        // The OS error from the last attempt to write this variable's
+        // mirror file, or null if that attempt succeeded (or nothing is
+        // mounted for it to begin with - a variable whose file isn't
+        // mounted was never attempted, so it can't be failing). One of
+        // yamlWriteError/secretsWriteError, never both, since a variable
+        // is mirrored to exactly one of the two files.
+        mirrorWriteError: variable.obscured
+          ? this.secretsFromFile
+            ? this.secretsWriteError
+            : null
+          : this.yamlConfig
+            ? this.yamlWriteError
+            : null,
       };
     });
   }

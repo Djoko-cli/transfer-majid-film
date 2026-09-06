@@ -683,6 +683,9 @@ export default {
   "admin.config.secrets-file-sync.title": "Synced with secrets.env",
   "admin.config.secrets-file-sync.description":
     "A secrets.env file is mounted on this instance. Secret fields below are also written to it, and the other way around — both stay in sync, kept separate from config.yaml so it can be permissioned tighter.",
+  "admin.config.file-sync-failed.title": "Failed to sync to file",
+  "admin.config.file-sync-failed.description":
+    "The changes below are saved and active, but could not be written to the file mounted on disk — on the next restart, that file will win and this change will be lost. Check its permissions, then save again here to force a fresh write. Technical detail: {error}",
   "admin.config.title": "Configuration",
   "admin.config.category.general": "General",
   "admin.config.category.share": "Share",

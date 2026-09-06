@@ -24,6 +24,7 @@ export type AdminConfig = Config & {
   allowEdit: boolean;
   mirroredToFile: boolean;
   mirroredToSecretsFile: boolean;
+  mirrorWriteError: string | null;
 };
 
 export type AdminConfigGroupedByCategory = {

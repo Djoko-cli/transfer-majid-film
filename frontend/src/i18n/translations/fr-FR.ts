@@ -654,6 +654,10 @@ export default {
   "admin.config.secrets-file-sync.title": "Synchronisé avec secrets.env",
   "admin.config.secrets-file-sync.description":
     "Un fichier secrets.env est monté sur cette instance. Les champs secrets ci-dessous y sont aussi écrits, et inversement — les deux restent synchronisés, séparément de config.yaml pour pouvoir lui appliquer des permissions plus strictes.",
+  "admin.config.file-sync-failed.title":
+    "Échec de synchronisation vers le fichier",
+  "admin.config.file-sync-failed.description":
+    "Les modifications ci-dessous sont bien enregistrées et actives, mais n'ont pas pu être écrites dans le fichier monté sur le disque — au prochain redémarrage, ce fichier reprendra le dessus et effacera ce changement. Vérifiez ses permissions, puis enregistrez à nouveau ici pour forcer une nouvelle écriture. Détail technique : {error}",
   "admin.config.title": "Paramètres",
   "admin.config.category.general": "Général",
   "admin.config.category.share": "Partage",

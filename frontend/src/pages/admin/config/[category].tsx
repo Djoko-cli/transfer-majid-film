@@ -15,7 +15,7 @@ import { useMediaQuery } from "@mantine/hooks";
 
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { TbInfoCircle } from "react-icons/tb";
+import { TbAlertTriangle, TbInfoCircle } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import Meta from "../../../components/Meta";
 import AdminConfigInput from "../../../components/admin/configuration/AdminConfigInput";
@@ -96,16 +96,15 @@ const AdminConfigPage: NextPageWithLayout = () => {
     if (updatedConfigVariables.length > 0) {
       await configService
         .updateMany(updatedConfigVariables)
-        .then(() => {
-          setConfigVariables((prev) =>
-            prev?.map((cv) => {
-              const updated = updatedConfigVariables.find(
-                (u) => u.key === cv.key,
-              );
-              return updated ? { ...cv, value: String(updated.value) } : cv;
-            }),
-          );
+        .then(async () => {
           setUpdatedConfigVariables([]);
+          // Re-fetched rather than patched in place from the response:
+          // mirrorWriteError reflects the shared state of one file
+          // (config.yaml or secrets.env), not a per-variable property, so
+          // patching only the rows that were actually edited could leave
+          // an untouched row on this same page showing a stale success
+          // or failure state until the next full page load.
+          setConfigVariables(await configService.getByCategory(categoryId));
           toast.success(t("admin.config.notify.success"));
         })
         .catch(toast.axiosError);
@@ -244,6 +243,24 @@ const AdminConfigPage: NextPageWithLayout = () => {
                         icon={<TbInfoCircle />}
                       >
                         <FormattedMessage id="admin.config.secrets-file-sync.description" />
+                      </Alert>
+                    )}
+                    {configVariables.some((cv) => cv.mirrorWriteError) && (
+                      <Alert
+                        mb={"lg"}
+                        variant="light"
+                        color="red"
+                        title={t("admin.config.file-sync-failed.title")}
+                        icon={<TbAlertTriangle />}
+                      >
+                        <FormattedMessage
+                          id="admin.config.file-sync-failed.description"
+                          values={{
+                            error: configVariables.find(
+                              (cv) => cv.mirrorWriteError,
+                            )?.mirrorWriteError,
+                          }}
+                        />
                       </Alert>
                     )}
                     <Title
