@@ -34,6 +34,13 @@ services:
       # slideshow's catalog current automatically. Same fixed-path,
       # host-mount-decides split as NAS_IMPORT_ROOT above.
       - MAJIDFILM_SOURCE_ROOT=/opt/app/backend/majidfilm-source
+      # Overrides the code's own defaults (../config.yaml, ../secrets.env
+      # relative to the backend's working directory) to point inside the
+      # directory mount below instead of at container paths that used to
+      # be their own individual bind mounts — see that mount's own
+      # comment for why a directory, not two files.
+      - CONFIG_FILE=/opt/app/config/config.yaml
+      - SECRETS_FILE=/opt/app/config/secrets.env
 
     volumes:
       # Unlike /opt/app/backend/data below, nothing auto-chowns this one
@@ -45,22 +52,43 @@ services:
       # their own comment), which is why it's spelled out here now.
       - /volume2/docker/transfer/db:/db
       - /volume1/Transfer:/opt/app/backend/data
-      # Mirrors the admin config panel: a change on either side (the file
-      # or the panel) is written to the other, live, no restart needed.
-      # /opt/app/config.yaml is where CONFIG_FILE resolves to by default
-      # (../config.yaml from the backend's own working directory) — the
-      # host file must already exist before `docker compose up` (a single-
-      # file bind mount over a path that doesn't exist yet gets created as
-      # a directory instead), and be writable by PUID:PGID above.
-      - /volume2/docker/transfer/config.yaml:/opt/app/config.yaml
-      # Secrets (SMTP/LDAP/S3/OAuth passwords and keys) — mirrored live in
-      # both directions exactly like config.yaml above, just as its own
-      # file (see secrets.env.example at the repo root for the full list)
-      # so it can be permissioned tighter, independently of the rest of
-      # the config. Same pre-existence and writability requirement as
-      # config.yaml above:
-      #   cp secrets.env.example secrets.env && chmod 600 secrets.env
-      - /volume2/docker/transfer/secrets.env:/opt/app/secrets.env
+      # Mirrors the admin config panel: a change on either side (a file or
+      # the panel) is written to the other, live, no restart needed. Both
+      # config.yaml and secrets.env (SMTP/LDAP/S3/OAuth passwords and
+      # keys — see secrets.env.example at the repo root for the full
+      # list) live in this one directory, not as two individual file
+      # mounts like this used to be:
+      #   - /volume2/docker/transfer/config.yaml:/opt/app/config.yaml
+      #   - /volume2/docker/transfer/secrets.env:/opt/app/secrets.env
+      # A single-file bind mount is pinned to the host inode it pointed
+      # at when the container started, not to the host path — a plain
+      # in-place write (this app's own admin-panel save, `fs.writeFileSync`)
+      # lands on that same inode and is fine, but any edit that replaces
+      # the file by writing a temp copy and renaming it over the original
+      # (vi, DSM's own Text Editor, most SMB/AFP clients saving over a
+      # network share, sed -i's default on macOS/BSD) swaps the host's
+      # directory entry to a brand-new inode while the running container
+      # keeps reading and writing the old, now-nameless one — invisible to
+      # anyone looking at the file on the NAS, silent for the app (no
+      # error, `fs.writeFileSync` just succeeds against the ghost), and
+      # only resolved by the next container restart re-establishing the
+      # mount fresh, at which point one side's changes since the swap are
+      # simply gone. This is exactly the class of bug Kubernetes' own
+      # ConfigMap volumes had to work around with an atomic symlink swap.
+      # A directory-to-directory bind mount doesn't have this failure
+      # mode: the mount point is the directory's inode, and a file inside
+      # it is re-resolved by a normal path lookup on every access, so a
+      # rename-swap of that file is immediately and correctly visible.
+      # Setup, once, before first start:
+      #   mkdir -p /volume2/docker/transfer/config
+      #   mv /volume2/docker/transfer/config.yaml /volume2/docker/transfer/config/config.yaml
+      #   cp secrets.env.example /volume2/docker/transfer/config/secrets.env && chmod 600 /volume2/docker/transfer/config/secrets.env
+      # (or move an existing secrets.env in the same way as config.yaml
+      # above, preserving its chmod 600). The directory itself just needs
+      # to be writable by PUID:PGID above — unlike the old single-file
+      # mounts, a missing directory here is created by Docker rather than
+      # silently mounted as the wrong type.
+      - /volume2/docker/transfer/config:/opt/app/config
       # Mounted read-only: the app only ever reads from here (creates
       # symlinks *into* the volume above, never writes here) — :ro makes
       # that true at the filesystem level too, so even a bug in the
