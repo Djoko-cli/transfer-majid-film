@@ -54,12 +54,44 @@ const signUp = async (email: string, username: string, password: string) => {
   return response;
 };
 
+// Read by the sign-in page (see wasRecentlySignedOut below) to greet
+// someone who just chose to leave and is now coming back differently
+// from a first-time or long-since visitor. localStorage rather than
+// sessionStorage: closing the tab right after signing out and reopening
+// the site a few minutes later is still, in spirit, "the person who
+// just left" — sessionStorage would have already forgotten them.
+const RECENT_SIGN_OUT_KEY = "lastSignOutAt";
+const RECENT_SIGN_OUT_WINDOW_MS = 30 * 60 * 1000;
+
 const signOut = async () => {
+  try {
+    localStorage.setItem(RECENT_SIGN_OUT_KEY, Date.now().toString());
+  } catch {
+    // Private browsing / storage disabled: the sign-in page just falls
+    // back to its default greeting, nothing else depends on this.
+  }
+
   const response = await api.post("/auth/signOut");
 
   if (URL.canParse(response.data?.redirectURI))
     window.location.href = response.data.redirectURI;
   else window.location.reload();
+};
+
+// A session that merely expired (the access and refresh tokens both
+// lapsing, or a stale cookie on a device that was never signed out on
+// deliberately) never calls signOut, so it never sets the marker above —
+// only an actual, chosen "Se déconnecter" does. That's the distinction
+// the sign-in page wants: "welcome back" only for someone who really did
+// just leave, not for anyone merely bounced here by a dead session.
+const wasRecentlySignedOut = (): boolean => {
+  try {
+    const raw = localStorage.getItem(RECENT_SIGN_OUT_KEY);
+    if (!raw) return false;
+    return Date.now() - parseInt(raw, 10) <= RECENT_SIGN_OUT_WINDOW_MS;
+  } catch {
+    return false;
+  }
 };
 
 const refreshAccessToken = async () => {
@@ -149,6 +181,7 @@ export default {
   forgetTrustedDevice,
   signUp,
   signOut,
+  wasRecentlySignedOut,
   refreshAccessToken,
   updatePassword,
   requestResetPassword,

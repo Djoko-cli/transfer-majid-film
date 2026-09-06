@@ -98,6 +98,14 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
   // network round trip, that call just fires alongside it.
   const [showStandardForm, setShowStandardForm] = useState(false);
   const [signingInTrusted, setSigningInTrusted] = useState(false);
+  // Starts false (matching what SSR already rendered, so hydration has
+  // nothing to reconcile) and only ever flips true from the effect below
+  // — localStorage doesn't exist during SSR, so this can't be read in the
+  // initial render itself. Deliberately not part of the trusted-device
+  // check above: that recognizes a specific remembered browser days or
+  // weeks on; this greets whoever is at the keyboard right after they
+  // themselves chose to leave, on any device, trusted or not.
+  const [recentSignOut, setRecentSignOut] = useState(false);
 
   const validationSchema = yup.object().shape({
     emailOrUsername: yup.string().required(t("common.error.field-required")),
@@ -186,6 +194,7 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
       .getTrustedDevice()
       .then(setTrustedDevice)
       .catch(() => setTrustedDevice({ recognized: false }));
+    setRecentSignOut(authService.wasRecentlySignedOut());
   }, []);
 
   if (!oauthProviders || trustedDevice === null) return null;
@@ -230,7 +239,9 @@ const SignInForm = ({ redirectPath }: { redirectPath: string }) => {
   return (
     <AuthGlassLayout>
       <Title order={2} align="center" weight={900}>
-        <FormattedMessage id="signin.title" />
+        <FormattedMessage
+          id={recentSignOut ? "signin.title.recent-signout" : "signin.title"}
+        />
       </Title>
       {config.get("share.allowRegistration") && (
         <Text color="dimmed" size="sm" align="center" mt={5}>

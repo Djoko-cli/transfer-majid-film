@@ -34,7 +34,8 @@ export default {
   // END /
 
   // /auth/signin
-  "signin.title": "Welcome back",
+  "signin.title": "Sign in",
+  "signin.title.recent-signout": "Welcome back",
   "signin.description": "You don't have an account yet?",
   "signin.button.signup": "Sign up",
   "signin.input.email-or-username": "Email or username",

@@ -30,7 +30,8 @@ export default {
   // END /
 
   // /auth/signin
-  "signin.title": "Content de vous revoir",
+  "signin.title": "Connexion",
+  "signin.title.recent-signout": "Content de vous revoir",
   "signin.description": "Vous n'avez pas encore de compte ?",
   "signin.button.signup": "S’inscrire",
   "signin.input.email-or-username": "Courriel ou nom d'utilisateur",
