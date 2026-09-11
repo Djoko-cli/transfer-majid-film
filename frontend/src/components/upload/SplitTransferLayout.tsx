@@ -119,7 +119,23 @@ const useStyles = createStyles((theme, { width }: { width: number }) => {
         // pass at this centering band did) left the total page a full
         // MOBILE_MENU_SPACER_HEIGHT taller than the real viewport, i.e.
         // exactly that much pointless scroll even at rest, compact card.
-        minHeight: `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px))`,
+        //
+        // --cookie-notice-clearance is subtracted for exactly the same
+        // reason, and was the other half of that same pointless scroll:
+        // _app.tsx already ADDS it to the page wrapper's own padding-
+        // bottom (so in-flow content clears the notice floating above the
+        // footer), but this band only ever subtracted --footer-height, so
+        // the two disagreed and the page came out precisely one notice
+        // taller than the viewport — measured at 106px on a 390px-wide
+        // phone, 124px on a 412px one, for every visitor who hadn't
+        // dismissed the notice yet. Subtracting it here makes the band
+        // the genuinely free space again: the card centres in what's left
+        // between the header and whatever is actually floating at the
+        // bottom, and the page total lands back on exactly 100dvh. Falls
+        // back to 0px once the notice is dismissed (see CookieNotice.tsx,
+        // which publishes 0px on unmount), so the band grows back on its
+        // own with no extra bookkeeping here.
+        minHeight: `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px))`,
         padding: `${CARD_MOBILE_VERTICAL_MARGIN}px ${CARD_MOBILE_SIDE_MARGIN}px`,
         // The spacer subtracted above is invisible flow space, not a
         // visual obstruction — BrandPanel's fixed photo backdrop shows

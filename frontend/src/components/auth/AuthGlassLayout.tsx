@@ -89,7 +89,14 @@ const useStyles = createStyles((theme) => {
         bottom: "auto",
         display: "flex",
         alignItems: "center",
-        minHeight: `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px))`,
+        // --cookie-notice-clearance subtracted for the same reason as
+        // --footer-height, and for the same reason SplitTransferLayout's
+        // own band subtracts it (see there): _app.tsx already adds it to
+        // the page wrapper's padding-bottom, so a band that doesn't
+        // subtract it makes the page exactly one notice taller than the
+        // viewport — pointless scroll on every auth page for any visitor
+        // who hasn't dismissed the notice yet. 0px once dismissed.
+        minHeight: `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px))`,
         padding: "40px 16px",
         transform: `translateY(-${MOBILE_MENU_SPACER_HEIGHT / 2}px)`,
       },

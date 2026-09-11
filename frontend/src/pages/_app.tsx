@@ -251,7 +251,29 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                         <>
                           <Stack
                             justify="space-between"
-                            sx={{ minHeight: "100vh" }}
+                            sx={{
+                              // 100vh is defined against the LARGE viewport —
+                              // the one a phone shows only once its browser
+                              // chrome has retracted — not the area actually
+                              // visible at rest. Measured live on iOS Safari
+                              // (iPhone 17): 100vh = 754px while the visible
+                              // viewport is 714px, so this floor alone made
+                              // every page exactly 40px taller than the screen
+                              // and left the whole app scrollable by that much
+                              // with nothing to scroll to. 100dvh tracks the
+                              // real, current visible viewport instead, which
+                              // is what "fill the screen" was always meant to
+                              // say. No feedback loop: a page that exactly
+                              // fills the visible area never scrolls, so the
+                              // chrome never retracts, so dvh never grows.
+                              // The 100vh below it stays as the fallback for
+                              // engines without dvh (Safari < 15.4, Chrome <
+                              // 108), where it keeps today's behaviour.
+                              minHeight: "100vh",
+                              "@supports (min-height: 100dvh)": {
+                                minHeight: "100dvh",
+                              },
+                            }}
                           >
                             <div
                               style={{
