@@ -75,6 +75,15 @@ const useStyles = createStyles((theme) => {
       // the scroll origin is the page's top, so overflow above it is not
       // reachable by scrolling and adds nothing to the range.
       height: "auto",
+      // min-height, not just `height: auto`: Mantine's own Header sets a
+      // height from its `height` prop, and with box-sizing: border-box a
+      // padding-top larger than that height collapses the content box to
+      // zero and leaves the BORDER box at just the padding — so the glass
+      // ended exactly at the top of the bar's own row, covering the status
+      // strip and stopping dead where the logo and nav begin, which is
+      // precisely the seam this fixes. min-height wins over height, so the
+      // box is the run plus the bar whoever else sets what.
+      minHeight: `calc(var(--runway-rise) + ${HEADER_HEIGHT}px)`,
       marginTop: "calc(-1 * var(--runway-rise))",
       paddingTop: "var(--runway-rise)",
     },
