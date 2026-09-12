@@ -142,6 +142,7 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
   const [bottomSlot, setBottomSlot] = useState<HTMLElement | null>(null);
   const appRef = useRef<HTMLDivElement | null>(null);
   const pageRef = useRef<HTMLDivElement | null>(null);
+  const runwayRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -256,16 +257,29 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
   // reason it does not appear here. These WebKit-only gesture events are the
   // one lever that has always worked.
   //
+  // Bound to the runway element, NOT to the document, so this refuses exactly
+  // what the stylesheet refuses and nothing more. That distinction is not
+  // theoretical: /share/[shareId] is a runway route, and the file preview it
+  // opens — an <img>, a <video>, an <audio> — is a Mantine modal, which
+  // portals into document.body (ModalBase defaults withinPortal: true) and is
+  // therefore NOT inside .runway. The stylesheet already left it alone; a
+  // document-level listener did not, and killed pinch-zoom on an image
+  // preview, which is the one place on these routes where someone genuinely
+  // wants to zoom. Gesture events bubble, so a pinch anywhere inside the
+  // runway still reaches this; one inside a portalled modal does not.
+  //
   // Non-passive listeners, necessarily: a passive listener cannot
   // preventDefault, which is the entire point.
   useEffect(() => {
     if (!isRunwayActive()) return;
+    const runway = runwayRef.current;
+    if (!runway) return;
     const block = (e: Event) => e.preventDefault();
     const events = ["gesturestart", "gesturechange", "gestureend"];
     for (const type of events)
-      document.addEventListener(type, block, { passive: false });
+      runway.addEventListener(type, block, { passive: false });
     return () => {
-      for (const type of events) document.removeEventListener(type, block);
+      for (const type of events) runway.removeEventListener(type, block);
     };
   }, []);
 
@@ -303,7 +317,7 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <div className="runway">
+    <div ref={runwayRef} className="runway">
       <div className="runway-backdrop" aria-hidden="true">
         <div
           ref={setBackdropSlot}
