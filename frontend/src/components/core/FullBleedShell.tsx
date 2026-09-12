@@ -141,6 +141,7 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
   const [topSlot, setTopSlot] = useState<HTMLElement | null>(null);
   const [bottomSlot, setBottomSlot] = useState<HTMLElement | null>(null);
   const appRef = useRef<HTMLDivElement | null>(null);
+  const pageRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -222,6 +223,63 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
     };
   }, [router.events]);
 
+  // Refuses to start a one-finger pan while the scroller has nothing to
+  // scroll — which removes the last movement left on this surface.
+  //
+  // .runway-page is deliberately one pixel taller than the scroller (see
+  // runway.style.tsx) so that .runway-app is always a scroll container:
+  // overscroll-behavior only applies to one, and WebKit only builds a
+  // scrolling node for a box with real scrollable overflow. Without that
+  // pixel a drag at rest falls through to the parked document, which has
+  // 760px of range, and the park yanks the whole photograph back. The pixel
+  // is worth it — but it is still a pixel of real, one-way travel, and what
+  // a finger notices is not the distance, it is that the surface answers and
+  // then refuses. That small catch was reported from the device.
+  //
+  // touch-action is resolved by intersecting the values along the ancestor
+  // chain, so refusing the pan here refuses it for the document too: the
+  // pixel cannot be travelled and the park cannot be reached.
+  //
+  // `pinch-zoom` rather than `none`: `none` would also kill two-finger zoom
+  // across the entire page, which is a far worse accessibility cost than the
+  // pixel it buys back. This value blocks single-finger panning only.
+  //
+  // Deliberately conservative — only 0 or 1px counts as "nothing to scroll".
+  // Getting it wrong the other way would refuse to scroll a page that
+  // genuinely needs it, which is not worth risking for this.
+  useEffect(() => {
+    if (!isRunwayActive()) return;
+    const app = appRef.current;
+    const page = pageRef.current;
+    if (!app) return;
+
+    const sync = () => {
+      const range = app.scrollHeight - app.clientHeight;
+      app.style.touchAction = range <= 1 ? "pinch-zoom" : "";
+    };
+    sync();
+
+    // No feedback loop to guard against: touch-action changes no geometry, so
+    // nothing this writes can re-trigger the observer that called it.
+    const observer = page ? new ResizeObserver(sync) : null;
+    if (page && observer) observer.observe(page);
+    // Height transitions (the advanced-options disclosure) settle after the
+    // observer has already fired on the intermediate sizes; this catches the
+    // final one.
+    document.addEventListener("transitionend", sync, true);
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+    window.visualViewport?.addEventListener("resize", sync);
+    return () => {
+      app.style.touchAction = "";
+      observer?.disconnect();
+      document.removeEventListener("transitionend", sync, true);
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+      window.visualViewport?.removeEventListener("resize", sync);
+    };
+  }, []);
+
   return (
     <div className="runway">
       <div className="runway-backdrop" aria-hidden="true">
@@ -236,7 +294,7 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
           it — see useTopBarSlot. */}
       <div ref={setTopSlot} className="runway-bar-slot" />
       <div ref={appRef} className="runway-app">
-        <div className="runway-page">
+        <div ref={pageRef} className="runway-page">
           <BackdropSlotContext.Provider value={active ? backdropSlot : null}>
             <TopBarSlotContext.Provider value={active ? topSlot : null}>
               <BottomBarSlotContext.Provider value={active ? bottomSlot : null}>
