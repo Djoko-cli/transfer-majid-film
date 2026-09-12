@@ -57,6 +57,28 @@ const CARD_MOBILE_AT_REST_HEIGHT = 380;
 // have taken their share. Written once and used twice below — as the
 // band's own min-height, and as the input to the gap that shrinks with
 // it — because the two must describe the same space to stay in step.
+// What this band CANNOT do, recorded here because it looks like a bug and
+// is not, and because the next person to measure it deserves the arithmetic
+// rather than the suspicion.
+//
+// On the two shortest viewports, and only while the cookie notice is still
+// showing, the page has real scroll range: 56px at 375x600, 106px at
+// 320x568. Every other size, and every size once the notice is dismissed,
+// is exactly zero. The reason is not an accounting error in this band — it
+// is that the content does not fit. At 320x568 with the notice up the band
+// is 568 - 60 header - 24 spacer - 54 footer - ~140 notice = ~290px, while
+// the at-rest card measures 380px and its vertical margin is already
+// clamped to its 8px floor. There is nothing left to give.
+//
+// A page that scrolls because it holds more than the screen is correct
+// behaviour, and a different thing entirely from the residual scroll this
+// band was built to remove — which was scroll that existed while everything
+// already fit. The levers that would close it are all worse than it: making
+// the notice stop costing band height puts the card under it and
+// unreachable (tried, shipped, reverted), and capping the card so it
+// scrolls internally trades a correct page scroll for a nested one whose
+// end comes to rest under the bars.
+//
 const MOBILE_BAND = `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px))`;
 
 // How the band settles when what's floating at the bottom of the screen
