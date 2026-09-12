@@ -30,6 +30,13 @@ const CARD_MOBILE_AT_REST_HEIGHT = 400;
 // two always describe the same space.
 const MOBILE_BAND = `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px))`;
 
+// How the band settles when the cookie notice appears or leaves — same
+// duration and easing as SplitTransferLayout's own (see there): without
+// it the band steps by a whole notice at once and the card, centred in
+// it, teleports half that distance.
+const BAND_SETTLE_MS = 300;
+const BAND_SETTLE_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
+
 // Same full-bleed brand-carousel background as the main transfer page (see
 // SplitTransferLayout), but the card floats centered instead of anchored
 // left — auth/account flows have no second "image stays visible" reason to
@@ -134,6 +141,13 @@ const useStyles = createStyles((theme) => {
         // gives way where the alternative was scrolling the page past a
         // margin.
         padding: `clamp(${CARD_MOBILE_MIN_VERTICAL_MARGIN}px, calc((${MOBILE_BAND} - ${CARD_MOBILE_AT_REST_HEIGHT}px) / 2), ${CARD_MOBILE_VERTICAL_MARGIN}px) ${CARD_MOBILE_SIDE_MARGIN}px`,
+        // Lets the card travel to its new centre when the notice comes or
+        // goes, instead of stepping there — see SplitTransferLayout's own
+        // matching transition for the fuller reasoning.
+        transition: `min-height ${BAND_SETTLE_MS}ms ${BAND_SETTLE_EASING}, padding ${BAND_SETTLE_MS}ms ${BAND_SETTLE_EASING}`,
+        "@media (prefers-reduced-motion: reduce)": {
+          transition: "none",
+        },
         transform: `translateY(-${MOBILE_MENU_SPACER_HEIGHT / 2}px)`,
       },
     },

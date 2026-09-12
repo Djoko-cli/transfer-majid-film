@@ -59,6 +59,15 @@ const CARD_MOBILE_AT_REST_HEIGHT = 380;
 // it — because the two must describe the same space to stay in step.
 const MOBILE_BAND = `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px))`;
 
+// How the band settles when what's floating at the bottom of the screen
+// appears or leaves (today: the cookie notice). Matches the card's own
+// Collapse duration in UploadPage, and the easing this codebase already
+// uses wherever something travels to a new resting place (BrandPanel's
+// slides, LanguageToggle's thumb) — a strong ease-out, so the card leaves
+// immediately and eases into position rather than drifting the whole way.
+const BAND_SETTLE_MS = 300;
+const BAND_SETTLE_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
+
 const useStyles = createStyles((theme, { width }: { width: number }) => {
   const dark = theme.colorScheme === "dark";
 
@@ -191,6 +200,22 @@ const useStyles = createStyles((theme, { width }: { width: number }) => {
         // from a plain 40px; it only gives way on the screens where the
         // alternative was scrolling the whole page past a margin.
         padding: `clamp(${CARD_MOBILE_MIN_VERTICAL_MARGIN}px, calc((${MOBILE_BAND} - ${CARD_MOBILE_AT_REST_HEIGHT}px) / 2), ${CARD_MOBILE_VERTICAL_MARGIN}px) ${CARD_MOBILE_SIDE_MARGIN}px`,
+        // Both values above are read off --cookie-notice-clearance, so
+        // both step the moment the cookie notice unmounts and publishes
+        // 0px — the band grows by a whole notice at once and the card,
+        // centred in it, teleports half that distance down. Measured on
+        // the real phone: a ~53px jump landing inside a single frame,
+        // right after the notice had finished fading, which reads as the
+        // card being knocked rather than settling. Transitioning the two
+        // properties that actually changed lets the card travel that
+        // distance instead, on one box, with no JS, no measurement and
+        // nothing to keep in sync — the same duration as the card's own
+        // Collapse (UploadPage) so a disclosure and a re-centre that
+        // happen to coincide move together rather than at two speeds.
+        transition: `min-height ${BAND_SETTLE_MS}ms ${BAND_SETTLE_EASING}, padding ${BAND_SETTLE_MS}ms ${BAND_SETTLE_EASING}`,
+        "@media (prefers-reduced-motion: reduce)": {
+          transition: "none",
+        },
         // The spacer subtracted above is invisible flow space, not a
         // visual obstruction — BrandPanel's fixed photo backdrop shows
         // straight through it. So centering the card *within* this
