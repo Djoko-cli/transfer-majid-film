@@ -1,5 +1,22 @@
 import { Anchor, useMantineTheme } from "@mantine/core";
 import Markdown from "markdown-to-jsx";
+import { ComponentPropsWithoutRef } from "react";
+
+// A Markdown table is the one element an admin can author that has no upper
+// width: enough columns, or one long cell, and it pushes the whole document
+// wider than the screen. That does not read as a wide table, it reads as a
+// broken page — every paragraph gains a horizontal scrollbar and the text
+// runs off the edge. Measured on the privacy page at 498px of table against
+// a 390px phone.
+//
+// Wrapping it lets the table keep its natural width and scroll inside its
+// own box, which is the rule this codebase already follows everywhere wide
+// content meets a narrow screen: the page body never scrolls sideways.
+const ScrollableTable = (props: ComponentPropsWithoutRef<"table">) => (
+  <div className="md-table-scroll">
+    <table {...props} />
+  </div>
+);
 
 // The one rendering path for admin-authored legal Markdown (imprintText /
 // privacyPolicyText) — used by both public pages (pages/imprint,
@@ -27,6 +44,7 @@ const LegalMarkdown = ({ content }: { content: string }) => {
             },
           },
           table: {
+            component: ScrollableTable,
             props: {
               className: "md",
             },

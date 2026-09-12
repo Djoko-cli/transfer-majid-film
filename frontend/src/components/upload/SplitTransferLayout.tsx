@@ -281,6 +281,18 @@ const useStyles = createStyles((theme, { width }: { width: number }) => {
       [theme.fn.smallerThan("sm")]: {
         height: "auto",
         maxHeight: "none",
+        // With no cap and an auto height the card always fits its own
+        // content exactly, so the inherited `overflow-y: auto` above had no
+        // range to scroll and never could: a scroll container in name only.
+        // Left alone it is a trap rather than a safety net — the day
+        // something does make this box overflow, it would scroll INSIDE the
+        // card instead of moving the page, and the content would come to
+        // rest under the bars rather than in the visible band. An audit
+        // flagged it; measuring it (as "sans scroll carte", against the real
+        // app on the device) showed it changes nothing today, which is
+        // exactly why it is safe to remove now rather than after it starts
+        // mattering.
+        overflowY: "visible",
         padding: theme.spacing.md,
       },
     },

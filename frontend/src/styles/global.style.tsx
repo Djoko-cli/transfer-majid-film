@@ -38,6 +38,14 @@ const GlobalStyle = () => {
           paddingLeft: "0.5em",
           paddingRight: "0.5em",
         },
+        // See LegalMarkdown's ScrollableTable for why this exists. maxWidth
+        // is what actually does the work: without it the wrapper simply
+        // grows to its content and takes the page with it, and overflow-x
+        // never gets anything to hide.
+        ".md-table-scroll": {
+          maxWidth: "100%",
+          overflowX: "auto",
+        },
       })}
     />
   );
