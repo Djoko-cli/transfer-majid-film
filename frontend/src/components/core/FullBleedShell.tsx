@@ -240,13 +240,35 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
   // chain, so refusing the pan here refuses it for the document too: the
   // pixel cannot be travelled and the park cannot be reached.
   //
-  // `pinch-zoom` rather than `none`: `none` would also kill two-finger zoom
-  // across the entire page, which is a far worse accessibility cost than the
-  // pixel it buys back. This value blocks single-finger panning only.
+  // `none` rather than `pinch-zoom`. This started as pinch-zoom precisely to
+  // keep two-finger zoom alive, but the runway now refuses zoom outright
+  // (see .runway's touch-action in runway.style.tsx and the gesture handlers
+  // below), so the distinction no longer buys anything and the weaker value
+  // would only suggest a capability this surface does not have.
   //
   // Deliberately conservative — only 0 or 1px counts as "nothing to scroll".
   // Getting it wrong the other way would refuse to scroll a page that
   // genuinely needs it, which is not worth risking for this.
+  // Belt and braces with .runway's touch-action. iOS Safari has a long
+  // history of honouring touch-action inconsistently for zoom specifically —
+  // and it has ignored the viewport meta tag's user-scalable=no outright
+  // since iOS 10, which is the approach most answers still recommend and the
+  // reason it does not appear here. These WebKit-only gesture events are the
+  // one lever that has always worked.
+  //
+  // Non-passive listeners, necessarily: a passive listener cannot
+  // preventDefault, which is the entire point.
+  useEffect(() => {
+    if (!isRunwayActive()) return;
+    const block = (e: Event) => e.preventDefault();
+    const events = ["gesturestart", "gesturechange", "gestureend"];
+    for (const type of events)
+      document.addEventListener(type, block, { passive: false });
+    return () => {
+      for (const type of events) document.removeEventListener(type, block);
+    };
+  }, []);
+
   useEffect(() => {
     if (!isRunwayActive()) return;
     const app = appRef.current;
@@ -255,7 +277,7 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
 
     const sync = () => {
       const range = app.scrollHeight - app.clientHeight;
-      app.style.touchAction = range <= 1 ? "pinch-zoom" : "";
+      app.style.touchAction = range <= 1 ? "none" : "";
     };
     sync();
 

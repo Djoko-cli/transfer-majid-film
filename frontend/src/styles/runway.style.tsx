@@ -112,6 +112,21 @@ const RunwayStyle = () => {
               display: "block",
               position: "relative",
               height: "calc(var(--runway-park) + 100dvh + var(--runway-bleed))",
+              // Panning yes, zooming no. Every dimension here is derived from
+              // 100dvh and from a document held at scrollY = --runway-park;
+              // a pinch changes the visual viewport underneath all of it, so
+              // the park fires, the centring band recomputes, and the whole
+              // arrangement visibly scrabbles. Reported from the device as
+              // "resizes bizarres et glitchs", and it is not a gesture this
+              // surface has any use for: one card, no fine print, no map.
+              //
+              // Scoped to the runway on purpose. The legal pages are long
+              // Markdown meant to be read and are deliberately NOT runway
+              // routes (see runwayRoutes.util.ts), so zoom stays exactly
+              // where it earns its keep. Disabling it is a real
+              // accessibility cost (WCAG 1.4.4) and it is being paid here
+              // only, knowingly.
+              touchAction: "pan-x pan-y",
             },
 
             // Same origin, and the same reason for it: neither is fixed nor
