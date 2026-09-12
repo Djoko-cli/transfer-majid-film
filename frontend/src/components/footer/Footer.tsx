@@ -116,7 +116,19 @@ const useStyles = createStyles((theme) => {
     // once centered.
     legalLink: {
       [theme.fn.smallerThan(700)]: {
+        // `block` is what puts one link per line, but a block fills its
+        // container — so each link's clickable box ran the full width of
+        // the footer while only the centred text looked like a link, and a
+        // tap anywhere on that row, far left or far right, navigated.
+        // Reported from the device. fit-content shrinks the box back to the
+        // words themselves; the auto margins are what keep it centred once
+        // it no longer fills the row (textAlign on the parent can only
+        // centre the text INSIDE a full-width box, which is exactly how the
+        // two came to disagree).
         display: "block",
+        width: "fit-content",
+        marginLeft: "auto",
+        marginRight: "auto",
         marginTop: 2,
       },
     },
