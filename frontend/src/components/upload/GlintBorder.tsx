@@ -19,47 +19,41 @@ const useStyles = createStyles((theme: any) => {
       inset: -1,
       padding: 2,
       borderRadius: "inherit",
-      // This used to also carry `filter: blur(2px) drop-shadow(0 0 6px
-      // accent)`. It was removed, but NOT for the reason the first version
-      // of this comment claimed, and the record matters more than the
-      // change does.
+      // The filter below was removed for a day and then put back, and the
+      // round trip is worth recording because the reasoning that removed it
+      // was persuasive and wrong.
       //
-      // The claim was that the filter cost ~95% of the page's frame budget,
-      // on the reasoning that a filter is computed over the element's whole
-      // box BEFORE the mask clips it — so the browser would blur and bloom a
-      // 363x1064 rectangle every frame to show 2px of it. The reasoning is
-      // sound and the numbers were real: 110ms per frame with the filter,
-      // 18ms without. They were also worthless. They came from Playwright's
-      // headless WebKit, which rasterises in SOFTWARE and has no GPU path
-      // for a conic-gradient or a filter, so it charged full price for both.
+      // The claim was that it cost ~95% of this page's frame budget: a
+      // filter is computed over the element's whole box BEFORE the mask
+      // clips it, so the browser would blur and bloom a 363x1064 rectangle
+      // every frame to put 2px of it on screen. The mechanism is real. The
+      // numbers behind it were not — 110ms per frame with the filter, 18ms
+      // without, measured in Playwright's headless WebKit, which rasterises
+      // in SOFTWARE and has no GPU path for either a conic-gradient or a
+      // filter. It charged full price for both. Those numbers describe that
+      // harness and nothing else.
       //
-      // Re-measured on the iOS Simulator, which renders through the Mac's
-      // real GPU, with a standalone page reproducing this ring, this card's
-      // backdrop-filter and a real photograph behind it, toggling only this
-      // one declaration: 17.0ms per frame / 59fps WITH the filter, and
-      // 17.0ms / 59fps WITHOUT it. Identical. On hardware that accelerates
-      // filters — which is every device this app ships to — it cost nothing
-      // measurable. The user reported seeing no difference, and they were
-      // right.
+      // On real hardware the declaration is free. Measured on the iOS
+      // Simulator, which renders through a real GPU, with a standalone page
+      // reproducing this ring, the card's backdrop-filter and a photograph
+      // behind it, toggling only this one line: 17.0ms / 59fps with it,
+      // 17.0ms / 59fps without. Identical. Confirmed independently from a
+      // screen recording of the real phone, where the frame cadence holds a
+      // steady 16.7ms throughout.
       //
-      // It stays removed only because it was also very nearly invisible: the
-      // drop-shadow's 6px bloom was painted outside the 2px ring and then
-      // clipped away by the mask below (CSS applies filters before masking),
-      // so it never reached the screen at all, and the blur only smeared the
-      // band's own 2px radial profile. Verified as a pixel diff of the
-      // isolated ring at four deterministic sweep angles, with the
-      // photograph and the card's own glass held out of the comparison:
-      // 0.2-0.3% RMSE. Removing it is a wash; putting it back would also be
-      // a wash. Do not re-add it expecting to see anything, and do not
-      // remove anything else here expecting to gain frames.
+      // So it comes back, by preference, since it costs nothing to keep. Two
+      // things follow for whoever reads this next. Do not remove it for
+      // performance; that experiment has been run. And do not trust a paint
+      // or compositing number from headless WebKit on this codebase at all —
+      // for anything that touches filters, gradients or backdrop-filter, the
+      // simulator with an on-screen readout is the harness that works.
       //
-      // The stops below are UNCHANGED. A first attempt widened them — a
-      // low-alpha lead-in at 34deg and a two-step fade to 90deg — on the
-      // theory that the blur had been softening the comet's head and tail.
-      // The same pixel diff said otherwise: it made the comet visibly LONGER
-      // and harder, a bright line across the whole top edge instead of a
-      // glint. At this radius 2px of blur is ~0.6 degrees of arc; it was
-      // never doing angular work to replace.
+      // (What it actually contributes visually is small: the drop-shadow's
+      // 6px bloom is painted outside the 2px ring and then clipped away by
+      // the mask below, so it never reaches the screen, and the blur only
+      // smears the band's own 2px radial profile — 0.2-0.3% RMSE against no
+      // filter, over four deterministic sweep angles with the photograph and
+      // the card's glass held out of the comparison. Small, not nothing.)
       //
       background: `conic-gradient(from var(--glint-angle),
         transparent 0deg,
@@ -73,6 +67,7 @@ const useStyles = createStyles((theme: any) => {
         "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
       WebkitMaskComposite: "xor",
       maskComposite: "exclude",
+      filter: `blur(2px) drop-shadow(0 0 6px ${accent})`,
       pointerEvents: "none",
       animation: "glintSpin 6.5s linear infinite",
 
