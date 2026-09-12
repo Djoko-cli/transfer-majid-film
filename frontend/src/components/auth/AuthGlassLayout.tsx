@@ -8,6 +8,28 @@ import glassFormTheme from "../upload/glassFormTheme";
 
 const CARD_RADIUS = 28;
 
+// Mobile breathing room around the centered card — preferred, minimum,
+// and the nominal card height the first gives way against. Same mechanism
+// and same reasoning as SplitTransferLayout's own trio (see the fuller
+// comments there): a hard top+bottom margin is height the card's floor
+// carries into the page whether the screen can spare it or not, and
+// min-height can only grow a box, so on a short screen that margin alone
+// makes the page scroll. The nominal height is the taller of the two auth
+// forms as measured at rest (sign-up 400px, sign-in 388px) — it only
+// decides when the gap starts giving way, so erring high just means
+// shedding margin a little early.
+const CARD_MOBILE_VERTICAL_MARGIN = 40;
+const CARD_MOBILE_MIN_VERTICAL_MARGIN = 8;
+const CARD_MOBILE_SIDE_MARGIN = 16;
+const CARD_MOBILE_AT_REST_HEIGHT = 400;
+
+// The visible band the mobile card is centered in — the viewport minus
+// the fixed header, the header's in-flow mobile menu spacer, the fixed
+// footer, and whatever floats above it. Written once, used as both the
+// band's min-height and the input to the gap that shrinks with it, so the
+// two always describe the same space.
+const MOBILE_BAND = `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px))`;
+
 // Same full-bleed brand-carousel background as the main transfer page (see
 // SplitTransferLayout), but the card floats centered instead of anchored
 // left — auth/account flows have no second "image stays visible" reason to
@@ -96,8 +118,14 @@ const useStyles = createStyles((theme) => {
         // subtract it makes the page exactly one notice taller than the
         // viewport — pointless scroll on every auth page for any visitor
         // who hasn't dismissed the notice yet. 0px once dismissed.
-        minHeight: `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px))`,
-        padding: "40px 16px",
+        minHeight: MOBILE_BAND,
+        // Half of whatever the band has left once the card has taken its
+        // share, capped at the preferred gap and floored at the minimum
+        // one — see the constants above. Resolves to the cap on any phone
+        // with room to spare, so nothing changes visually there; it only
+        // gives way where the alternative was scrolling the page past a
+        // margin.
+        padding: `clamp(${CARD_MOBILE_MIN_VERTICAL_MARGIN}px, calc((${MOBILE_BAND} - ${CARD_MOBILE_AT_REST_HEIGHT}px) / 2), ${CARD_MOBILE_VERTICAL_MARGIN}px) ${CARD_MOBILE_SIDE_MARGIN}px`,
         transform: `translateY(-${MOBILE_MENU_SPACER_HEIGHT / 2}px)`,
       },
     },

@@ -22,12 +22,42 @@ const CARD_VERTICAL_MARGIN = 24;
 // visible around it.
 const CARD_MOBILE_SIDE_MARGIN = 16;
 // Mobile's own equivalent of CARD_VERTICAL_MARGIN above: not a fixed
-// offset, but the *guaranteed minimum* top/bottom gap once cardSlot
-// centers the card within the header-to-footer band (see cardSlot's
-// mobile rule below) — only visibly binds when the card is tall enough
-// (post file-selection) to nearly fill that band; a compact at-rest card
-// gets a much larger gap for free from the centering itself.
+// offset, but the *preferred* top/bottom gap once cardSlot centers the
+// card within the header-to-footer band (see cardSlot's mobile rule
+// below) — only visibly binds when the card is tall enough (post
+// file-selection) to nearly fill that band; a compact at-rest card gets
+// a much larger gap for free from the centering itself.
 const CARD_MOBILE_VERTICAL_MARGIN = 40;
+// ...but preferred, not guaranteed, which is the whole point: a hard
+// 40px top AND bottom is 80px the card's own floor carries into the page
+// whether the screen can spare it or not. min-height can only ever grow
+// a box, so once the band gets shorter than card + 80, the band stops
+// binding, the page locks at that floor and scrolls — 80px of decorative
+// margin forcing exactly the pointless scroll the band exists to
+// prevent. Measured: 40px of scroll on an iPhone 17 while the cookie
+// notice was up, 57px at 375x600, 89px at 320x568. Below this floor the
+// gap gives way instead, down to 8px — small enough to buy back every
+// case that can be bought back, big enough that the card never sits
+// flush against the notice or the menu spacer in the cases that
+// genuinely cannot fit.
+const CARD_MOBILE_MIN_VERTICAL_MARGIN = 8;
+// Roughly how tall the at-rest card is, and the only part of this that
+// CSS cannot measure for itself: the gap is half of whatever the band
+// has left over after the card, and nothing in CSS can read the card's
+// own height from its parent. Deliberately a plain approximation rather
+// than a ResizeObserver — drift is graceful in both directions (a taller
+// real card just starts shedding margin slightly late, a shorter one
+// slightly early, neither breaks anything), and measuring it live would
+// mean a box whose height feeds a parent that feeds the box back.
+const CARD_MOBILE_AT_REST_HEIGHT = 380;
+
+// The visible band the mobile card is centered in: everything the
+// viewport has left once the fixed header, the header's own in-flow
+// mobile menu spacer, the fixed footer and whatever is floating above it
+// have taken their share. Written once and used twice below — as the
+// band's own min-height, and as the input to the gap that shrinks with
+// it — because the two must describe the same space to stay in step.
+const MOBILE_BAND = `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px))`;
 
 const useStyles = createStyles((theme, { width }: { width: number }) => {
   const dark = theme.colorScheme === "dark";
@@ -135,8 +165,14 @@ const useStyles = createStyles((theme, { width }: { width: number }) => {
         // back to 0px once the notice is dismissed (see CookieNotice.tsx,
         // which publishes 0px on unmount), so the band grows back on its
         // own with no extra bookkeeping here.
-        minHeight: `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px))`,
-        padding: `${CARD_MOBILE_VERTICAL_MARGIN}px ${CARD_MOBILE_SIDE_MARGIN}px`,
+        minHeight: MOBILE_BAND,
+        // Half of whatever the band has left over once the card has taken
+        // its share, capped at the preferred gap and floored at the
+        // minimum one (see both constants above). On any phone with room
+        // to spare this resolves to the cap and nothing changes visually
+        // from a plain 40px; it only gives way on the screens where the
+        // alternative was scrolling the whole page past a margin.
+        padding: `clamp(${CARD_MOBILE_MIN_VERTICAL_MARGIN}px, calc((${MOBILE_BAND} - ${CARD_MOBILE_AT_REST_HEIGHT}px) / 2), ${CARD_MOBILE_VERTICAL_MARGIN}px) ${CARD_MOBILE_SIDE_MARGIN}px`,
         // The spacer subtracted above is invisible flow space, not a
         // visual obstruction — BrandPanel's fixed photo backdrop shows
         // straight through it. So centering the card *within* this
