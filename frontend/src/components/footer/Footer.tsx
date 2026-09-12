@@ -7,7 +7,7 @@ import {
 } from "@mantine/core";
 import { useRouter } from "next/router";
 import { createPortal } from "react-dom";
-import { useBottomBarSlot } from "../core/FullBleedShell";
+import { RUNWAY_BLEED_PX, useBottomBarSlot } from "../core/FullBleedShell";
 import { Fragment, useEffect, useRef } from "react";
 import { APP_NAME } from "../../constants";
 import useConfig from "../../hooks/config.hook";
@@ -151,9 +151,25 @@ const Footer = () => {
     if (!el) return;
 
     const publishHeight = () => {
+      const raw = el.offsetHeight;
+      // Never publish 0. Moving this bar into the runway's slot changes the
+      // portal container, which makes React unmount and remount it — and the
+      // detached node's own ResizeObserver can still deliver one last
+      // callback reporting 0, after the remounted bar has already published
+      // its real height. That stale 0 then sticks, and every consumer reads
+      // it: the page reserves nothing for the footer, and the card's
+      // centring band runs a whole footer too tall, so the card sits ~47px
+      // low and tall content ends up cut off behind the bar. A footer is
+      // never 0 tall; a 0 here only ever means "not laid out".
+      if (!raw) return;
+      // Anchored, the bar carries --runway-bleed as padding so its glass
+      // reaches past the screen (see rootAnchored). offsetHeight therefore
+      // includes that run, which is not height any reader sees and not
+      // height anything should reserve — subtract it back out.
+      const height = bottomSlot ? Math.max(0, raw - RUNWAY_BLEED_PX) : raw;
       document.documentElement.style.setProperty(
         "--footer-height",
-        `${el.offsetHeight}px`,
+        `${height}px`,
       );
     };
     publishHeight();
@@ -161,7 +177,7 @@ const Footer = () => {
     const observer = new ResizeObserver(publishHeight);
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [bottomSlot]);
   // Built as a list rather than three separate hasX booleans (the shape
   // this had with just imprint/privacy) - a fixed pairwise "hasA && hasB"
   // separator check doesn't scale past two optional links without an

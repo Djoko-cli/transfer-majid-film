@@ -39,6 +39,11 @@ export const useBottomBarSlot = () => useContext(BottomBarSlotContext);
 // one of them.
 export const RUNWAY_PARK_PX = 120;
 
+// Must match --runway-bleed in runway.style.tsx. Exported because an
+// anchored bottom bar carries this as padding, so anything measuring that
+// bar's height has to subtract it to get the height a reader sees.
+export const RUNWAY_BLEED_PX = 640;
+
 // Must stay in lockstep with runway.style.tsx's own gate, which is why both
 // spell out the same three tests. -webkit-touch-callout is iOS/iPadOS WebKit
 // only; the coarse pointer keeps macOS Safari out even if it ever starts
