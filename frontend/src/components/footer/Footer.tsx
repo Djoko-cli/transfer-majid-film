@@ -29,6 +29,18 @@ const useStyles = createStyles((theme) => {
     // native fill that produced the black band below it.
     rootAnchored: {
       position: "static",
+      // Keeps its resting padding and extends its BOX through the bleed, so
+      // the glass reaches the bottom of the screen and Safari's own glass
+      // sits on it. Without this the band stops at the screen edge, the
+      // photograph shows through below it, and the page reads as cut short
+      // above the toolbar rather than running off the screen. `py={6}` on
+      // the element is replaced rather than added to — see pb={0} at the
+      // call site, which drops Mantine's `py` prop entirely when anchored:
+      // that prop's own class wins over this one, and with it in place the
+      // padding below never applied — the whole bar ended up its own height
+      // below the screen and simply vanished.
+      paddingTop: 6,
+      paddingBottom: "calc(6px + var(--runway-bleed))",
     },
 
     root: {
@@ -183,7 +195,7 @@ const Footer = () => {
       ref={footerRef}
       fixed={!bottomSlot}
       height="auto"
-      py={6}
+      {...(bottomSlot ? {} : { py: 6 })}
       px="xl"
       zIndex={100}
       className={cx(classes.root, { [classes.rootAnchored]: !!bottomSlot })}

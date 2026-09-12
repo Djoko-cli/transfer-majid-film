@@ -68,6 +68,22 @@ const useStyles = createStyles((theme) => {
     // it, so nothing moves visually.
     rootAnchored: {
       position: "static",
+      // The box runs --runway-rise above the page so its glass reaches up
+      // under the status bar; the matching padding puts the content back
+      // down by exactly as much, so the logo and the nav come to rest where
+      // they always did whatever the run is set to. The run itself is free:
+      // the scroll origin is the page's top, so overflow above it is not
+      // reachable by scrolling and adds nothing to the range.
+      height: "auto",
+      marginTop: "calc(-1 * var(--runway-rise))",
+      paddingTop: "var(--runway-rise)",
+    },
+
+    // `.header` is height: 100%, which resolves to nothing once the root
+    // above goes height: auto — so the bar's own row needs its height
+    // spelled out again here.
+    headerAnchored: {
+      height: HEADER_HEIGHT,
     },
 
     root: {
@@ -580,7 +596,12 @@ const Header = () => {
             [classes.rootAnchored]: !!topSlot,
           })}
         >
-          <Container fluid className={classes.header}>
+          <Container
+            fluid
+            className={cx(classes.header, {
+              [classes.headerAnchored]: !!topSlot,
+            })}
+          >
             <Link href="/" passHref>
               <Group>
                 <Logo height={35} width={35} />

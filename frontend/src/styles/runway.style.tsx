@@ -180,13 +180,19 @@ const RunwayStyle = () => {
               zIndex: 20,
             },
 
-            // The bottom bar's own slot, pinned to the end of the runway box
-            // — which is one screen below the park, i.e. the bottom edge of
-            // the screen.
+            // The bottom bar's own slot, pinned to the very END of the
+            // runway box — a bleed BELOW the screen, not at its edge. The
+            // bar then carries that same bleed as padding, so its content
+            // comes to rest exactly where `fixed; bottom: 0` put it while
+            // its glass continues past the screen and Safari's own toolbar
+            // sits on it. A negative margin is what the in-flow variant of
+            // this band uses to give the height back; here there is nothing
+            // to give back, and a negative bottom margin on a box pinned by
+            // `bottom` would simply push it off the screen. Padding alone.
             ".runway-foot-slot": {
               display: "block",
               position: "absolute",
-              bottom: "var(--runway-bleed)",
+              bottom: 0,
               left: 0,
               right: 0,
               zIndex: 20,
