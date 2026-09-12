@@ -241,7 +241,19 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
             <GlobalStyle />
             <RunwayStyle />
             <Notifications />
-            <ModalsProvider>
+            <ModalsProvider
+              // Mantine's scroll lock sets `position: relative` and
+              // `overflow: hidden` on the body and, in 6.0.21, captures
+              // scrollTop on lock but never reads it back on unlock — the
+              // restore is dead code. Under the runway that is not a
+              // cosmetic bug: locking unparks the document, so opening any
+              // modal drops the photograph out from under the bars and
+              // closing it does not put it back. Dropped on the runway
+              // routes only, where the page has no scroll of its own to
+              // lock anyway (the scrolling lives in the shell's inner
+              // scroller, which the modal overlay covers regardless).
+              modalProps={runway ? { lockScroll: false } : undefined}
+            >
               <LanguageContext.Provider value={{ language, switchLanguage }}>
                 <ConfigContext.Provider
                   value={{

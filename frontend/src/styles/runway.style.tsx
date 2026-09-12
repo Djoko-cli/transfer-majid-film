@@ -180,6 +180,17 @@ const RunwayStyle = () => {
               zIndex: 20,
             },
 
+            // The bars sit OUTSIDE the scroller, so a drag that starts on
+            // one has no scrollable ancestor but the document — which is
+            // parked, and which the park effect then yanks back. The result
+            // is a visible lurch every time a finger lands on the header or
+            // the footer and moves. Taps are unaffected; only panning from
+            // these two boxes is refused, which is what a bar that does not
+            // scroll should do anyway.
+            ".runway-bar-slot, .runway-foot-slot": {
+              touchAction: "none",
+            },
+
             // The bottom bar's own slot, pinned to the very END of the
             // runway box — a bleed BELOW the screen, not at its edge. The
             // bar then carries that same bleed as padding, so its content

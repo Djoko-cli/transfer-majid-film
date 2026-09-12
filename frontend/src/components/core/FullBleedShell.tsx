@@ -1,3 +1,4 @@
+import { useRouter } from "next/router";
 import {
   createContext,
   ReactNode,
@@ -135,6 +136,7 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
   const [topSlot, setTopSlot] = useState<HTMLElement | null>(null);
   const [bottomSlot, setBottomSlot] = useState<HTMLElement | null>(null);
   const appRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!isRunwayActive()) return;
@@ -183,6 +185,19 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
       deferred = window.setTimeout(park, 0);
     };
 
+    // Next's Pages router scrolls the WINDOW to 0 on every client
+    // navigation (scroll: true is the default and nothing here opts out),
+    // which unparks the document and makes the whole photograph jump before
+    // the park pulls it back. It also never touches the inner scroller, so
+    // a new page could open already scrolled to wherever the last one was
+    // left. Both are handled in one place, on the same event.
+    const onRouteChange = () => {
+      const app = appRef.current;
+      if (app) app.scrollTop = 0;
+      park();
+    };
+    router.events.on("routeChangeComplete", onRouteChange);
+
     park();
     window.addEventListener("scroll", park, { passive: true });
     window.addEventListener("pageshow", park);
@@ -191,6 +206,7 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
     document.addEventListener("focusout", parkSoon);
     window.visualViewport?.addEventListener("resize", park);
     return () => {
+      router.events.off("routeChangeComplete", onRouteChange);
       window.clearTimeout(deferred);
       window.removeEventListener("scroll", park);
       window.removeEventListener("pageshow", park);
@@ -199,7 +215,7 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
       document.removeEventListener("focusout", parkSoon);
       window.visualViewport?.removeEventListener("resize", park);
     };
-  }, []);
+  }, [router.events]);
 
   return (
     <div className="runway">
