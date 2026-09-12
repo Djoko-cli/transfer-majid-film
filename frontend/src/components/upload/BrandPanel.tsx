@@ -7,7 +7,13 @@ import {
   createStyles,
   useMantineTheme,
 } from "@mantine/core";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { FormattedMessage } from "react-intl";
 import { TbPlayerPause, TbPlayerPlay } from "react-icons/tb";
 import { PROJECTS } from "../../data/brandProjects";
@@ -90,6 +96,51 @@ const STATIC_SLIDES: BrandSlide[] = PROJECTS.flatMap((project) => {
     source: "static" as const,
   }));
 });
+
+const slideKey = (slide: { slug: string; still: number }) =>
+  `${slide.slug}-s${slide.still}`;
+
+// The bundled fallback, addressable two ways: by exact key, and by project.
+// Both are needed. Measured against the live catalog: of 407 synced slides
+// only 106 — 26% — have a still with the same number in the bundled set,
+// because the sync records every still majid.film publishes while the
+// bundle carries a curated handful. Exact-match-only would therefore have
+// rescued a quarter of them and left the rest black, which is most of the
+// point of having a fallback at all. Every synced project does have SOME
+// bundled still, so falling back to another still of the same film rescues
+// 100% of them.
+const STATIC_BY_KEY = new Map(STATIC_SLIDES.map((s) => [slideKey(s), s]));
+const STATIC_BY_SLUG = STATIC_SLIDES.reduce((map, slide) => {
+  const list = map.get(slide.slug);
+  if (list) list.push(slide);
+  else map.set(slide.slug, [slide]);
+  return map;
+}, new Map<string, BrandSlide[]>());
+
+// Part two of the fallback. getCatalog already withholds the whole catalog
+// when NO synced image can be served (see brandSlides.service.ts) — that
+// covers the mount being gone. It deliberately does not cover PARTIAL rot:
+// one project whose folder moved on majid.film's side still passes that
+// check, and used to leave a single black slide in the rotation with no way
+// back. A per-image failure is the only honest signal for that case, because
+// nothing on the server knows a file is missing until someone asks for it.
+//
+// Swapped in place rather than dropped from the rotation: removing a slide
+// would shift every index under a carousel whose timing, preloading and
+// "which slide is next" logic are all index-based. Same length, same
+// indices, one different picture. A synced slide with no static twin keeps
+// its broken image and rotates on in a few seconds, which is worth less
+// than the risk of reindexing mid-cycle.
+const resolveSlide = (slide: BrandSlide, unservable: ReadonlySet<string>) => {
+  const key = slideKey(slide);
+  if (slide.source !== "synced" || !unservable.has(key)) return slide;
+  // Same still if the bundle has it, otherwise another still of the same
+  // film — never a different film, because the caption beside the picture
+  // names the project and would then be lying. [0] rather than a random
+  // pick: this runs on every render, and a different answer each time would
+  // reshuffle the picture under the reader.
+  return STATIC_BY_KEY.get(key) ?? STATIC_BY_SLUG.get(slide.slug)?.[0] ?? slide;
+};
 
 // Same flattening as STATIC_SLIDES above, just simpler: the backend's own
 // GET catalog already resolves each still's widths directly (no
@@ -457,12 +508,14 @@ const Slide = ({
   isActive,
   prefersReducedMotion,
   isPaused,
+  onUnservable,
 }: {
   slide: BrandSlide;
   delta: number;
   isActive: boolean;
   prefersReducedMotion: boolean;
   isPaused: boolean;
+  onUnservable: (slide: BrandSlide) => void;
 }) => {
   const { classes, cx } = useStyles({ isPaused });
 
@@ -546,6 +599,11 @@ const Slide = ({
               slide.source,
             )}
             alt=""
+            // <picture> does not fall through: once the browser has picked a
+            // <source> it does not try the next one if that image fails, it
+            // fires error here. So this is the single place any of the three
+            // candidates failing shows up.
+            onError={() => onUnservable(slide)}
             // Eager for the slide right after this one too (delta === 1),
             // not just the active one — otherwise the *only* thing asking
             // the browser to fetch it ahead of time is the native
@@ -579,6 +637,21 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
   const t = useTranslate();
 
   const [order, setOrder] = useState<BrandSlide[]>(STATIC_SLIDES);
+  // Synced slides whose image the browser could not load. Keyed, not
+  // indexed, so it survives a reshuffle. See resolveSlide above.
+  const [unservable, setUnservable] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const markUnservable = useCallback((slide: BrandSlide) => {
+    if (slide.source !== "synced") return;
+    const key = slideKey(slide);
+    setUnservable((previous) => {
+      if (previous.has(key)) return previous; // same Set, no re-render
+      const next = new Set(previous);
+      next.add(key);
+      return next;
+    });
+  }, []);
   const [current, setCurrent] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   // Lets any visitor stop the rotation, not just reduced-motion users —
@@ -775,15 +848,21 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
             }}
           >
             {mountedIndices.map((index) => {
-              const slide = order[index];
+              const raw = order[index];
+              const slide = resolveSlide(raw, unservable);
               return (
                 <Slide
-                  key={`${slide.slug}-s${slide.still}`}
+                  // Keyed on the ROTATION entry, not the resolved slide, so
+                  // swapping a failed synced slide for its static twin
+                  // replaces the image in place instead of remounting the
+                  // box and restarting its zoom mid-dwell.
+                  key={slideKey(raw)}
                   slide={slide}
                   delta={cyclicDelta(current, index, order.length)}
                   isActive={index === current}
                   prefersReducedMotion={prefersReducedMotion}
                   isPaused={isPaused}
+                  onUnservable={markUnservable}
                 />
               );
             })}
