@@ -79,7 +79,25 @@ const useStyles = createStyles((theme, { width }: { width: number }) => {
       // gap the footer's own translucency would have nothing to show
       // through.
       marginTop: -HEADER_HEIGHT,
-      marginBottom: "calc(-1 * var(--footer-height, 40px))",
+      // Takes back BOTH halves of what _app.tsx reserves at the page's
+      // bottom: the footer's own height, and the room it also holds for
+      // the cookie notice floating above it. The footer half is the
+      // original reason for this line; the notice half was 124px of page
+      // height this layout paid for nothing, and it showed up as exactly
+      // that much scroll on a desktop page whose content otherwise fit
+      // the viewport precisely. Nothing here can be trapped under that
+      // notice for the reservation to protect: `.bleed` has no in-flow
+      // children at all (the backdrop is fixed, the card slot absolute),
+      // and the notice is anchored bottom-RIGHT at max 320px wide while
+      // this card sits at the left edge — they never overlap on a
+      // desktop viewport, so the card needs no room made for it either.
+      // Mobile is a different story and deliberately keeps the
+      // reservation: there the card is centred in flow and the notice
+      // does sit over it, so that page height is what lets the card be
+      // scrolled clear (see the mobile rule just below, which subtracts
+      // the same term from its band).
+      marginBottom:
+        "calc(-1 * (var(--footer-height, 40px) + var(--cookie-notice-clearance, 0px)))",
       minHeight: "100vh",
       overflow: "hidden",
 

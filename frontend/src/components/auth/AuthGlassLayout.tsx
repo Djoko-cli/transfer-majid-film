@@ -52,7 +52,15 @@ const useStyles = createStyles((theme) => {
       // stopping short to leave flow space for them. See the matching,
       // more detailed comment in SplitTransferLayout.
       marginTop: -HEADER_HEIGHT,
-      marginBottom: "calc(-1 * var(--footer-height, 40px))",
+      // Takes back both halves of _app.tsx's bottom reservation — the
+      // footer's height and the room held for the cookie notice above it
+      // — for the same reason as SplitTransferLayout's identical line
+      // (see there): this layout has no in-flow children for the notice
+      // to trap, and the notice is anchored bottom-right at max 320px
+      // while the card is centred, so on desktop they never meet. It was
+      // 124px of page height bought for nothing, and it scrolled.
+      marginBottom:
+        "calc(-1 * (var(--footer-height, 40px) + var(--cookie-notice-clearance, 0px)))",
       minHeight: "100vh",
       overflow: "hidden",
 
