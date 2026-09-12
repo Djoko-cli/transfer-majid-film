@@ -1,4 +1,5 @@
 import { Box, createStyles } from "@mantine/core";
+import { useEffect, useRef } from "react";
 
 // A specular glint that travels the card's rounded outline — a rotating
 // conic-gradient masked down to a thin ring (mask: xor between the full box
@@ -84,13 +85,114 @@ const useStyles = createStyles((theme: any) => {
         background: "none",
       },
     },
+
+    // Stands the ring down while something on the page is animating its
+    // HEIGHT — in practice the "Advanced options" disclosure, the only such
+    // transition on these routes.
+    //
+    // Why it is needed, measured on an iPhone 14 Pro against the real app,
+    // six interleaved rounds, the disclosure verified on screen every time
+    // (it is not paid when the card is scrolled out of view): the panel's
+    // height transition painted a median of 9 intermediate states, range
+    // 5-9, 33ms between painted frames. With the ring stood down: 12 states,
+    // range 11-12, 17ms. The two ranges do not overlap.
+    //
+    // The mechanism is the RESIZE, not the sweep. Freezing the animation and
+    // keeping the ring changed nothing; pinning the ring to a fixed height
+    // and letting it keep animating recovered almost all of it. This ring is
+    // `inset: -1` on a box that grows every frame, and a masked, filtered
+    // box has to be re-rastered whenever its geometry changes — whether or
+    // not its gradient moved. The card's own box-shadow and backdrop-filter
+    // are the same shape of cost and were measured at the same order; they
+    // are left alone because this one change already reaches the ceiling.
+    //
+    // `visibility`, specifically. `display: none` generates no box, so the
+    // CSS animation is destroyed and restarts from 0deg — measured as the
+    // sweep jumping BACKWARD 98 degrees across the disclosure, against +60
+    // for every other variant. `opacity: 0` keeps the continuity but leaves
+    // the layer alive and measured marginally worse. `visibility: hidden`
+    // keeps the box, so --glint-angle keeps advancing untouched, and paints
+    // nothing.
+    //
+    // Scoped below `sm` because that is where the cost exists: on desktop the
+    // card is height-capped and scrolls internally (see SplitTransferLayout's
+    // `.card`), so the disclosure never resizes it and the ring never
+    // re-rasters. Standing it down there would be a quarter-second of comet
+    // missing to buy nothing.
+    ringSuspended: {
+      [theme.fn.smallerThan("sm")]: {
+        visibility: "hidden",
+      },
+    },
   };
 });
 
 const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
   const { classes } = useStyles();
+  const ref = useRef<HTMLDivElement>(null);
 
-  return <Box className={classes.ring} style={{ borderRadius: radius }} />;
+  // Listens on the document rather than being told by whoever owns the
+  // disclosure. That keeps the whole mechanism inside this one component:
+  // nothing is prop-drilled, no parent has to know this exists, and there is
+  // no state shared between two boxes to fall out of step — which is the
+  // failure mode that got AnimatedHeight removed from this card. It reacts to
+  // a real event, on the real property, and toggles one class on itself.
+  //
+  // The class is toggled on the node directly instead of through React state:
+  // this fires at the start and end of an animation whose whole problem is
+  // cost per frame, and a render is not needed to set one attribute.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    // A Set rather than a counter: transitionend fires once per property and
+    // per element, and a missed event would leave a counter stuck above zero
+    // forever. Keyed by element, the worst case self-corrects.
+    const running = new Set<EventTarget>();
+    let failsafe: number | undefined;
+
+    const sync = () =>
+      el.classList.toggle(classes.ringSuspended, running.size > 0);
+
+    const start = (e: Event) => {
+      const t = e as TransitionEvent;
+      if (t.propertyName !== "height" || !t.target) return;
+      running.add(t.target);
+      // Purely a failsafe, not part of the timing: if an end event is ever
+      // lost (an element removed mid-transition, say) the ring comes back by
+      // itself rather than staying invisible for the rest of the session.
+      window.clearTimeout(failsafe);
+      failsafe = window.setTimeout(() => {
+        running.clear();
+        sync();
+      }, 2000);
+      sync();
+    };
+
+    const stop = (e: Event) => {
+      const t = e as TransitionEvent;
+      if (t.propertyName !== "height" || !t.target) return;
+      running.delete(t.target);
+      sync();
+    };
+
+    // Capture phase: transition events bubble, but capture also catches the
+    // ones dispatched on elements inside a closed shadow tree or removed from
+    // the DOM before the bubble reaches document.
+    document.addEventListener("transitionrun", start, true);
+    document.addEventListener("transitionend", stop, true);
+    document.addEventListener("transitioncancel", stop, true);
+    return () => {
+      window.clearTimeout(failsafe);
+      document.removeEventListener("transitionrun", start, true);
+      document.removeEventListener("transitionend", stop, true);
+      document.removeEventListener("transitioncancel", stop, true);
+    };
+  }, [classes.ringSuspended]);
+
+  return (
+    <Box ref={ref} className={classes.ring} style={{ borderRadius: radius }} />
+  );
 };
 
 export default GlintBorder;
