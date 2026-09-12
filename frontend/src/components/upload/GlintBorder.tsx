@@ -19,44 +19,48 @@ const useStyles = createStyles((theme: any) => {
       inset: -1,
       padding: 2,
       borderRadius: "inherit",
-      // The comet's softness is in these stops, not in a filter. It used to
-      // be `filter: blur(2px) drop-shadow(0 0 6px accent)`, and that one
-      // declaration was ~95% of this page's entire frame cost: a filter is
-      // computed over the element's whole box BEFORE the mask clips it, so
-      // the browser blurred and bloomed a 363x1064 rectangle every frame in
-      // order to show 2px of it. Measured on WebKit at 393x852@3x with a
-      // file selected and this card at full height: 110ms per frame with the
-      // filter, 22ms with it gone, 19ms with the whole ring removed — i.e.
-      // the filter alone cost 5.3 of a 16.7ms frame budget, permanently,
-      // including at rest. The cost also scaled with the card: 0.0875ms per
-      // px of ring height, so opening "Advanced options" (which grows the
-      // card 905 -> 1064px) added a further 14ms per frame for as long as it
-      // stayed open. That is why the disclosure looked like the slow thing —
-      // it was only what made an already-9fps surface visible.
+      // This used to also carry `filter: blur(2px) drop-shadow(0 0 6px
+      // accent)`. It was removed, but NOT for the reason the first version
+      // of this comment claimed, and the record matters more than the
+      // change does.
       //
-      // Almost nothing was lost with it. The drop-shadow's 6px bloom was
-      // painted outside the 2px ring and then clipped away by the mask below
-      // (CSS applies filters before masking), so it was never on screen at
-      // all. The blur only softened the band's own 2px radial profile, and
-      // the ring is 2px thick — at this radius 2px is ~0.6 degrees of arc,
-      // so it did essentially nothing along the sweep either. What it DID do
-      // is smear the band's own 2px radial profile very slightly.
+      // The claim was that the filter cost ~95% of the page's frame budget,
+      // on the reasoning that a filter is computed over the element's whole
+      // box BEFORE the mask clips it — so the browser would blur and bloom a
+      // 363x1064 rectangle every frame to show 2px of it. The reasoning is
+      // sound and the numbers were real: 110ms per frame with the filter,
+      // 18ms without. They were also worthless. They came from Playwright's
+      // headless WebKit, which rasterises in SOFTWARE and has no GPU path
+      // for a conic-gradient or a filter, so it charged full price for both.
       //
-      // The stops below are therefore UNCHANGED from before the filter was
-      // removed. A first attempt widened them — a low-alpha lead-in at 34deg
-      // and a two-step fade to 90deg — on the theory that the blur had been
-      // softening the comet's head and tail and that the ramps now had to do
-      // it. A pixel diff of the isolated ring at four points of the sweep
-      // said otherwise: it made the comet visibly LONGER and harder, a bright
-      // line across the whole top edge instead of a glint. The blur was never
-      // doing angular work to replace.
+      // Re-measured on the iOS Simulator, which renders through the Mac's
+      // real GPU, with a standalone page reproducing this ring, this card's
+      // backdrop-filter and a real photograph behind it, toggling only this
+      // one declaration: 17.0ms per frame / 59fps WITH the filter, and
+      // 17.0ms / 59fps WITHOUT it. Identical. On hardware that accelerates
+      // filters — which is every device this app ships to — it cost nothing
+      // measurable. The user reported seeing no difference, and they were
+      // right.
       //
-      // Deliberately NOT solved by making the rotation compositor-only (a
-      // pre-painted gradient in a square child rotated by transform): with
-      // the filter gone there is nothing left to win — measured 22ms against
-      // a 19ms floor with no ring at all — and it would trade one line for a
-      // second element, an overflow clip and a size that has to track the
-      // card's diagonal.
+      // It stays removed only because it was also very nearly invisible: the
+      // drop-shadow's 6px bloom was painted outside the 2px ring and then
+      // clipped away by the mask below (CSS applies filters before masking),
+      // so it never reached the screen at all, and the blur only smeared the
+      // band's own 2px radial profile. Verified as a pixel diff of the
+      // isolated ring at four deterministic sweep angles, with the
+      // photograph and the card's own glass held out of the comparison:
+      // 0.2-0.3% RMSE. Removing it is a wash; putting it back would also be
+      // a wash. Do not re-add it expecting to see anything, and do not
+      // remove anything else here expecting to gain frames.
+      //
+      // The stops below are UNCHANGED. A first attempt widened them — a
+      // low-alpha lead-in at 34deg and a two-step fade to 90deg — on the
+      // theory that the blur had been softening the comet's head and tail.
+      // The same pixel diff said otherwise: it made the comet visibly LONGER
+      // and harder, a bright line across the whole top edge instead of a
+      // glint. At this radius 2px of blur is ~0.6 degrees of arc; it was
+      // never doing angular work to replace.
+      //
       background: `conic-gradient(from var(--glint-angle),
         transparent 0deg,
         transparent 20deg,
