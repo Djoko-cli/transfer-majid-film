@@ -138,7 +138,19 @@ const RunwayStyle = () => {
               height:
                 "calc(var(--runway-reach) + 100dvh + var(--runway-bleed))",
               overflowY: "auto",
-              overscrollBehavior: "contain",
+              // `none`, not `contain`. Both refuse to chain a scroll out to
+              // the document — which matters, since the document is parked
+              // and has 760px of range it must never give up — but `contain`
+              // still permits the container's OWN rubber-band. At rest the
+              // page is exactly one screen tall and this scroller has 1px of
+              // range (see .runway-page's min-height below), so every drag
+              // was answered by a bounce: nothing to scroll to, yet the whole
+              // screen moved and sprang back. `none` suppresses that too, so
+              // a page that fits does not move at all. The cost is the
+              // end-of-travel bounce once the content IS taller than the
+              // screen, which on a surface this full-bleed reads as app-like
+              // rather than as something missing.
+              overscrollBehavior: "none",
               // The scrollport is the full-screen box, so its own edges sit
               // under Safari's bars. Without this, everything the browser
               // reveals by itself — tab focus, scrollIntoView, an in-page
