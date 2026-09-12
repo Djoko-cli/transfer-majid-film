@@ -108,36 +108,53 @@ const useStyles = createStyles((theme) => {
       },
     },
 
-    // Desktop keeps every link on one inline row, separated by " • " (see
-    // legalSeparator below) - room enough there, and it matches the
-    // brand text's own single line beside it. Mobile has neither: one
-    // link per line, no separators - requested by the user after the
-    // wrapped, separator-heavy version above still read as visually busy
-    // once centered.
+    // One inline row at EVERY width now, separated by " • ". Mobile used to
+    // get one link per line instead, because the three full labels could not
+    // fit: measured at 378px inline against 354px of available width at 402
+    // and 327px at 375, i.e. impossible on any phone. The footer therefore
+    // stood at 97px on every phone — and that number is subtracted straight
+    // out of the upload card's centring band (SplitTransferLayout's
+    // MOBILE_BAND), so it was also one of the causes of the residual page
+    // scroll on short screens. The labels are short in the footer now (see
+    // footer.legal.* in the locale files), which brings the row to 218px and
+    // lets it fit down to 320px, so there is nothing left for the mobile
+    // branch to solve.
+    //
+    // This also retires the fit-content/auto-margins workaround that lived
+    // here: that existed only because a `display: block` link filled the
+    // whole footer width, so a tap far left or far right of the centred text
+    // still navigated. An inline link covers its own words and nothing else,
+    // so the problem cannot recur.
     legalLink: {
-      [theme.fn.smallerThan(700)]: {
-        // `block` is what puts one link per line, but a block fills its
-        // container — so each link's clickable box ran the full width of
-        // the footer while only the centred text looked like a link, and a
-        // tap anywhere on that row, far left or far right, navigated.
-        // Reported from the device. fit-content shrinks the box back to the
-        // words themselves; the auto margins are what keep it centred once
-        // it no longer fills the row (textAlign on the parent can only
-        // centre the text INSIDE a full-width box, which is exactly how the
-        // two came to disagree).
-        display: "block",
-        width: "fit-content",
-        marginLeft: "auto",
-        marginRight: "auto",
-        marginTop: 2,
-      },
+      // Grows the hit area. Vertically it is free: padding on an INLINE
+      // element does not grow the line box, so this buys target height at no
+      // layout cost (measured 19px -> 24px). Kept modest because the brand
+      // line sits 4px below (footerGrid's rowGap) and a bigger pad would
+      // start overlapping it. Horizontally it DOES advance the inline box,
+      // by 24px across the three links — which the row can afford: 207px of
+      // text plus this against 272px of room on the narrowest phone. Worth
+      // it mainly for the short middle label, which is 3 characters and was
+      // a 24px-wide target.
+      padding: "5px 4px",
     },
 
-    legalSeparator: {
-      [theme.fn.smallerThan(700)]: {
-        display: "none",
-      },
+    // Only the PHONE needed shorter wording; desktop has always had room for
+    // the full titles on its single row and keeps them. Both labels are
+    // rendered and one is hidden by breakpoint — the same CSS-only approach
+    // (no useMediaQuery) the rest of this file uses, for the same reason:
+    // a media query resolves identically on the server and the client, so
+    // there is nothing to mismatch during hydration. `display: none` also
+    // takes the hidden one out of the accessibility tree, so a screen reader
+    // reads one label, not both.
+    labelFull: {
+      [theme.fn.smallerThan(700)]: { display: "none" },
     },
+    labelShort: {
+      display: "none",
+      [theme.fn.smallerThan(700)]: { display: "inline" },
+    },
+
+    legalSeparator: {},
   };
 });
 
@@ -201,12 +218,24 @@ const Footer = () => {
       configKey: "legal.imprintText",
       href: "/imprint",
       label: t("imprint.title"),
+      // footer.legal.* are short forms that exist only for this bar, shown
+      // on phones where the three full labels cannot fit one line (378px of
+      // text against 327px of room at 375 wide — measured). The pages, their
+      // headings, their <title>s and the cookie notice's link all keep the
+      // full wording. See the note on these keys in fr-FR.ts.
+      short: t("footer.legal.imprint"),
     },
-    { configKey: "legal.termsText", href: "/terms", label: t("terms.title") },
+    {
+      configKey: "legal.termsText",
+      href: "/terms",
+      label: t("terms.title"),
+      short: t("footer.legal.terms"),
+    },
     {
       configKey: "legal.privacyPolicyText",
       href: "/privacy",
       label: t("privacy.title"),
+      short: t("footer.legal.privacy"),
     },
     // Excludes whichever of these three the visitor is currently reading -
     // no reason to link a page to itself, and the footer's own
@@ -246,13 +275,14 @@ const Footer = () => {
             </Anchor>
           </Text>
           <Text size="xs" color="dimmed" className={classes.legalArea}>
-            {legalLinks.map(({ href, label }, index) => (
+            {legalLinks.map(({ href, label, short }, index) => (
               <Fragment key={href}>
                 {index > 0 && (
                   <span className={classes.legalSeparator}> • </span>
                 )}
                 <Anchor size="xs" href={href} className={classes.legalLink}>
-                  {label}
+                  <span className={classes.labelFull}>{label}</span>
+                  <span className={classes.labelShort}>{short}</span>
                 </Anchor>
               </Fragment>
             ))}

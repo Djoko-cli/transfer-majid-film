@@ -646,6 +646,24 @@ export default {
     "Ce site utilise uniquement des cookies nécessaires à son fonctionnement — aucun cookie publicitaire ni de suivi. {privacyLink}",
   "cookieNotice.dismiss": "Fermer",
 
+  // Footer only. Short forms of the three legal page titles below, which stay
+  // full everywhere else (the pages' own headings, <title>, the cookie
+  // notice's link). The footer needs them short for a measured reason: the
+  // three full French labels inline come to 378px, and a phone footer has
+  // 354px at 402 wide and 327px at 375 — so they wrapped to one line each,
+  // making the bar 97px tall, and that height is subtracted straight out of
+  // the upload card's centring band (see SplitTransferLayout's MOBILE_BAND).
+  // At 218px the three fit on one line down to a 320px screen, the bar drops
+  // to two lines, and the card gets ~47px back.
+  //
+  // "CGU" is the standard French abbreviation and is NOT given an aria-label
+  // with the full wording: WCAG 2.5.3 (Label in Name) wants the accessible
+  // name to contain the visible text, and "Conditions d'utilisation" does not
+  // contain "CGU". The visible short label is the accessible name.
+  "footer.legal.imprint": "Mentions légales",
+  "footer.legal.terms": "CGU",
+  "footer.legal.privacy": "Confidentialité",
+
   // /imprint
   "imprint.title": "Mentions légales",
   // END /imprint

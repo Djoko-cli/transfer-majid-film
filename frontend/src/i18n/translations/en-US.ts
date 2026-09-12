@@ -673,6 +673,13 @@ export default {
     "This site only uses cookies necessary for it to work — no advertising or tracking cookies. {privacyLink}",
   "cookieNotice.dismiss": "Close",
 
+  // Footer only — short forms of the three legal page titles below, which stay
+  // full everywhere else. See the note on these keys in fr-FR.ts for why the
+  // footer needs them short (it is a measured height constraint, not taste).
+  "footer.legal.imprint": "Imprint",
+  "footer.legal.terms": "Terms",
+  "footer.legal.privacy": "Privacy",
+
   // /imprint
   "imprint.title": "Imprint",
   // END /imprint
