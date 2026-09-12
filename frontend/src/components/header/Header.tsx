@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useTopBarSlot } from "../core/FullBleedShell";
+import { runwayOnly } from "../../styles/runway.style";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { ReactNode, useEffect, useState } from "react";
@@ -153,6 +154,15 @@ const useStyles = createStyles((theme) => {
       top: HEADER_HEIGHT,
       right: 16,
       zIndex: 100,
+
+      // Portaled to document.body, so on the runway this floats OUTSIDE the
+      // inner scroller — the same position as the two bar slots and the
+      // cookie notice. A drag starting here therefore has no scrollable
+      // ancestor but the parked document, which moves and is then yanked
+      // back by the park effect. Taps on the links are unaffected; only
+      // panning from the open menu is refused, which is what a menu with
+      // three short links should do anyway.
+      ...runwayOnly({ touchAction: "none" }),
 
       // The reveal itself is a clip-path transition on this same element
       // (see its own inline style at the JSX below), not transform+

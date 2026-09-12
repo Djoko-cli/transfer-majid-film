@@ -143,9 +143,10 @@ const RunwayStyle = () => {
             },
 
             // All real scrolling happens here, so the document never moves
-            // and the photograph behind it never moves either. `contain`
-            // stops a scroll that reaches either end from chaining out to the
-            // document and dragging the photograph off its park.
+            // and the photograph behind it never moves either. The
+            // overscroll-behavior below refuses both things that would break
+            // that: chaining a scroll out to the document, which is parked
+            // and cannot give up its range, and bouncing this box on its own.
             ".runway-app": {
               height:
                 "calc(var(--runway-reach) + 100dvh + var(--runway-bleed))",
