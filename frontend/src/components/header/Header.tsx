@@ -11,10 +11,12 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { useTopBarSlot } from "../core/FullBleedShell";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import type { ReactElement } from "react";
 import { TbChevronLeft } from "react-icons/tb";
 import { APP_NAME } from "../../constants";
 import useConfig from "../../hooks/config.hook";
@@ -55,6 +57,19 @@ const useStyles = createStyles((theme) => {
   const dark = theme.colorScheme === "dark";
 
   return {
+    // Inside a runway the bar is ANCHORED rather than fixed: the slot it is
+    // portalled into is the absolute box (see runway.style.tsx's
+    // .runway-bar-slot), and the document never moves, so the bar does not
+    // move either. Being neither fixed nor sticky is the whole point —
+    // those are the two constructs iOS Safari clips to the layout viewport
+    // and then covers with an opaque native fill at the edge they touch,
+    // which is the black band. Static here, so the slot's geometry places
+    // it; the slot sits at the park, i.e. exactly where `fixed; top: 0` put
+    // it, so nothing moves visually.
+    rootAnchored: {
+      position: "static",
+    },
+
     root: {
       position: "fixed",
       top: 0,
@@ -464,6 +479,12 @@ const Header = () => {
   ];
 
   const { classes, cx } = useStyles();
+  // Non-null only inside a runway (see FullBleedShell). The bar moves into
+  // that slot; the mobile spacer below stays in the page's own flow, since
+  // it is real reserved height rather than chrome.
+  const topSlot = useTopBarSlot();
+  const portalBar = (bar: ReactElement) =>
+    topSlot ? createPortal(bar, topSlot) : bar;
   const desktopItems = (
     <>
       {(user ? authenticatedLinks : unauthenticatedLinks).map((link, i) => {
@@ -551,31 +572,39 @@ const Header = () => {
   };
   return (
     <>
-      <MantineHeader height={HEADER_HEIGHT} mb={0} className={classes.root}>
-        <Container fluid className={classes.header}>
-          <Link href="/" passHref>
-            <Group>
-              <Logo height={35} width={35} />
-              <Text weight={600} className={classes.wordmark}>
-                {APP_NAME}
-              </Text>
+      {portalBar(
+        <MantineHeader
+          height={HEADER_HEIGHT}
+          mb={0}
+          className={cx(classes.root, {
+            [classes.rootAnchored]: !!topSlot,
+          })}
+        >
+          <Container fluid className={classes.header}>
+            <Link href="/" passHref>
+              <Group>
+                <Logo height={35} width={35} />
+                <Text weight={600} className={classes.wordmark}>
+                  {APP_NAME}
+                </Text>
+              </Group>
+            </Link>
+            <Group spacing="md">
+              <Group spacing={5} className={classes.links}>
+                <Group>{desktopItems}</Group>
+              </Group>
+              <LanguageToggle />
+              <Burger
+                opened={opened}
+                onClick={toggle}
+                className={classes.burger}
+                size="sm"
+                aria-label={t("common.button.menu")}
+              />
             </Group>
-          </Link>
-          <Group spacing="md">
-            <Group spacing={5} className={classes.links}>
-              <Group>{desktopItems}</Group>
-            </Group>
-            <LanguageToggle />
-            <Burger
-              opened={opened}
-              onClick={toggle}
-              className={classes.burger}
-              size="sm"
-              aria-label={t("common.button.menu")}
-            />
-          </Group>
-        </Container>
-      </MantineHeader>
+          </Container>
+        </MantineHeader>,
+      )}
       {
         // Reveal is a clip-path transition on this same Paper, not
         // transform/opacity on Paper itself or on a wrapper around it —
@@ -603,9 +632,7 @@ const Header = () => {
             className={classes.mobilePanel}
             withBorder
             style={{
-              clipPath: opened
-                ? "inset(0% 0% 0% 0%)"
-                : "inset(0% 0% 100% 0%)",
+              clipPath: opened ? "inset(0% 0% 0% 0%)" : "inset(0% 0% 100% 0%)",
               transition: `clip-path ${mobileMenuDuration}ms ease-out`,
               pointerEvents: opened ? "auto" : "none",
             }}

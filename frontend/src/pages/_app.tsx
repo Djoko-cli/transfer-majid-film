@@ -16,7 +16,7 @@ import "moment/min/locales";
 import { GetServerSidePropsContext } from "next";
 import type { AppProps } from "next/app";
 import Head from "next/head";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { IntlProvider } from "react-intl";
 import Header, { HEADER_HEIGHT } from "../components/header/Header";
 import { ConfigContext } from "../hooks/config.hook";
@@ -28,6 +28,10 @@ import authService from "../services/auth.service";
 import configService from "../services/config.service";
 import userService from "../services/user.service";
 import GlobalStyle from "../styles/global.style";
+import RunwayStyle from "../styles/runway.style";
+import FullBleedShell from "../components/core/FullBleedShell";
+import { isRunwayRoute } from "../utils/runwayRoutes.util";
+import { useRouter } from "next/router";
 import globalStyle from "../styles/mantine.style";
 import Config from "../types/config.type";
 import { CurrentUser } from "../types/user.type";
@@ -50,7 +54,18 @@ import { NextPageWithLayout } from "../types/page.type";
 // screen, not part of the admin section's own nav.
 type AppPropsWithLayout = AppProps & { Component: NextPageWithLayout };
 
+// Module scope on purpose: an inline arrow would be a NEW component type on
+// every render, and React would unmount and remount the entire page tree
+// each time rather than reconciling it.
+const PassThrough = ({ children }: { children: ReactNode }) => <>{children}</>;
+
 function App({ Component, pageProps }: AppPropsWithLayout) {
+  // Which routes carry the full-bleed runway (see FullBleedShell). Read from
+  // the route PATTERN, not the resolved URL, so a dynamic route matches
+  // whatever its parameters are.
+  const router = useRouter();
+  const runway = isRunwayRoute(router.pathname);
+
   const systemTheme = useColorScheme(pageProps.colorScheme);
 
   const [colorScheme, setColorScheme] = useState<ColorScheme>(systemTheme);
@@ -168,6 +183,13 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
     document.documentElement.lang = current.code;
   };
 
+  // A plain fragment off the runway routes, so every other page keeps the
+  // exact markup it had; the shell only ever wraps the twelve it is meant
+  // for. Off iOS the shell itself is inert anyway (every wrapper it renders
+  // is `display: contents` — see runway.style.tsx), so this second gate is
+  // about scope, not about platform.
+  const Shell = runway ? FullBleedShell : PassThrough;
+
   const [pendingNotices, setPendingNotices] = useState<AdminNotice[]>([]);
 
   useEffect(() => {
@@ -217,6 +239,7 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
             toggleColorScheme={toggleColorScheme}
           >
             <GlobalStyle />
+            <RunwayStyle />
             <Notifications />
             <ModalsProvider>
               <LanguageContext.Provider value={{ language, switchLanguage }}>
@@ -248,7 +271,7 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                       {Component.getLayout ? (
                         Component.getLayout(<Component {...pageProps} />)
                       ) : (
-                        <>
+                        <Shell>
                           <Stack
                             justify="space-between"
                             sx={{
@@ -308,7 +331,7 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                             // introductory cookie notice.
                           }
                           <CookieNotice />
-                        </>
+                        </Shell>
                       )}
                     </TermsAcceptanceContext.Provider>
                   </UserContext.Provider>

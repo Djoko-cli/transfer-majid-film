@@ -12,6 +12,8 @@ import { FormattedMessage } from "react-intl";
 import { TbPlayerPause, TbPlayerPlay } from "react-icons/tb";
 import { PROJECTS } from "../../data/brandProjects";
 import useTranslate from "../../hooks/useTranslate.hook";
+import { createPortal } from "react-dom";
+import { useBackdropSlot } from "../core/FullBleedShell";
 import brandSlideService from "../../services/brandSlide.service";
 import {
   BrandCatalogProject,
@@ -307,6 +309,19 @@ const useStyles = createStyles(
       },
     },
 
+    // Inside a runway backdrop the panel must NOT be fixed: that is the
+    // whole point of the arrangement — a fixed layer is clipped to the
+    // layout viewport and handed an opaque native fill at the edge it
+    // touches, which is the black band. Filling the backdrop box instead
+    // makes the photograph ordinary content that reaches under the bars.
+    panelInRunway: {
+      [theme.fn.smallerThan("sm")]: {
+        position: "absolute",
+        inset: 0,
+        height: "auto",
+      },
+    },
+
     slide: {
       position: "absolute",
       inset: 0,
@@ -554,6 +569,12 @@ const Slide = ({
 };
 
 const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
+  // When a full-bleed runway is above us it owns a backdrop box that starts
+  // above the layout viewport and runs past its bottom (see FullBleedShell).
+  // The photograph belongs in there rather than here: that box is ordinary
+  // absolute content, so it reaches under Safari's bars, which a fixed layer
+  // can never do.
+  const backdropSlot = useBackdropSlot();
   const theme = useMantineTheme();
   const t = useTranslate();
 
@@ -567,7 +588,7 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
   // top like every other component in this file - order among hooks
   // doesn't matter for correctness, only that all of them still run
   // unconditionally every render, which this still does.
-  const { classes } = useStyles({ isPaused });
+  const { classes, cx } = useStyles({ isPaused });
   // `order` starts as the unshuffled STATIC_SLIDES array so the
   // server-rendered HTML and the client's first render agree (Math.random()
   // at render time would desync them, since the server and the client's
@@ -732,9 +753,13 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
     ),
   ];
 
-  return (
+  const content = (
     <>
-      <Box className={classes.panel}>
+      <Box
+        className={cx(classes.panel, {
+          [classes.panelInRunway]: !!backdropSlot,
+        })}
+      >
         {isReady && (
           <Box
             // Fades the whole reveal in once there's something real to show,
@@ -829,6 +854,13 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
       )}
     </>
   );
+
+  // Portalled rather than rendered in place so the photograph lands in the
+  // runway's own backdrop box — which starts above the layout viewport —
+  // while every call site keeps mounting <BrandPanel /> exactly where it
+  // always did. Null slot (desktop, any non-iOS browser, any route without a
+  // runway, and the server render) means nothing changes at all.
+  return backdropSlot ? createPortal(content, backdropSlot) : content;
 };
 
 export default BrandPanel;

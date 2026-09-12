@@ -1,5 +1,13 @@
-import { Anchor, Box, Footer as MFooter, Text, createStyles } from "@mantine/core";
+import {
+  Anchor,
+  Box,
+  Footer as MFooter,
+  Text,
+  createStyles,
+} from "@mantine/core";
 import { useRouter } from "next/router";
+import { createPortal } from "react-dom";
+import { useBottomBarSlot } from "../core/FullBleedShell";
 import { Fragment, useEffect, useRef } from "react";
 import { APP_NAME } from "../../constants";
 import useConfig from "../../hooks/config.hook";
@@ -14,6 +22,15 @@ import useTranslate from "../../hooks/useTranslate.hook";
 const useStyles = createStyles((theme) => {
   const dark = theme.colorScheme === "dark";
   return {
+    // Anchored, not fixed, inside a runway — same reasoning as Header's own
+    // rootAnchored (see there). The slot is pinned to the end of the runway
+    // box, which lands on the bottom edge of the screen, so this sits
+    // exactly where `fixed` put it while no longer earning the opaque
+    // native fill that produced the black band below it.
+    rootAnchored: {
+      position: "static",
+    },
+
     root: {
       background: dark
         ? "linear-gradient(160deg, rgba(10, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0.6) 55%, rgba(10, 10, 10, 0.54) 100%)"
@@ -104,7 +121,8 @@ const Footer = () => {
   const t = useTranslate();
   const config = useConfig();
   const router = useRouter();
-  const { classes } = useStyles();
+  const { classes, cx } = useStyles();
+  const bottomSlot = useBottomBarSlot();
   // Published as a CSS var (rather than prop-drilled) so pages that need to
   // reserve room for the footer — e.g. SplitTransferLayout, which lives
   // several components away with no shared parent — can read the real,
@@ -156,18 +174,19 @@ const Footer = () => {
     // whatever's actually rendered, so a shorter link list on these pages
     // isn't a separate thing to account for.
   ].filter(
-    ({ configKey, href }) => !!config.get(configKey) && router.pathname !== href,
+    ({ configKey, href }) =>
+      !!config.get(configKey) && router.pathname !== href,
   );
 
-  return (
+  const footer = (
     <MFooter
       ref={footerRef}
-      fixed
+      fixed={!bottomSlot}
       height="auto"
       py={6}
       px="xl"
       zIndex={100}
-      className={classes.root}
+      className={cx(classes.root, { [classes.rootAnchored]: !!bottomSlot })}
     >
       {!config.get("legal.enabled") && (
         <Text size="xs" color="dimmed" align="center">
@@ -202,6 +221,11 @@ const Footer = () => {
       )}
     </MFooter>
   );
+
+  // Into the runway's bottom slot when there is one — an absolute box at the
+  // end of the runway, i.e. the bottom edge of the screen. --footer-height
+  // keeps being published from the same ref either way.
+  return bottomSlot ? createPortal(footer, bottomSlot) : footer;
 };
 
 export default Footer;
