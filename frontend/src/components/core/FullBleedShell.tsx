@@ -121,7 +121,13 @@ function prefersReducedMotion(): boolean {
  * outside the gate). The document is kept at the park by the effect below —
  * the one thing a stylesheet cannot do.
  */
-const FullBleedShell = ({ children }: { children: ReactNode }) => {
+const FullBleedShell = ({
+  children,
+  lockZoom = true,
+}: {
+  children: ReactNode;
+  lockZoom?: boolean;
+}) => {
   // Whether the runway's own geometry is actually in force. The slots below
   // are handed out ONLY when it is: off iOS every wrapper here is
   // `display: contents`, so a bar portalled into a slot would land in normal
@@ -271,7 +277,7 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
   // Non-passive listeners, necessarily: a passive listener cannot
   // preventDefault, which is the entire point.
   useEffect(() => {
-    if (!isRunwayActive()) return;
+    if (!isRunwayActive() || !lockZoom) return;
     const runway = runwayRef.current;
     if (!runway) return;
     const block = (e: Event) => e.preventDefault();
@@ -281,7 +287,7 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
     return () => {
       for (const type of events) runway.removeEventListener(type, block);
     };
-  }, []);
+  }, [lockZoom]);
 
   useEffect(() => {
     if (!isRunwayActive()) return;
@@ -317,7 +323,10 @@ const FullBleedShell = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <div ref={runwayRef} className="runway">
+    <div
+      ref={runwayRef}
+      className={`runway${lockZoom ? " runway-no-zoom" : ""}`}
+    >
       <div className="runway-backdrop" aria-hidden="true">
         <div
           ref={setBackdropSlot}

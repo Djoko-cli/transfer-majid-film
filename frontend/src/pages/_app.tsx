@@ -34,7 +34,7 @@ import {
   BAND_SETTLE_EASING,
   BAND_SETTLE_MS,
 } from "../components/upload/SplitTransferLayout";
-import { isRunwayRoute } from "../utils/runwayRoutes.util";
+import { isRunwayRoute, isZoomLockedRoute } from "../utils/runwayRoutes.util";
 import { useRouter } from "next/router";
 import globalStyle from "../styles/mantine.style";
 import Config from "../types/config.type";
@@ -61,7 +61,14 @@ type AppPropsWithLayout = AppProps & { Component: NextPageWithLayout };
 // Module scope on purpose: an inline arrow would be a NEW component type on
 // every render, and React would unmount and remount the entire page tree
 // each time rather than reconciling it.
-const PassThrough = ({ children }: { children: ReactNode }) => <>{children}</>;
+// Accepts (and ignores) the shell's props so the two are interchangeable at
+// the call site — off the runway there is no geometry to lock a pinch out of.
+const PassThrough = ({
+  children,
+}: {
+  children: ReactNode;
+  lockZoom?: boolean;
+}) => <>{children}</>;
 
 function App({ Component, pageProps }: AppPropsWithLayout) {
   // Which routes carry the full-bleed runway (see FullBleedShell). Read from
@@ -69,6 +76,7 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
   // whatever its parameters are.
   const router = useRouter();
   const runway = isRunwayRoute(router.pathname);
+  const lockZoom = isZoomLockedRoute(router.pathname);
 
   const systemTheme = useColorScheme(pageProps.colorScheme);
 
@@ -287,7 +295,7 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                       {Component.getLayout ? (
                         Component.getLayout(<Component {...pageProps} />)
                       ) : (
-                        <Shell>
+                        <Shell lockZoom={lockZoom}>
                           <Stack
                             justify="space-between"
                             sx={{

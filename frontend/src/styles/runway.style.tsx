@@ -112,7 +112,10 @@ const RunwayStyle = () => {
               display: "block",
               position: "relative",
               height: "calc(var(--runway-park) + 100dvh + var(--runway-bleed))",
-              // Panning yes, zooming no. Every dimension here is derived from
+              // Panning yes, zooming no — but only where the page opts in
+              // (see isZoomLockedRoute). A uniform shell should not cost the
+              // reading pages their zoom, so membership of the runway and
+              // refusal of the pinch are two different lists. Every dimension here is derived from
               // 100dvh and from a document held at scrollY = --runway-park;
               // a pinch changes the visual viewport underneath all of it, so
               // the park fires, the centring band recomputes, and the whole
@@ -126,6 +129,9 @@ const RunwayStyle = () => {
               // where it earns its keep. Disabling it is a real
               // accessibility cost (WCAG 1.4.4) and it is being paid here
               // only, knowingly.
+            },
+
+            ".runway.runway-no-zoom": {
               touchAction: "pan-x pan-y",
             },
 
