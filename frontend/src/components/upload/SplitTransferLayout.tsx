@@ -65,8 +65,8 @@ const MOBILE_BAND = `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEI
 // uses wherever something travels to a new resting place (BrandPanel's
 // slides, LanguageToggle's thumb) — a strong ease-out, so the card leaves
 // immediately and eases into position rather than drifting the whole way.
-const BAND_SETTLE_MS = 300;
-const BAND_SETTLE_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
+export const BAND_SETTLE_MS = 300;
+export const BAND_SETTLE_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
 
 const useStyles = createStyles((theme, { width }: { width: number }) => {
   const dark = theme.colorScheme === "dark";

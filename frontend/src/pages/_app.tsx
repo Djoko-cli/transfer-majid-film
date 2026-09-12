@@ -30,6 +30,10 @@ import userService from "../services/user.service";
 import GlobalStyle from "../styles/global.style";
 import RunwayStyle from "../styles/runway.style";
 import FullBleedShell from "../components/core/FullBleedShell";
+import {
+  BAND_SETTLE_EASING,
+  BAND_SETTLE_MS,
+} from "../components/upload/SplitTransferLayout";
 import { isRunwayRoute } from "../utils/runwayRoutes.util";
 import { useRouter } from "next/router";
 import globalStyle from "../styles/mantine.style";
@@ -326,6 +330,20 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                                 // shown.
                                 paddingBottom:
                                   "calc(var(--footer-height, 40px) + var(--cookie-notice-clearance, 0px))",
+                                // Eased on the same clock as the centring
+                                // band that cancels it (SplitTransferLayout's
+                                // cardSlot), because the two read the SAME
+                                // --cookie-notice-clearance from opposite
+                                // sides: the band subtracts what this adds.
+                                // Animating one and stepping the other makes
+                                // them briefly disagree — when the notice
+                                // appears, this padding jumped its full
+                                // height at once while the band was still
+                                // easing down, leaving the page ~54px taller
+                                // than the screen for the length of the
+                                // transition, i.e. a scrollable range that
+                                // exists for 300ms and then does not.
+                                transition: `padding-bottom ${BAND_SETTLE_MS}ms ${BAND_SETTLE_EASING}`,
                               }}
                             >
                               <Header />

@@ -1,4 +1,16 @@
 import { Global } from "@mantine/core";
+import { CSSObject } from "@mantine/core";
+
+// The runway's own gate, so a component that has to scope a rule to "the
+// runway is in force" cannot spell the test differently and drift from it.
+// -webkit-touch-callout is iOS/iPadOS WebKit only, the coarse pointer keeps
+// macOS Safari out, and the width matches the breakpoint every mobile
+// branch in this app's layouts keys on.
+export const runwayOnly = (rules: CSSObject): CSSObject => ({
+  "@supports (-webkit-touch-callout: none)": {
+    "@media (pointer: coarse) and (max-width: 767.98px)": rules,
+  },
+});
 
 // Full-bleed runway — see components/core/FullBleedShell.tsx for why iOS
 // Safari needs this and why nothing simpler works. Ported from the Review

@@ -8,6 +8,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { runwayOnly } from "../styles/runway.style";
 import { TbX } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import useTranslate from "../hooks/useTranslate.hook";
@@ -43,6 +44,13 @@ const useStyles = createStyles((theme) => {
   return {
     card: {
       position: "fixed",
+      // Same reason as the runway's two bar slots: this card floats over the
+      // page rather than inside its scroller, so a drag starting on it has
+      // no scrollable ancestor but the parked document — which moves, and
+      // which the park then yanks back. Taps and the close button are
+      // unaffected. Scoped to the runway, since off it the document is the
+      // page's own scroller and dragging from here should scroll it.
+      ...runwayOnly({ touchAction: "none" }),
       right: theme.spacing.lg,
       // Floats just above the fixed, translucent footer (see Footer.tsx)
       // using its real, live-measured height - same --footer-height custom
