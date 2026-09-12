@@ -16,6 +16,7 @@ import {
   TbAt,
   TbBinaryTree,
   TbBucket,
+  TbGauge,
   TbLink,
   TbMail,
   TbPhoto,
@@ -45,6 +46,7 @@ export const categories = [
   { name: "Legal", icon: <TbScale /> },
   { name: "Cache", icon: <TbServerBolt /> },
   { name: "Clamav", icon: <TbVirusSearch /> },
+  { name: "Performance", icon: <TbGauge /> },
 ];
 
 const adminItems = [
@@ -124,7 +126,10 @@ const AdminNavBar = ({
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
 
   useEffect(() => {
-    versionService.get().then(setVersionInfo).catch(() => {});
+    versionService
+      .get()
+      .then(setVersionInfo)
+      .catch(() => {});
   }, []);
 
   const categorySlug =

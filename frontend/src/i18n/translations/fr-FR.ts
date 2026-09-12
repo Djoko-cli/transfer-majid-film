@@ -702,6 +702,7 @@ export default {
   "admin.config.category.verification": "Vérification",
   "admin.config.category.cache": "Cache",
   "admin.config.category.clamav": "ClamAV",
+  "admin.config.category.performance": "Performance",
   "admin.config.category.email": "Courriel",
   "admin.config.category.smtp": "SMTP",
   "admin.config.category.oauth": "Identifiant social",
@@ -733,6 +734,12 @@ export default {
   "admin.config.clamav.infected-file-action.quarantine":
     "Mettre en quarantaine",
   "admin.config.clamav.infected-file-action.none": "Ne rien faire",
+
+  // Performance
+  "admin.config.performance.pause-glint-on-card-resize":
+    "Suspendre le reflet pendant les changements de hauteur",
+  "admin.config.performance.pause-glint-on-card-resize.description":
+    "Sur mobile, efface brièvement le reflet lumineux qui parcourt le bord de la carte pendant qu'elle change de hauteur — à l'ouverture des options avancées, par exemple. Mesuré sur un iPhone 14 Pro : 36 ms entre deux images affichées sans cette option, 17 ms avec, soit une animation fluide au lieu de saccadée. Le reflet réapparaît là où il en était, mais sa disparition reste perceptible : à désactiver si vous préférez le reflet continu à la fluidité. Sans effet sur ordinateur, où la carte ne change pas de hauteur.",
   "admin.clamav.status.title": "État de ClamAV",
   "admin.clamav.status.connected": "Connecté",
   "admin.clamav.status.disconnected": "Non connecté",

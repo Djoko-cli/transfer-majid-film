@@ -1,5 +1,6 @@
 import { Box, createStyles } from "@mantine/core";
 import { useEffect, useRef } from "react";
+import useConfig from "../../hooks/config.hook";
 
 // A specular glint that travels the card's rounded outline — a rotating
 // conic-gradient masked down to a thin ring (mask: xor between the full box
@@ -130,6 +131,25 @@ const useStyles = createStyles((theme: any) => {
 const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
   const { classes } = useStyles();
   const ref = useRef<HTMLDivElement>(null);
+  const config = useConfig();
+
+  // Admin-controlled, because the trade is real and not ours to make for
+  // every instance: standing the ring down buys a smooth disclosure on a
+  // phone, and costs a visibly absent comet for the quarter-second it takes.
+  //
+  // Read defensively. configService.get THROWS on an unknown key, and a key
+  // added to config.seed.ts does not exist until that seed has actually run
+  // — which is true of every local database until someone runs it, and of
+  // any instance between a deploy's code and its seed. A missing key here
+  // would take down the upload page and the sign-in page, which is a far
+  // worse failure than either answer to the question. Defaults to on: that
+  // is the measured-better behaviour on the devices that need it.
+  let pauseOnResize = true;
+  try {
+    pauseOnResize = config.get("performance.pauseGlintOnCardResize") !== false;
+  } catch {
+    // key not seeded yet — keep the default
+  }
 
   // Listens on the document rather than being told by whoever owns the
   // disclosure. That keeps the whole mechanism inside this one component:
@@ -144,6 +164,12 @@ const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Turned off: make sure the ring is not left standing down from a
+    // previous render, and attach nothing at all.
+    if (!pauseOnResize) {
+      el.classList.remove(classes.ringSuspended);
+      return;
+    }
 
     // A Set rather than a counter: transitionend fires once per property and
     // per element, and a missed event would leave a counter stuck above zero
@@ -188,7 +214,7 @@ const GlintBorder = ({ radius = 28 }: { radius?: number }) => {
       document.removeEventListener("transitionend", stop, true);
       document.removeEventListener("transitioncancel", stop, true);
     };
-  }, [classes.ringSuspended]);
+  }, [classes.ringSuspended, pauseOnResize]);
 
   return (
     <Box ref={ref} className={classes.ring} style={{ borderRadius: radius }} />

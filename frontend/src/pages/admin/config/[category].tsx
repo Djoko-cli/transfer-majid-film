@@ -46,6 +46,7 @@ const categories = [
   "Legal",
   "Cache",
   "Clamav",
+  "Performance",
 ];
 
 // Every OAuth provider this app supports (see oauth.util.tsx's own

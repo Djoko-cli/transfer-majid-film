@@ -192,6 +192,29 @@ export const configVariables = {
       secret: false,
     },
   },
+  // Settings that trade a visual detail against frame rate on the devices
+  // that cannot afford it. Public (secret: false) because the surfaces they
+  // govern are public — the upload card and the sign-in card are rendered
+  // for signed-out visitors, so the value has to reach them.
+  performance: {
+    // Stands the card's glint ring down while the card is changing height —
+    // in practice while "Advanced options" opens or closes. Measured on an
+    // iPhone 14 Pro against the real app, interleaved rounds, the animating
+    // area verified on screen: 36ms between painted frames with the ring
+    // left alone, 17ms with it stood down. See GlintBorder.tsx for why the
+    // mechanism is the resize rather than the sweep.
+    //
+    // On by default, and a toggle rather than a fixed choice because it is
+    // not free: the comet visibly leaves and comes back across the
+    // disclosure. That is a fair trade on a phone and an unnecessary one on
+    // a machine that was holding 60fps anyway, so it is left to whoever
+    // runs the instance.
+    pauseGlintOnCardResize: {
+      type: "boolean",
+      defaultValue: "true",
+      secret: false,
+    },
+  },
   verification: {
     codeSubject: {
       type: "string",
