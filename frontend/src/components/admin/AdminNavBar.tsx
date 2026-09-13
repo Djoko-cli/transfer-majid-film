@@ -282,13 +282,40 @@ const AdminNavBar = ({
                 multiline
                 w={240}
                 label={versionBadge.label}
+                // Mantine fires a tooltip on hover only. A phone has no hover,
+                // so this sentence — the one thing saying WHY the dot is the
+                // colour it is — could not be reached at all on the surface
+                // where the admin panel is most often opened. touch shows it
+                // on tap, focus on keyboard.
+                events={{ hover: true, focus: true, touch: true }}
               >
                 <Box
+                  // Focusable so the `focus` event above has something to fire
+                  // on, and labelled so the meaning survives for anyone who
+                  // cannot see the colour — which was, until now, the only
+                  // thing carrying it.
+                  tabIndex={0}
+                  role="img"
+                  aria-label={versionBadge.label}
                   sx={(theme) => ({
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    backgroundColor: theme.colors[versionBadge.color][6],
+                    // The dot stays 8px; the box around it is 44px, the hit
+                    // area WCAG 2.5.8 asks for and the same one the carousel's
+                    // pause control already uses. The negative margin gives
+                    // that room back to the layout, so the version line looks
+                    // exactly as it did.
+                    width: 44,
+                    height: 44,
+                    margin: -18,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    "&::after": {
+                      content: '""',
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      backgroundColor: theme.colors[versionBadge.color][6],
+                    },
                   })}
                 />
               </Tooltip>
