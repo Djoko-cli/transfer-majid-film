@@ -1,16 +1,11 @@
 // The routes the full-bleed runway is mounted on — see
 // components/core/FullBleedShell.tsx.
 //
-// Deliberately a list rather than "every page in the default layout": these
-// are the twelve "one card" routes, where the page is a single centred card
-// of bounded height over the photograph. They are the ones the arrangement
-// was designed for, and the ones whose closed height sums this session
-// already re-derived (SplitTransferLayout, AuthGlassLayout).
-//
-// Left out on purpose:
-//   - /admin/*, which has its own AppShell with its own navigation and no
-//     Footer at all, so there is nothing for the runway's two bar slots to
-//     hold. It needs its own treatment, not this one.
+// Every page of the app, now. It began as the twelve "one card" routes the
+// arrangement was designed for, and grew to the whole app on the grounds
+// that a shell is only a shell if it is the same everywhere: the runway is
+// what lets the header's glass run under the status bar and the footer's
+// under the toolbar, and there is no page where that should not be true.
 //
 // Matched against Next's `router.pathname`, i.e. the route pattern with its
 // dynamic segments still in brackets — not the resolved URL — so these
@@ -51,6 +46,20 @@ const RUNWAY_ROUTES = new Set([
   "/account/reverseShares",
   "/account/shares",
   "/share/[shareId]/downloads",
+  // /admin/*. Four of these five come in through getLayout and mount their
+  // OWN FullBleedShell inside AdminLayout, because _app's <Shell> only
+  // wraps the default-layout branch and never sees them. They are listed
+  // here anyway for the one other thing in _app that reads this list:
+  // ModalsProvider's lockScroll. Mantine's scroll lock sets position and
+  // overflow on the body, which unparks the document — so opening any modal
+  // in the admin panel would otherwise drop its whole surface out from
+  // under the bars. /admin/intro has no getLayout and takes the ordinary
+  // route through <Shell>.
+  "/admin/intro",
+  "/admin/brand",
+  "/admin/shares",
+  "/admin/users",
+  "/admin/config/[category]",
 ]);
 
 // Where a pinch is refused. NOT the same list, deliberately. Zoom is refused

@@ -7,7 +7,9 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { Dispatch, SetStateAction } from "react";
+import { useTopBarSlot } from "../core/FullBleedShell";
 import { APP_NAME } from "../../constants";
 import ActionAvatar from "../header/ActionAvatar";
 import Logo from "../Logo";
@@ -21,11 +23,26 @@ const AdminHeader = ({
 }) => {
   const theme = useMantineTheme();
   const dark = theme.colorScheme === "dark";
+  const topSlot = useTopBarSlot();
 
-  return (
+  const bar = (
     <Header
       height={60}
-      p="md"
+      // The `p` PROP is dropped when anchored and the padding declared in
+      // `styles` below instead. Mantine's own prop generates a class that
+      // wins over the styles object, so leaving it would keep the 16px and
+      // discard the run — the box would still be pulled --runway-rise
+      // upward with nothing putting its content back, and the bar would
+      // simply be off-screen. Exactly how the footer disappeared when this
+      // same treatment was first applied to it.
+      {...(topSlot ? {} : { p: "md" })}
+      // Anchored rather than fixed inside a runway, for the reason the main
+      // Header carries at length: a fixed layer is clipped to the layout
+      // viewport and handed an opaque native colour fill at the edge it
+      // touches, so no amount of height lets it reach the status strip. The
+      // run above the bar is free — the scroll origin is the page's top, so
+      // overflow above it cannot be reached by scrolling.
+      fixed={!topSlot}
       styles={{
         root: {
           background: dark
@@ -34,6 +51,22 @@ const AdminHeader = ({
           backdropFilter: "blur(18px) saturate(160%)",
           WebkitBackdropFilter: "blur(18px) saturate(160%)",
           borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
+          ...(topSlot
+            ? {
+                position: "static" as const,
+                height: "auto",
+                // min-height, not height: Mantine sets a height from the
+                // prop above, and with border-box a padding-top larger than
+                // it collapses the content box to zero — the glass would
+                // then stop exactly where the logo begins, which is the
+                // seam this exists to remove.
+                minHeight: "calc(var(--runway-rise) + 60px)",
+                marginTop: "calc(-1 * var(--runway-rise))",
+                // All four sides, because the `p` prop that used to supply
+                // them is not passed in this branch.
+                padding: "calc(var(--runway-rise) + 16px) 16px 16px",
+              }
+            : {}),
         },
       }}
     >
@@ -58,6 +91,8 @@ const AdminHeader = ({
       </div>
     </Header>
   );
+
+  return topSlot ? createPortal(bar, topSlot) : bar;
 };
 
 export default AdminHeader;
