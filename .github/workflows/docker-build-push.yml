@@ -42,6 +42,13 @@ jobs:
             printf '%s\n' '${{ steps.meta.outputs.tags }}' | sed 's/^/- `/; s/$/`/'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # ghcr rejects uppercase and github.repository carries the owner's real
+      # casing (Djoko-cli). metadata-action lowercases it for the image tags on
+      # its own; the raw cache ref below has to do it itself.
+      - name: Lowercase the image name
+        id: img
+        run: echo "ref=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v4
         with:
@@ -70,5 +77,20 @@ jobs:
           # panel's version memo (see APP_VERSION in constants.ts).
           build-args: |
             APP_VERSION=${{ github.ref_name }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # The registry, not type=gha. GitHub's cache is isolated by REF, and a
+          # release runs on a tag: it can read its own ref's cache (which never
+          # exists, no tag is built twice) and the default branch's, never a
+          # sibling tag's. Measured on this repo — v3.6.0 reused 0 layers while
+          # v3.5.0's 1.6GB sat there unreadable, and the longest build step went
+          # from 125s to 291s because of it. Worse, each release wrote its own
+          # ~1.6GB that nothing would ever read: 3.5GB of the repo's 10GB budget
+          # was already dead weight, evicting the main-branch entries that WOULD
+          # have been readable.
+          #
+          # A scope= would not have fixed this — it changes the key inside a
+          # ref's namespace, not which refs may read it. Putting the cache in the
+          # registry sidesteps the rule entirely: every build, on any ref, reads
+          # and writes the same manifest, and it does not count against the 10GB.
+          # It appears as a `buildcache` tag on the package, which is what it is.
+          cache-from: type=registry,ref=ghcr.io/${{ steps.img.outputs.ref }}:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ steps.img.outputs.ref }}:buildcache,mode=max
