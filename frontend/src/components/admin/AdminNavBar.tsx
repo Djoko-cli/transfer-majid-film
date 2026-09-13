@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import Link from "next/link";
+import { useMediaQuery } from "@mantine/hooks";
 import { useRouter } from "next/router";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import {
@@ -67,6 +68,13 @@ const adminItems = [
   },
 ];
 
+// Shared by the panel's own unveil and by the settle of its contents, so the
+// two can never drift apart. Longer than the public header's 200ms because
+// this panel is a full-height column: the same speed over a taller box reads
+// as a snap rather than a reveal.
+const MENU_DURATION = 260;
+const MENU_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
+
 const useStyles = createStyles((theme) => {
   const dark = theme.colorScheme === "dark";
 
@@ -91,28 +99,50 @@ const useStyles = createStyles((theme) => {
         height: "calc(100dvh - 60px)",
         maxHeight: "calc(100dvh - 60px)",
 
-        // The burger opened this panel with no reveal at all, while the
-        // public header's own mobile menu has one — the same app, two
-        // different answers to the same gesture.
+        // A transition, not an animation. The first version leaned on the
+        // fact that going from display:none to displayed restarts a CSS
+        // animation — which reveals the panel on the way IN and does nothing
+        // at all on the way OUT, because display:none removes the box before
+        // anything can play. That asymmetry is what made it feel cheap: a
+        // panel that arrives gracefully and then simply vanishes is half a
+        // movement, not one.
         //
-        // An animation rather than a transition, because Mantine's `hidden`
-        // prop is `display: none` and a transition has nothing to run on
-        // between two states one of which is not rendered. Going from
-        // display:none to displayed restarts a CSS animation from its first
-        // frame, which is exactly the hook needed here — measured directly
-        // on this codebase while chasing an unrelated bug, where a paused
-        // sweep jumped 98° backwards for precisely this reason.
+        // So the panel stays mounted (`hidden={false}` below, with its own
+        // pointer-events and aria-hidden) and clip-path is transitioned in
+        // both directions instead. Vertical: inset from the bottom, so it
+        // unrolls downward from under the header rather than wiping in from
+        // a side.
         //
-        // clip-path and not transform/opacity: this element carries a
-        // backdrop-filter, and animating transform or opacity on the
-        // filtered element (or any ancestor of it) is what produced the
-        // black flash the public header's menu was rebuilt to avoid. See
-        // mobilePanel in Header.tsx for that whole investigation; clip-path
-        // is the resolution it landed on, reused here rather than
-        // rediscovered.
-        animation: "adminNavReveal 260ms ease-out",
+        // clip-path and not height or transform: this element carries a
+        // backdrop-filter, and animating transform or opacity on the filtered
+        // element is what produced the black flash the public header's own
+        // menu was rebuilt to avoid. That investigation landed on clip-path;
+        // reused here rather than rediscovered.
+        transition: `clip-path ${MENU_DURATION}ms ${MENU_EASING}`,
 
-        "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+        // Closed is the CSS default and open comes from `sx` below.
+        // Deliberately that way round: deriving the visual state from a media
+        // query would make the server render — where no media query has an
+        // answer — show the panel open, then snap it shut on hydration. A
+        // flash of the menu on every mobile load, for nothing.
+        clipPath: "inset(0 0 100% 0)",
+        pointerEvents: "none",
+
+        // The unveil on its own is flat. The sections settle into place a
+        // beat behind it, which is what turns a wipe into a movement. On the
+        // direct children, never on this box — a transform on the
+        // backdrop-filtered element is the exact thing the note above
+        // refuses.
+        "& > *": {
+          transform: "translateY(-8px)",
+          opacity: 0,
+          transition: `transform ${MENU_DURATION}ms ${MENU_EASING} 40ms, opacity ${MENU_DURATION}ms ${MENU_EASING} 40ms`,
+        },
+
+        "@media (prefers-reduced-motion: reduce)": {
+          transition: "none",
+          "& > *": { transition: "none" },
+        },
       },
     },
 
@@ -139,6 +169,7 @@ const AdminNavBar = ({
 }) => {
   const { classes } = useStyles();
   const router = useRouter();
+  const isMobileViewport = useMediaQuery("(max-width: 48em)");
   const t = useTranslate();
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
 
@@ -189,8 +220,27 @@ const AdminNavBar = ({
       className={classes.navbar}
       p="md"
       hiddenBreakpoint="sm"
-      hidden={!isMobileNavBarOpened}
+      // Never Mantine's own hiding: it is display:none, which removes the box
+      // and with it any chance of a closing movement. This panel stays mounted
+      // and is revealed by the clip-path above instead.
+      hidden={false}
       width={{ sm: 200, lg: 300 }}
+      // display:none used to take this out of the accessibility tree too;
+      // clip-path does not, so a closed panel would still be read aloud. This
+      // is the one thing that has to ask the viewport, and the one thing that
+      // can afford to answer a beat late.
+      aria-hidden={isMobileViewport && !isMobileNavBarOpened}
+      sx={
+        isMobileNavBarOpened
+          ? {
+              "@media (max-width: 48em)": {
+                clipPath: "inset(0 0 0 0)",
+                pointerEvents: "auto",
+                "& > *": { transform: "translateY(0)", opacity: 1 },
+              },
+            }
+          : undefined
+      }
     >
       <Navbar.Section>
         <Text size="xs" color="dimmed" mb="sm">
