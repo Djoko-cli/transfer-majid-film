@@ -96,7 +96,27 @@ const Contact = () => {
             </Stack>
           ) : (
             <>
-              <Title order={2} weight={900} align="center" mb="xl">
+              {
+                // The page's own heading, and the only <h1> in the app —
+                // every other page title in here is an order-2 inside a
+                // card. Sized well past Mantine's h1 default and tracked
+                // in tight, because at the card's 460px this is the first
+                // thing read and it was reading as a form label. Clamped
+                // rather than fixed so it fills the card on a desktop
+                // without overflowing a 320px phone, where it wraps to two
+                // lines and looks the better for it.
+              }
+              <Title
+                order={1}
+                weight={900}
+                align="center"
+                mb="xl"
+                sx={{
+                  fontSize: "clamp(30px, 8vw, 40px)",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
+                }}
+              >
                 <FormattedMessage id="contact.heading" />
               </Title>
               <form
