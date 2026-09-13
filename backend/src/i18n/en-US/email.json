@@ -1,6 +1,5 @@
 {
   "shareRecipientsCreatorFallback": "Someone",
-  "shareRecipientsDescFallback": "No description",
   "shareRecipientsExpiresNeverFallback": "in: never",
   "smtpDisabled": "SMTP is disabled",
   "emailServiceDisabled": "Email service disabled",

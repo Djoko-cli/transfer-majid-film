@@ -198,11 +198,14 @@ export class EmailService {
         .replaceAll("{creator}", creatorName)
         .replaceAll("{creatorEmail}", creator?.email ?? "")
         .replaceAll("{shareUrl}", shareUrl)
-        .replaceAll(
-          "{desc}",
-          description ??
-            this.i18n.t("email.shareRecipientsDescFallback", { lang }),
-        )
+        // An absent description substitutes to nothing at all. It used to
+        // substitute to "No description", which is a sentence about the
+        // sender's form-filling rather than anything the recipient wants —
+        // and with the default template being just "{desc}", it was the
+        // entire message. The HTML envelope already carries the headline,
+        // the size/expiry line, the download button and the file list, so
+        // an empty body loses nothing.
+        .replaceAll("{desc}", description ?? "")
         .replaceAll(
           "{expires}",
           moment(expiration).unix() != 0
@@ -210,7 +213,14 @@ export class EmailService {
             : this.i18n.t("email.shareRecipientsExpiresNeverFallback", {
                 lang,
               }),
-        ),
+        )
+        // Last, so it tidies after every substitution rather than only the
+        // one above it. Removing a placeholder can leave the blank line
+        // that separated it from its neighbours doubled up — harmless in
+        // HTML, where renderParagraphs drops empty paragraphs, but a
+        // plain-text mail would show the gap.
+        .replace(/\n{3,}/g, "\n\n")
+        .trim(),
       {
         replyTo,
         ctaUrl: shareUrl,

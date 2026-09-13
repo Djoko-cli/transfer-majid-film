@@ -1,6 +1,5 @@
 {
   "shareRecipientsCreatorFallback": "Quelqu'un",
-  "shareRecipientsDescFallback": "Pas de description",
   "shareRecipientsExpiresNeverFallback": "dans : jamais",
   "smtpDisabled": "SMTP est désactivé",
   "emailServiceDisabled": "Service d'email désactivé",

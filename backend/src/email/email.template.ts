@@ -85,6 +85,16 @@ export function renderEmailEnvelope(options: EmailEnvelopeOptions): string {
     filesLabel,
   } = options;
 
+  // Dropped entirely when there is nothing to say, rather than left as an
+  // empty cell. renderParagraphs already returns "" for a blank body, but
+  // the cell around it still contained the template's own indentation —
+  // one whitespace text node, which at line-height 1.6 renders as a stray
+  // blank line between the headline and the button.
+  const paragraphs = renderParagraphs(bodyText);
+  const bodyBlock = paragraphs
+    ? `<tr><td style="font-size:15px;line-height:1.6;color:${TEXT_HEX};">${paragraphs}</td></tr>`
+    : "";
+
   const headlineBlock = headline
     ? `<p style="margin:0 0 4px;font-size:22px;font-weight:700;line-height:1.3;color:${TEXT_HEX};">${escapeHtml(
         headline,
@@ -107,8 +117,9 @@ export function renderEmailEnvelope(options: EmailEnvelopeOptions): string {
       </table>`
     : "";
 
-  const ctaBlock = ctaUrl && ctaLabel
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;">
+  const ctaBlock =
+    ctaUrl && ctaLabel
+      ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;">
         <tr><td style="background:${ACCENT_HEX};border-radius:8px;">
           <a href="${escapeHtml(
             ctaUrl,
@@ -117,7 +128,7 @@ export function renderEmailEnvelope(options: EmailEnvelopeOptions): string {
           )}</a>
         </td></tr>
       </table>`
-    : "";
+      : "";
 
   const hasTransferDetails = !!downloadUrl || !!files?.length;
   const divider = hasTransferDetails
@@ -142,7 +153,9 @@ export function renderEmailEnvelope(options: EmailEnvelopeOptions): string {
         <tr><td>${sectionLabel(filesLabel || "")}</td></tr>
         ${files
           .map(
-            (file) => `<tr><td style="padding:8px 0;border-top:1px solid ${BORDER_HEX};">
+            (
+              file,
+            ) => `<tr><td style="padding:8px 0;border-top:1px solid ${BORDER_HEX};">
               <p style="margin:0;font-size:14px;color:${TEXT_HEX};">${escapeHtml(file.name)}</p>
               <p style="margin:2px 0 0;font-size:12px;color:${DIMMED_HEX};">${escapeHtml(file.size)}</p>
             </td></tr>`,
@@ -169,9 +182,7 @@ export function renderEmailEnvelope(options: EmailEnvelopeOptions): string {
               <td style="background:#ffffff;border:1px solid ${BORDER_HEX};border-radius:16px;padding:36px 32px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                   <tr><td>${headlineBlock}${metaBlock}</td></tr>
-                  <tr><td style="font-size:15px;line-height:1.6;color:${TEXT_HEX};">
-                    ${renderParagraphs(bodyText)}
-                  </td></tr>
+                  ${bodyBlock}
                   <tr><td>${codeBlock}</td></tr>
                   <tr><td>${ctaBlock}</td></tr>
                   ${divider}
