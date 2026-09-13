@@ -1,0 +1,140 @@
+name: Promote to stable
+
+# Manual promotion of an already-released tag to `stable`, the pointer production
+# is meant to follow. Nothing is rebuilt: the exact image that was built and
+# checked at release time is the one promoted, retagged by manifest copy. Rolling
+# back is the same operation with an older tag — there is no separate procedure.
+#
+# The gate is the point. A tag whose checks are not all green cannot be promoted,
+# so `stable` can only ever name a verified commit.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to promote, e.g. v3.5.0 — an older tag rolls back"
+        required: true
+        type: string
+
+permissions:
+  contents: write # move the `stable` branch
+  packages: write # retag the image on ghcr
+  checks: read # read the gate
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve the tag to a commit
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          ref=$(gh api "repos/$REPO/git/ref/tags/$TAG")
+          sha=$(printf '%s' "$ref" | jq -r .object.sha)
+          kind=$(printf '%s' "$ref" | jq -r .object.type)
+          # An annotated tag (git tag -a, which is what this repo uses) points at
+          # a tag OBJECT, not at the commit. Promoting that sha would move
+          # `stable` to something that is not a commit at all.
+          if [ "$kind" = "tag" ]; then
+            sha=$(gh api "repos/$REPO/git/tags/$sha" -q .object.sha)
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "$TAG -> $sha"
+
+      - name: Refuse unless every check on that commit is green
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ steps.resolve.outputs.sha }}
+        run: |
+          set -euo pipefail
+          runs=$(gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+            -q '.check_runs[] | "\(.conclusion // "pending")\t\(.name)"')
+
+          # No checks at all is not "nothing failed" — it means nothing verified
+          # this commit, which is exactly what this gate exists to catch.
+          if [ -z "$runs" ]; then
+            echo "::error::No check runs on $SHA — refusing to promote a commit nothing verified."
+            exit 1
+          fi
+
+          echo "Checks on $SHA:"
+          printf '%s\n' "$runs" | sed 's/^/  /'
+
+          bad=$(printf '%s\n' "$runs" | grep -vE '^(success|skipped|neutral)	' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::Refusing to promote $TAG — not every check is green."
+            printf '%s\n' "$bad" | sed 's/^/  /'
+            exit 1
+          fi
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Retag the released image as :stable
+        id: retag
+        env:
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          # ghcr rejects uppercase; github.repository carries the owner's real
+          # casing (Djoko-cli). metadata-action lowercases this for us in the
+          # build workflow, but a raw docker command has to do it itself.
+          image="ghcr.io/$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')"
+
+          # Fails loudly and early if the release never actually built an image,
+          # which is the precise failure that let v3.5.0 sit unshipped.
+          docker buildx imagetools inspect "$image:$TAG" > /dev/null
+
+          # Manifest copy, not a rebuild or a re-push: same digest, new name.
+          docker buildx imagetools create -t "$image:stable" "$image:$TAG"
+
+          digest=$(docker buildx imagetools inspect "$image:stable" \
+            --format '{{.Manifest.Digest}}')
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Move the stable branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ steps.resolve.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if gh api "repos/$REPO/git/ref/heads/stable" > /dev/null 2>&1; then
+            gh api -X PATCH "repos/$REPO/git/refs/heads/stable" \
+              -f sha="$SHA" -F force=true > /dev/null
+          else
+            gh api -X POST "repos/$REPO/git/refs" \
+              -f ref=refs/heads/stable -f sha="$SHA" > /dev/null
+          fi
+
+      - name: Summary
+        env:
+          TAG: ${{ inputs.tag }}
+          SHA: ${{ steps.resolve.outputs.sha }}
+          IMAGE: ${{ steps.retag.outputs.image }}
+          DIGEST: ${{ steps.retag.outputs.digest }}
+        run: |
+          {
+            echo "### Promoted \`$TAG\` to stable"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| commit | \`$SHA\` |"
+            echo "| image | \`$IMAGE:stable\` |"
+            echo "| digest | \`$DIGEST\` |"
+            echo
+            echo 'Deploy with `docker compose pull && docker compose up -d` on the NAS.'
+          } >> "$GITHUB_STEP_SUMMARY"
