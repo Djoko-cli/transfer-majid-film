@@ -337,7 +337,7 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                                 // footer - 0px once it's dismissed or never
                                 // shown.
                                 paddingBottom:
-                                  "calc(var(--footer-height, 40px) + var(--cookie-notice-clearance, 0px))",
+                                  "calc(var(--footer-height, 40px) + var(--cookie-notice-clearance, 0px) + var(--brand-caption-clearance, 0px))",
                                 // Eased on the same clock as the centring
                                 // band that cancels it (SplitTransferLayout's
                                 // cardSlot), because the two read the SAME
