@@ -10,7 +10,7 @@ import {
   Text,
   UnstyledButton,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { useClickOutside, useDisclosure } from "@mantine/hooks";
 import { useTopBarSlot } from "../core/FullBleedShell";
 import { runwayOnly } from "../../styles/runway.style";
 import Link from "next/link";
@@ -377,6 +377,30 @@ const Header = () => {
   const t = useTranslate();
 
   const [opened, { toggle, close }] = useDisclosure(false);
+
+  // The menu had no way out but the burger itself: tapping the page behind
+  // it did nothing, which is the one thing every reader tries first.
+  //
+  // Callback refs rather than useRef, because the panel is portaled and so
+  // mounts a commit after this component does — a useRef would still read
+  // null on the render that wires the listener up, and the panel would
+  // count as "outside itself". The burger is registered as a second node
+  // for the opposite reason: without it a tap on the burger is an outside
+  // click that closes, immediately followed by the burger's own onClick
+  // that toggles back open, and the button stops working entirely.
+  const [panelNode, setPanelNode] = useState<HTMLDivElement | null>(null);
+  const [burgerNode, setBurgerNode] = useState<HTMLButtonElement | null>(null);
+  useClickOutside(
+    () => {
+      // Guarded: the hook fires on every outside press, open or not, and an
+      // unguarded close() would queue a state update on each one.
+      if (opened) close();
+    },
+    null,
+    [panelNode, burgerNode].filter(
+      (n): n is HTMLDivElement | HTMLButtonElement => n !== null,
+    ),
+  );
   const [currentRoute, setCurrentRoute] = useState("");
   const [mobileMenuView, setMobileMenuView] = useState<MobileMenuView>("root");
 
@@ -635,6 +659,7 @@ const Header = () => {
               </Group>
               <LanguageToggle />
               <Burger
+                ref={setBurgerNode}
                 opened={opened}
                 onClick={toggle}
                 className={classes.burger}
@@ -669,6 +694,7 @@ const Header = () => {
       {mounted &&
         createPortal(
           <Paper
+            ref={setPanelNode}
             className={classes.mobilePanel}
             withBorder
             style={{
