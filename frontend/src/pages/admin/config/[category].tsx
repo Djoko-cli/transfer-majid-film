@@ -147,12 +147,42 @@ const AdminConfigPage: NextPageWithLayout = () => {
   // exact same row inside its per-provider cards instead of duplicating
   // this layout, while every other category keeps rendering it flat,
   // unchanged from before this function existed.
+  // iOS arms text selection after a finger has rested on selectable text for
+  // roughly a third of a second, and a drag then extends that selection
+  // instead of scrolling. Measured in the Simulator on this very page: a
+  // 250ms dwell before dragging scrolls normally, a 450ms one selects from
+  // "Cookies sécurisés" down through "Durée de la session" and the page does
+  // not move at all.
+  //
+  // That is iOS behaving as designed, and it reproduces identically on the
+  // terms page — nothing here regressed. It only becomes a usability problem
+  // on a settings page, where a finger reading its way down the screen lands
+  // on prose almost everywhere and the gaps between rows are the only places
+  // a slow drag still scrolls. Reported in exactly those words.
+  //
+  // Scoped to the label and its description, which are chrome. The values,
+  // the user and share tables elsewhere in the admin, and every document
+  // page stay selectable, because those hold things worth copying. Scoped to
+  // a coarse pointer too: a mouse selects by dragging on purpose and never
+  // competes with a scroll, so there is nothing to fix there and no reason
+  // to take selection away.
+  const CHROME_TEXT = {
+    "@media (pointer: coarse)": {
+      userSelect: "none",
+      WebkitUserSelect: "none",
+    },
+  } as const;
+
   const renderConfigRow = (
     configVariable: AdminConfig,
     allConfigVariables: AdminConfig[],
   ) => (
     <Group key={configVariable.key} position="apart">
-      <Stack style={{ maxWidth: isMobile ? "100%" : "40%" }} spacing={0}>
+      <Stack
+        sx={CHROME_TEXT}
+        style={{ maxWidth: isMobile ? "100%" : "40%" }}
+        spacing={0}
+      >
         <Title order={6}>
           <FormattedMessage
             id={`admin.config.${camelToKebab(configVariable.key)}`}
@@ -370,7 +400,11 @@ const AdminConfigPage: NextPageWithLayout = () => {
                                     configVariables,
                                   )}
                                 {textVariables.map((configVariable) => (
-                                  <Stack key={configVariable.key} spacing={4}>
+                                  <Stack
+                                    key={configVariable.key}
+                                    sx={CHROME_TEXT}
+                                    spacing={4}
+                                  >
                                     <Title order={6}>
                                       <FormattedMessage
                                         id={`admin.config.${camelToKebab(configVariable.key)}`}
