@@ -488,18 +488,28 @@ const useStyles = createStyles(
       [theme.fn.smallerThan("sm")]: {
         padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
 
-        // Pushed back DOWN by exactly the strip it reserved. This box is
-        // positioned inside the band, and the band is what the clearance was
-        // just subtracted from — so reserving the room also moved this box's
-        // bottom edge up by the same amount, and a plain
-        // `bottom: var(--footer-height)` landed the credit 64px higher than
-        // intended, straight on top of the card. Measured before the fix at
-        // 375x667: card 147-462, credit 431-495, 31px of overlap.
+        // Fixed, so the screen is what this is measured against. Absolute was
+        // measured against the nearest positioned ancestor, which is the box
+        // the card lives in — and that box grows with the card. With a file
+        // added it stood 982px tall on a 667px screen, which put the credit at
+        // 1082-1146: far below the footer and off the screen entirely.
         //
-        // Negative `bottom` puts it back in the strip that was set aside for
-        // it, flush above the footer. No circularity: the clearance is this
-        // box's own height, and its height does not depend on where it sits.
-        bottom: "calc(-1 * var(--brand-caption-clearance, 0px))",
+        // The same box growing is also why no offset from its BOTTOM can work,
+        // negative or otherwise: its bottom edge is wherever the content ends,
+        // not where the screen does. Only the viewport is a stable reference
+        // here, which is exactly what the footer just below already uses.
+        position: "fixed",
+        bottom: "var(--footer-height, 40px)",
+        left: 0,
+        right: 0,
+
+        // The band still reserves this strip (see the clearance published
+        // below), so at rest — the page not scrolling — the card is centred
+        // clear of the credit and the two never meet. Once a file makes the
+        // card taller than the screen the page scrolls and its content passes
+        // under this, the same way it already passes under the footer. The
+        // alternative would be hiding the credit exactly when a transfer is
+        // being composed, which is most of the time this screen is used.
       },
 
       // Below this height there is nothing left to give. The band is
