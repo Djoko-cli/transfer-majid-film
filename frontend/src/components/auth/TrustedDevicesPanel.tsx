@@ -1,5 +1,5 @@
 import { Button, Group, Loader, Table, Text } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
+import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
 import moment from "moment";
 import { useEffect, useState } from "react";
@@ -24,7 +24,21 @@ const TrustedDevicesPanel = ({
   modals: ModalsContextProps;
 }) => {
   const t = useTranslate();
-  const isMobile = useMediaQuery("(max-width: 560px)");
+  // Measured on this panel's own box, not on the viewport. It renders in two
+  // places of very different widths: a full-width card in /account, and the
+  // admin's user-edit modal, which is about 380px across on the largest
+  // desktop there is. A viewport query answers "is the screen small", which
+  // in the modal is the wrong question and answers "no" — so the wide layout
+  // applied, its three fixed columns summed to 430px inside 380px of room,
+  // and `table-layout: fixed` did the only thing it can: squeezed the one
+  // column with no width of its own to nothing. The Appareil header then
+  // wrapped to one letter per line, which is how this was reported.
+  const { ref: sizeRef, width } = useElementSize();
+  const viewportIsSmall = useMediaQuery("(max-width: 560px)");
+  // width is 0 for the first paint and while the panel is inside a collapsed
+  // accordion section; fall back to the viewport until the box has a real
+  // measurement rather than flashing the wrong layout.
+  const isMobile = width > 0 ? width < 560 : !!viewportIsSmall;
   const [devices, setDevices] = useState<TrustedDevice[] | null>(null);
   const [revoking, setRevoking] = useState(false);
 
@@ -72,75 +86,79 @@ const TrustedDevicesPanel = ({
     });
   };
 
-  if (devices === null) return <Loader size="sm" />;
-
   return (
-    <>
-      <Text color="dimmed" size="sm" mb="md">
-        <FormattedMessage id="account.card.security.trustedDevices.description" />
-      </Text>
-      {devices.length === 0 ? (
-        <Text size="sm" color="dimmed">
-          <FormattedMessage id="account.card.security.trustedDevices.empty" />
-        </Text>
+    <div ref={sizeRef}>
+      {devices === null ? (
+        <Loader size="sm" />
       ) : (
-        <Table sx={{ tableLayout: "fixed", width: "100%" }}>
-          <thead>
-            <tr>
-              <th style={{ width: isMobile ? 80 : 150 }}>
-                <FormattedMessage id="account.card.security.trustedDevices.column.since" />
-              </th>
-              {!isMobile && (
-                <th>
-                  <FormattedMessage id="account.card.security.trustedDevices.column.device" />
-                </th>
-              )}
-              <th style={{ width: isMobile ? 90 : 130 }}>
-                <FormattedMessage id="account.card.security.trustedDevices.column.ip" />
-              </th>
-              <th style={{ width: isMobile ? 80 : 150 }}>
-                <FormattedMessage id="account.card.security.trustedDevices.column.expires" />
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {devices.map((device) => (
-              <tr key={device.id}>
-                <td style={{ whiteSpace: "nowrap" }}>
-                  {moment(device.createdAt).format(isMobile ? "L" : "L LT")}
-                </td>
-                {!isMobile && (
-                  <td>
-                    <Text truncate size="sm">
-                      {device.userAgent || "—"}
-                    </Text>
-                  </td>
-                )}
-                <td>
-                  <Text truncate size="sm">
-                    {device.ipAddress || "—"}
-                  </Text>
-                </td>
-                <td style={{ whiteSpace: "nowrap" }}>
-                  {moment(device.expiresAt).format(isMobile ? "L" : "L LT")}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <>
+          <Text color="dimmed" size="sm" mb="md">
+            <FormattedMessage id="account.card.security.trustedDevices.description" />
+          </Text>
+          {devices.length === 0 ? (
+            <Text size="sm" color="dimmed">
+              <FormattedMessage id="account.card.security.trustedDevices.empty" />
+            </Text>
+          ) : (
+            <Table sx={{ tableLayout: "fixed", width: "100%" }}>
+              <thead>
+                <tr>
+                  <th style={{ width: isMobile ? 80 : 150 }}>
+                    <FormattedMessage id="account.card.security.trustedDevices.column.since" />
+                  </th>
+                  {!isMobile && (
+                    <th>
+                      <FormattedMessage id="account.card.security.trustedDevices.column.device" />
+                    </th>
+                  )}
+                  <th style={{ width: isMobile ? 90 : 130 }}>
+                    <FormattedMessage id="account.card.security.trustedDevices.column.ip" />
+                  </th>
+                  <th style={{ width: isMobile ? 80 : 150 }}>
+                    <FormattedMessage id="account.card.security.trustedDevices.column.expires" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {devices.map((device) => (
+                  <tr key={device.id}>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      {moment(device.createdAt).format(isMobile ? "L" : "L LT")}
+                    </td>
+                    {!isMobile && (
+                      <td>
+                        <Text truncate size="sm">
+                          {device.userAgent || "—"}
+                        </Text>
+                      </td>
+                    )}
+                    <td>
+                      <Text truncate size="sm">
+                        {device.ipAddress || "—"}
+                      </Text>
+                    </td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      {moment(device.expiresAt).format(isMobile ? "L" : "L LT")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+          <Group position="right" mt="md">
+            <Button
+              color="red"
+              variant="light"
+              disabled={devices.length === 0}
+              loading={revoking}
+              onClick={confirmRevoke}
+            >
+              <FormattedMessage id="account.card.security.trustedDevices.revoke.button" />
+            </Button>
+          </Group>
+        </>
       )}
-      <Group position="right" mt="md">
-        <Button
-          color="red"
-          variant="light"
-          disabled={devices.length === 0}
-          loading={revoking}
-          onClick={confirmRevoke}
-        >
-          <FormattedMessage id="account.card.security.trustedDevices.revoke.button" />
-        </Button>
-      </Group>
-    </>
+    </div>
   );
 };
 
