@@ -150,42 +150,77 @@ const AdminConfigPage: NextPageWithLayout = () => {
   const renderConfigRow = (
     configVariable: AdminConfig,
     allConfigVariables: AdminConfig[],
-  ) => (
-    <Group key={configVariable.key} position="apart">
-      <Stack style={{ maxWidth: isMobile ? "100%" : "40%" }} spacing={0}>
-        <Title order={6}>
-          <FormattedMessage
-            id={`admin.config.${camelToKebab(configVariable.key)}`}
-          />
-        </Title>
+  ) => {
+    // On a phone every control dropped onto its own full-width line below the
+    // label, which is right for a text field, a number or a select — they need
+    // the room. A switch does not: it is 40px wide, so it landed alone on a
+    // line of its own, far right, separated from the words it belongs to by
+    // the whole width of the screen. Reported as confusing, and it is: nothing
+    // visually ties the toggle to the setting it toggles.
+    //
+    // Toggles come back onto the label's line, pinned right, which is the
+    // shape every settings screen on a phone uses. Everything else keeps the
+    // stacked layout, and the desktop two-column layout is untouched.
+    const inlineToggle = isMobile && configVariable.type === "boolean";
 
-        <Text
-          sx={{
-            whiteSpace: "pre-line",
+    return (
+      <Group
+        key={configVariable.key}
+        position="apart"
+        noWrap={inlineToggle}
+        align={inlineToggle ? "center" : undefined}
+      >
+        <Stack
+          style={{
+            maxWidth: isMobile ? "100%" : "40%",
+            // flex so the words take the room the switch does not, minWidth
+            // so a long description wraps instead of pushing the switch off
+            // the edge — a flex item's default minimum is its content size.
+            ...(inlineToggle ? { flex: 1, minWidth: 0 } : {}),
           }}
-          color="dimmed"
-          size="sm"
-          mb="xs"
+          spacing={0}
         >
-          <FormattedMessage
-            id={`admin.config.${camelToKebab(configVariable.key)}.description`}
-            values={{ br: <br /> }}
+          <Title order={6}>
+            <FormattedMessage
+              id={`admin.config.${camelToKebab(configVariable.key)}`}
+            />
+          </Title>
+
+          <Text
+            sx={{
+              whiteSpace: "pre-line",
+            }}
+            color="dimmed"
+            size="sm"
+            mb="xs"
+          >
+            <FormattedMessage
+              id={`admin.config.${camelToKebab(configVariable.key)}.description`}
+              values={{ br: <br /> }}
+            />
+          </Text>
+        </Stack>
+        {/* A spacer that only earns its place in the two-column desktop
+            layout; inline it would push the switch off the right edge. */}
+        {!inlineToggle && <Stack></Stack>}
+        <Box
+          style={{
+            width: inlineToggle ? "auto" : isMobile ? "100%" : "50%",
+            flexShrink: 0,
+          }}
+        >
+          <AdminConfigInput
+            key={configVariable.key}
+            configVariable={configVariable}
+            updateConfigVariable={updateConfigVariable}
+            allConfigVariables={allConfigVariables}
+            updatedConfigVariables={updatedConfigVariables}
+            optionalConfigVariables={optionalConfigVariables}
           />
-        </Text>
-      </Stack>
-      <Stack></Stack>
-      <Box style={{ width: isMobile ? "100%" : "50%" }}>
-        <AdminConfigInput
-          key={configVariable.key}
-          configVariable={configVariable}
-          updateConfigVariable={updateConfigVariable}
-          allConfigVariables={allConfigVariables}
-          updatedConfigVariables={updatedConfigVariables}
-          optionalConfigVariables={optionalConfigVariables}
-        />
-      </Box>
-    </Group>
-  );
+        </Box>
+      </Group>
+    );
+  };
 
   useEffect(() => {
     configService.getByCategory(categoryId).then((configVariables) => {
