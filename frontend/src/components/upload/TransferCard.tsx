@@ -732,27 +732,53 @@ const TransferCard = ({
                         form.setFieldValue("recipients", value);
                       }}
                       onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        // Enter, comma, semicolon and space all mean "that is
+                        // one address, take it" — a space because an address
+                        // cannot contain one, so the keystroke has no other
+                        // possible meaning here.
                         if (
-                          e.key === "Enter" ||
-                          e.key === "," ||
-                          e.key === ";"
-                        ) {
-                          e.preventDefault();
-                          const inputValue = emailSearch.trim();
-                          if (
-                            inputValue.match(/^\S+@\S+\.\S+$/) &&
-                            !form.values.recipients.includes(inputValue)
-                          ) {
-                            form.setFieldValue("recipients", [
-                              ...form.values.recipients,
-                              inputValue,
-                            ]);
-                          }
-                          setEmailSearch("");
-                        } else if (e.key === " ") {
-                          e.preventDefault();
-                          setEmailSearch("");
+                          e.key !== "Enter" &&
+                          e.key !== "," &&
+                          e.key !== ";" &&
+                          e.key !== " "
+                        )
+                          return;
+                        e.preventDefault();
+
+                        const inputValue = emailSearch.trim();
+                        if (!inputValue) return;
+
+                        // The field used to be emptied on every one of these
+                        // keys, whether or not the address was accepted. A
+                        // half-typed one — "majid.riviere@gmail", no TLD yet —
+                        // failed the pattern, was not added, and was wiped
+                        // anyway: the typing vanished with nothing said. What
+                        // came next then landed in an empty field, which is why
+                        // this surfaced as "the address erases itself and keeps
+                        // only the .com". On an AZERTY Mac the period is
+                        // Shift+semicolon, so a Shift that does not register
+                        // sends ";" and triggers exactly this, which is what
+                        // makes it intermittent rather than constant.
+                        //
+                        // Refusing an address now leaves it in the field to be
+                        // corrected, and says why — the same error onCreate
+                        // already raises for the same pattern.
+                        if (!inputValue.match(/^\S+@\S+\.\S+$/)) {
+                          form.setFieldError(
+                            "recipients",
+                            t("upload.modal.accordion.email.invalid-email"),
+                          );
+                          return;
                         }
+
+                        form.setFieldError("recipients", null);
+                        if (!form.values.recipients.includes(inputValue)) {
+                          form.setFieldValue("recipients", [
+                            ...form.values.recipients,
+                            inputValue,
+                          ]);
+                        }
+                        setEmailSearch("");
                       }}
                     />
                   )}
