@@ -196,6 +196,7 @@ services:
         condition: service_healthy
 
   clamav:
+    container_name: clamav
     restart: unless-stopped
     image: clamav/clamav
     networks:
