@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -25,6 +26,16 @@ export const useTopBarSlot = () => useContext(TopBarSlotContext);
 
 const BottomBarSlotContext = createContext<HTMLElement | null>(null);
 export const useBottomBarSlot = () => useContext(BottomBarSlotContext);
+
+// The scroller itself, for the one thing a bar in a slot cannot work out on
+// its own: whether the page under it has finished moving. The slots sit
+// OUTSIDE the scroller (that is the whole point of them), so anything
+// anchored there floats over content that scrolls beneath it, and a
+// decoration that must not cover that content has to be able to ask. Null
+// off the runway, like the slots, so a consumer's "no scroller" branch is
+// also its "no runway" branch.
+const RunwayScrollerContext = createContext<HTMLElement | null>(null);
+export const useRunwayScroller = () => useContext(RunwayScrollerContext);
 
 // Where the document is parked, in CSS px. Must match --runway-park in
 // runway.style.tsx — the stylesheet lays the slots out around this number,
@@ -147,6 +158,14 @@ const FullBleedShell = ({
   const [topSlot, setTopSlot] = useState<HTMLElement | null>(null);
   const [bottomSlot, setBottomSlot] = useState<HTMLElement | null>(null);
   const appRef = useRef<HTMLDivElement | null>(null);
+  // Mirrored into state as well as the ref: the effects below want it without
+  // re-rendering, the context above has to re-render its consumers when it
+  // arrives. One callback ref feeds both rather than two refs on one element.
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+  const setAppNode = useCallback((node: HTMLDivElement | null) => {
+    appRef.current = node;
+    setScroller(node);
+  }, []);
   const pageRef = useRef<HTMLDivElement | null>(null);
   const runwayRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
@@ -338,12 +357,16 @@ const FullBleedShell = ({
           than by document position. Empty and zero-height unless a page fills
           it — see useTopBarSlot. */}
       <div ref={setTopSlot} className="runway-bar-slot" />
-      <div ref={appRef} className="runway-app">
+      <div ref={setAppNode} className="runway-app">
         <div ref={pageRef} className="runway-page">
           <BackdropSlotContext.Provider value={active ? backdropSlot : null}>
             <TopBarSlotContext.Provider value={active ? topSlot : null}>
               <BottomBarSlotContext.Provider value={active ? bottomSlot : null}>
-                {children}
+                <RunwayScrollerContext.Provider
+                  value={active ? scroller : null}
+                >
+                  {children}
+                </RunwayScrollerContext.Provider>
               </BottomBarSlotContext.Provider>
             </TopBarSlotContext.Provider>
           </BackdropSlotContext.Provider>

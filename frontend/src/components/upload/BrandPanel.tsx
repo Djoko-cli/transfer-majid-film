@@ -8,6 +8,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import {
+  ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -19,7 +20,11 @@ import { TbPlayerPause, TbPlayerPlay } from "react-icons/tb";
 import { PROJECTS } from "../../data/brandProjects";
 import useTranslate from "../../hooks/useTranslate.hook";
 import { createPortal } from "react-dom";
-import { useBackdropSlot } from "../core/FullBleedShell";
+import {
+  useBackdropSlot,
+  useBottomBarSlot,
+  useRunwayScroller,
+} from "../core/FullBleedShell";
 import brandSlideService from "../../services/brandSlide.service";
 import {
   BrandCatalogProject,
@@ -41,6 +46,14 @@ const DISABLED_FETCH_TIMEOUT_MS = 400;
 // reads as reaching (and then holding, see .living below) its target right
 // as that slide's turn ends, not visibly rushing or idling.
 const LIVING_DURATION_MS = SLIDE_DURATION_MS - TRANSITION_MS;
+
+// How much unspent scroll still counts as "the bottom" for the photo credit
+// on the runway. Not zero: .runway-page is deliberately one pixel taller than
+// its scroller so that overscroll-behavior always has a scroller to apply to,
+// so a page that fits exactly still reports 1px of slack. 8 clears that pixel
+// and a fractional device-pixel rounding on either side of it without ever
+// approaching the hundreds of pixels a real card adds.
+const CAPTION_TUCK_SLACK = 8;
 
 // Standard breakpoint set derived (and downloaded, both avif+webp) from
 // majid.film's own responsive derivatives for each still — see
@@ -508,6 +521,46 @@ const useStyles = createStyles(
       },
     },
 
+    // The same credit, laid out instead of positioned. Inside the footer's
+    // slot it needs no anchor of its own — the slot already sits where the
+    // bottom of the screen really is — so every offset drops away and only
+    // the look is left. order: -1 rather than relying on which portal mounts
+    // first, so the credit is above the bar whatever order React lands them
+    // in.
+    captionInFootSlot: {
+      order: -1,
+      padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+      textAlign: "right",
+      pointerEvents: "none",
+      textShadow:
+        "0 1px 2px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8), 0 1px 12px rgba(0, 0, 0, 0.5)",
+      transition: "opacity 180ms ease",
+
+      // Hidden by VISIBILITY, never by display: the height published as
+      // --brand-caption-clearance is read off this box, and a box with no
+      // display has none. Collapsing it would shrink the band, re-centre the
+      // card and move the whole page mid-scroll — the credit would be paying
+      // for its own absence. This way the strip above the footer stays
+      // reserved whatever the credit is doing in it, which is also what
+      // guarantees the 77px of daylight measured between the card's end and
+      // the credit at the bottom of the travel.
+      "&[data-tucked]": {
+        opacity: 0,
+        visibility: "hidden",
+      },
+
+      // The same floor as `.caption`'s, and it has to be spelled here too:
+      // the two classes are alternatives, so a rule on one says nothing about
+      // the other, and a phone short enough to hit this is exactly a phone the
+      // runway is switched on for. The band the card centres in is already
+      // full at this height, and the clearance the caption publishes would be
+      // taken out of the card rather than out of slack that exists.
+      // Disappearing costs less than a card that no longer fits.
+      "@media (max-height: 639px)": {
+        display: "none",
+      },
+    },
+
     captionLink: {
       pointerEvents: "auto",
     },
@@ -665,6 +718,23 @@ const BrandPanel = ({
   // absolute content, so it reaches under Safari's bars, which a fixed layer
   // can never do.
   const backdropSlot = useBackdropSlot();
+
+  // On the runway the credit is portaled into the footer's own slot instead
+  // of being positioned. That slot is anchored by its bottom and is a flex
+  // column, so a child added beside the footer grows it UPWARD: the bar does
+  // not move and the credit lands directly above it, with no offset of its
+  // own to compute.
+  //
+  // Which matters because there is nothing correct to compute. Measured on
+  // the Simulator with the shipped build: the box this credit was positioned
+  // inside runs -96 to 874 while the visible viewport ends at 714, so
+  // anchoring to that box's bottom put the credit at 874-938 — off the
+  // screen entirely, which is why it did not appear on a phone at all.
+  // The slot is the only thing here that knows where the bottom really is.
+  const bottomBarSlot = useBottomBarSlot();
+  const withFootSlot = (node: ReactNode) =>
+    bottomBarSlot ? createPortal(node, bottomBarSlot) : node;
+  const runwayScroller = useRunwayScroller();
   const theme = useMantineTheme();
   const t = useTranslate();
 
@@ -742,6 +812,53 @@ const BrandPanel = ({
       );
     };
   }, [captionNode, showCaption]);
+  // The price of anchoring the credit to the screen instead of to the card:
+  // once the card is taller than the band it scrolls UNDER the credit, and
+  // for the length of that travel an orange film title sits across the
+  // message field. Measured on the Simulator with a file attached — credit
+  // 597->661 inside a card running 137->1009.
+  //
+  // So the credit shows itself only where it has something to caption. It
+  // captions the PHOTOGRAPH, and the photograph is only visible at the bottom
+  // of the screen once the card has finished passing: at the end of the
+  // travel the card stops at 520, leaving 77px of daylight before the credit
+  // and the footer directly under it — which is the arrangement that was
+  // asked for. Everywhere else in the travel there is no photograph down
+  // there to name, so there is nothing to show.
+  //
+  // A page that fits has no travel and never tucks: its slack is the 1px
+  // .runway-page deliberately keeps (see runway.style.tsx, where that pixel
+  // is what keeps the scroller a scroller), which is why this compares
+  // against a threshold and not against zero.
+  const [captionTucked, setCaptionTucked] = useState(false);
+  useEffect(() => {
+    if (!runwayScroller || !showCaption) return;
+    const sync = () => {
+      const slack =
+        runwayScroller.scrollHeight -
+        runwayScroller.clientHeight -
+        runwayScroller.scrollTop;
+      setCaptionTucked(slack > CAPTION_TUCK_SLACK);
+    };
+    sync();
+    // The scroll event covers the finger. It does NOT cover the card growing
+    // under it — attaching a file, opening the accordion — which changes the
+    // slack without any scrolling at all, so the page's own box is watched
+    // too. Reading a boolean out of it, not driving a height with it.
+    const page = runwayScroller.firstElementChild;
+    const observer = page ? new ResizeObserver(sync) : undefined;
+    observer?.observe(page!);
+    runwayScroller.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+    return () => {
+      observer?.disconnect();
+      runwayScroller.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
+  }, [runwayScroller, showCaption]);
+
   // Declared after isPaused (this hook needs it) rather than at the very
   // top like every other component in this file - order among hooks
   // doesn't matter for correctness, only that all of them still run
@@ -958,64 +1075,73 @@ const BrandPanel = ({
         // Sibling of `.panel` on purpose, not nested inside it — see
         // `.caption`'s own styles for why.
       }
-      {isReady && activeSlide && showCaption && (
-        <Box ref={setCaptionNode} className={classes.caption}>
-          <Group position="right" spacing="xs" noWrap align="center">
-            {order.length > 1 && (
-              <ActionIcon
-                // A 44px hit area (WCAG 2.5.8) around a 14px glyph —
-                // `size` controls the button's own box, independent of
-                // the icon size passed to the child below, so this
-                // doesn't change how the control looks, just how easy
-                // it is to actually hit on a touch screen.
-                size={44}
-                variant="transparent"
-                className={classes.pauseButton}
-                onClick={() => setIsPaused((paused) => !paused)}
-                aria-label={t(
-                  isPaused ? "upload.brand.play" : "upload.brand.pause",
-                )}
-              >
-                {isPaused ? (
-                  <TbPlayerPlay size={14} />
-                ) : (
-                  <TbPlayerPause size={14} />
-                )}
-              </ActionIcon>
-            )}
-            <Text size="sm" color="gray.3">
-              <FormattedMessage
-                id="upload.brand.caption"
-                values={{
-                  title: (
-                    <Anchor
-                      href={`https://majid.film/projects/${activeSlide.slug}/`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      fw={600}
-                      className={classes.captionLink}
-                      // Reverted to the original single accent tone —
-                      // a lighter shade was tried here to raise
-                      // contrast, but swapping the brand's one
-                      // consistent hue for a paler tint broke the DA
-                      // more than the contrast gain was worth.
-                      sx={{
-                        color:
-                          theme.colors[theme.primaryColor][
-                            theme.colorScheme === "dark" ? 4 : 6
-                          ],
-                      }}
-                    >
-                      {activeSlide.title}
-                    </Anchor>
-                  ),
-                  year: activeSlide.year,
-                }}
-              />
-            </Text>
-          </Group>
-        </Box>
-      )}
+      {isReady &&
+        activeSlide &&
+        showCaption &&
+        withFootSlot(
+          <Box
+            ref={setCaptionNode}
+            className={
+              bottomBarSlot ? classes.captionInFootSlot : classes.caption
+            }
+            data-tucked={bottomBarSlot && captionTucked ? "" : undefined}
+          >
+            <Group position="right" spacing="xs" noWrap align="center">
+              {order.length > 1 && (
+                <ActionIcon
+                  // A 44px hit area (WCAG 2.5.8) around a 14px glyph —
+                  // `size` controls the button's own box, independent of
+                  // the icon size passed to the child below, so this
+                  // doesn't change how the control looks, just how easy
+                  // it is to actually hit on a touch screen.
+                  size={44}
+                  variant="transparent"
+                  className={classes.pauseButton}
+                  onClick={() => setIsPaused((paused) => !paused)}
+                  aria-label={t(
+                    isPaused ? "upload.brand.play" : "upload.brand.pause",
+                  )}
+                >
+                  {isPaused ? (
+                    <TbPlayerPlay size={14} />
+                  ) : (
+                    <TbPlayerPause size={14} />
+                  )}
+                </ActionIcon>
+              )}
+              <Text size="sm" color="gray.3">
+                <FormattedMessage
+                  id="upload.brand.caption"
+                  values={{
+                    title: (
+                      <Anchor
+                        href={`https://majid.film/projects/${activeSlide.slug}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        fw={600}
+                        className={classes.captionLink}
+                        // Reverted to the original single accent tone —
+                        // a lighter shade was tried here to raise
+                        // contrast, but swapping the brand's one
+                        // consistent hue for a paler tint broke the DA
+                        // more than the contrast gain was worth.
+                        sx={{
+                          color:
+                            theme.colors[theme.primaryColor][
+                              theme.colorScheme === "dark" ? 4 : 6
+                            ],
+                        }}
+                      >
+                        {activeSlide.title}
+                      </Anchor>
+                    ),
+                    year: activeSlide.year,
+                  }}
+                />
+              </Text>
+            </Group>
+          </Box>,
+        )}
     </>
   );
 

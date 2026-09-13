@@ -247,7 +247,15 @@ const RunwayStyle = () => {
             // to give back, and a negative bottom margin on a box pinned by
             // `bottom` would simply push it off the screen. Padding alone.
             ".runway-foot-slot": {
-              display: "block",
+              // A column, so anything portaled in alongside the footer
+              // stacks above it instead of fighting it for the same line.
+              // The box is anchored by its BOTTOM, so an extra child never
+              // pushes the footer down — it grows the slot upward and the
+              // bar stays exactly where it was. That is what lets the photo
+              // credit sit just above it on a phone with no offset
+              // arithmetic of its own (see BrandPanel's caption).
+              display: "flex",
+              flexDirection: "column",
               position: "absolute",
               bottom: 0,
               left: 0,
