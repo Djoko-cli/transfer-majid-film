@@ -27,6 +27,34 @@ const GlobalStyle = () => {
           color: "inherit",
           textDecoration: "none",
         },
+
+        // iOS Safari zooms the whole page whenever a field it focuses has a
+        // font-size under 16px. Mantine's inputs default to size "sm", which
+        // is 0.875rem — 14px — so every typeable field in this app tripped
+        // it: text, search, email, password and number, six of them on the
+        // upload page alone.
+        //
+        // That zoom used to be an annoyance the reader could undo. Since the
+        // runway started refusing pinch gestures it is a trap: the page
+        // magnifies, pushes part of the focused box off-screen, offers no
+        // gesture to get back, and keeps the magnification across the next
+        // client-side navigation, so the only way out is a reload. Reported
+        // on the six-digit 2FA field, where it bites hardest because that
+        // box is narrow and centred, but it was never specific to it.
+        //
+        // Fixed at the cause rather than by letting pinch back in, which
+        // would restore the escape hatch and keep the trap. pointer: coarse
+        // rather than a width query: this is a touch-device behaviour, and
+        // a narrow desktop window has neither the problem nor any reason to
+        // have its form typography changed. Checkboxes, radios and file
+        // inputs are excluded because they are never typed into and never
+        // trigger it.
+        "@media (pointer: coarse)": {
+          "input:not([type='checkbox']):not([type='radio']):not([type='file']), textarea, select":
+            {
+              fontSize: "16px",
+            },
+        },
         "table.md, table.md th:nth-of-type(odd), table.md td:nth-of-type(odd)":
           {
             background:
