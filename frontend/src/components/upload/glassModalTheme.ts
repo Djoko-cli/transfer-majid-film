@@ -29,8 +29,26 @@ export const glassModalStyles = (theme: any) => {
         ? "0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)"
         : "0 24px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
     },
+    // Mantine makes this header `position: sticky; top: 0` and gives it an
+    // opaque background for exactly one reason: so the body scrolling under
+    // it is hidden rather than showing through the title. Overriding that to
+    // "transparent" restored the glass but threw away the occlusion, so on
+    // any modal whose content overflows — which on a phone is most of them —
+    // the form scrolled up through the heading and the two rendered on top of
+    // each other. Reported on the reverse-share modal; it was never specific
+    // to it, all ~20 glass modals share this object.
+    //
+    // Frosted rather than opaque: a solid bar would read as a seam across a
+    // surface that is translucent everywhere else. The tint alone does not
+    // hide text, and the blur alone only smears it — together they read as
+    // the same glass, slightly denser, which is the convention the rest of
+    // this app already uses for a bar pinned over content.
     header: {
-      backgroundColor: "transparent",
+      backgroundColor: dark
+        ? "rgba(26, 26, 26, 0.82)"
+        : "rgba(255, 255, 255, 0.82)",
+      backdropFilter: "blur(16px) saturate(160%)",
+      WebkitBackdropFilter: "blur(16px) saturate(160%)",
     },
     title: {
       color: dark ? theme.white : theme.black,
