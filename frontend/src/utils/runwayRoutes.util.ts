@@ -11,13 +11,6 @@
 //   - /admin/*, which has its own AppShell with its own navigation and no
 //     Footer at all, so there is nothing for the runway's two bar slots to
 //     hold. It needs its own treatment, not this one.
-//   - the five GlassPageBackdrop pages (/account/*, /share/[id]/downloads).
-//     Not for lack of wanting: their backdrop puts a `position: fixed` scrim
-//     over the photograph, and BrandPanel portals ITSELF into the runway's
-//     backdrop slot while the scrim does not — so the photograph would go
-//     full-bleed under the bars with the scrim cut off at the strips, which
-//     is worse than today. The scrim has to move into the slot with it
-//     first.
 //
 // Matched against Next's `router.pathname`, i.e. the route pattern with its
 // dynamic segments still in brackets — not the resolved URL — so these
@@ -48,6 +41,16 @@ const RUNWAY_ROUTES = new Set([
   "/upload",
   "/404",
   "/error",
+  // GlassPageBackdrop pages. These have a photograph behind the glass, so
+  // they are where the uniform shell is actually visible rather than a
+  // one-value-in-255 difference — and they only work here because
+  // GlassPageBackdrop now carries its scrim into the backdrop slot with the
+  // photograph instead of leaving it behind in a fixed box.
+  "/account",
+  "/account/received",
+  "/account/reverseShares",
+  "/account/shares",
+  "/share/[shareId]/downloads",
 ]);
 
 // Where a pinch is refused. NOT the same list, deliberately. Zoom is refused

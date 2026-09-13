@@ -1,6 +1,8 @@
 import { Box, createStyles } from "@mantine/core";
+import { createPortal } from "react-dom";
 import BrandPanel from "../upload/BrandPanel";
 import LiquidGlassKeyframes from "../upload/liquidGlassKeyframes";
+import { useBackdropSlot } from "./FullBleedShell";
 
 // A viewport-fixed (not scrolling) version of the brand-photo carousel used
 // behind the transfer card — for pages whose own content is a normal,
@@ -31,18 +33,35 @@ const useStyles = createStyles((theme) => {
 
 const GlassPageBackdrop = () => {
   const { classes } = useStyles();
+  const backdropSlot = useBackdropSlot();
 
-  return (
-    <Box className={classes.backdrop}>
+  const content = (
+    <>
       <LiquidGlassKeyframes />
       {/* This backdrop is ambient, not the featured carousel — its per-slide
           credit caption would sit at a fixed viewport position while page
           content scrolls freely over it (unlike the transfer/auth cards,
           which share the same scroll context as the image), so it's turned
           off here rather than fighting that overlap. */}
-      <BrandPanel showCaption={false} />
+      <BrandPanel showCaption={false} portalToBackdrop={!backdropSlot} />
       <Box className={classes.scrim} />
-    </Box>
+    </>
+  );
+
+  // On the runway the pair travels together, and that is the whole point of
+  // doing it here rather than letting BrandPanel portal itself. The scrim is
+  // what keeps plain text legible over the carousel; left behind in a
+  // position: fixed box it would be clipped at the screen edges and handed
+  // an opaque native fill, so the photograph would run full-bleed under the
+  // bars UNSCRIMMED while the middle of the page stayed dimmed — a brighter
+  // band top and bottom, which is worse than the flat strips this replaces.
+  // Portalling both into the slot keeps them in the same box, in this DOM
+  // order, with the scrim over the photograph exactly as it is off the
+  // runway.
+  return backdropSlot ? (
+    createPortal(content, backdropSlot)
+  ) : (
+    <Box className={classes.backdrop}>{content}</Box>
   );
 };
 

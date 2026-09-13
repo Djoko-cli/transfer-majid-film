@@ -626,7 +626,18 @@ const Slide = ({
   );
 };
 
-const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
+const BrandPanel = ({
+  showCaption = true,
+  // Off when the CALLER is already portalling into the backdrop slot and
+  // needs this to land inside its own tree rather than alongside it — see
+  // GlassPageBackdrop, which has a scrim that must stay on top of the
+  // photograph and cannot if the two arrive in the slot as siblings whose
+  // order depends on which effect ran first.
+  portalToBackdrop = true,
+}: {
+  showCaption?: boolean;
+  portalToBackdrop?: boolean;
+}) => {
   // When a full-bleed runway is above us it owns a backdrop box that starts
   // above the layout viewport and runs past its bottom (see FullBleedShell).
   // The photograph belongs in there rather than here: that box is ordinary
@@ -939,7 +950,9 @@ const BrandPanel = ({ showCaption = true }: { showCaption?: boolean }) => {
   // while every call site keeps mounting <BrandPanel /> exactly where it
   // always did. Null slot (desktop, any non-iOS browser, any route without a
   // runway, and the server render) means nothing changes at all.
-  return backdropSlot ? createPortal(content, backdropSlot) : content;
+  return backdropSlot && portalToBackdrop
+    ? createPortal(content, backdropSlot)
+    : content;
 };
 
 export default BrandPanel;
