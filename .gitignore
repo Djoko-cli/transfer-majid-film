@@ -43,6 +43,19 @@ backend/server.log
 # project specific
 /backend/data/
 /data/
+
+# SQLite databases, wherever they land. The real dev one is already covered
+# by /backend/data/ above; this catches the strays, because pointing the
+# sqlite3 CLI at a path that does not exist silently CREATES an empty
+# database there rather than failing — a typo'd query is enough to leave one
+# next to schema.prisma, where `git add -A` would happily commit it. No .db
+# or .sqlite file is tracked in this repo, so this masks nothing real.
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
 /docs/build/
 /docs/.docusaurus
 /docs/.cache-loader
