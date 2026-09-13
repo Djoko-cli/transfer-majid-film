@@ -79,10 +79,40 @@ const useStyles = createStyles((theme) => {
       WebkitBackdropFilter: "blur(18px) saturate(160%)",
       borderRight: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
 
+      // The whole menu scrolls, not just the settings list inside it. The
+      // categories used to be the only scrollable region, which meant the
+      // three admin links above them and the version memo below stayed
+      // pinned while a single sub-list moved under the cursor — two scroll
+      // contexts in a 200px column, and no way to reach the memo by
+      // scrolling the menu itself.
+      overflowY: "auto",
+
       [theme.fn.smallerThan("sm")]: {
         height: "calc(100dvh - 60px)",
         maxHeight: "calc(100dvh - 60px)",
-        overflowY: "auto",
+
+        // The burger opened this panel with no reveal at all, while the
+        // public header's own mobile menu has one — the same app, two
+        // different answers to the same gesture.
+        //
+        // An animation rather than a transition, because Mantine's `hidden`
+        // prop is `display: none` and a transition has nothing to run on
+        // between two states one of which is not rendered. Going from
+        // display:none to displayed restarts a CSS animation from its first
+        // frame, which is exactly the hook needed here — measured directly
+        // on this codebase while chasing an unrelated bug, where a paused
+        // sweep jumped 98° backwards for precisely this reason.
+        //
+        // clip-path and not transform/opacity: this element carries a
+        // backdrop-filter, and animating transform or opacity on the
+        // filtered element (or any ancestor of it) is what produced the
+        // black flash the public header's menu was rebuilt to avoid. See
+        // mobilePanel in Header.tsx for that whole investigation; clip-path
+        // is the resolution it landed on, reused here rather than
+        // rediscovered.
+        animation: "adminNavReveal 260ms ease-out",
+
+        "@media (prefers-reduced-motion: reduce)": { animation: "none" },
       },
     },
 
@@ -96,19 +126,6 @@ const useStyles = createStyles((theme) => {
 
       borderRadius: theme.radius.sm,
       fontWeight: 600,
-    },
-
-    // The category list is long enough to outgrow the navbar's own height
-    // on an ordinary laptop screen (confirmed: 11 categories overflows a
-    // 740px-tall navbar by ~160px) — without this, that overflow is just
-    // invisible past the fixed-position navbar's edge, taking the version
-    // memo below it down with it. minHeight: 0 is load-bearing: a flex
-    // child's default min-height is "auto" (its content size), which
-    // silently defeats overflow scrolling inside a flex column no matter
-    // what overflowY says.
-    categoryScroll: {
-      minHeight: 0,
-      overflowY: "auto",
     },
   };
 });
@@ -131,6 +148,35 @@ const AdminNavBar = ({
       .then(setVersionInfo)
       .catch(() => {});
   }, []);
+
+  // Three states rather than two. Orange is the one that asks for action:
+  // this deployment is behind the newest release. Yellow says a different
+  // kind of thing — the deployment IS the newest release, and the repository
+  // has moved past it since, which is worth seeing without being a call to
+  // do anything about it tonight. Green means neither gap exists.
+  //
+  // drift is only consulted once upToDate is true. A deployment that is
+  // already behind a release has a more urgent thing to say, and stacking
+  // "and there are also 12 unreleased commits" on top of it would bury it.
+  const versionBadge = (() => {
+    if (!versionInfo || versionInfo.upToDate === null) return null;
+    if (!versionInfo.upToDate) {
+      return {
+        color: "orange",
+        label: t("admin.version.outdated", { 0: versionInfo.latest }),
+      };
+    }
+    if (versionInfo.drift !== null && versionInfo.drift > 0) {
+      return {
+        color: "yellow",
+        label: t("admin.version.drift", {
+          count: versionInfo.drift,
+          tag: versionInfo.latest,
+        }),
+      };
+    }
+    return { color: "green", label: t("admin.version.upToDate") };
+  })();
 
   const categorySlug =
     router.pathname === "/admin/config/[category]" &&
@@ -175,7 +221,7 @@ const AdminNavBar = ({
           })}
         </Stack>
       </Navbar.Section>
-      <Navbar.Section mt="md" grow className={classes.categoryScroll}>
+      <Navbar.Section mt="md" grow>
         <Text size="xs" color="dimmed" mb="sm">
           <FormattedMessage id="admin.config.title" />
         </Text>
@@ -218,23 +264,14 @@ const AdminNavBar = ({
             >
               {APP_NAME} {versionInfo.version}
             </Anchor>
-            {versionInfo.upToDate !== null && (
-              <Tooltip
-                withArrow
-                label={
-                  versionInfo.upToDate
-                    ? t("admin.version.upToDate")
-                    : t("admin.version.outdated", { 0: versionInfo.latest })
-                }
-              >
+            {versionBadge && (
+              <Tooltip withArrow label={versionBadge.label}>
                 <Box
                   sx={(theme) => ({
                     width: 8,
                     height: 8,
                     borderRadius: "50%",
-                    backgroundColor: versionInfo.upToDate
-                      ? theme.colors.green[6]
-                      : theme.colors.orange[6],
+                    backgroundColor: theme.colors[versionBadge.color][6],
                   })}
                 />
               </Tooltip>

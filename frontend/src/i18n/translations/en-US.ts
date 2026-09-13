@@ -735,9 +735,11 @@ export default {
     "Time after which a user must log in again (default: 3 months).",
   "admin.config.general.version-check-token": "Version Check Token",
   "admin.config.general.version-check-token.description":
-    "GitHub personal access token (read-only, restricted to this repository) used to show in the sidebar whether the installed version is current. The repository is private, so leaving this blank simply disables the badge.",
+    "GitHub personal access token (read-only, restricted to this repository) used to show a status dot in the sidebar: green if this install is the newest published release, orange if a newer one exists, yellow if it is current but unreleased commits are waiting on main — hover for the count. The repository being private, leaving this empty simply disables the dot.",
   "admin.version.upToDate": "You're up to date",
   "admin.version.outdated": "New version available: {0}",
+  "admin.version.drift":
+    "Up to date, but {count, plural, =1 {# unreleased commit} other {# unreleased commits}} on main since {tag}",
   "admin.config.clamav.enabled": "Scan uploads with ClamAV",
   "admin.config.clamav.enabled.description":
     "Scan every uploaded share for malicious files before keeping it. Infected shares are deleted automatically. Requires a reachable ClamAV instance (see the integrations docs).",

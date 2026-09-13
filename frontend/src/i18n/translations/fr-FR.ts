@@ -721,9 +721,11 @@ export default {
   "admin.config.general.version-check-token":
     "Jeton de vérification de version",
   "admin.config.general.version-check-token.description":
-    "Jeton d'accès personnel GitHub (lecture seule, restreint à ce dépôt) utilisé pour afficher dans la barre latérale si la version installée est à jour. Le dépôt étant privé, laisser ce champ vide désactive simplement le badge.",
+    "Jeton d'accès personnel GitHub (lecture seule, restreint à ce dépôt) utilisé pour afficher une pastille d'état dans la barre latérale : vert si cette installation est la dernière version publiée, orange s'il en existe une plus récente, jaune si elle est à jour mais que des commits non publiés attendent sur main — leur nombre s'affiche au survol. Le dépôt étant privé, laisser ce champ vide désactive simplement la pastille.",
   "admin.version.upToDate": "Vous êtes à jour",
   "admin.version.outdated": "Nouvelle version disponible : {0}",
+  "admin.version.drift":
+    "À jour, mais {count, plural, =1 {# commit non publié} other {# commits non publiés}} sur main depuis {tag}",
   "admin.config.clamav.enabled": "Analyser les envois avec ClamAV",
   "admin.config.clamav.enabled.description":
     "Analyse chaque partage envoyé à la recherche de fichiers malveillants avant de le conserver. Les partages infectés sont supprimés automatiquement. Nécessite une instance ClamAV joignable (voir la doc des intégrations).",

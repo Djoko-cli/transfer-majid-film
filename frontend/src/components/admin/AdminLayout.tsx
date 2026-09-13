@@ -14,6 +14,10 @@ import AdminNavBar from "./AdminNavBar";
 const ADMIN_CONTENT_FADE_CSS = `@keyframes adminContentFadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+@keyframes adminNavReveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
 }`;
 
 // Shared chrome for the whole /admin section (users, shares, config) —

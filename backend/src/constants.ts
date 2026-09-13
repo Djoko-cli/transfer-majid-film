@@ -23,6 +23,12 @@ export const APP_VERSION = process.env.APP_VERSION || "dev";
 // specific.
 export const GITHUB_REPO = "Djoko-cli/transfer-majid-film";
 
+// The branch a release is measured against, for the admin panel's
+// "unreleased work" badge. Same fixed-constant reasoning as GITHUB_REPO
+// above: this fork releases from main and nothing deploys from anywhere
+// else, so it is not deploy-time infrastructure worth a config key.
+export const GITHUB_DEFAULT_BRANCH = "main";
+
 export const CONFIG_FILE = process.env.CONFIG_FILE || "../config.yaml";
 
 // Same resolution convention as CONFIG_FILE above, deliberately a separate
