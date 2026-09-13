@@ -264,8 +264,25 @@ const AdminNavBar = ({
             >
               {APP_NAME} {versionInfo.version}
             </Anchor>
+            {
+              // withinPortal because this sidebar scrolls: Mantine 6 renders a
+              // tooltip in place by default, and `overflow-y: auto` on the
+              // navbar clips anything reaching past its edge — the label was
+              // cut mid-sentence at the sidebar's right border. The portal
+              // takes it out of that box entirely.
+              //
+              // multiline with a width because the drift label is a sentence,
+              // not a word: left to Mantine's `width: "auto"` it lays out as
+              // one very long line and runs off the screen instead of wrapping.
+            }
             {versionBadge && (
-              <Tooltip withArrow label={versionBadge.label}>
+              <Tooltip
+                withArrow
+                withinPortal
+                multiline
+                w={240}
+                label={versionBadge.label}
+              >
                 <Box
                   sx={(theme) => ({
                     width: 8,
