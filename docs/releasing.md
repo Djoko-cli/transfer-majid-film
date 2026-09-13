@@ -109,10 +109,18 @@ permet de revenir nulle part.
 
 ## État actuel à connaître
 
-Le `docker-compose.yml` de ce dépôt épingle encore **`:latest`**, pas
-`:stable`. Tant qu'il n'aura pas basculé, promouvoir ne change rien à ce que le
-NAS tire. La bascule ne peut se faire qu'**après** une première promotion
-réussie, sinon `:stable` n'existe pas et un déploiement neuf échouerait.
+`:stable` **existe** : v3.5.0 a été promu le 2026-09-13, et la branche `stable`
+est sur `a33a913`. La mécanique est donc exercée, pas seulement écrite.
+
+Le `docker-compose.yml` de ce dépôt épingle en revanche toujours **`:latest`**,
+par choix délibéré. Tant qu'il n'aura pas basculé, promouvoir ne change rien à
+ce que le NAS tire : `stable` reste un pointeur observable et un filet de
+rollback, pas la source du déploiement.
+
+Basculer le compose sur `:stable` est désormais possible à tout moment. Ça
+change une habitude : après chaque release il faudra **promouvoir avant de
+déployer**, sinon `docker compose pull` ne ramène rien de neuf. En échange, un
+retour arrière devient une promotion d'un tag plus ancien au lieu d'un espoir.
 
 ---
 
