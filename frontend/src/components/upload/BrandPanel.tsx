@@ -474,52 +474,15 @@ const useStyles = createStyles(
       textShadow:
         "0 1px 2px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8), 0 1px 12px rgba(0, 0, 0, 0.5)",
 
-      // On a phone the credit keeps its place bottom-right, but it can only
-      // be there if the layout has actually made room for it: the card spans
-      // nearly the full width here, so anything painted over that strip would
-      // land on the submit button. It does not take the room by force — the
-      // height published below is subtracted from the band the card centres
-      // in (see MOBILE_BAND in SplitTransferLayout and AuthGlassLayout), the
-      // same mechanism the footer and the cookie notice already use. The card
-      // is therefore centred in what is left, and the two cannot meet.
-      //
-      // Tighter padding than the desktop's, because that room is not free —
-      // it comes off the card's own breathing space.
+      // Mobile isn't where this product shows off the photography — that's
+      // desktop's job; on mobile the images are purely atmospheric variety
+      // behind the glass. Dropped entirely below "sm" rather than kept
+      // visible-but-inert: on a screen this narrow the card spans nearly
+      // the full width, so the credit (and the carousel pause control that
+      // lived next to it) would sit right where the submit button lands the
+      // moment a visitor scrolls down to reach it — not worth the layout
+      // gymnastics for something that isn't the point on this surface.
       [theme.fn.smallerThan("sm")]: {
-        padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-
-        // Fixed, so the screen is what this is measured against. Absolute was
-        // measured against the nearest positioned ancestor, which is the box
-        // the card lives in — and that box grows with the card. With a file
-        // added it stood 982px tall on a 667px screen, which put the credit at
-        // 1082-1146: far below the footer and off the screen entirely.
-        //
-        // The same box growing is also why no offset from its BOTTOM can work,
-        // negative or otherwise: its bottom edge is wherever the content ends,
-        // not where the screen does. Only the viewport is a stable reference
-        // here, which is exactly what the footer just below already uses.
-        position: "fixed",
-        bottom: "var(--footer-height, 40px)",
-        left: 0,
-        right: 0,
-
-        // The band still reserves this strip (see the clearance published
-        // below), so at rest — the page not scrolling — the card is centred
-        // clear of the credit and the two never meet. Once a file makes the
-        // card taller than the screen the page scrolls and its content passes
-        // under this, the same way it already passes under the footer. The
-        // alternative would be hiding the credit exactly when a transfer is
-        // being composed, which is most of the time this screen is used.
-      },
-
-      // Below this height there is nothing left to give. The band is
-      // 100dvh minus header (60), menu spacer (24) and footer (54); at 640px
-      // that leaves 502 for a card measuring 380 at rest, so reserving ~60
-      // for this still keeps 31px of margin each side, above the 8px floor.
-      // At 568 the card alone already fills the band. Hidden rather than
-      // overlapping, and hidden rather than pushing the page into a scroll
-      // that a lot of measured work went into removing.
-      "@media (max-width: 48em) and (max-height: 639px)": {
         display: "none",
       },
     },
@@ -705,53 +668,6 @@ const BrandPanel = ({
   // Lets any visitor stop the rotation, not just reduced-motion users —
   // see the interval effect below, which is also gated on this.
   const [isPaused, setIsPaused] = useState(false);
-
-  // Publishes the strip the credit occupies, so the two mobile layouts can
-  // subtract it from the band their card centres in — the same contract
-  // Footer and CookieNotice already use, and the reason the credit can sit
-  // bottom-right on a phone without ever meeting the submit button.
-  //
-  // A callback ref rather than useRef: the caption mounts a render or more
-  // after this component does (it waits on isReady and a resolved slide), and
-  // an effect keyed on a ref's .current would never re-run to notice. Keyed on
-  // the node, it runs exactly twice — when the caption appears and when it
-  // goes — instead of on every one of this carousel's re-renders.
-  //
-  // Guarded on showCaption because more than one BrandPanel can be mounted at
-  // once: GlassPageBackdrop renders a second one with showCaption={false}, and
-  // without this guard that instance would publish its own 0px over the real
-  // value, collapsing the band's reservation at random depending on render
-  // order. An instance with no caption has nothing to say about this variable.
-  const [captionNode, setCaptionNode] = useState<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!showCaption) return;
-    const publish = () =>
-      document.documentElement.style.setProperty(
-        "--brand-caption-clearance",
-        `${captionNode?.offsetHeight ?? 0}px`,
-      );
-    publish();
-
-    // A ResizeObserver alone is not enough: it never fires for an element with
-    // no box, so crossing the height threshold that hides the caption would
-    // leave the last non-zero value published and the band short by a strip
-    // that is no longer there. The window listeners cover that direction; the
-    // observer covers the caption changing height on its own, a long credit
-    // wrapping to a second line.
-    const observer = captionNode ? new ResizeObserver(publish) : undefined;
-    if (captionNode && observer) observer.observe(captionNode);
-    window.addEventListener("resize", publish);
-    window.addEventListener("orientationchange", publish);
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener("resize", publish);
-      window.removeEventListener("orientationchange", publish);
-      document.documentElement.style.setProperty(
-        "--brand-caption-clearance",
-        "0px",
-      );
-    };
-  }, [captionNode, showCaption]);
   // Declared after isPaused (this hook needs it) rather than at the very
   // top like every other component in this file - order among hooks
   // doesn't matter for correctness, only that all of them still run
@@ -969,7 +885,7 @@ const BrandPanel = ({
         // `.caption`'s own styles for why.
       }
       {isReady && activeSlide && showCaption && (
-        <Box ref={setCaptionNode} className={classes.caption}>
+        <Box className={classes.caption}>
           <Group position="right" spacing="xs" noWrap align="center">
             {order.length > 1 && (
               <ActionIcon

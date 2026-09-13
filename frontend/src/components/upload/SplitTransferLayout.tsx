@@ -79,7 +79,7 @@ const CARD_MOBILE_AT_REST_HEIGHT = 380;
 // scrolls internally trades a correct page scroll for a nested one whose
 // end comes to rest under the bars.
 //
-const MOBILE_BAND = `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px) - var(--brand-caption-clearance, 0px))`;
+const MOBILE_BAND = `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px))`;
 
 // How the band settles when what's floating at the bottom of the screen
 // appears or leaves (today: the cookie notice). Matches the card's own
