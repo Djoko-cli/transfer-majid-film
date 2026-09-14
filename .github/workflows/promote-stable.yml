@@ -49,13 +49,36 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           SHA: ${{ steps.resolve.outputs.sha }}
+          # Was missing, and `set -u` turned the refusal message below into a
+          # crash: the gate exited 1 on an unbound variable instead of saying
+          # which check was not green. A gate whose diagnosis is broken is a
+          # gate nobody can act on.
+          TAG: ${{ inputs.tag }}
+          # This job's own name on the commit — see the filter below.
+          SELF: ${{ github.job }}
         run: |
           set -euo pipefail
+          # This job posts a check run of its own, named after itself, onto the
+          # commit it is promoting — `pending` while it runs and `failure` if it
+          # ever refused before. Both are about the PROMOTION, never about
+          # whether the code was verified, so neither belongs in this gate.
+          #
+          # It stayed invisible until now because a workflow_dispatch attaches
+          # its check to the HEAD of the branch it runs on: every promotion so
+          # far was of a tag that `main` had already moved past, so the check
+          # landed somewhere else. Promoting the tip of main — the ordinary
+          # case — puts it on the very commit being judged, and the gate then
+          # refuses itself, permanently. Keyed on github.job rather than the
+          # literal string so renaming the job cannot silently unfilter it.
           runs=$(gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
-            -q '.check_runs[] | "\(.conclusion // "pending")\t\(.name)"')
+            -q '.check_runs[]
+                | select(.name != env.SELF)
+                | "\(.conclusion // "pending")\t\(.name)"')
 
           # No checks at all is not "nothing failed" — it means nothing verified
-          # this commit, which is exactly what this gate exists to catch.
+          # this commit, which is exactly what this gate exists to catch. Still
+          # true after the filter above: a commit carrying nothing but this
+          # job's own attempts has been verified by nobody.
           if [ -z "$runs" ]; then
             echo "::error::No check runs on $SHA — refusing to promote a commit nothing verified."
             exit 1
