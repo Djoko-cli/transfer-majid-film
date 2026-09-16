@@ -28,6 +28,9 @@ interface SendMailOptions {
   metaLine?: string;
   downloadUrl?: string;
   files?: TransferFile[];
+  /** Sender-side only — see EmailEnvelopeOptions.recipients for why a
+   * recipient's own copy must never carry this. */
+  recipients?: string[];
 }
 
 @Injectable()
@@ -102,6 +105,12 @@ export class EmailService {
               args: { count: options.files.length },
             },
           )
+        : undefined,
+      recipients: options?.recipients,
+      recipientsLabel: options?.recipients?.length
+        ? this.i18n.t("email.recipientsLabel", {
+            lang: this.config.get("general.defaultLanguage"),
+          })
         : undefined,
     });
   }
@@ -329,6 +338,7 @@ export class EmailService {
     shareName: string | undefined,
     expiration: Date,
     files: TransferFile[] = [],
+    recipients: string[] = [],
   ) {
     const shareUrl = `${this.config.get("general.appUrl")}/s/${shareId}`;
     const lang = this.config.get("general.defaultLanguage");
@@ -372,6 +382,97 @@ export class EmailService {
           : undefined,
         downloadUrl: shareUrl,
         files,
+        // An anonymous sender can address a transfer too, and this email is
+        // their only copy of who it went to — the same record the signed-in
+        // creator's receipt below carries. Empty in Link mode, where the
+        // section simply does not render.
+        recipients,
+      },
+    );
+  }
+
+  // The signed-in sender's own receipt, sent the moment a share is
+  // finished. Distinct from sendShareLinkToSender above, which exists
+  // because an anonymous sender would otherwise LOSE the link: a creator
+  // has "Mes partages" and never loses anything, so this one is not a
+  // backstop but a record — what went out, to whom, when. That is the part
+  // "Mes partages" genuinely cannot show, because it lists shares, not
+  // sends, and a recipient list is not otherwise recoverable from the UI.
+  //
+  // Gated per user rather than by admin config (User.notifyOnSentShares,
+  // default on) — it lands in a personal mailbox, so the person who owns
+  // that mailbox decides.
+  async sendShareConfirmationToSender(
+    creatorEmail: string,
+    shareId: string,
+    shareName: string | undefined,
+    expiration: Date,
+    files: TransferFile[] = [],
+    recipients: string[] = [],
+  ) {
+    const shareUrl = `${this.config.get("general.appUrl")}/s/${shareId}`;
+    const lang = this.config.get("general.defaultLanguage");
+    const locale = this.i18n.translate("email.locale", { lang });
+    const totalSize = byteToHumanSizeString(
+      files.reduce((sum, file) => sum + file.size, 0),
+    );
+
+    // One recipient is named outright, several are counted: a headline is
+    // one line and an address is long. The full list is right below in its
+    // own section either way, so nothing is hidden by counting here.
+    const headline = recipients.length
+      ? this.i18n.t(
+          recipients.length === 1
+            ? shareName
+              ? "email.senderConfirmationHeadlineNamedOne"
+              : "email.senderConfirmationHeadlineOne"
+            : shareName
+              ? "email.senderConfirmationHeadlineNamedMany"
+              : "email.senderConfirmationHeadlineMany",
+          {
+            lang,
+            args: {
+              name: shareName,
+              recipient: recipients[0],
+              count: recipients.length,
+            },
+          },
+        )
+      : // Link mode: nobody was mailed, so there is nobody to name. Falls
+        // back to the same two headlines the anonymous sender's copy uses.
+        shareName
+        ? this.i18n.t("email.senderHeadlineNamed", {
+            lang,
+            args: { name: shareName },
+          })
+        : this.i18n.t("email.senderHeadline", { lang });
+
+    await this.sendMail(
+      creatorEmail,
+      this.config.get("email.senderConfirmationSubject"),
+      this.config
+        .get("email.senderConfirmationMessage")
+        .replaceAll("\\n", "\n")
+        .replaceAll("{name}", shareName ? ` « ${shareName} »` : "")
+        .replaceAll("{shareUrl}", shareUrl)
+        .replaceAll(
+          "{expires}",
+          moment(expiration).unix() != 0
+            ? moment(expiration).locale(locale).fromNow()
+            : this.i18n.t("email.shareRecipientsExpiresNeverFallback", {
+                lang,
+              }),
+        ),
+      {
+        // No CTA, same reasoning as sendShareLinkToSender: this is a record
+        // of something already done, not a prompt to act.
+        headline,
+        metaLine: files.length
+          ? this.buildMetaLine(files.length, totalSize, expiration)
+          : undefined,
+        downloadUrl: shareUrl,
+        files,
+        recipients,
       },
     );
   }

@@ -42,6 +42,12 @@ export interface EmailEnvelopeOptions {
   /** The transfer's contents, shown as a plain name/size list under a "N item(s)" label. */
   files?: { name: string; size: string }[];
   filesLabel?: string;
+  /** Who the transfer went to, listed under a "Recipients" label. Only ever
+   * populated on a SENDER-side email: it is the sender's own record of where
+   * their files went, and putting it on a recipient's copy would disclose the
+   * other recipients to each of them. */
+  recipients?: string[];
+  recipientsLabel?: string;
 }
 
 const escapeHtml = (value: string) =>
@@ -83,6 +89,8 @@ export function renderEmailEnvelope(options: EmailEnvelopeOptions): string {
     downloadUrlLabel,
     files,
     filesLabel,
+    recipients,
+    recipientsLabel,
   } = options;
 
   // Dropped entirely when there is nothing to say, rather than left as an
@@ -130,7 +138,21 @@ export function renderEmailEnvelope(options: EmailEnvelopeOptions): string {
       </table>`
       : "";
 
-  const hasTransferDetails = !!downloadUrl || !!files?.length;
+  const recipientsBlock = recipients?.length
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+        <tr><td>${sectionLabel(recipientsLabel || "")}</td></tr>
+        ${recipients
+          .map(
+            (recipient) => `<tr><td style="padding:4px 0;">
+              <p style="margin:0;font-size:14px;color:${TEXT_HEX};word-break:break-all;">${escapeHtml(recipient)}</p>
+            </td></tr>`,
+          )
+          .join("")}
+      </table>`
+    : "";
+
+  const hasTransferDetails =
+    !!downloadUrl || !!files?.length || !!recipients?.length;
   const divider = hasTransferDetails
     ? `<tr><td style="padding:8px 0 20px;"><div style="border-top:1px solid ${BORDER_HEX};"></div></td></tr>`
     : "";
@@ -186,6 +208,7 @@ export function renderEmailEnvelope(options: EmailEnvelopeOptions): string {
                   <tr><td>${codeBlock}</td></tr>
                   <tr><td>${ctaBlock}</td></tr>
                   ${divider}
+                  <tr><td>${recipientsBlock}</td></tr>
                   <tr><td>${downloadLinkBlock}</td></tr>
                   <tr><td>${filesBlock}</td></tr>
                 </table>

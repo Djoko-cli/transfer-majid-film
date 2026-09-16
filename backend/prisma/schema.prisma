@@ -47,6 +47,16 @@ model User {
   // "here's your link" backstop email.
   notifyOnExpiringSentShares Boolean @default(true)
 
+  // Sibling of the above, for the receipt sent the moment a share is
+  // finished rather than when it is about to expire. Same reasoning for
+  // living on the user rather than in admin config: it is a personal
+  // mailbox preference, and only a registered creator has somewhere to
+  // set it. Defaults on because the receipt is the only durable record of
+  // who a transfer went to — "Mes partages" lists the share, not the send.
+  // An anonymous sender's equivalent stays unconditional: with no account
+  // there is no toggle, and no "Mes partages" to fall back on.
+  notifyOnSentShares Boolean @default(true)
+
   oAuthUsers OAuthUser[]
 }
 

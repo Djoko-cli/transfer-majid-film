@@ -346,6 +346,31 @@ export class ShareService {
           share.name,
           share.expiration,
           emailFiles,
+          share.recipients.map((recipient) => recipient.email),
+        )
+        .catch((e) => this.logger.error(e));
+    }
+
+    // The signed-in creator's own receipt. Not a backstop the way the block
+    // above is — a creator never loses the link, "Mes partages" has it — but
+    // a record of the SEND: who it went to, which is the one thing that
+    // listing shares cannot tell them afterwards. Opt-out per user
+    // (notifyOnSentShares, default on) because it lands in a personal
+    // mailbox. Caught rather than awaited-to-fail, same as above: a receipt
+    // must never hold up the completion response the upload is waiting on.
+    if (
+      share.creator &&
+      share.creator.notifyOnSentShares &&
+      this.config.get("smtp.enabled")
+    ) {
+      await this.emailService
+        .sendShareConfirmationToSender(
+          share.creator.email,
+          share.id,
+          share.name,
+          share.expiration,
+          emailFiles,
+          share.recipients.map((recipient) => recipient.email),
         )
         .catch((e) => this.logger.error(e));
     }

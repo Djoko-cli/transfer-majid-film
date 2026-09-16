@@ -178,6 +178,10 @@ export default {
     "M'avertir avant l'expiration de mes partages",
   "account.card.notifications.expiring-shares.description":
     "Recevoir un e-mail lorsqu'un partage que vous avez créé ou envoyé est sur le point d'expirer.",
+  "account.card.notifications.sent-shares.label":
+    "M'envoyer un récapitulatif de mes transferts",
+  "account.card.notifications.sent-shares.description":
+    "Recevoir un e-mail dès qu'un transfert est prêt, avec son lien, son contenu et la liste des destinataires.",
   "account.notify.notifications.success":
     "Préférences de notification enregistrées.",
   "account.card.language.title": "Langue",

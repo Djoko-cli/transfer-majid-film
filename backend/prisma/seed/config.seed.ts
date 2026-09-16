@@ -302,6 +302,23 @@ export const configVariables = {
       defaultValue:
         "Gardez cet e-mail : c'est le seul moyen de retrouver ce lien si vous le perdez.",
     },
+    senderConfirmationSubject: {
+      type: "string",
+      defaultValue: "Votre transfert est parti",
+    },
+    // Deliberately NOT WeTransfer's "we'll email you once your files are
+    // downloaded": enableShareDownloadNotifications ships as false, so that
+    // sentence would be a promise this install does not keep by default.
+    // Same rule as every other message here — the envelope already shows the
+    // name, the recipients, the link, the contents and the expiry, so the
+    // body carries only what it does not: where to find this transfer again.
+    // Only ever sent to a signed-in creator, so "Mes partages" always exists
+    // for the reader.
+    senderConfirmationMessage: {
+      type: "text",
+      defaultValue:
+        "Vous retrouverez ce transfert dans « Mes partages », tant qu'il n'a pas expiré.",
+    },
     reverseShareSubject: {
       type: "string",
       defaultValue: "Votre lien de dépôt a été utilisé",

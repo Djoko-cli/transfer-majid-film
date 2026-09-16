@@ -409,26 +409,52 @@ const Account = () => {
             <Title order={5} mb="xs">
               <FormattedMessage id="account.card.notifications.title" />
             </Title>
-            <Switch
-              label={t("account.card.notifications.expiring-shares.label")}
-              description={t(
-                "account.card.notifications.expiring-shares.description",
-              )}
-              checked={user?.notifyOnExpiringSentShares ?? true}
-              disabled={notifyLoading}
-              onChange={(event) => {
-                const checked = event.currentTarget.checked;
-                setNotifyLoading(true);
-                userService
-                  .updateCurrentUser({ notifyOnExpiringSentShares: checked })
-                  .then(async () => {
-                    await refreshUser();
-                    toast.success(t("account.notify.notifications.success"));
-                  })
-                  .catch(toast.axiosError)
-                  .finally(() => setNotifyLoading(false));
-              }}
-            />
+            <Stack spacing="md">
+              <Switch
+                label={t("account.card.notifications.sent-shares.label")}
+                description={t(
+                  "account.card.notifications.sent-shares.description",
+                )}
+                // ?? true mirrors the column's own default: a user record
+                // fetched before this field existed has it undefined, and
+                // the backend would still mail them — the switch must show
+                // what will actually happen, not an unchecked box.
+                checked={user?.notifyOnSentShares ?? true}
+                disabled={notifyLoading}
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
+                  setNotifyLoading(true);
+                  userService
+                    .updateCurrentUser({ notifyOnSentShares: checked })
+                    .then(async () => {
+                      await refreshUser();
+                      toast.success(t("account.notify.notifications.success"));
+                    })
+                    .catch(toast.axiosError)
+                    .finally(() => setNotifyLoading(false));
+                }}
+              />
+              <Switch
+                label={t("account.card.notifications.expiring-shares.label")}
+                description={t(
+                  "account.card.notifications.expiring-shares.description",
+                )}
+                checked={user?.notifyOnExpiringSentShares ?? true}
+                disabled={notifyLoading}
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
+                  setNotifyLoading(true);
+                  userService
+                    .updateCurrentUser({ notifyOnExpiringSentShares: checked })
+                    .then(async () => {
+                      await refreshUser();
+                      toast.success(t("account.notify.notifications.success"));
+                    })
+                    .catch(toast.axiosError)
+                    .finally(() => setNotifyLoading(false));
+                }}
+              />
+            </Stack>
           </Paper>
           <Paper p="xl" mt="lg">
             <Title order={5} mb="xs">

@@ -68,6 +68,11 @@ export class UserDTO {
   @IsBoolean()
   notifyOnExpiringSentShares?: boolean;
 
+  @Expose()
+  @IsOptional()
+  @IsBoolean()
+  notifyOnSentShares?: boolean;
+
   from(partial: Partial<UserDTO>) {
     const result = plainToClass(UserDTO, partial, {
       excludeExtraneousValues: true,

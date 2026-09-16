@@ -183,6 +183,10 @@ export default {
     "Notify me before my shares expire",
   "account.card.notifications.expiring-shares.description":
     "Receive an email when a share you created or sent is about to expire.",
+  "account.card.notifications.sent-shares.label":
+    "Email me a summary of my transfers",
+  "account.card.notifications.sent-shares.description":
+    "Receive an email as soon as a transfer is ready, with its link, its contents and the list of recipients.",
   "account.notify.notifications.success":
     "Notification preferences saved.",
 

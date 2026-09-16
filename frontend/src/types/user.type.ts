@@ -11,6 +11,7 @@ type User = {
   storageQuotaLimit?: string;
   canCreatePermanentShares?: boolean;
   notifyOnExpiringSentShares?: boolean;
+  notifyOnSentShares?: boolean;
 };
 
 export type CreateUser = {
@@ -38,6 +39,7 @@ export type UpdateCurrentUser = {
   username?: string;
   email?: string;
   notifyOnExpiringSentShares?: boolean;
+  notifyOnSentShares?: boolean;
 };
 
 export type CurrentUser = User & {};

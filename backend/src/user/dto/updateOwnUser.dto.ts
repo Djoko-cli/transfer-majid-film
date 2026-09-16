@@ -6,5 +6,6 @@ export class UpdateOwnUserDTO extends PartialType(
     "username",
     "email",
     "notifyOnExpiringSentShares",
+    "notifyOnSentShares",
   ] as const),
 ) {}
