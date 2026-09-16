@@ -158,6 +158,7 @@ export class EmailService {
     recipientEmail: string,
     recipientId: string,
     shareId: string,
+    shareName: string | undefined,
     creator?: User,
     description?: string,
     expiration?: Date,
@@ -225,19 +226,33 @@ export class EmailService {
         replyTo,
         ctaUrl: shareUrl,
         ctaLabel: this.i18n.t("email.downloadButtonLabel", { lang }),
-        headline: this.i18n.t(
-          files.length === 1
-            ? "email.recipientHeadlineSingular"
-            : "email.recipientHeadlinePlural",
-          {
-            lang,
-            args: {
-              creator: creatorName,
-              fileName: files[0]?.name,
-              count: files.length,
-            },
-          },
-        ),
+        // The sender's own name for the transfer wins whenever they gave
+        // one: it is the only part of this headline they actually chose,
+        // and it says what the thing IS. The file name is a stand-in for
+        // it — a decent one for a single file, useless for "Capture
+        // d'écran 2026-09-16 à 18.15.10.png", and silently discarded for
+        // several files in favour of a bare count. Same named/generic
+        // split the sender's own confirmation already makes (see
+        // senderHeadlineNamed in sendShareLinkToSender), so both ends of
+        // one transfer now call it by the same name.
+        headline: shareName
+          ? this.i18n.t("email.recipientHeadlineNamed", {
+              lang,
+              args: { creator: creatorName, name: shareName },
+            })
+          : this.i18n.t(
+              files.length === 1
+                ? "email.recipientHeadlineSingular"
+                : "email.recipientHeadlinePlural",
+              {
+                lang,
+                args: {
+                  creator: creatorName,
+                  fileName: files[0]?.name,
+                  count: files.length,
+                },
+              },
+            ),
         metaLine: files.length
           ? this.buildMetaLine(files.length, totalSize, expiration)
           : undefined,

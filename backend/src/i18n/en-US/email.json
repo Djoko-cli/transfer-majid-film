@@ -19,6 +19,7 @@
   "templateCtaButton": "Open",
   "downloadButtonLabel": "Download your files",
   "downloadLinkLabel": "Download link",
+  "recipientHeadlineNamed": "{creator} sent you “{name}”",
   "recipientHeadlineSingular": "{creator} sent you {fileName}",
   "recipientHeadlinePlural": "{creator} sent you {count} files",
   "senderHeadline": "All done!",
