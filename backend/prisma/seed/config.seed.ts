@@ -302,9 +302,17 @@ export const configVariables = {
       defaultValue:
         "Gardez cet e-mail : c'est le seul moyen de retrouver ce lien si vous le perdez.",
     },
+    // The only subject in this file carrying a placeholder, and it earns it:
+    // every other one describes a KIND of mail, which is all a subject needs
+    // when you read it once. This one accumulates in the sender's own
+    // mailbox, one per transfer they have ever sent, and a column of
+    // identical lines is unsearchable and unscannable. {name} resolves to the
+    // transfer's name, or — unnamed — to the same thing the rest of the
+    // system falls back to: the single file's name, or the item count. An
+    // admin who removes the placeholder just gets a fixed subject back.
     senderConfirmationSubject: {
       type: "string",
-      defaultValue: "Votre transfert est parti",
+      defaultValue: "Votre transfert est parti : {name}",
     },
     // Deliberately NOT WeTransfer's "we'll email you once your files are
     // downloaded": enableShareDownloadNotifications ships as false, so that

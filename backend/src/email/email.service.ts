@@ -447,9 +447,26 @@ export class EmailService {
           })
         : this.i18n.t("email.senderHeadline", { lang });
 
+    // What the subject calls this transfer. Named or not, it has to be
+    // something the sender can pick out of a mailbox months later, so an
+    // unnamed transfer borrows the recipient email's own fallback rather
+    // than inventing a third convention: the file's name when there is one
+    // file, the item count when there are several. complete() refuses a
+    // share with no files at all, so there is no empty case to answer for.
+    const subjectName =
+      shareName ??
+      (files.length === 1
+        ? files[0].name
+        : this.i18n.t("email.filesLabelPlural", {
+            lang,
+            args: { count: files.length },
+          }));
+
     await this.sendMail(
       creatorEmail,
-      this.config.get("email.senderConfirmationSubject"),
+      this.config
+        .get("email.senderConfirmationSubject")
+        .replaceAll("{name}", subjectName),
       this.config
         .get("email.senderConfirmationMessage")
         .replaceAll("\\n", "\n")
