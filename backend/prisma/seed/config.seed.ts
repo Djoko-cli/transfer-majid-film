@@ -318,10 +318,16 @@ export const configVariables = {
     // so the placeholder can sit mid-sentence without the template having to
     // know whether it will be empty.
     //
+    // No "avec succès": a mail that only exists when the send worked cannot
+    // report anything else, and this is the most space-constrained string in
+    // the product — a mail list shows about 70 characters on a desktop and
+    // half that on a phone. Those twelve characters came straight out of the
+    // recipient address, which is the half worth keeping.
+    //
     // An admin who removes either placeholder just gets a shorter subject.
     senderConfirmationSubject: {
       type: "string",
-      defaultValue: "{name} envoyé avec succès {recipients}",
+      defaultValue: "{name} envoyé {recipients}",
     },
     // Deliberately NOT WeTransfer's "we'll email you once your files are
     // downloaded": enableShareDownloadNotifications ships as false, so that
