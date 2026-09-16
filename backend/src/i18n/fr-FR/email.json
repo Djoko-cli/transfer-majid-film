@@ -25,6 +25,8 @@
   "senderHeadline": "Hop, c'est envoyé !",
   "senderHeadlineNamed": "« {name} » est envoyé !",
   "recipientsLabel": "Destinataires",
+  "senderConfirmationSubjectToOne": "à {recipient}",
+  "senderConfirmationSubjectToMany": "à {count} destinataires",
   "senderConfirmationHeadlineNamedOne": "« {name} » envoyé à {recipient}",
   "senderConfirmationHeadlineOne": "Envoyé à {recipient}",
   "senderConfirmationHeadlineNamedMany": "« {name} » envoyé à {count} destinataires",

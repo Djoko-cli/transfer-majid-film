@@ -25,6 +25,8 @@
   "senderHeadline": "All done!",
   "senderHeadlineNamed": "“{name}” is on its way!",
   "recipientsLabel": "Recipients",
+  "senderConfirmationSubjectToOne": "to {recipient}",
+  "senderConfirmationSubjectToMany": "to {count} recipients",
   "senderConfirmationHeadlineNamedOne": "“{name}” sent to {recipient}",
   "senderConfirmationHeadlineOne": "Sent to {recipient}",
   "senderConfirmationHeadlineNamedMany": "“{name}” sent to {count} recipients",

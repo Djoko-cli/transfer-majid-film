@@ -462,11 +462,32 @@ export class EmailService {
             args: { count: files.length },
           }));
 
+    // The preposition lives in here rather than in the template, so Link
+    // mode — nobody was mailed, so there is nobody to name — collapses the
+    // whole fragment instead of leaving a dangling "à". The template's own
+    // spacing around the placeholder is then tidied below.
+    const subjectRecipients = recipients.length
+      ? this.i18n.t(
+          recipients.length === 1
+            ? "email.senderConfirmationSubjectToOne"
+            : "email.senderConfirmationSubjectToMany",
+          {
+            lang,
+            args: { recipient: recipients[0], count: recipients.length },
+          },
+        )
+      : "";
+
     await this.sendMail(
       creatorEmail,
       this.config
         .get("email.senderConfirmationSubject")
-        .replaceAll("{name}", subjectName),
+        .replaceAll("{name}", subjectName)
+        .replaceAll("{recipients}", subjectRecipients)
+        // Whitespace only — a subject is one line, so this collapses the gap
+        // an emptied placeholder leaves rather than reflowing anything.
+        .replace(/\s{2,}/g, " ")
+        .trim(),
       this.config
         .get("email.senderConfirmationMessage")
         .replaceAll("\\n", "\n")

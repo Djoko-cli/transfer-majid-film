@@ -302,17 +302,26 @@ export const configVariables = {
       defaultValue:
         "Gardez cet e-mail : c'est le seul moyen de retrouver ce lien si vous le perdez.",
     },
-    // The only subject in this file carrying a placeholder, and it earns it:
+    // The only subject in this file carrying placeholders, and it earns them:
     // every other one describes a KIND of mail, which is all a subject needs
     // when you read it once. This one accumulates in the sender's own
     // mailbox, one per transfer they have ever sent, and a column of
-    // identical lines is unsearchable and unscannable. {name} resolves to the
-    // transfer's name, or — unnamed — to the same thing the rest of the
-    // system falls back to: the single file's name, or the item count. An
-    // admin who removes the placeholder just gets a fixed subject back.
+    // identical lines is unsearchable and unscannable.
+    //
+    // {name} leads, because the distinctive part has to survive a mail list's
+    // truncation — it resolves to the transfer's name, or, unnamed, to the
+    // same fallback the recipient's mail uses: the single file's name, or the
+    // item count. {recipients} carries its own preposition ("à ...") and
+    // resolves to nothing at all in Link mode, where there is nobody to name
+    // — same convention as {name} in anonymousSenderLinkMessage above. The
+    // trailing space that leaves behind is trimmed when the subject is built,
+    // so the placeholder can sit mid-sentence without the template having to
+    // know whether it will be empty.
+    //
+    // An admin who removes either placeholder just gets a shorter subject.
     senderConfirmationSubject: {
       type: "string",
-      defaultValue: "Votre transfert est parti : {name}",
+      defaultValue: "{name} envoyé avec succès {recipients}",
     },
     // Deliberately NOT WeTransfer's "we'll email you once your files are
     // downloaded": enableShareDownloadNotifications ships as false, so that
