@@ -832,6 +832,18 @@ export default {
     "Anonymous sender link message",
   "admin.config.email.anonymous-sender-link-message.description":
     "Message sent to a signed-out visitor after an anonymous upload, with the link to their own transfer. The link and expiration already appear automatically at the top of the email — this message only needs to cover the rest. Available variables:\n {name} - The name of the transfer, if it has one\n {shareUrl} - The URL of the transfer\n {expires} - The expiration date of the transfer\n These variables will be replaced with the actual value.",
+  "admin.config.email.sender-confirmation-subject":
+    "Sender receipt subject",
+  "admin.config.email.sender-confirmation-subject.description":
+    "Subject of the email sent to the sender when their transfer goes out to recipients. Possible variables:\n {name} - The transfer's name, or failing that the file name or the item count\n {recipients} - \"to\" followed by the recipient, or by the number of recipients.\n These variables will be replaced with their actual value.",
+  "admin.config.email.sender-confirmation-subject-ready":
+    "Sender receipt subject (link mode)",
+  "admin.config.email.sender-confirmation-subject-ready.description":
+    "Subject of the same email when the transfer has no recipients: nothing was sent, and the sender passes the link on themselves. Possible variable:\n {name} - The transfer's name, or failing that the file name or the item count.",
+  "admin.config.email.sender-confirmation-message":
+    "Sender receipt message",
+  "admin.config.email.sender-confirmation-message.description":
+    "Body of the receipt email sent to the sender. The name, recipients, link, contents and expiration are already shown automatically: this message only needs to carry the rest. Possible variables:\n {name} - The transfer's name, if it has one\n {shareUrl} - The transfer's URL\n {expires} - The transfer's expiration date.\n These variables will be replaced with their actual value.",
   "admin.config.email.reverse-share-subject": "Reverse share subject",
   "admin.config.email.reverse-share-subject.description":
     "Subject of the sent email when someone created a transfer with your reverse share link.",

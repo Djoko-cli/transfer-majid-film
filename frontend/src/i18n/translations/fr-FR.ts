@@ -827,6 +827,18 @@ export default {
     "Message du lien pour l’expéditeur anonyme",
   "admin.config.email.anonymous-sender-link-message.description":
     "Contenu du courriel envoyé à un visiteur non connecté après un dépôt anonyme, avec le lien vers son propre transfert. Le lien et l'expiration s'affichent déjà automatiquement en haut du courriel : ce message n'a besoin de contenir que le reste. Variables possibles :\n {name} - Le nom du transfert, s’il en a un\n {shareUrl} - L'URL du transfert\n {expires} - La date d'expiration du transfert.\n Ces variables seront remplacées par leur valeur effective.",
+  "admin.config.email.sender-confirmation-subject":
+    "Sujet du récapitulatif d’envoi",
+  "admin.config.email.sender-confirmation-subject.description":
+    "Intitulé du courriel envoyé à l’expéditeur quand son transfert part vers des destinataires. Variables possibles :\n {name} - Le nom du transfert, ou à défaut le nom du fichier ou le nombre d’éléments\n {recipients} - « à » suivi du destinataire, ou du nombre de destinataires.\n Ces variables seront remplacées par leur valeur effective.",
+  "admin.config.email.sender-confirmation-subject-ready":
+    "Sujet du récapitulatif (mode lien)",
+  "admin.config.email.sender-confirmation-subject-ready.description":
+    "Intitulé du même courriel quand le transfert n’a aucun destinataire : rien n’a été envoyé, l’expéditeur diffuse le lien lui-même. Variable possible :\n {name} - Le nom du transfert, ou à défaut le nom du fichier ou le nombre d’éléments.",
+  "admin.config.email.sender-confirmation-message":
+    "Message du récapitulatif d’envoi",
+  "admin.config.email.sender-confirmation-message.description":
+    "Contenu du courriel de récapitulatif adressé à l’expéditeur. Le nom, les destinataires, le lien, le contenu et l’expiration s’affichent déjà automatiquement : ce message n’a besoin de contenir que le reste. Variables possibles :\n {name} - Le nom du transfert, s’il en a un\n {shareUrl} - L'URL du transfert\n {expires} - La date d'expiration du transfert.\n Ces variables seront remplacées par leur valeur effective.",
   "admin.config.email.reverse-share-subject": "Sujet d’un transfert inversé",
   "admin.config.email.reverse-share-subject.description":
     "Intitulé du courriel envoyé lorsque quelqu’un a partagé des fichiers depuis votre transfert inversé.",
