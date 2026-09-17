@@ -169,6 +169,13 @@ export class EmailService {
     shareId: string,
     shareName: string | undefined,
     creator?: User,
+    // The anonymous sender's own address, and only ever one the caller has
+    // established belongs to them — see ShareService.complete, which passes
+    // it solely when anonymous shares require email verification. An
+    // unverified address here would let anyone choose where a reply to a
+    // message from this domain lands, which is a phishing aid rather than a
+    // convenience.
+    senderEmail?: string,
     description?: string,
     expiration?: Date,
     files: TransferFile[] = [],
@@ -187,12 +194,19 @@ export class EmailService {
       creator?.username ??
       this.i18n.t("email.shareRecipientsCreatorFallback", { lang });
 
+    // Whoever actually sent this, account or not. It used to read the
+    // creator alone, so the setting quietly did nothing for anonymous
+    // senders — their recipients' replies went to the app's own address
+    // even though the sender had given one at upload time.
     let replyTo: string | undefined = undefined;
-    if (
-      this.config.get("email.shareRecipientsReplyToCreator") &&
-      creator?.email
-    ) {
-      replyTo = `"${creator.username}" <${creator.email}>`;
+    if (this.config.get("email.shareRecipientsReplyToCreator")) {
+      if (creator?.email) {
+        replyTo = `"${creator.username}" <${creator.email}>`;
+      } else if (senderEmail) {
+        // Bare address: an anonymous sender has no display name to put in
+        // front of it, and inventing one would misrepresent them.
+        replyTo = senderEmail;
+      }
     }
 
     const totalSize = byteToHumanSizeString(

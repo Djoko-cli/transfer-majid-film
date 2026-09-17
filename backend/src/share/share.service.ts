@@ -288,6 +288,14 @@ export class ShareService {
         share.id,
         share.name,
         share.creator || share.reverseShare?.creator,
+        // Only when the OTP flow has actually proven this address belongs to
+        // the person who typed it. senderEmail is collected for every
+        // anonymous share regardless of that toggle (see create() above), so
+        // the toggle — not the presence of a value — is what makes it safe
+        // to hand a recipient a reply target on this domain's letterhead.
+        this.config.get("share.requireEmailVerificationForAnonymousShares")
+          ? (share.senderEmail ?? undefined)
+          : undefined,
         share.description,
         share.expiration,
         emailFiles,
