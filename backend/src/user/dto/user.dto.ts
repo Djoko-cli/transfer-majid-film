@@ -27,6 +27,11 @@ export class UserDTO {
   @Expose()
   hasPassword: boolean;
 
+  // Surfaced so the account page can show what is waiting and offer the
+  // code field. Only ever the address the owner themselves asked for.
+  @Expose()
+  pendingEmail?: string;
+
   @MinLength(8)
   password: string;
 

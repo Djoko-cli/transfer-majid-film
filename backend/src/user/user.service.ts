@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import * as moment from "moment";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import * as argon from "argon2";
 import * as crypto from "crypto";
@@ -13,6 +14,10 @@ import { ConfigService } from "../config/config.service";
 import { FileService } from "../file/file.service";
 import { CreateUserDTO } from "./dto/createUser.dto";
 import { UpdateUserDto } from "./dto/updateUser.dto";
+
+// Long enough to go and fetch a code from another mailbox without rushing,
+// short enough that an abandoned request does not sit claimable for days.
+const EMAIL_CHANGE_CODE_TTL_MINUTES = 30;
 
 @Injectable()
 export class UserSevice {
@@ -150,6 +155,128 @@ export class UserSevice {
         }
       }
     }
+  }
+
+  // A self-service email change is not applied when it is asked for. The
+  // new address is held aside and the account keeps its current one until a
+  // code sent to the new address comes back. A typo therefore costs
+  // nothing: the code goes nowhere and the row never moves.
+  //
+  // The obvious cheaper design — write the new address, mark the account
+  // unactivated, make them confirm — fails on exactly that typo, by locking
+  // the owner out of the account they were only editing.
+  //
+  // Self-service only. An admin changing someone else's address from the
+  // console goes through update() as before: that is a deliberate act by
+  // someone who already has authority over the row, and making it wait on a
+  // code sent to the account's owner would defeat its purpose.
+  async requestEmailChange(userId: string, requestedEmail: string) {
+    const newEmail = requestedEmail.toLowerCase().trim();
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new BadRequestException(this.i18n.t("auth.userNotFound"));
+
+    // Asking for the address you already have is not an error, it is a
+    // no-op — and answering it with a code to confirm what is already true
+    // would be absurd.
+    if (user.email === newEmail) return user;
+
+    const taken = await this.prisma.user.findFirst({
+      where: { email: newEmail },
+    });
+    if (taken)
+      throw new BadRequestException(
+        this.i18n.t("auth.userAlreadyExists", { args: { field: "email" } }),
+      );
+
+    const expiresAt = moment()
+      .add(EMAIL_CHANGE_CODE_TTL_MINUTES, "minutes")
+      .toDate();
+
+    // Six digits is 900,000 values, so two pending changes can collide on
+    // the column's unique constraint. Retried once with a fresh code rather
+    // than surfacing a baffling "already exists" — same reasoning, and the
+    // same shape, as AuthService.signUp's own activation code.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const code = crypto.randomInt(100000, 1000000).toString();
+      try {
+        const updated = await this.prisma.user.update({
+          where: { id: userId },
+          data: {
+            pendingEmail: newEmail,
+            pendingEmailToken: code,
+            pendingEmailTokenExpiresAt: expiresAt,
+          },
+        });
+
+        await this.emailService.sendEmailChangeCode(
+          newEmail,
+          code,
+          moment
+            .duration(EMAIL_CHANGE_CODE_TTL_MINUTES, "minutes")
+            .locale(this.i18n.translate("email.locale"))
+            .humanize(),
+        );
+        // To the address being left, and never awaited into failure: a
+        // warning that cannot be delivered must not undo a change request
+        // that succeeded.
+        this.emailService
+          .sendEmailChangeNotice(user.email, newEmail)
+          .catch((e) => this.logger.error(e));
+
+        return updated;
+      } catch (e) {
+        if (
+          e instanceof PrismaClientKnownRequestError &&
+          e.code === "P2002" &&
+          attempt === 0
+        )
+          continue;
+        throw e;
+      }
+    }
+  }
+
+  async confirmEmailChange(userId: string, code: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.pendingEmail || user.pendingEmailToken !== code)
+      throw new BadRequestException(this.i18n.t("auth.invalidCode"));
+
+    if (
+      !user.pendingEmailTokenExpiresAt ||
+      user.pendingEmailTokenExpiresAt < new Date()
+    )
+      throw new BadRequestException(this.i18n.t("auth.tokenInvalidOrExpired"));
+
+    // Re-checked at the moment of applying, not only when it was asked for:
+    // someone else may have taken the address in between.
+    const taken = await this.prisma.user.findFirst({
+      where: { email: user.pendingEmail },
+    });
+    if (taken)
+      throw new BadRequestException(
+        this.i18n.t("auth.userAlreadyExists", { args: { field: "email" } }),
+      );
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        email: user.pendingEmail,
+        pendingEmail: null,
+        pendingEmailToken: null,
+        pendingEmailTokenExpiresAt: null,
+      },
+    });
+  }
+
+  async cancelEmailChange(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        pendingEmail: null,
+        pendingEmailToken: null,
+        pendingEmailTokenExpiresAt: null,
+      },
+    });
   }
 
   async delete(id: string) {

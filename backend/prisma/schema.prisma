@@ -39,6 +39,19 @@ model User {
   activationTokenExpiresAt DateTime?
   activationAttempts       Int       @default(0)
 
+  // A self-service email change is held here until the new address proves
+  // it exists and is reachable. The account keeps its current email the
+  // whole time, so a typo costs nothing: the code never arrives and the
+  // row never changes. Applying first and de-activating after would be
+  // simpler and would lock the owner out of their own account on exactly
+  // that typo — the failure this is here to prevent.
+  //
+  // Not used by the admin path (UserService.update from the console),
+  // which is a deliberate administrative act on someone else's row.
+  pendingEmail                 String?
+  pendingEmailToken            String?   @unique
+  pendingEmailTokenExpiresAt   DateTime?
+
   // Granular per-user opt-out for JobsService's sender-side expiry
   // reminder — only meaningful for a registered creator, who's the only
   // one with an account/settings to control it from. An anonymous

@@ -190,6 +190,16 @@ export default {
   "account.notify.notifications.success":
     "Notification preferences saved.",
 
+  "account.card.info.pending-email.title": "New address to confirm",
+  "account.card.info.pending-email.description":
+    "A code was sent to {email}. Your current address stays in force until it is entered — if that address is wrong, just cancel.",
+  "account.card.info.pending-email.code": "6-digit code",
+  "account.card.info.pending-email.confirm": "Confirm",
+  "account.card.info.pending-email.cancel": "Cancel",
+  "account.notify.email-change.requested":
+    "A code was sent to {email}. Your address will not change until it is entered.",
+  "account.notify.email-change.confirmed": "Your address has been changed.",
+  "account.notify.email-change.cancelled": "Address change cancelled.",
   "account.card.language.title": "Language",
   "account.card.language.description":
     "English and French are the only two languages maintained.",

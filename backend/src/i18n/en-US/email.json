@@ -68,5 +68,9 @@
   "verificationMessage": "You've just signed up. Enter the code {code} to verify your account, or simply click this link: {url}\n\nThis code expires in 60 minutes.",
   "verificationSubject": "Verify your account",
   "verificationCodeSubject": "Your verification code",
-  "verificationCodeMessage": "Here is your verification code: {code}\n\nIt expires in {expires}. Enter it to continue your transfer."
+  "verificationCodeMessage": "Here is your verification code: {code}\n\nIt expires in {expires}. Enter it to continue your transfer.",
+  "emailChangeCodeSubject": "Confirm your new address",
+  "emailChangeCodeMessage": "You asked to use this address for your account.\n\nEnter the code {code} to confirm it. Until you do, your account keeps its current address.\n\nThis code expires in {expires}. If you did not ask for this, ignore this message.",
+  "emailChangeNoticeSubject": "An address change was requested on your account",
+  "emailChangeNoticeMessage": "Someone just asked to change the address on your account, to {newEmail}.\n\nYour current address stays in force until the new one is confirmed. If this was not you, change your password: someone has access to your account."
 }

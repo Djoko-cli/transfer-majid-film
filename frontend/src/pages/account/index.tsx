@@ -1,4 +1,5 @@
 import {
+  Alert,
   Badge,
   Button,
   Center,
@@ -17,7 +18,7 @@ import {
 import { useForm, yupResolver } from "@mantine/form";
 import { useModals } from "@mantine/modals";
 import { useEffect, useState } from "react";
-import { TbAuth2Fa, TbDevices } from "react-icons/tb";
+import { TbAuth2Fa, TbDevices, TbMailFast } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
 import Meta from "../../components/Meta";
@@ -47,6 +48,7 @@ const Account = () => {
   > | null>(null);
 
   const { user, refreshUser } = useUser();
+  const [emailChangeCode, setEmailChangeCode] = useState("");
   const modals = useModals();
   const t = useTranslate();
   const config = useConfig();
@@ -164,7 +166,19 @@ const Account = () => {
                     username: values.username,
                     email: values.email,
                   })
-                  .then(() => toast.success(t("account.notify.info.success")))
+                  .then(async (updated) => {
+                    await refreshUser();
+                    // A changed address is not applied here, it is held
+                    // pending a code — so saying "saved" would be a lie
+                    // about the one field the reader most cares about.
+                    toast.success(
+                      updated?.pendingEmail
+                        ? t("account.notify.email-change.requested", {
+                            email: updated.pendingEmail,
+                          })
+                        : t("account.notify.info.success"),
+                    );
+                  })
                   .catch(toast.axiosError),
               )}
             >
@@ -188,6 +202,68 @@ const Account = () => {
                 )}
               </Stack>
             </form>
+
+            {user?.pendingEmail && (
+              <Alert
+                mt="lg"
+                variant="light"
+                color="primary"
+                icon={<TbMailFast />}
+                title={t("account.card.info.pending-email.title")}
+              >
+                <Stack spacing="sm">
+                  <Text size="sm">
+                    <FormattedMessage
+                      id="account.card.info.pending-email.description"
+                      values={{ email: <b>{user.pendingEmail}</b> }}
+                    />
+                  </Text>
+                  <TextInput
+                    label={t("account.card.info.pending-email.code")}
+                    value={emailChangeCode}
+                    onChange={(e) =>
+                      setEmailChangeCode(e.currentTarget.value.trim())
+                    }
+                  />
+                  <Group position="right">
+                    <Button
+                      variant="subtle"
+                      onClick={() =>
+                        userService
+                          .cancelEmailChange()
+                          .then(async () => {
+                            await refreshUser();
+                            setEmailChangeCode("");
+                            toast.success(
+                              t("account.notify.email-change.cancelled"),
+                            );
+                          })
+                          .catch(toast.axiosError)
+                      }
+                    >
+                      <FormattedMessage id="account.card.info.pending-email.cancel" />
+                    </Button>
+                    <Button
+                      disabled={emailChangeCode.length !== 6}
+                      onClick={() =>
+                        userService
+                          .confirmEmailChange(emailChangeCode)
+                          .then(async () => {
+                            await refreshUser();
+                            setEmailChangeCode("");
+                            toast.success(
+                              t("account.notify.email-change.confirmed"),
+                            );
+                          })
+                          .catch(toast.axiosError)
+                      }
+                    >
+                      <FormattedMessage id="account.card.info.pending-email.confirm" />
+                    </Button>
+                  </Group>
+                </Stack>
+              </Alert>
+            )}
           </Paper>
           {user?.isLdap ? null : (
             <Paper p="xl" mt="lg">

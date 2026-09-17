@@ -7,6 +7,8 @@ type User = {
   isLdap: boolean;
   totpVerified: boolean;
   hasPassword: boolean;
+  // Set while an email change is waiting on a code sent to that address.
+  pendingEmail?: string;
   shareSizeLimit?: string;
   storageQuotaLimit?: string;
   canCreatePermanentShares?: boolean;

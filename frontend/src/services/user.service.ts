@@ -27,6 +27,14 @@ const updateCurrentUser = async (user: UpdateCurrentUser) => {
   return (await api.patch("/users/me", user)).data;
 };
 
+const confirmEmailChange = async (code: string) => {
+  return (await api.post("/users/me/email/confirm", { code })).data;
+};
+
+const cancelEmailChange = async () => {
+  return (await api.delete("/users/me/email")).data;
+};
+
 const removeCurrentUser = async () => {
   await api.delete("/users/me");
 };
@@ -47,5 +55,7 @@ export default {
   remove,
   getCurrentUser,
   updateCurrentUser,
+  confirmEmailChange,
+  cancelEmailChange,
   removeCurrentUser,
 };

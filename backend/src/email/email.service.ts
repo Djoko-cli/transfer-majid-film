@@ -726,6 +726,37 @@ export class EmailService {
     );
   }
 
+  // The code goes to the address being CLAIMED, never to the one already on
+  // the account: the whole point is that only someone who can read the new
+  // mailbox can move the account onto it.
+  async sendEmailChangeCode(newEmail: string, code: string, expires: string) {
+    const lang = this.config.get("general.defaultLanguage");
+    await this.sendMail(
+      newEmail,
+      this.i18n.t("email.emailChangeCodeSubject", { lang }),
+      this.i18n
+        .t("email.emailChangeCodeMessage", { lang })
+        .replaceAll("{code}", code)
+        .replaceAll("{expires}", expires),
+      { code },
+    );
+  }
+
+  // And a word to the address being LEFT. It cannot stop a typo — the
+  // pending-address mechanism already does that — but it is the only thing
+  // that tells the owner when the request was not theirs, which is the case
+  // no amount of verifying the new address can detect.
+  async sendEmailChangeNotice(currentEmail: string, newEmail: string) {
+    const lang = this.config.get("general.defaultLanguage");
+    await this.sendMail(
+      currentEmail,
+      this.i18n.t("email.emailChangeNoticeSubject", { lang }),
+      this.i18n
+        .t("email.emailChangeNoticeMessage", { lang })
+        .replaceAll("{newEmail}", newEmail),
+    );
+  }
+
   // One of two send* methods whose "to" is fixed (CONTACT_EMAIL) rather
   // than a parameter — see sendNewAccountNotification below for the other.
   // Every other method here sends an app notification out to a user; these

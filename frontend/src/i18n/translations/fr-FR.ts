@@ -184,6 +184,16 @@ export default {
     "Recevoir un e-mail dès qu'un transfert est prêt, avec son lien, son contenu et la liste des destinataires.",
   "account.notify.notifications.success":
     "Préférences de notification enregistrées.",
+  "account.card.info.pending-email.title": "Nouvelle adresse à confirmer",
+  "account.card.info.pending-email.description":
+    "Un code a été envoyé à {email}. Votre adresse actuelle reste en vigueur tant qu'il n'est pas saisi — si celle-ci comporte une erreur, annulez simplement.",
+  "account.card.info.pending-email.code": "Code à 6 chiffres",
+  "account.card.info.pending-email.confirm": "Confirmer",
+  "account.card.info.pending-email.cancel": "Annuler",
+  "account.notify.email-change.requested":
+    "Un code a été envoyé à {email}. Votre adresse ne changera qu'une fois ce code saisi.",
+  "account.notify.email-change.confirmed": "Votre adresse a été changée.",
+  "account.notify.email-change.cancelled": "Changement d'adresse annulé.",
   "account.card.language.title": "Langue",
   "account.card.language.description":
     "Anglais et français sont les deux seules langues maintenues.",

@@ -17,6 +17,7 @@ import { AdministratorGuard } from "src/auth/guard/isAdmin.guard";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
 import { ConfigService } from "../config/config.service";
 import { CreateUserDTO } from "./dto/createUser.dto";
+import { ConfirmEmailChangeDTO } from "./dto/confirmEmailChange.dto";
 import { UpdateOwnUserDTO } from "./dto/updateOwnUser.dto";
 import { UpdateUserDto } from "./dto/updateUser.dto";
 import { UserDTO } from "./dto/user.dto";
@@ -45,7 +46,37 @@ export class UserController {
     @GetUser() user: User,
     @Body() data: UpdateOwnUserDTO,
   ) {
-    return new UserDTO().from(await this.userService.update(user.id, data));
+    // The email is pulled out of the ordinary update and routed through
+    // verification instead: it is the one field here that decides where the
+    // account's own recovery — and now the Reply-To on everything they send
+    // — lands, so it does not get written just because someone typed it.
+    const { email, ...rest } = data;
+    let updated = await this.userService.update(user.id, rest);
+
+    if (email !== undefined)
+      updated = await this.userService.requestEmailChange(user.id, email);
+
+    return new UserDTO().from(updated);
+  }
+
+  @Post("me/email/confirm")
+  @HttpCode(200)
+  @UseGuards(JwtGuard)
+  async confirmEmailChange(
+    @GetUser() user: User,
+    @Body() dto: ConfirmEmailChangeDTO,
+  ) {
+    return new UserDTO().from(
+      await this.userService.confirmEmailChange(user.id, dto.code),
+    );
+  }
+
+  @Delete("me/email")
+  @UseGuards(JwtGuard)
+  async cancelEmailChange(@GetUser() user: User) {
+    return new UserDTO().from(
+      await this.userService.cancelEmailChange(user.id),
+    );
   }
 
   @Delete("me")
