@@ -586,7 +586,7 @@ export default {
   "upload.modal.completed.expires-time-format": "LT",
   "upload.modal.completed.create-account":
     "Create an account to keep track of your links",
-  "upload.modal.completed.share-ready": "Your share is ready",
+  "upload.modal.completed.share-ready": "Your share is ready!",
   "upload.modal.completed.share-ready-named": "“{name}” is ready!",
   "upload.modal.completed.link-mode.title": "All done!",
   "upload.modal.completed.link-mode.download-notification":

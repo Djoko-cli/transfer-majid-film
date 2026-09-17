@@ -567,7 +567,7 @@ export default {
   "upload.modal.completed.expires-time-format": "HH[h]mm",
   "upload.modal.completed.create-account":
     "Créez un compte pour retrouver vos liens",
-  "upload.modal.completed.share-ready": "Votre partage est prêt",
+  "upload.modal.completed.share-ready": "Votre partage est prêt !",
   "upload.modal.completed.share-ready-named": "« {name} » est prêt !",
   "upload.modal.completed.link-mode.title": "Hop, c'est envoyé !",
   "upload.modal.completed.link-mode.download-notification":
