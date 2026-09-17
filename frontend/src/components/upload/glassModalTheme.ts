@@ -38,35 +38,37 @@ export const glassModalStyles = (theme: any) => {
     // each other. Reported on the reverse-share modal; it was never specific
     // to it, all ~24 glass modals share this object.
     //
-    // It is a bar of the same glass, denser — not a lid. The first attempt at
-    // that was 0.82 with blur(16), which put it outside this app's vocabulary
-    // in both directions at once: every other glass surface here sits between
-    // 0.5 and 0.6 (the header/footer bar, Menu, Notification — see
-    // mantine.style.ts) and blurs at 18-22px, so it was simultaneously the
-    // most opaque and the least blurred thing on screen, and read as a lid
-    // laid over the surface rather than part of it.
+    // It is a bar of the same glass, darkened — not a lid. Two earlier
+    // attempts got that wrong in the same way, by treating this header as a
+    // surface in its own right: 0.82 + blur(16), then Menu's own 0.6 +
+    // blur(22). Both rendered as a flat near-black band while the body an
+    // inch below showed the photograph through it.
     //
-    // 0.6 and blur(22) are Menu's and Notification's own numbers — this app's
-    // existing answer to "a small, dense glass panel" — and they sit visibly
-    // above the body's 0.32 middle stop without leaving the material. Flat
-    // rather than the content's 3-stop gradient, same reason Menu is flat: a
-    // diagonal gradient's stops are percentages of the element's own
-    // diagonal, so on a ~70px-tall bar they compress into a hard smear.
+    // The reason is that this bar is NOT on the page — it is on `content`
+    // above, which already carries its own fill and its own blur. A menu
+    // sits directly on the page, so its 0.6 is the whole stack; here 0.6
+    // composites ON TOP of the body's 0.32 (about 0.73 effective) and its
+    // backdrop-filter re-blurs an already-blurred backdrop, flattening what
+    // little structure survived. Copying the menu's numbers copied a value
+    // out of the context that made it correct.
+    //
+    // So the header does not restate the material, it only shades it: a
+    // plain black wash, no backdrop-filter of its own, letting `content`'s
+    // glass show through darker. Compared live at 0.18 and 0.28 against the
+    // flat version — 0.28 keeps the photograph visibly continuous across the
+    // seam while giving the most attenuation this approach allows.
     //
     // The hairline is what actually makes the edge read as intentional, and
-    // it is the one the header/footer bar already uses. Worth being plain
-    // about the trade: 0.82 attenuated the content scrolling under it to 18%
-    // and 0.6 leaves 40%, so a little more shows through. Measured on the
-    // completed-upload modal, even 0.82 left a thumbnail and its caption
-    // plainly legible underneath — full occlusion was never on the table at
-    // any alpha this material allows, so the choice was only ever between
-    // looking wrong and looking right.
+    // it is the one the header/footer bar already uses.
+    //
+    // Worth being plain about what this does not do: it attenuates content
+    // scrolling underneath less than an opaque bar would. Full occlusion was
+    // never on the table anyway — measured on the completed-upload modal,
+    // even 0.82 left a thumbnail and its caption plainly legible under the
+    // title — so the choice was only ever between looking wrong and looking
+    // right.
     header: {
-      backgroundColor: dark
-        ? "rgba(18, 18, 18, 0.6)"
-        : "rgba(255, 255, 255, 0.6)",
-      backdropFilter: "blur(22px) saturate(160%)",
-      WebkitBackdropFilter: "blur(22px) saturate(160%)",
+      backgroundColor: dark ? "rgba(0, 0, 0, 0.28)" : "rgba(0, 0, 0, 0.07)",
       borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
     },
     title: {
