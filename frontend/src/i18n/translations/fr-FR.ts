@@ -705,6 +705,16 @@ export default {
   // END /contact
 
   // /admin/config
+  "admin.password-gate.title": "Définissez un mot de passe pour continuer",
+  "admin.password-gate.description":
+    "Votre compte administrateur n'a pas de mot de passe : il ne se connecte que par le portail d'identité.",
+  "admin.password-gate.why.title": "Pourquoi maintenant",
+  "admin.password-gate.why.description":
+    "Le jour où le portail sera indisponible, cette console est précisément celle qui vous servirait à le réparer — et vous n'auriez aucun autre moyen d'y entrer. Ce mot de passe est ce second moyen. Il ne remplace pas le portail, il ne sert que s'il tombe.",
+  "admin.password-gate.password": "Mot de passe",
+  "admin.password-gate.confirmation": "Confirmation",
+  "admin.password-gate.error.mismatch": "Les deux mots de passe diffèrent",
+  "admin.password-gate.submit": "Définir et continuer",
   "admin.config.file-sync.dismiss": "Ne plus afficher ce message",
   "admin.config.config-file-sync.title": "Synchronisé avec config.yaml",
   "admin.config.config-file-sync.description":

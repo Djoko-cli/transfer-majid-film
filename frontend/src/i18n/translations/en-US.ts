@@ -715,6 +715,16 @@ export default {
   // END /contact
 
   // /admin/config
+  "admin.password-gate.title": "Set a password to continue",
+  "admin.password-gate.description":
+    "Your admin account has no password: it only signs in through the identity provider.",
+  "admin.password-gate.why.title": "Why now",
+  "admin.password-gate.why.description":
+    "The day the provider is unavailable, this console is the very thing you would use to repair it — and you would have no other way in. This password is that other way. It does not replace the provider; it only matters if the provider is down.",
+  "admin.password-gate.password": "Password",
+  "admin.password-gate.confirmation": "Confirmation",
+  "admin.password-gate.error.mismatch": "The two passwords do not match",
+  "admin.password-gate.submit": "Set it and continue",
   "admin.config.file-sync.dismiss": "Don't show this again",
   "admin.config.config-file-sync.title": "Synced with config.yaml",
   "admin.config.config-file-sync.description":

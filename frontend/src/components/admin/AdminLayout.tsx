@@ -6,6 +6,7 @@ import FullBleedShell, { useBackdropSlot } from "../core/FullBleedShell";
 import glassFormTheme from "../upload/glassFormTheme";
 import AdminHeader from "./AdminHeader";
 import AdminNavBar from "./AdminNavBar";
+import AdminPasswordGate from "./AdminPasswordGate";
 
 // Registered once here (not per-page) via a raw <style> tag — Mantine's
 // createStyles doesn't reliably serialize a top-level "@keyframes name" key
@@ -94,7 +95,11 @@ const AdminShell = ({ children }: { children: ReactNode }) => {
                 "adminContentFadeIn 280ms cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
-            {children}
+            {/* Inside the shell rather than replacing it: the sidebar stays
+                navigable, and every destination it leads to is wrapped by
+                this same layout — so the gate follows instead of being
+                walked around. */}
+            <AdminPasswordGate>{children}</AdminPasswordGate>
           </Box>
         </MantineProvider>
       </AppShell>
