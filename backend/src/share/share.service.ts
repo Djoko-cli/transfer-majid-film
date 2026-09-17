@@ -326,7 +326,7 @@ export class ShareService {
       );
     }
 
-    // An anonymous sender (no account, so no "Mes partages" to fall back
+    // An anonymous sender (no account, so no "Mes transferts" to fall back
     // to) only ever sees this link once — email it to the self-reported
     // address stored at creation time (ShareService.create()), as a
     // backstop against a lost/mis-clicked link. Unconditional on OTP
@@ -352,7 +352,7 @@ export class ShareService {
     }
 
     // The signed-in creator's own receipt. Not a backstop the way the block
-    // above is — a creator never loses the link, "Mes partages" has it — but
+    // above is — a creator never loses the link, "Mes transferts" has it — but
     // a record of the SEND: who it went to, which is the one thing that
     // listing shares cannot tell them afterwards. Opt-out per user
     // (notifyOnSentShares, default on) because it lands in a personal

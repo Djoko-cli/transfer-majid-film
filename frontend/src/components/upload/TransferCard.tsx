@@ -631,7 +631,7 @@ const TransferCard = ({
               {
                 // Always shown, in both Lien and E-mail mode: this names the
                 // share itself (it's what a recipient sees as the page title,
-                // and what the owner sees as the row label in "Mes partages"),
+                // and what the owner sees as the row label in "Mes transferts"),
                 // not who it's addressed to — a link shared with no particular
                 // recipient still deserves its own identity. Left blank, the
                 // fallback in onFormSubmit derives one from the files being

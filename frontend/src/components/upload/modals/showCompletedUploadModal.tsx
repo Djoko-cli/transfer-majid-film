@@ -61,7 +61,7 @@ const showCompletedUploadModal = (
 
   // A share always reaches here with a name: leave the field blank and
   // TransferCard fills it from the files themselves (getDefaultShareName —
-  // the single file's stem, or "2 fichiers"). Useful in "Mes partages",
+  // the single file's stem, or "2 fichiers"). Useful in "Mes transferts",
   // where any label beats none, but it is not a title the sender chose, and
   // announcing it back to them as one ("« 2 fichiers » est prêt !") reads
   // like the app naming their work for them.
@@ -321,7 +321,7 @@ const Body = ({
           </Text>
         )}
         {
-          // An anonymous sender has no account and no "Mes partages" to
+          // An anonymous sender has no account and no "Mes transferts" to
           // fall back to — this link is the only trace of the transfer,
           // shown exactly once. The backend also emails it to the address
           // they typed; naming that here turns a silent safety net into

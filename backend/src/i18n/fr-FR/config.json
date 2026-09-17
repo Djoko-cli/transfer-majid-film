@@ -6,6 +6,6 @@
   "redisError": "Erreur Redis",
   "variableNotFound": "Variable de configuration non trouvée",
   "invalidType": "La variable de configuration doit être de type {type}",
-  "shareIdLengthValidation": "La longueur de l'ID de partage doit être comprise entre 2 et 50",
+  "shareIdLengthValidation": "La longueur de l'ID de transfert doit être comprise entre 2 et 50",
   "zipCompressionLevelValidation": "Le niveau de compression Zip doit être compris entre 0 et 9"
 }

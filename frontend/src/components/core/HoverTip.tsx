@@ -16,7 +16,7 @@ export const HoverTip = ({ label, children, disabled }: HoverTipProps) => {
       disabled={disabled}
       // Mantine's Tooltip renders inline by default (withinPortal: false),
       // so any ancestor with overflow:auto/hidden — e.g. the scrollable
-      // Paper wrapping "Mes partages"' table — silently clips it. HoverTip
+      // Paper wrapping "Mes transferts"' table — silently clips it. HoverTip
       // is used for exactly these small action-icon labels across several
       // scrollable tables, so this needs fixing once here rather than per
       // call site.

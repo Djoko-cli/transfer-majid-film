@@ -53,7 +53,7 @@ const Downloads = ({ shareId }: { shareId: string }) => {
             t("share.error.not-found.description"),
           );
         } else if (e.response?.status === 403) {
-          // Not share.error.access-denied.* - that copy ("Partage privé")
+          // Not share.error.access-denied.* - that copy ("Transfert privé")
           // was written for a private *share*, a different situation from
           // lacking permission to see one's *download history*.
           showErrorModal(
@@ -62,11 +62,7 @@ const Downloads = ({ shareId }: { shareId: string }) => {
             t("share.downloads.error.access-denied.description"),
           );
         } else {
-          showErrorModal(
-            modals,
-            t("common.error"),
-            t("common.error.unknown"),
-          );
+          showErrorModal(modals, t("common.error"), t("common.error.unknown"));
         }
       })
       .finally(() => setIsLoading(false));

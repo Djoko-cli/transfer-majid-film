@@ -345,12 +345,12 @@ export const configVariables = {
     // Same rule as every other message here — the envelope already shows the
     // name, the recipients, the link, the contents and the expiry, so the
     // body carries only what it does not: where to find this transfer again.
-    // Only ever sent to a signed-in creator, so "Mes partages" always exists
+    // Only ever sent to a signed-in creator, so "Mes transferts" always exists
     // for the reader.
     senderConfirmationMessage: {
       type: "text",
       defaultValue:
-        "Vous retrouverez ce transfert dans « Mes partages », tant qu'il n'a pas expiré.",
+        "Vous retrouverez ce transfert dans « Mes transferts », tant qu'il n'a pas expiré.",
     },
     reverseShareSubject: {
       type: "string",
@@ -359,7 +359,7 @@ export const configVariables = {
     reverseShareMessage: {
       type: "text",
       defaultValue:
-        "Un partage vient d'être créé avec votre lien de dépôt : {shareUrl}",
+        "Un transfert vient d'être créé avec votre lien de dépôt : {shareUrl}",
     },
     resetPasswordSubject: {
       type: "string",
@@ -401,7 +401,7 @@ export const configVariables = {
     shareDownloadNotificationMessage: {
       type: "text",
       defaultValue:
-        "{recipientEmail} a téléchargé {fileName} depuis votre partage : {shareUrl}",
+        "{recipientEmail} a téléchargé {fileName} depuis votre transfert : {shareUrl}",
     },
     // Same notification as above, for a share with no named recipient to
     // report (a Link-mode share, anonymous or signed-in) — no
@@ -413,7 +413,7 @@ export const configVariables = {
     ownerDownloadNotificationMessage: {
       type: "text",
       defaultValue:
-        "{fileName} a été téléchargé depuis votre partage : {shareUrl}",
+        "{fileName} a été téléchargé depuis votre transfert : {shareUrl}",
     },
     // Reminds the owner (signed-in creator or anonymous senderEmail) of a
     // share that's about to expire — see JobsService.notifyExpiringSenders.

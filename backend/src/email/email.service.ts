@@ -328,7 +328,7 @@ export class EmailService {
   }
 
   // An anonymous sender only ever sees their own link once, in a modal that
-  // now closes on click-outside — with no account and no "Mes partages" to
+  // now closes on click-outside — with no account and no "Mes transferts" to
   // fall back to, a mis-click loses the transfer permanently even though it
   // still exists and counts against storage. Emailing the same link to the
   // address they typed at creation time is the only durable backstop.
@@ -403,9 +403,9 @@ export class EmailService {
   // The signed-in sender's own receipt, sent the moment a share is
   // finished. Distinct from sendShareLinkToSender above, which exists
   // because an anonymous sender would otherwise LOSE the link: a creator
-  // has "Mes partages" and never loses anything, so this one is not a
+  // has "Mes transferts" and never loses anything, so this one is not a
   // backstop but a record — what went out, to whom, when. That is the part
-  // "Mes partages" genuinely cannot show, because it lists shares, not
+  // "Mes transferts" genuinely cannot show, because it lists shares, not
   // sends, and a recipient list is not otherwise recoverable from the UI.
   //
   // Gated per user rather than by admin config (User.notifyOnSentShares,
