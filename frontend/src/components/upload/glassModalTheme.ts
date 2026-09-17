@@ -71,6 +71,16 @@ export const glassModalStyles = (theme: any) => {
       backgroundColor: dark ? "rgba(0, 0, 0, 0.28)" : "rgba(0, 0, 0, 0.07)",
       borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
     },
+    // The hairline above needs air on BOTH sides of it, and the header's own
+    // paddingBottom only buys the half above. Mantine forces the body's
+    // padding-top to 0 whenever a header is present (a built-in
+    // `:not(:only-child)` rule), so the gap below the line has to be a margin
+    // — that rule does not touch margins. Measured before adding it: the
+    // first element of the body started at exactly the header's bottom edge,
+    // 0px under the line, so a thumbnail sat flush against it.
+    body: {
+      marginTop: 20,
+    },
     title: {
       color: dark ? theme.white : theme.black,
     },
