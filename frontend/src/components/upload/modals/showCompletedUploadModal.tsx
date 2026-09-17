@@ -22,6 +22,7 @@ import useTranslate, {
 } from "../../../hooks/useTranslate.hook";
 import { CompletedShare, Mode } from "../../../types/share.type";
 import { byteToHumanSizeString } from "../../../utils/fileSize.util";
+import { getDefaultShareName } from "../../../utils/file.util";
 import CopyTextField from "../CopyTextField";
 import QRCode from "../../share/QRCode";
 import glassFormTheme from "../glassFormTheme";
@@ -57,6 +58,24 @@ const showCompletedUploadModal = (
   canNotifyOnDownload = false,
 ) => {
   const t = translateOutsideContext();
+
+  // A share always reaches here with a name: leave the field blank and
+  // TransferCard fills it from the files themselves (getDefaultShareName —
+  // the single file's stem, or "2 fichiers"). Useful in "Mes partages",
+  // where any label beats none, but it is not a title the sender chose, and
+  // announcing it back to them as one ("« 2 fichiers » est prêt !") reads
+  // like the app naming their work for them.
+  //
+  // So the generated name is recomputed and compared, rather than threaded
+  // down from the form: whether the field was typed in is known three steps
+  // up in TransferCard, and carrying a flag through share creation and
+  // completion to reach this modal would touch far more than it explains.
+  // Deterministic for the same files, so the comparison holds. Someone who
+  // types the generated name verbatim gets the generic title — the same
+  // words either way, just not in quotes.
+  const generatedName = getDefaultShareName(share.files ?? [], t);
+  const hasChosenName = !!share.name && share.name !== generatedName;
+
   return modals.openModal({
     closeOnClickOutside: true,
     withCloseButton: false,
@@ -77,7 +96,7 @@ const showCompletedUploadModal = (
     title:
       mode === "link"
         ? t("upload.modal.completed.link-mode.title")
-        : share.name
+        : hasChosenName
           ? t("upload.modal.completed.share-ready-named", { name: share.name })
           : t("upload.modal.completed.share-ready"),
     styles: (theme: Parameters<typeof glassModalStyles>[0]) => {
@@ -311,8 +330,18 @@ const Body = ({
           {/* If our share.expiration is timestamp 0, show a different message */}
           {moment(share.expiration).unix() === 0
             ? t("upload.modal.completed.never-expires")
-            : t("upload.modal.completed.expires-on", {
-                expiration: moment(share.expiration).format("LLL"),
+            : t("upload.modal.completed.expires-detail", {
+                // Both, because they answer different questions: the
+                // relative form is the one that lands ("dans 3 jours"),
+                // the absolute one is what you write down. moment's
+                // locale is set globally in _app.tsx, so fromNow() and LL
+                // follow the reader's language; only the time separator
+                // does not, hence the format token in the translations.
+                relative: moment(share.expiration).fromNow(),
+                date: moment(share.expiration).format("LL"),
+                time: moment(share.expiration).format(
+                  t("upload.modal.completed.expires-time-format"),
+                ),
               })}
         </Text>
 

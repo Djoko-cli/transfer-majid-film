@@ -555,9 +555,19 @@ export default {
   // showCompletedUploadModal.tsx
   "upload.modal.completed.never-expires": "Ce partage n’expirera jamais.",
   "upload.modal.completed.expires-on": "Ce partage expirera le {expiration}.",
+  // Variante détaillée, réservée à la modale de succès : celui qui vient
+  // d'envoyer veut les deux — le délai, qui se retient, et la date, qui se
+  // note. Les deux autres usages d'expires-on (l'aperçu du formulaire et la
+  // page de partage côté destinataire) gardent la forme courte.
+  "upload.modal.completed.expires-detail":
+    "Ce partage expirera {relative}, le {date} à {time}.",
+  // Jeton de format moment, pas du texte : la date complète et l'heure
+  // relative viennent de la locale, mais le séparateur horaire ne s'en
+  // déduit pas — Â« 12h46 Â» en français, Â« 12:46 PM Â» en anglais.
+  "upload.modal.completed.expires-time-format": "HH[h]mm",
   "upload.modal.completed.create-account":
     "Créez un compte pour retrouver vos liens",
-  "upload.modal.completed.share-ready": "Partage prêt",
+  "upload.modal.completed.share-ready": "Votre partage est prêt",
   "upload.modal.completed.share-ready-named": "« {name} » est prêt !",
   "upload.modal.completed.link-mode.title": "Hop, c'est envoyé !",
   "upload.modal.completed.link-mode.download-notification":

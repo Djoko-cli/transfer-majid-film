@@ -579,9 +579,14 @@ export default {
   "upload.modal.completed.never-expires": "This share will never expire.",
   "upload.modal.completed.expires-on":
     "This share will expire on {expiration}.",
+  // Detailed variant, for the success modal only — see the French entry.
+  "upload.modal.completed.expires-detail":
+    "This share will expire {relative}, on {date} at {time}.",
+  // A moment format token, not prose — see the French entry.
+  "upload.modal.completed.expires-time-format": "LT",
   "upload.modal.completed.create-account":
     "Create an account to keep track of your links",
-  "upload.modal.completed.share-ready": "Share ready",
+  "upload.modal.completed.share-ready": "Your share is ready",
   "upload.modal.completed.share-ready-named": "“{name}” is ready!",
   "upload.modal.completed.link-mode.title": "All done!",
   "upload.modal.completed.link-mode.download-notification":
