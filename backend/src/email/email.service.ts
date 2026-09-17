@@ -368,15 +368,24 @@ export class EmailService {
         // above, there's no urgent action to take on your own sent
         // transfer; the link below is a reference copy, not a download
         // prompt (see EmailEnvelopeOptions.downloadUrl vs ctaUrl).
-        // Mirrors the in-app completed-upload modal's own named/generic
-        // title split (ready-named vs ready) for consistency
-        // between the live confirmation and this backup email.
-        headline: shareName
-          ? this.i18n.t("email.senderHeadlineNamed", {
-              lang,
-              args: { name: shareName },
-            })
-          : this.i18n.t("email.senderHeadline", { lang }),
+        // Mirrors the in-app completed-upload modal's own split, both ways:
+        // named vs generic, and "sent" vs "ready". An anonymous sender can
+        // address a transfer or just take a link, and only the first of
+        // those put anything in the post — saying "envoyé" over a Link-mode
+        // share would claim a delivery that never happened.
+        headline: recipients.length
+          ? shareName
+            ? this.i18n.t("email.senderHeadlineNamed", {
+                lang,
+                args: { name: shareName },
+              })
+            : this.i18n.t("email.senderHeadline", { lang })
+          : shareName
+            ? this.i18n.t("email.senderHeadlineReadyNamed", {
+                lang,
+                args: { name: shareName },
+              })
+            : this.i18n.t("email.senderHeadlineReady", { lang }),
         metaLine: files.length
           ? this.buildMetaLine(files.length, totalSize, expiration)
           : undefined,
@@ -438,14 +447,15 @@ export class EmailService {
             },
           },
         )
-      : // Link mode: nobody was mailed, so there is nobody to name. Falls
-        // back to the same two headlines the anonymous sender's copy uses.
+      : // Link mode: nobody was mailed, so there is nobody to name — and
+        // nothing to call sent either. The share is ready and its sender
+        // still has to pass the link on, which is what these two say.
         shareName
-        ? this.i18n.t("email.senderHeadlineNamed", {
+        ? this.i18n.t("email.senderHeadlineReadyNamed", {
             lang,
             args: { name: shareName },
           })
-        : this.i18n.t("email.senderHeadline", { lang });
+        : this.i18n.t("email.senderHeadlineReady", { lang });
 
     // What the subject calls this transfer. Named or not, it has to be
     // something the sender can pick out of a mailbox months later, so an
@@ -481,7 +491,11 @@ export class EmailService {
     await this.sendMail(
       creatorEmail,
       this.config
-        .get("email.senderConfirmationSubject")
+        .get(
+          recipients.length
+            ? "email.senderConfirmationSubject"
+            : "email.senderConfirmationSubjectReady",
+        )
         .replaceAll("{name}", subjectName)
         .replaceAll("{recipients}", subjectRecipients)
         // Whitespace only — a subject is one line, so this collapses the gap

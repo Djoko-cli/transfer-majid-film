@@ -329,6 +329,16 @@ export const configVariables = {
       type: "string",
       defaultValue: "{name} envoyé {recipients}",
     },
+    // The Link-mode half of the subject above. Nothing was mailed to anyone
+    // there — the sender holds a URL and passes it on themselves — so the
+    // sent wording would announce a delivery that never happened. Two plain
+    // sentences rather than one template with the verb hidden inside a
+    // placeholder: an admin editing these should be able to read what they
+    // say. {name} resolves the same way in both.
+    senderConfirmationSubjectReady: {
+      type: "string",
+      defaultValue: "{name} est prêt",
+    },
     // Deliberately NOT WeTransfer's "we'll email you once your files are
     // downloaded": enableShareDownloadNotifications ships as false, so that
     // sentence would be a promise this install does not keep by default.

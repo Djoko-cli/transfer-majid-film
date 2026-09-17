@@ -22,6 +22,8 @@
   "recipientHeadlineNamed": "{creator} vous a envoyé « {name} »",
   "recipientHeadlineSingular": "{creator} vous a envoyé {fileName}",
   "recipientHeadlinePlural": "{creator} vous a envoyé {count} fichiers",
+  "senderHeadlineReady": "Votre partage est prêt !",
+  "senderHeadlineReadyNamed": "« {name} » est prêt !",
   "senderHeadline": "Hop, c'est envoyé !",
   "senderHeadlineNamed": "« {name} » est envoyé !",
   "recipientsLabel": "Destinataires",

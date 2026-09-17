@@ -22,6 +22,8 @@
   "recipientHeadlineNamed": "{creator} sent you “{name}”",
   "recipientHeadlineSingular": "{creator} sent you {fileName}",
   "recipientHeadlinePlural": "{creator} sent you {count} files",
+  "senderHeadlineReady": "Your share is ready!",
+  "senderHeadlineReadyNamed": "“{name}” is ready!",
   "senderHeadline": "All done!",
   "senderHeadlineNamed": "“{name}” is on its way!",
   "recipientsLabel": "Recipients",
