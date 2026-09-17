@@ -36,19 +36,38 @@ export const glassModalStyles = (theme: any) => {
     // any modal whose content overflows — which on a phone is most of them —
     // the form scrolled up through the heading and the two rendered on top of
     // each other. Reported on the reverse-share modal; it was never specific
-    // to it, all ~20 glass modals share this object.
+    // to it, all ~24 glass modals share this object.
     //
-    // Frosted rather than opaque: a solid bar would read as a seam across a
-    // surface that is translucent everywhere else. The tint alone does not
-    // hide text, and the blur alone only smears it — together they read as
-    // the same glass, slightly denser, which is the convention the rest of
-    // this app already uses for a bar pinned over content.
+    // It is a bar of the same glass, denser — not a lid. The first attempt at
+    // that was 0.82 with blur(16), which put it outside this app's vocabulary
+    // in both directions at once: every other glass surface here sits between
+    // 0.5 and 0.6 (the header/footer bar, Menu, Notification — see
+    // mantine.style.ts) and blurs at 18-22px, so it was simultaneously the
+    // most opaque and the least blurred thing on screen, and read as a lid
+    // laid over the surface rather than part of it.
+    //
+    // 0.6 and blur(22) are Menu's and Notification's own numbers — this app's
+    // existing answer to "a small, dense glass panel" — and they sit visibly
+    // above the body's 0.32 middle stop without leaving the material. Flat
+    // rather than the content's 3-stop gradient, same reason Menu is flat: a
+    // diagonal gradient's stops are percentages of the element's own
+    // diagonal, so on a ~70px-tall bar they compress into a hard smear.
+    //
+    // The hairline is what actually makes the edge read as intentional, and
+    // it is the one the header/footer bar already uses. Worth being plain
+    // about the trade: 0.82 attenuated the content scrolling under it to 18%
+    // and 0.6 leaves 40%, so a little more shows through. Measured on the
+    // completed-upload modal, even 0.82 left a thumbnail and its caption
+    // plainly legible underneath — full occlusion was never on the table at
+    // any alpha this material allows, so the choice was only ever between
+    // looking wrong and looking right.
     header: {
       backgroundColor: dark
-        ? "rgba(26, 26, 26, 0.82)"
-        : "rgba(255, 255, 255, 0.82)",
-      backdropFilter: "blur(16px) saturate(160%)",
-      WebkitBackdropFilter: "blur(16px) saturate(160%)",
+        ? "rgba(18, 18, 18, 0.6)"
+        : "rgba(255, 255, 255, 0.6)",
+      backdropFilter: "blur(22px) saturate(160%)",
+      WebkitBackdropFilter: "blur(22px) saturate(160%)",
+      borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
     },
     title: {
       color: dark ? theme.white : theme.black,
