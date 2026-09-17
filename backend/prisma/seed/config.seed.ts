@@ -276,109 +276,6 @@ export const configVariables = {
       defaultValue: "false",
       secret: false,
     },
-    shareRecipientsSubject: {
-      type: "string",
-      defaultValue: "Des fichiers ont été partagés avec vous",
-    },
-    // The creator, link, and expiry are now shown structurally (headline,
-    // meta line, download-link section) in the branded HTML envelope — see
-    // EmailService.sendMailToShareRecipients — so the admin-editable
-    // message itself is just the note, not a restatement of those facts.
-    // {creator}/{creatorEmail}/{shareUrl}/{expires} remain available
-    // substitutions for anyone who customizes this text.
-    shareRecipientsMessage: {
-      type: "text",
-      defaultValue: "{desc}",
-    },
-    anonymousSenderLinkSubject: {
-      type: "string",
-      defaultValue: "Votre lien de transfert",
-    },
-    // Same reasoning as shareRecipientsMessage above — the link and expiry
-    // are now shown structurally, so the default message is just the one
-    // fact that isn't: this is the only copy of the link.
-    anonymousSenderLinkMessage: {
-      type: "text",
-      defaultValue:
-        "Gardez cet e-mail : c'est le seul moyen de retrouver ce lien si vous le perdez.",
-    },
-    // The only subject in this file carrying placeholders, and it earns them:
-    // every other one describes a KIND of mail, which is all a subject needs
-    // when you read it once. This one accumulates in the sender's own
-    // mailbox, one per transfer they have ever sent, and a column of
-    // identical lines is unsearchable and unscannable.
-    //
-    // {name} leads, because the distinctive part has to survive a mail list's
-    // truncation — it resolves to the transfer's name, or, unnamed, to the
-    // same fallback the recipient's mail uses: the single file's name, or the
-    // item count. {recipients} carries its own preposition ("à ...") and
-    // resolves to nothing at all in Link mode, where there is nobody to name
-    // — same convention as {name} in anonymousSenderLinkMessage above. The
-    // trailing space that leaves behind is trimmed when the subject is built,
-    // so the placeholder can sit mid-sentence without the template having to
-    // know whether it will be empty.
-    //
-    // No "avec succès": a mail that only exists when the send worked cannot
-    // report anything else, and this is the most space-constrained string in
-    // the product — a mail list shows about 70 characters on a desktop and
-    // half that on a phone. Those twelve characters came straight out of the
-    // recipient address, which is the half worth keeping.
-    //
-    // An admin who removes either placeholder just gets a shorter subject.
-    senderConfirmationSubject: {
-      type: "string",
-      defaultValue: "{name} envoyé {recipients}",
-    },
-    // The Link-mode half of the subject above. Nothing was mailed to anyone
-    // there — the sender holds a URL and passes it on themselves — so the
-    // sent wording would announce a delivery that never happened. Two plain
-    // sentences rather than one template with the verb hidden inside a
-    // placeholder: an admin editing these should be able to read what they
-    // say. {name} resolves the same way in both.
-    senderConfirmationSubjectReady: {
-      type: "string",
-      defaultValue: "{name} est prêt",
-    },
-    // Deliberately NOT WeTransfer's "we'll email you once your files are
-    // downloaded": enableShareDownloadNotifications ships as false, so that
-    // sentence would be a promise this install does not keep by default.
-    // Same rule as every other message here — the envelope already shows the
-    // name, the recipients, the link, the contents and the expiry, so the
-    // body carries only what it does not: where to find this transfer again.
-    // Only ever sent to a signed-in creator, so "Mes transferts" always exists
-    // for the reader.
-    senderConfirmationMessage: {
-      type: "text",
-      defaultValue:
-        "Vous retrouverez ce transfert dans « Mes transferts », tant qu'il n'a pas expiré.",
-    },
-    reverseShareSubject: {
-      type: "string",
-      defaultValue: "Votre lien de dépôt a été utilisé",
-    },
-    reverseShareMessage: {
-      type: "text",
-      defaultValue:
-        "Un transfert vient d'être créé avec votre lien de dépôt : {shareUrl}",
-    },
-    resetPasswordSubject: {
-      type: "string",
-      defaultValue: "Réinitialisation du mot de passe",
-    },
-    resetPasswordMessage: {
-      type: "text",
-      defaultValue:
-        "Vous avez demandé une réinitialisation de mot de passe. Cliquez sur ce lien pour réinitialiser votre mot de passe : {url}\nCe lien expire dans une heure.",
-    },
-    inviteSubject: {
-      type: "string",
-      defaultValue: "Vous avez été invité(e)",
-    },
-    inviteMessage: {
-      type: "text",
-      defaultValue:
-        "Vous avez été invité(e). Cliquez sur ce lien pour accepter l'invitation : {url}\n\nVous pouvez utiliser l'adresse e-mail « {email} » et le mot de passe « {password} » pour vous connecter.",
-    },
     enableShareDownloadNotifications: {
       type: "boolean",
       defaultValue: "false",
@@ -393,27 +290,6 @@ export const configVariables = {
       type: "boolean",
       defaultValue: "false",
       secret: false,
-    },
-    shareDownloadNotificationSubject: {
-      type: "string",
-      defaultValue: "Votre fichier a été téléchargé",
-    },
-    shareDownloadNotificationMessage: {
-      type: "text",
-      defaultValue:
-        "{recipientEmail} a téléchargé {fileName} depuis votre transfert : {shareUrl}",
-    },
-    // Same notification as above, for a share with no named recipient to
-    // report (a Link-mode share, anonymous or signed-in) — no
-    // {recipientEmail} to substitute, since there isn't one.
-    ownerDownloadNotificationSubject: {
-      type: "string",
-      defaultValue: "Votre fichier a été téléchargé",
-    },
-    ownerDownloadNotificationMessage: {
-      type: "text",
-      defaultValue:
-        "{fileName} a été téléchargé depuis votre transfert : {shareUrl}",
     },
     // Reminds the owner (signed-in creator or anonymous senderEmail) of a
     // share that's about to expire — see JobsService.notifyExpiringSenders.
@@ -430,14 +306,6 @@ export const configVariables = {
       defaultValue: "24 hours",
       secret: false,
     },
-    expiringSenderNotificationSubject: {
-      type: "string",
-      defaultValue: "Votre transfert expire bientôt",
-    },
-    expiringSenderNotificationMessage: {
-      type: "text",
-      defaultValue: "Il n'a pas encore été téléchargé.",
-    },
     // Same idea, for a named Email-mode recipient who hasn't downloaded
     // yet — see JobsService.notifyExpiringRecipients. No per-user
     // opt-out: most recipients are plain email addresses with no account
@@ -452,27 +320,10 @@ export const configVariables = {
       defaultValue: "24 hours",
       secret: false,
     },
-    expiringRecipientNotificationSubject: {
-      type: "string",
-      defaultValue: "Un transfert qui vous a été envoyé expire bientôt",
-    },
-    expiringRecipientNotificationMessage: {
-      type: "text",
-      defaultValue: "Vous ne l'avez pas encore téléchargé.",
-    },
     enableEmailVerification: {
       type: "boolean",
       defaultValue: "false",
       secret: false,
-    },
-    verificationSubject: {
-      type: "string",
-      defaultValue: "Vérifiez votre compte",
-    },
-    verificationMessage: {
-      type: "text",
-      defaultValue:
-        "Vous venez de vous inscrire. Saisissez le code {code} pour vérifier votre compte, ou cliquez simplement sur ce lien : {url}\n\nCe code expire dans 60 minutes.",
     },
   },
   smtp: {

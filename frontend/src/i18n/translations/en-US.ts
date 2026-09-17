@@ -818,50 +818,6 @@ export default {
     "Enable email recipient sharing",
   "admin.config.email.enable-share-email-recipients.description":
     "Whether to allow email sharing with recipients. This can only be enabled if SMTP is activated.",
-  "admin.config.email.share-recipients-subject": "Transfer recipients subject",
-  "admin.config.email.share-recipients-subject.description":
-    "Subject of the email which gets sent to the transfer recipients.",
-  "admin.config.email.share-recipients-message": "Transfer recipients message",
-  "admin.config.email.share-recipients-message.description":
-    "Message which gets sent to the transfer recipients. The creator, link, and expiration already appear automatically at the top of the email — this message only needs to cover the rest. Available variables:\n {creator} - The username of the creator of the transfer\n {creatorEmail} - The email of the creator of the transfer\n {shareUrl} - The URL of the transfer\n {desc} - The description of the transfer\n {expires} - The expiration date of the transfer\n These variables will be replaced with the actual value.",
-  "admin.config.email.anonymous-sender-link-subject":
-    "Anonymous sender link subject",
-  "admin.config.email.anonymous-sender-link-subject.description":
-    "Subject of the email sent to a signed-out visitor after an anonymous upload, giving them the link to their own transfer.",
-  "admin.config.email.anonymous-sender-link-message":
-    "Anonymous sender link message",
-  "admin.config.email.anonymous-sender-link-message.description":
-    "Message sent to a signed-out visitor after an anonymous upload, with the link to their own transfer. The link and expiration already appear automatically at the top of the email — this message only needs to cover the rest. Available variables:\n {name} - The name of the transfer, if it has one\n {shareUrl} - The URL of the transfer\n {expires} - The expiration date of the transfer\n These variables will be replaced with the actual value.",
-  "admin.config.email.sender-confirmation-subject":
-    "Sender receipt subject",
-  "admin.config.email.sender-confirmation-subject.description":
-    "Subject of the email sent to the sender when their transfer goes out to recipients. Possible variables:\n {name} - The transfer's name, or failing that the file name or the item count\n {recipients} - \"to\" followed by the recipient, or by the number of recipients.\n These variables will be replaced with their actual value.",
-  "admin.config.email.sender-confirmation-subject-ready":
-    "Sender receipt subject (link mode)",
-  "admin.config.email.sender-confirmation-subject-ready.description":
-    "Subject of the same email when the transfer has no recipients: nothing was sent, and the sender passes the link on themselves. Possible variable:\n {name} - The transfer's name, or failing that the file name or the item count.",
-  "admin.config.email.sender-confirmation-message":
-    "Sender receipt message",
-  "admin.config.email.sender-confirmation-message.description":
-    "Body of the receipt email sent to the sender. The name, recipients, link, contents and expiration are already shown automatically: this message only needs to carry the rest. Possible variables:\n {name} - The transfer's name, if it has one\n {shareUrl} - The transfer's URL\n {expires} - The transfer's expiration date.\n These variables will be replaced with their actual value.",
-  "admin.config.email.reverse-share-subject": "Reverse share subject",
-  "admin.config.email.reverse-share-subject.description":
-    "Subject of the sent email when someone created a transfer with your reverse share link.",
-  "admin.config.email.reverse-share-message": "Reverse share message",
-  "admin.config.email.reverse-share-message.description":
-    "Message which gets sent when someone created a transfer with your reverse share link. {shareUrl} will be replaced with the creator's name and the transfer URL.",
-  "admin.config.email.reset-password-subject": "Reset password subject",
-  "admin.config.email.reset-password-subject.description":
-    "Subject of the sent email when a user requests a password reset.",
-  "admin.config.email.reset-password-message": "Reset password message",
-  "admin.config.email.reset-password-message.description":
-    "Message which gets sent when a user requests a password reset. {url} will be replaced with the reset password URL.",
-  "admin.config.email.invite-subject": "Invite subject",
-  "admin.config.email.invite-subject.description":
-    "Subject of the sent email when an admin invites a user.",
-  "admin.config.email.invite-message": "Invite message",
-  "admin.config.email.invite-message.description":
-    "Message which gets sent when an admin invites a user. {url} will be replaced with the invite URL, {email} with the email and {password} with the users password.",
   "admin.config.email.share-recipients-reply-to-creator":
     "Set Reply-To to creator's email",
   "admin.config.email.share-recipients-reply-to-creator.description":
@@ -874,22 +830,6 @@ export default {
     "Notify on new accounts",
   "admin.config.email.enable-new-account-notifications.description":
     "Whether to send an email to transfer@majid.film when a new account signs up. Requires SMTP.",
-  "admin.config.email.share-download-notification-subject":
-    "Download notification subject (named recipient)",
-  "admin.config.email.share-download-notification-subject.description":
-    "Subject of the email which gets sent to the transfer creator when a named recipient downloads a file (Email mode).",
-  "admin.config.email.share-download-notification-message":
-    "Download notification message (named recipient)",
-  "admin.config.email.share-download-notification-message.description":
-    "Message which gets sent to the transfer creator when a named recipient downloads a file (Email mode). Available variables:\n {recipientEmail} - The email of the recipient\n {fileName} - The downloaded file name\n {shareUrl} - The URL of the transfer",
-  "admin.config.email.owner-download-notification-subject":
-    "Download notification subject (link)",
-  "admin.config.email.owner-download-notification-subject.description":
-    "Subject of the email sent to the creator or sender of a transfer with no named recipient (Link mode) when a file is downloaded.",
-  "admin.config.email.owner-download-notification-message":
-    "Download notification message (link)",
-  "admin.config.email.owner-download-notification-message.description":
-    "Message sent to the creator or sender of a transfer with no named recipient (Link mode) when a file is downloaded. Available variables:\n {fileName} - The downloaded file name\n {shareUrl} - The URL of the transfer",
   "admin.config.email.enable-expiring-sender-notification":
     "Notify before expiry (sender)",
   "admin.config.email.enable-expiring-sender-notification.description":
@@ -898,14 +838,6 @@ export default {
     "Expiry notice window (sender)",
   "admin.config.email.expiring-sender-notification-window.description":
     "How long before a transfer expires to notify its creator or sender.",
-  "admin.config.email.expiring-sender-notification-subject":
-    "Expiry notice subject (sender)",
-  "admin.config.email.expiring-sender-notification-subject.description":
-    "Subject of the email sent to a transfer's creator or sender when it's about to expire.",
-  "admin.config.email.expiring-sender-notification-message":
-    "Expiry notice message (sender)",
-  "admin.config.email.expiring-sender-notification-message.description":
-    "Message sent to a transfer's creator or sender when it's about to expire. The name, link, and expiration already appear automatically at the top of the email. Available variables:\n {name} - The name of the transfer, if it has one\n {shareUrl} - The URL of the transfer",
   "admin.config.email.enable-expiring-recipient-notification":
     "Notify before expiry (recipient)",
   "admin.config.email.enable-expiring-recipient-notification.description":
@@ -914,23 +846,9 @@ export default {
     "Expiry notice window (recipient)",
   "admin.config.email.expiring-recipient-notification-window.description":
     "How long before a transfer expires to notify a recipient who hasn't downloaded it yet.",
-  "admin.config.email.expiring-recipient-notification-subject":
-    "Expiry notice subject (recipient)",
-  "admin.config.email.expiring-recipient-notification-subject.description":
-    "Subject of the email sent to a recipient who hasn't downloaded a transfer that's about to expire.",
-  "admin.config.email.expiring-recipient-notification-message":
-    "Expiry notice message (recipient)",
-  "admin.config.email.expiring-recipient-notification-message.description":
-    "Message sent to a recipient who hasn't downloaded a transfer that's about to expire. The link and expiration already appear automatically at the top of the email. Available variables:\n {shareUrl} - The URL of the transfer",
   "admin.config.email.enable-email-verification": "Enable email verification",
   "admin.config.email.enable-email-verification.description":
     "Whether to require users to verify their email address before being able to sign in. This can only be enabled if SMTP is activated.",
-  "admin.config.email.verification-subject": "Verification subject",
-  "admin.config.email.verification-subject.description":
-    "Subject of the email which gets sent to the user when they sign up.",
-  "admin.config.email.verification-message": "Verification message",
-  "admin.config.email.verification-message.description":
-    "Message which gets sent to the user when they sign up. {code} will be replaced with the 6-digit code to type in, {url} with the equivalent clickable link — both lead to the same verification.",
   "admin.config.share.allow-registration": "Allow registration",
   "admin.config.share.allow-registration.description":
     "Whether registration is allowed",

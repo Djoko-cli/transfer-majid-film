@@ -813,52 +813,6 @@ export default {
     "Activer le transfert par courriel",
   "admin.config.email.enable-share-email-recipients.description":
     "Autoriser ou non le transfert d'e-mails avec les destinataires. Cette option n'est disponible que si le protocole SMTP est activé.",
-  "admin.config.email.share-recipients-subject": "Sujet d’un transfert",
-  "admin.config.email.share-recipients-subject.description":
-    "Intitulé du courriel envoyé aux destinataires d’un transfert.",
-  "admin.config.email.share-recipients-message": "Message d’un transfert",
-  "admin.config.email.share-recipients-message.description":
-    "Contenu du courriel qui est envoyé aux destinataires du transfert. Le créateur, le lien et l'expiration s'affichent déjà automatiquement en haut du courriel : ce message n'a besoin de contenir que le reste. Variables possibles :\n {creator} - Le nom d'utilisateur du créateur du transfert\n {creatorEmail} - L'adresse mail du créateur du transfert\n {shareUrl} - L'URL du transfert\n {desc} - La description du transfert\n {expires} - La date d'expiration du transfert.\n Ces variables seront remplacées par leur valeur effective.",
-  "admin.config.email.anonymous-sender-link-subject":
-    "Sujet du lien pour l’expéditeur anonyme",
-  "admin.config.email.anonymous-sender-link-subject.description":
-    "Intitulé du courriel envoyé à un visiteur non connecté après un dépôt anonyme, pour lui donner le lien de son propre transfert.",
-  "admin.config.email.anonymous-sender-link-message":
-    "Message du lien pour l’expéditeur anonyme",
-  "admin.config.email.anonymous-sender-link-message.description":
-    "Contenu du courriel envoyé à un visiteur non connecté après un dépôt anonyme, avec le lien vers son propre transfert. Le lien et l'expiration s'affichent déjà automatiquement en haut du courriel : ce message n'a besoin de contenir que le reste. Variables possibles :\n {name} - Le nom du transfert, s’il en a un\n {shareUrl} - L'URL du transfert\n {expires} - La date d'expiration du transfert.\n Ces variables seront remplacées par leur valeur effective.",
-  "admin.config.email.sender-confirmation-subject":
-    "Sujet du récapitulatif d’envoi",
-  "admin.config.email.sender-confirmation-subject.description":
-    "Intitulé du courriel envoyé à l’expéditeur quand son transfert part vers des destinataires. Variables possibles :\n {name} - Le nom du transfert, ou à défaut le nom du fichier ou le nombre d’éléments\n {recipients} - « à » suivi du destinataire, ou du nombre de destinataires.\n Ces variables seront remplacées par leur valeur effective.",
-  "admin.config.email.sender-confirmation-subject-ready":
-    "Sujet du récapitulatif (mode lien)",
-  "admin.config.email.sender-confirmation-subject-ready.description":
-    "Intitulé du même courriel quand le transfert n’a aucun destinataire : rien n’a été envoyé, l’expéditeur diffuse le lien lui-même. Variable possible :\n {name} - Le nom du transfert, ou à défaut le nom du fichier ou le nombre d’éléments.",
-  "admin.config.email.sender-confirmation-message":
-    "Message du récapitulatif d’envoi",
-  "admin.config.email.sender-confirmation-message.description":
-    "Contenu du courriel de récapitulatif adressé à l’expéditeur. Le nom, les destinataires, le lien, le contenu et l’expiration s’affichent déjà automatiquement : ce message n’a besoin de contenir que le reste. Variables possibles :\n {name} - Le nom du transfert, s’il en a un\n {shareUrl} - L'URL du transfert\n {expires} - La date d'expiration du transfert.\n Ces variables seront remplacées par leur valeur effective.",
-  "admin.config.email.reverse-share-subject": "Sujet d’un transfert inversé",
-  "admin.config.email.reverse-share-subject.description":
-    "Intitulé du courriel envoyé lorsque quelqu’un a partagé des fichiers depuis votre transfert inversé.",
-  "admin.config.email.reverse-share-message": "Message d’un transfert inversé",
-  "admin.config.email.reverse-share-message.description":
-    "Contenu du courriel envoyé lorsque quelqu’un transfert des fichiers depuis votre transfert inversé. {shareUrl} sera remplacé par le nom du créateur et l’URL de transfert.",
-  "admin.config.email.reset-password-subject":
-    "Sujet d’une réinitialisation du mot de passe",
-  "admin.config.email.reset-password-subject.description":
-    "Intitulé du courriel envoyé lorsqu’un utilisateur demande une réinitialisation de son mot de passe.",
-  "admin.config.email.reset-password-message":
-    "Message de réinitialisation du mot de passe",
-  "admin.config.email.reset-password-message.description":
-    "Contenu du courriel envoyé lorsqu’un utilisateur demande à réinitialiser son mot de passe. {url} sera remplacé par l’URL de réinitialisation du mot de passe.",
-  "admin.config.email.invite-subject": "Sujet d’une invitation",
-  "admin.config.email.invite-subject.description":
-    "Intitulé du courriel envoyé lorsqu’un administrateur invite un utilisateur.",
-  "admin.config.email.invite-message": "Message d’une invitation",
-  "admin.config.email.invite-message.description":
-    "Message qui est envoyé lorsqu'un administrateur invite un utilisateur. {url} sera remplacé avec l'URL d'invitation, {email} avec le courriel et {password} avec le mot de passe de l'utilisateur.",
   "admin.config.email.share-recipients-reply-to-creator":
     "Utiliser l'email du créateur comme adresse de réponse",
   "admin.config.email.share-recipients-reply-to-creator.description":
@@ -871,22 +825,6 @@ export default {
     "Notifier les nouveaux comptes",
   "admin.config.email.enable-new-account-notifications.description":
     "S'il faut envoyer un e-mail à transfer@majid.film lorsqu'un nouveau compte s'inscrit. Nécessite un protocole SMTP.",
-  "admin.config.email.share-download-notification-subject":
-    "Sujet de notification de téléchargement (destinataire nommé)",
-  "admin.config.email.share-download-notification-subject.description":
-    "Objet de l'e-mail envoyé au créateur du transfert lorsqu'un destinataire nommé télécharge un fichier (mode E-mail).",
-  "admin.config.email.share-download-notification-message":
-    "Message de notification de téléchargement (destinataire nommé)",
-  "admin.config.email.share-download-notification-message.description":
-    "Message envoyé au créateur du transfert lorsqu'un destinataire nommé télécharge un fichier (mode E-mail). Variables disponibles :\n {recipientEmail} - Adresse e-mail du destinataire\n {fileName} - Nom du fichier téléchargé\n {shareUrl} - URL du transfert",
-  "admin.config.email.owner-download-notification-subject":
-    "Sujet de notification de téléchargement (lien)",
-  "admin.config.email.owner-download-notification-subject.description":
-    "Objet de l'e-mail envoyé au créateur ou à l'expéditeur d'un transfert sans destinataire nommé (mode Lien) lorsqu'un fichier est téléchargé.",
-  "admin.config.email.owner-download-notification-message":
-    "Message de notification de téléchargement (lien)",
-  "admin.config.email.owner-download-notification-message.description":
-    "Message envoyé au créateur ou à l'expéditeur d'un transfert sans destinataire nommé (mode Lien) lorsqu'un fichier est téléchargé. Variables disponibles :\n {fileName} - Nom du fichier téléchargé\n {shareUrl} - URL du transfert",
   "admin.config.email.enable-expiring-sender-notification":
     "Alerter avant expiration (expéditeur)",
   "admin.config.email.enable-expiring-sender-notification.description":
@@ -895,14 +833,6 @@ export default {
     "Délai avant expiration (expéditeur)",
   "admin.config.email.expiring-sender-notification-window.description":
     "Combien de temps avant l'expiration d'un transfert prévenir son créateur ou son expéditeur.",
-  "admin.config.email.expiring-sender-notification-subject":
-    "Sujet d'alerte avant expiration (expéditeur)",
-  "admin.config.email.expiring-sender-notification-subject.description":
-    "Objet de l'e-mail envoyé au créateur ou à l'expéditeur d'un transfert sur le point d'expirer.",
-  "admin.config.email.expiring-sender-notification-message":
-    "Message d'alerte avant expiration (expéditeur)",
-  "admin.config.email.expiring-sender-notification-message.description":
-    "Message envoyé au créateur ou à l'expéditeur d'un transfert sur le point d'expirer. Le nom, le lien et l'expiration s'affichent déjà automatiquement en haut du courriel. Variables disponibles :\n {name} - Le nom du transfert, s'il en a un\n {shareUrl} - L'URL du transfert",
   "admin.config.email.enable-expiring-recipient-notification":
     "Alerter avant expiration (destinataire)",
   "admin.config.email.enable-expiring-recipient-notification.description":
@@ -911,24 +841,10 @@ export default {
     "Délai avant expiration (destinataire)",
   "admin.config.email.expiring-recipient-notification-window.description":
     "Combien de temps avant l'expiration d'un transfert prévenir un destinataire qui ne l'a pas encore téléchargé.",
-  "admin.config.email.expiring-recipient-notification-subject":
-    "Sujet d'alerte avant expiration (destinataire)",
-  "admin.config.email.expiring-recipient-notification-subject.description":
-    "Objet de l'e-mail envoyé à un destinataire n'ayant pas encore téléchargé un transfert sur le point d'expirer.",
-  "admin.config.email.expiring-recipient-notification-message":
-    "Message d'alerte avant expiration (destinataire)",
-  "admin.config.email.expiring-recipient-notification-message.description":
-    "Message envoyé à un destinataire n'ayant pas encore téléchargé un transfert sur le point d'expirer. Le lien et l'expiration s'affichent déjà automatiquement en haut du courriel. Variables disponibles :\n {shareUrl} - L'URL du transfert",
   "admin.config.email.enable-email-verification":
     "Activer l'email de vérification",
   "admin.config.email.enable-email-verification.description":
     "S'il faut ou non exiger que les utilisateurs vérifient leur adresse email avant de pouvoir se connecter. Ceci ne peut être activé que si SMTP est activé.",
-  "admin.config.email.verification-subject": "Sujet de vérification",
-  "admin.config.email.verification-subject.description":
-    "Sujet des emails envoyé aux utilisateurs lors de leur inscription.",
-  "admin.config.email.verification-message": "Message de vérification",
-  "admin.config.email.verification-message.description":
-    "Message qui sera envoyé aux utilisateurs lors de leur inscription. {code} sera remplacé par le code à 6 chiffres à saisir, {url} par le lien cliquable équivalent — les deux mènent à la même vérification.",
   "admin.config.share.allow-registration": "Autoriser les inscriptions",
   "admin.config.share.allow-registration.description":
     "Permet aux visiteurs de créer un compte",

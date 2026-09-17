@@ -201,9 +201,9 @@ export class EmailService {
 
     await this.sendMail(
       recipientEmail,
-      this.config.get("email.shareRecipientsSubject"),
-      this.config
-        .get("email.shareRecipientsMessage")
+      this.i18n.t("email.shareRecipientsSubject", { lang }),
+      this.i18n
+        .t("email.shareRecipientsMessage", { lang })
         .replaceAll("\\n", "\n")
         .replaceAll("{creator}", creatorName)
         .replaceAll("{creatorEmail}", creator?.email ?? "")
@@ -278,12 +278,13 @@ export class EmailService {
     recipientEmail: string,
   ) {
     const shareUrl = `${this.config.get("general.appUrl")}/s/${shareId}`;
+    const lang = this.config.get("general.defaultLanguage");
 
     await this.sendMail(
       creatorEmail,
-      this.config.get("email.shareDownloadNotificationSubject"),
-      this.config
-        .get("email.shareDownloadNotificationMessage")
+      this.i18n.t("email.shareDownloadNotificationSubject", { lang }),
+      this.i18n
+        .t("email.shareDownloadNotificationMessage", { lang })
         .replaceAll("\\n", "\n")
         .replaceAll("{recipientEmail}", recipientEmail)
         .replaceAll("{fileName}", fileName)
@@ -300,12 +301,13 @@ export class EmailService {
     fileName: string,
   ) {
     const shareUrl = `${this.config.get("general.appUrl")}/s/${shareId}`;
+    const lang = this.config.get("general.defaultLanguage");
 
     await this.sendMail(
       ownerEmail,
-      this.config.get("email.ownerDownloadNotificationSubject"),
-      this.config
-        .get("email.ownerDownloadNotificationMessage")
+      this.i18n.t("email.ownerDownloadNotificationSubject", { lang }),
+      this.i18n
+        .t("email.ownerDownloadNotificationMessage", { lang })
         .replaceAll("\\n", "\n")
         .replaceAll("{fileName}", fileName)
         .replaceAll("{shareUrl}", shareUrl),
@@ -315,12 +317,13 @@ export class EmailService {
 
   async sendMailToReverseShareCreator(recipientEmail: string, shareId: string) {
     const shareUrl = `${this.config.get("general.appUrl")}/s/${shareId}`;
+    const lang = this.config.get("general.defaultLanguage");
 
     await this.sendMail(
       recipientEmail,
-      this.config.get("email.reverseShareSubject"),
-      this.config
-        .get("email.reverseShareMessage")
+      this.i18n.t("email.reverseShareSubject", { lang }),
+      this.i18n
+        .t("email.reverseShareMessage", { lang })
         .replaceAll("\\n", "\n")
         .replaceAll("{shareUrl}", shareUrl),
       { ctaUrl: shareUrl },
@@ -349,9 +352,9 @@ export class EmailService {
 
     await this.sendMail(
       recipientEmail,
-      this.config.get("email.anonymousSenderLinkSubject"),
-      this.config
-        .get("email.anonymousSenderLinkMessage")
+      this.i18n.t("email.anonymousSenderLinkSubject", { lang }),
+      this.i18n
+        .t("email.anonymousSenderLinkMessage", { lang })
         .replaceAll("\\n", "\n")
         .replaceAll("{name}", shareName ? ` « ${shareName} »` : "")
         .replaceAll("{shareUrl}", shareUrl)
@@ -490,11 +493,12 @@ export class EmailService {
 
     await this.sendMail(
       creatorEmail,
-      this.config
-        .get(
+      this.i18n
+        .t(
           recipients.length
             ? "email.senderConfirmationSubject"
             : "email.senderConfirmationSubjectReady",
+          { lang },
         )
         .replaceAll("{name}", subjectName)
         .replaceAll("{recipients}", subjectRecipients)
@@ -502,8 +506,8 @@ export class EmailService {
         // an emptied placeholder leaves rather than reflowing anything.
         .replace(/\s{2,}/g, " ")
         .trim(),
-      this.config
-        .get("email.senderConfirmationMessage")
+      this.i18n
+        .t("email.senderConfirmationMessage", { lang })
         .replaceAll("\\n", "\n")
         .replaceAll("{name}", shareName ? ` « ${shareName} »` : "")
         .replaceAll("{shareUrl}", shareUrl)
@@ -551,9 +555,9 @@ export class EmailService {
 
     await this.sendMail(
       recipientEmail,
-      this.config.get("email.expiringSenderNotificationSubject"),
-      this.config
-        .get("email.expiringSenderNotificationMessage")
+      this.i18n.t("email.expiringSenderNotificationSubject", { lang }),
+      this.i18n
+        .t("email.expiringSenderNotificationMessage", { lang })
         .replaceAll("\\n", "\n")
         .replaceAll("{name}", shareName ? ` « ${shareName} »` : "")
         .replaceAll("{shareUrl}", shareUrl),
@@ -601,9 +605,9 @@ export class EmailService {
 
     await this.sendMail(
       recipientEmail,
-      this.config.get("email.expiringRecipientNotificationSubject"),
-      this.config
-        .get("email.expiringRecipientNotificationMessage")
+      this.i18n.t("email.expiringRecipientNotificationSubject", { lang }),
+      this.i18n
+        .t("email.expiringRecipientNotificationMessage", { lang })
         .replaceAll("\\n", "\n")
         .replaceAll("{shareUrl}", shareUrl),
       {
@@ -635,12 +639,13 @@ export class EmailService {
     const resetPasswordUrl = `${this.config.get(
       "general.appUrl",
     )}/auth/resetPassword/${token}`;
+    const lang = this.config.get("general.defaultLanguage");
 
     await this.sendMail(
       recipientEmail,
-      this.config.get("email.resetPasswordSubject"),
-      this.config
-        .get("email.resetPasswordMessage")
+      this.i18n.t("email.resetPasswordSubject", { lang }),
+      this.i18n
+        .t("email.resetPasswordMessage", { lang })
         .replaceAll("\\n", "\n")
         .replaceAll("{url}", resetPasswordUrl),
       { ctaUrl: resetPasswordUrl },
@@ -649,12 +654,13 @@ export class EmailService {
 
   async sendInviteEmail(recipientEmail: string, password: string) {
     const loginUrl = `${this.config.get("general.appUrl")}/auth/signIn`;
+    const lang = this.config.get("general.defaultLanguage");
 
     await this.sendMail(
       recipientEmail,
-      this.config.get("email.inviteSubject"),
-      this.config
-        .get("email.inviteMessage")
+      this.i18n.t("email.inviteSubject", { lang }),
+      this.i18n
+        .t("email.inviteMessage", { lang })
         .replaceAll("{url}", loginUrl)
         .replaceAll("{password}", password)
         .replaceAll("{email}", recipientEmail),
@@ -669,12 +675,13 @@ export class EmailService {
     const verificationUrl = `${this.config.get(
       "general.appUrl",
     )}/auth/verify/${token}`;
+    const lang = this.config.get("general.defaultLanguage");
 
     await this.sendMail(
       recipientEmail,
-      this.config.get("email.verificationSubject"),
-      this.config
-        .get("email.verificationMessage")
+      this.i18n.t("email.verificationSubject", { lang }),
+      this.i18n
+        .t("email.verificationMessage", { lang })
         .replaceAll("\\n", "\n")
         .replaceAll("{url}", verificationUrl)
         .replaceAll("{code}", token),
