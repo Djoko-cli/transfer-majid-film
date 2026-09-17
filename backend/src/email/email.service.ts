@@ -369,7 +369,7 @@ export class EmailService {
         // transfer; the link below is a reference copy, not a download
         // prompt (see EmailEnvelopeOptions.downloadUrl vs ctaUrl).
         // Mirrors the in-app completed-upload modal's own named/generic
-        // title split (share-ready-named vs share-ready) for consistency
+        // title split (ready-named vs ready) for consistency
         // between the live confirmation and this backup email.
         headline: shareName
           ? this.i18n.t("email.senderHeadlineNamed", {

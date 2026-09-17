@@ -93,12 +93,24 @@ const showCompletedUploadModal = (
     // that naming isn't hidden behind a mode toggle — see TransferCard) so
     // the moment right after sending someone's own work confirms *what*
     // shipped, not just that "a" share exists somewhere.
+    // "Envoyé" only where something was actually emailed. In Link mode
+    // nothing leaves: the sender gets a URL and passes it on themselves, so
+    // announcing a send there claimed an action the app had not performed —
+    // while the mode that genuinely does send said only that the share was
+    // "ready". The two were the wrong way round.
+    //
+    // Keyed on `mode === "email"` rather than on `mode !== "link"`, because
+    // mode is undefined at the legacy reverse-share call site and that one
+    // shows a link too. Negating "link" would have swept it into the sent
+    // wording on the strength of a missing argument.
     title:
-      mode === "link"
-        ? t("upload.modal.completed.link-mode.title")
+      mode === "email"
+        ? hasChosenName
+          ? t("upload.modal.completed.sent-named", { name: share.name })
+          : t("upload.modal.completed.sent")
         : hasChosenName
-          ? t("upload.modal.completed.share-ready-named", { name: share.name })
-          : t("upload.modal.completed.share-ready"),
+          ? t("upload.modal.completed.ready-named", { name: share.name })
+          : t("upload.modal.completed.ready"),
     styles: (theme: Parameters<typeof glassModalStyles>[0]) => {
       const base: Record<string, Record<string, unknown>> = glass
         ? glassModalStyles(theme)

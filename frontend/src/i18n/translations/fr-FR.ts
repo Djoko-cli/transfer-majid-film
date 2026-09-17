@@ -567,9 +567,14 @@ export default {
   "upload.modal.completed.expires-time-format": "HH[h]mm",
   "upload.modal.completed.create-account":
     "Créez un compte pour retrouver vos liens",
-  "upload.modal.completed.share-ready": "Votre partage est prêt !",
-  "upload.modal.completed.share-ready-named": "« {name} » est prêt !",
-  "upload.modal.completed.link-mode.title": "Hop, c'est envoyé !",
+  // Deux paires, et le partage décide laquelle : « prêt » quand le lien
+  // attend d'être diffusé par l'expéditeur, « envoyé » quand des e-mails
+  // sont réellement partis. Ce sont deux moments différents, pas deux
+  // façons de dire la même chose.
+  "upload.modal.completed.ready": "Votre partage est prêt !",
+  "upload.modal.completed.ready-named": "« {name} » est prêt !",
+  "upload.modal.completed.sent": "Hop, c'est envoyé !",
+  "upload.modal.completed.sent-named": "« {name} » est envoyé !",
   "upload.modal.completed.link-mode.download-notification":
     "Nous vous préviendrons par e-mail dès que ce partage aura été téléchargé.",
   "upload.modal.completed.email-mode.recipients-notified":

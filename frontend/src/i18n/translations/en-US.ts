@@ -586,9 +586,13 @@ export default {
   "upload.modal.completed.expires-time-format": "LT",
   "upload.modal.completed.create-account":
     "Create an account to keep track of your links",
-  "upload.modal.completed.share-ready": "Your share is ready!",
-  "upload.modal.completed.share-ready-named": "“{name}” is ready!",
-  "upload.modal.completed.link-mode.title": "All done!",
+  // Two pairs, and the share picks one: "ready" while the link still waits
+  // for its sender to pass it on, "sent" once mail has actually gone out.
+  // Different moments, not two ways of saying the same thing.
+  "upload.modal.completed.ready": "Your share is ready!",
+  "upload.modal.completed.ready-named": "“{name}” is ready!",
+  "upload.modal.completed.sent": "All done!",
+  "upload.modal.completed.sent-named": "“{name}” is on its way!",
   "upload.modal.completed.link-mode.download-notification":
     "We'll email you as soon as this share gets downloaded.",
   "upload.modal.completed.email-mode.recipients-notified":
