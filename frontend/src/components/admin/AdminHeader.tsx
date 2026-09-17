@@ -12,6 +12,7 @@ import { Dispatch, SetStateAction } from "react";
 import { useTopBarSlot } from "../core/FullBleedShell";
 import { APP_NAME } from "../../constants";
 import ActionAvatar from "../header/ActionAvatar";
+import LanguageToggle from "../header/LanguageToggle";
 import Logo from "../Logo";
 
 const AdminHeader = ({
@@ -78,7 +79,16 @@ const AdminHeader = ({
               <Text weight={600}>{APP_NAME}</Text>
             </Group>
           </Link>
-          <ActionAvatar />
+          {/* The same pair the main header carries on its right side, in
+              the same order and at the same spacing. The admin section
+              mounts its own chrome rather than the app's <Header>, so
+              anything added there has to be added here too — the language
+              switch was simply missed when it landed, leaving the console
+              the one place in the app with no way to change language. */}
+          <Group spacing="md">
+            <LanguageToggle />
+            <ActionAvatar />
+          </Group>
         </Group>
         <MediaQuery largerThan="sm" styles={{ display: "none" }}>
           <Burger
