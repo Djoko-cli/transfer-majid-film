@@ -6,9 +6,9 @@ export default {
   "navbar.home": "Home",
   "navbar.signup": "Sign up",
 
-  "navbar.links.shares": "My shares",
+  "navbar.links.shares": "My transfers",
   "navbar.links.reverse": "Reverse shares",
-  "navbar.links.received": "Received shares",
+  "navbar.links.received": "Received transfers",
 
   "navbar.avatar.account": "My account",
   "navbar.avatar.admin": "Administration",
@@ -180,9 +180,9 @@ export default {
   "account.notify.totp.enable": "Two-factor authentication enabled successfully",
   "account.card.notifications.title": "Notifications",
   "account.card.notifications.expiring-shares.label":
-    "Notify me before my shares expire",
+    "Notify me before my transfers expire",
   "account.card.notifications.expiring-shares.description":
-    "Receive an email when a share you created or sent is about to expire.",
+    "Receive an email when a transfer you created or sent is about to expire.",
   "account.card.notifications.sent-shares.label":
     "Email me a summary of my transfers",
   "account.card.notifications.sent-shares.description":
@@ -203,16 +203,16 @@ export default {
   "account.button.delete": "Delete Account",
   "account.modal.delete.title": "Delete Account",
   "account.modal.delete.description":
-    "Do you really want to delete your account including all your active shares?",
+    "Do you really want to delete your account including all your active transfers?",
   // END /account
 
   // /account/shares
-  "account.shares.title": "My shares",
+  "account.shares.title": "My transfers",
   "account.shares.title.empty": "It's empty here 👀",
-  "account.shares.description.empty": "You don't have any shares.",
+  "account.shares.description.empty": "You don't have any transfers.",
   "account.shares.button.create": "Create one",
 
-  "account.shares.info.title": "Share informations",
+  "account.shares.info.title": "Transfer information",
   "account.shares.button.edit": "Add/Remove Files",
   "account.shares.table.id": "ID",
   "account.shares.table.name": "Name",
@@ -229,24 +229,24 @@ export default {
   "account.shares.table.visitor-count": "{count} of {max}",
   "account.shares.table.expiry-never": "Never",
 
-  "account.shares.modal.share-informations": "Share informations",
+  "account.shares.modal.share-informations": "Transfer information",
   "account.shares.modal.view-downloads": "View download history",
-  "account.shares.modal.share-link": "Share link",
+  "account.shares.modal.share-link": "Transfer link",
   "account.shares.modal.edit.password.keep":
     "Leave blank to keep the current password",
   "account.shares.modal.edit.password.remove": "Remove password protection",
 
-  "account.shares.modal.delete.title": "Delete share: {share}",
+  "account.shares.modal.delete.title": "Delete transfer: {share}",
   "account.shares.modal.delete.description":
     "The link will stop working immediately. This action cannot be undone.",
 
   // END /account/shares
 
   // /account/received
-  "account.received-shares.title": "Received shares",
-  "account.received-shares.title.empty": "No shares received yet",
+  "account.received-shares.title": "Received transfers",
+  "account.received-shares.title.empty": "No transfers received yet",
   "account.received-shares.description.empty":
-    "Shares sent to your email address will appear here.",
+    "Transfers sent to your email address will appear here.",
   "account.received-shares.table.from": "From",
   "account.received-shares.button.open": "Open",
   // END /account/received
@@ -254,7 +254,7 @@ export default {
   // /account/reverseShares
   "account.reverseShares.title": "Reverse shares",
   "account.reverseShares.description":
-    "A reverse share allows you to generate a unique URL that allows external users to create a share.",
+    "A reverse share allows you to generate a unique URL that allows external users to create a transfer.",
 
   "account.reverseShares.title.empty": "It's empty here 👀",
   "account.reverseShares.description.empty":
@@ -279,39 +279,39 @@ export default {
   "account.reverseShares.modal.name.label": "Name",
   "account.reverseShares.modal.description.label": "Description",
 
-  "account.reverseShares.modal.max-size.label": "Max share size",
+  "account.reverseShares.modal.max-size.label": "Max transfer size",
 
   "account.reverseShares.modal.send-email": "Send email notifications",
   "account.reverseShares.modal.send-email.description":
-    "Sends you an email notification when a share is created with this reverse share link.",
+    "Sends you an email notification when a transfer is created with this reverse share link.",
 
   "account.reverseShares.modal.public-access": "Public access",
   "account.reverseShares.modal.public-access.description":
-    "Make the shares created with this reverse share public. If disabled, only you and the share creator will have access to view it.",
+    "Make the transfers created with this reverse share public. If disabled, only you and the transfer creator will have access to view it.",
 
   "account.reverseShares.modal.max-use.label": "Max uses",
   "account.reverseShares.modal.max-use.description":
-    "The maximum amount of times this URL can be used to create a share.",
+    "The maximum amount of times this URL can be used to create a transfer.",
   "account.reverseShares.modal.password.label": "Password protection",
   "account.reverseShares.modal.max-views.label": "Maximum views",
   "account.reverseShare.never-expires": "This reverse share will never expire.",
   "account.reverseShare.expires-on":
     "This reverse share will expire on {expiration}.",
 
-  "account.reverseShares.table.no-shares": "No shares created yet",
-  "account.reverseShares.table.count.singular": "share",
-  "account.reverseShares.table.count.plural": "shares",
+  "account.reverseShares.table.no-shares": "No transfers created yet",
+  "account.reverseShares.table.count.singular": "transfer",
+  "account.reverseShares.table.count.plural": "transfers",
   "account.reverseShares.table.name": "Name",
-  "account.reverseShares.table.shares": "Shares",
+  "account.reverseShares.table.shares": "Transfers",
   "account.reverseShares.table.remaining": "Remaining uses",
-  "account.reverseShares.table.max-size": "Max share size",
+  "account.reverseShares.table.max-size": "Max transfer size",
   "account.reverseShares.table.expires": "Expires at",
 
   "account.reverseShares.modal.reverse-share-link": "Reverse share link",
 
   "account.reverseShares.modal.delete.title": "Delete reverse share",
   "account.reverseShares.modal.delete.description":
-    "Do you really want to delete this reverse share? If you do, the associated shares will be deleted as well.",
+    "Do you really want to delete this reverse share? If you do, the associated transfers will be deleted as well.",
 
   // END /account/reverseShares
 
@@ -338,20 +338,20 @@ export default {
   "admin.users.table.email": "Email",
   "admin.users.table.admin": "Admin",
   "admin.users.table.storageQuota": "Storage quota",
-  "admin.users.table.maxShareSize": "Max share size",
+  "admin.users.table.maxShareSize": "Max transfer size",
 
   "admin.users.edit.update.title": "Edit user: {username}",
   "admin.users.edit.update.admin-privileges": "Admin privileges",
   "admin.users.edit.update.email-verified": "Email verified",
-  "admin.users.edit.update.permanent-shares": "Permanent shares",
+  "admin.users.edit.update.permanent-shares": "Permanent transfers",
   "admin.users.edit.update.permanent-shares.description":
-    "Let this user create shares that never expire, bypassing the global maximum expiration",
-  "admin.users.edit.update.custom-share-size-limit": "Custom share size limit",
+    "Let this user create transfers that never expire, bypassing the global maximum expiration",
+  "admin.users.edit.update.custom-share-size-limit": "Custom transfer size limit",
   "admin.users.edit.update.custom-share-size-limit.description":
     "Override the global upload limit for this user",
   "admin.users.edit.update.custom-storage-quota-limit": "Custom storage quota",
   "admin.users.edit.update.custom-storage-quota-limit.description":
-    "Limit the user's total storage usage across active shares",
+    "Limit the user's total storage usage across active transfers",
   "admin.users.edit.update.change-password.title": "Change password",
   "admin.users.edit.update.change-password.field": "New password",
   "admin.users.edit.update.change-password.button": "Save new password",
@@ -361,7 +361,7 @@ export default {
 
   "admin.users.edit.delete.title": "Delete user: {username} ?",
   "admin.users.edit.delete.description":
-    "Do you really want to delete this user and all their shares?",
+    "Do you really want to delete this user and all their transfers?",
 
   // showCreateUserModal.tsx
   "admin.users.modal.create.title": "Create user",
@@ -371,12 +371,12 @@ export default {
   "admin.users.modal.create.manual-password": "Set password manually",
   "admin.users.modal.create.manual-password.description":
     "If not checked, the user will receive an email with a link to set their password.",
-  "admin.users.modal.create.custom-share-size-limit": "Custom share size limit",
+  "admin.users.modal.create.custom-share-size-limit": "Custom transfer size limit",
   "admin.users.modal.create.custom-share-size-limit.description":
     "Override the global upload limit for this user",
   "admin.users.modal.create.custom-storage-quota-limit": "Custom storage quota",
   "admin.users.modal.create.custom-storage-quota-limit.description":
-    "Limit the user's total storage usage across active shares",
+    "Limit the user's total storage usage across active transfers",
   "admin.users.modal.create.admin": "Admin privileges",
   "admin.users.modal.create.admin.description":
     "If checked, the user will be able to access the admin panel.",
@@ -386,14 +386,14 @@ export default {
   // /admin/shares
   "admin.shares.title": "Transfer management",
   "admin.shares.diskUsage": "Disk Usage",
-  "admin.shares.table.id": "Share ID",
+  "admin.shares.table.id": "Transfer ID",
   "admin.shares.table.username": "Creator",
   "admin.shares.table.anonymous": "Anonymous",
   "admin.shares.table.visitors": "Visitors",
   "admin.shares.table.expires": "Expires on",
   "admin.shares.table.deletes": "Deletes on",
 
-  "admin.shares.edit.delete.title": "Delete share: {id}",
+  "admin.shares.edit.delete.title": "Delete transfer: {id}",
   "admin.shares.edit.delete.description":
     "The link will stop working immediately. This action cannot be undone.",
 
@@ -430,7 +430,7 @@ export default {
   "upload.notify.confirm-leave":
     "Are you sure you want to leave this page? Your upload will be canceled.",
   "upload.notify.generic-error":
-    "An error occurred while finishing your share.",
+    "An error occurred while finishing your transfer.",
   "upload.notify.count-failed":
     "{count} file(s) failed to upload after several attempts.",
   "upload.notify.cancelled": "Upload cancelled.",
@@ -456,9 +456,9 @@ export default {
   // TransferCard.tsx
   "upload.transfer.mode.email": "Email",
   "upload.transfer.mode.link": "Link",
-  "upload.transfer.share-name.label": "Share name",
+  "upload.transfer.share-name.label": "Transfer name",
   "upload.transfer.name.default-multiple": "{count} files",
-  "upload.transfer.name.default-generic": "New share",
+  "upload.transfer.name.default-generic": "New transfer",
   "upload.transfer.recipient.email.label": "Recipient's email",
   "upload.transfer.recipient.email.placeholder": "name@example.com",
   "upload.transfer.recipient.email.required":
@@ -484,11 +484,11 @@ export default {
   "upload.dropzone.title": "Upload files",
   "upload.dropzone.title.compact": "Add more files",
   "upload.dropzone.description":
-    "Drag'n'drop files or folders here to start your share.\nUp to {maxSize}.",
+    "Drag'n'drop files or folders here to start your transfer.\nUp to {maxSize}.",
   "upload.dropzone.description.mobile":
-    "Select files or folders to start your share.\nUp to {maxSize}.",
+    "Select files or folders to start your transfer.\nUp to {maxSize}.",
   "upload.dropzone.notify.file-too-big":
-    "Your files exceed the maximum share size of {maxSize}.",
+    "Your files exceed the maximum transfer size of {maxSize}.",
   "upload.page-drop-overlay.title": "Drop your files anywhere",
   "upload.text-editor.title": "Editing {fileName}",
   "upload.button.folder": "Upload folder",
@@ -514,7 +514,7 @@ export default {
   "upload.nasImport.modal.preview-result.plural": "{count} files, {size}",
   "upload.nasImport.modal.empty-selection": "The selection is empty",
   "upload.nasImport.notify.collisions":
-    "{count} file(s) skipped (already in this share)",
+    "{count} file(s) skipped (already in this transfer)",
   "upload.nasImport.progress.singular": "{done} / {total} file imported",
   "upload.nasImport.progress.plural": "{done} / {total} files imported",
 
@@ -522,7 +522,7 @@ export default {
   // expiration, security) — shared by both a regular drag-and-drop upload
   // and a confirmed NAS import selection, not a modal despite the key
   // prefix.
-  "upload.modal.title": "Create Share",
+  "upload.modal.title": "Create Transfer",
   "upload.modal.link.error.invalid":
     "Can only contain letters, numbers, underscores, and hyphens",
   "upload.modal.link.error.taken": "This link is already in use",
@@ -531,12 +531,12 @@ export default {
     "Missing ETag header in S3 response. Ensure CORS exposes the ETag header.",
   "upload.modal.not-signed-in": "You're not signed in",
   "upload.modal.not-signed-in-description":
-    "You will be unable to delete your share manually and view the visitor count.",
+    "You will be unable to delete your transfer manually and view the visitor count.",
   "upload.transfer.anonymous-notice":
-    "Without an account, you won't be able to delete this share or see its view count after sending.",
+    "Without an account, you won't be able to delete this transfer or see its view count after sending.",
 
   "upload.modal.expires.never": "never",
-  "upload.modal.expires.never-long": "Permanent share",
+  "upload.modal.expires.never-long": "Permanent transfer",
   "upload.modal.expires.error.too-long":
     "Expiration date exceeds the maximum of {max}.",
 
@@ -559,7 +559,7 @@ export default {
   "upload.modal.accordion.description-only.title": "Description",
   "upload.modal.accordion.name-and-description.name.placeholder": "Name",
   "upload.modal.accordion.name-and-description.description.placeholder":
-    "Note for the recipients of this share",
+    "Note for the recipients of this transfer",
 
   "upload.modal.accordion.email.title": "Email recipients",
   "upload.modal.accordion.email.placeholder": "Enter email recipients",
@@ -576,12 +576,12 @@ export default {
   "upload.modal.accordion.security.max-views.decrease": "Decrease maximum views",
 
   // showCompletedUploadModal.tsx
-  "upload.modal.completed.never-expires": "This share will never expire.",
+  "upload.modal.completed.never-expires": "This transfer will never expire.",
   "upload.modal.completed.expires-on":
-    "This share will expire on {expiration}.",
+    "This transfer will expire on {expiration}.",
   // Detailed variant, for the success modal only — see the French entry.
   "upload.modal.completed.expires-detail":
-    "This share will expire {relative}, on {date} at {time}.",
+    "This transfer will expire {relative}, on {date} at {time}.",
   // A moment format token, not prose — see the French entry.
   "upload.modal.completed.expires-time-format": "LT",
   "upload.modal.completed.create-account":
@@ -589,14 +589,14 @@ export default {
   // Two pairs, and the share picks one: "ready" while the link still waits
   // for its sender to pass it on, "sent" once mail has actually gone out.
   // Different moments, not two ways of saying the same thing.
-  "upload.modal.completed.ready": "Your share is ready!",
+  "upload.modal.completed.ready": "Your transfer is ready!",
   "upload.modal.completed.ready-named": "“{name}” is ready!",
   "upload.modal.completed.sent": "All done!",
   "upload.modal.completed.sent-named": "“{name}” is on its way!",
   "upload.modal.completed.link-mode.download-notification":
-    "We'll email you as soon as this share gets downloaded.",
+    "We'll email you as soon as this transfer gets downloaded.",
   "upload.modal.completed.email-mode.recipients-notified":
-    "We've emailed this share to your recipients.",
+    "We've emailed this transfer to your recipients.",
   "upload.modal.completed.summary.singular": "{count} file · {size}",
   "upload.modal.completed.summary.plural": "{count} files · {size}",
   "upload.modal.completed.notified-reverse-share-creator":
@@ -607,36 +607,36 @@ export default {
   // END /upload
 
   // /share/[id]
-  "share.title": "Share {shareId}",
+  "share.title": "Transfer {shareId}",
   "share.description": "Look what I've shared with you!",
   "share.fileCount":
     "{count, plural, =1 {# file} other {# files}} · {size} (zip file may be smaller due to compression)",
   "share.copy-text-contents": "Copy file contents to clipboard",
   "share.error.visitor-limit-exceeded.title": "Visitor limit exceeded",
   "share.error.visitor-limit-exceeded.description":
-    "The visitor limit from this share has been exceeded.",
-  "share.error.removed.title": "Share removed",
-  "share.error.not-found.title": "Share not found",
+    "The visitor limit from this transfer has been exceeded.",
+  "share.error.removed.title": "Transfer removed",
+  "share.error.not-found.title": "Transfer not found",
   "share.error.not-found.description":
-    "The share you're looking for doesn't exist.",
-  "share.error.access-denied.title": "Private share",
+    "The transfer you're looking for doesn't exist.",
+  "share.error.access-denied.title": "Private transfer",
   "share.error.access-denied.description":
-    "The current account does not have permission to access this share",
-  "share.error.restricted.title": "Restricted share",
+    "The current account does not have permission to access this transfer",
+  "share.error.restricted.title": "Restricted transfer",
   "share.error.restricted.description":
-    "This share is restricted to specific recipients. Please log in to access it.",
+    "This transfer is restricted to specific recipients. Please log in to access it.",
   "share.error.restricted.button": "Log in",
 
   "share.modal.password.title": "Password required",
   "share.modal.password.description":
-    "Please enter the password to access this share.",
+    "Please enter the password to access this transfer.",
   "share.modal.password": "Password",
   "share.modal.error.invalid-password": "Invalid password",
 
   "share.button.download-all": "Download all",
   "share.button.edit-details": "Edit details",
   "share.notify.download-all-preparing":
-    "The share is being prepared. Please try again in a few minutes.",
+    "The transfer is being prepared. Please try again in a few minutes.",
   "share.notify.download-all-failed": "The download failed. Please try again.",
 
   "share.notify.copied-contents": "File contents copied to clipboard",
@@ -661,8 +661,8 @@ export default {
   "share.edit.title": "Edit {shareId}",
   "share.edit.append-upload": "Append file",
   "share.edit.notify.generic-error":
-    "An error occurred while finishing your share.",
-  "share.edit.notify.save-success": "Share updated successfully",
+    "An error occurred while finishing your transfer.",
+  "share.edit.notify.save-success": "Transfer updated successfully",
   // END /share/[id]/edit
 
   // /share/[id]/downloads
@@ -678,7 +678,7 @@ export default {
     "Nobody has downloaded this transfer yet.",
   "share.downloads.error.access-denied.title": "Access denied",
   "share.downloads.error.access-denied.description":
-    "You don't have permission to view this share's download history.",
+    "You don't have permission to view this transfer's download history.",
   // END /share/[id]/downloads
 
   // CookieNotice.tsx - shown site-wide, not tied to one page
@@ -726,7 +726,7 @@ export default {
     "The changes below are saved and active, but could not be written to the file mounted on disk — on the next restart, that file will win and this change will be lost. Check its permissions, then save again here to force a fresh write. Technical detail: {error}",
   "admin.config.title": "Configuration",
   "admin.config.category.general": "General",
-  "admin.config.category.share": "Share",
+  "admin.config.category.share": "Transfer",
   "admin.config.category.verification": "Verification",
   "admin.config.category.cache": "Cache",
   "admin.config.category.clamav": "ClamAV",
@@ -755,10 +755,10 @@ export default {
     "Up to date, but {count, plural, =1 {# unreleased commit} other {# unreleased commits}} on main since {tag}",
   "admin.config.clamav.enabled": "Scan uploads with ClamAV",
   "admin.config.clamav.enabled.description":
-    "Scan every uploaded share for malicious files before keeping it. Infected shares are deleted automatically. Requires a reachable ClamAV instance (see the integrations docs).",
+    "Scan every uploaded transfer for malicious files before keeping it. Infected transfers are deleted automatically. Requires a reachable ClamAV instance (see the integrations docs).",
   "admin.config.clamav.infected-file-action": "Infected file action",
   "admin.config.clamav.infected-file-action.description":
-    "What happens to a share ClamAV flags as containing a malicious file: permanently deleted, set aside for review, or left as-is (the share stays fully accessible — ClamAV only records the detection in the scan history).",
+    "What happens to a transfer ClamAV flags as containing a malicious file: permanently deleted, set aside for review, or left as-is (the transfer stays fully accessible — ClamAV only records the detection in the scan history).",
   "admin.config.clamav.infected-file-action.delete": "Delete",
   "admin.config.clamav.infected-file-action.quarantine": "Quarantine",
   "admin.config.clamav.infected-file-action.none": "Do nothing",
@@ -777,7 +777,7 @@ export default {
   "admin.clamav.scans.title": "Scan history",
   "admin.clamav.scans.empty": "No scans yet.",
   "admin.clamav.scans.column.date": "Date",
-  "admin.clamav.scans.column.share": "Share",
+  "admin.clamav.scans.column.share": "Transfer",
   "admin.clamav.scans.column.files": "Files",
   "admin.clamav.scans.column.status": "Status",
   "admin.clamav.scans.column.action": "Action",
@@ -818,12 +818,12 @@ export default {
     "Enable email recipient sharing",
   "admin.config.email.enable-share-email-recipients.description":
     "Whether to allow email sharing with recipients. This can only be enabled if SMTP is activated.",
-  "admin.config.email.share-recipients-subject": "Share recipients subject",
+  "admin.config.email.share-recipients-subject": "Transfer recipients subject",
   "admin.config.email.share-recipients-subject.description":
-    "Subject of the email which gets sent to the share recipients.",
-  "admin.config.email.share-recipients-message": "Share recipients message",
+    "Subject of the email which gets sent to the transfer recipients.",
+  "admin.config.email.share-recipients-message": "Transfer recipients message",
   "admin.config.email.share-recipients-message.description":
-    "Message which gets sent to the share recipients. The creator, link, and expiration already appear automatically at the top of the email — this message only needs to cover the rest. Available variables:\n {creator} - The username of the creator of the share\n {creatorEmail} - The email of the creator of the share\n {shareUrl} - The URL of the share\n {desc} - The description of the share\n {expires} - The expiration date of the share\n These variables will be replaced with the actual value.",
+    "Message which gets sent to the transfer recipients. The creator, link, and expiration already appear automatically at the top of the email — this message only needs to cover the rest. Available variables:\n {creator} - The username of the creator of the transfer\n {creatorEmail} - The email of the creator of the transfer\n {shareUrl} - The URL of the transfer\n {desc} - The description of the transfer\n {expires} - The expiration date of the transfer\n These variables will be replaced with the actual value.",
   "admin.config.email.anonymous-sender-link-subject":
     "Anonymous sender link subject",
   "admin.config.email.anonymous-sender-link-subject.description":
@@ -831,13 +831,13 @@ export default {
   "admin.config.email.anonymous-sender-link-message":
     "Anonymous sender link message",
   "admin.config.email.anonymous-sender-link-message.description":
-    "Message sent to a signed-out visitor after an anonymous upload, with the link to their own transfer. The link and expiration already appear automatically at the top of the email — this message only needs to cover the rest. Available variables:\n {name} - The name of the share, if it has one\n {shareUrl} - The URL of the share\n {expires} - The expiration date of the share\n These variables will be replaced with the actual value.",
+    "Message sent to a signed-out visitor after an anonymous upload, with the link to their own transfer. The link and expiration already appear automatically at the top of the email — this message only needs to cover the rest. Available variables:\n {name} - The name of the transfer, if it has one\n {shareUrl} - The URL of the transfer\n {expires} - The expiration date of the transfer\n These variables will be replaced with the actual value.",
   "admin.config.email.reverse-share-subject": "Reverse share subject",
   "admin.config.email.reverse-share-subject.description":
-    "Subject of the sent email when someone created a share with your reverse share link.",
+    "Subject of the sent email when someone created a transfer with your reverse share link.",
   "admin.config.email.reverse-share-message": "Reverse share message",
   "admin.config.email.reverse-share-message.description":
-    "Message which gets sent when someone created a share with your reverse share link. {shareUrl} will be replaced with the creator's name and the share URL.",
+    "Message which gets sent when someone created a transfer with your reverse share link. {shareUrl} will be replaced with the creator's name and the transfer URL.",
   "admin.config.email.reset-password-subject": "Reset password subject",
   "admin.config.email.reset-password-subject.description":
     "Subject of the sent email when a user requests a password reset.",
@@ -853,11 +853,11 @@ export default {
   "admin.config.email.share-recipients-reply-to-creator":
     "Set Reply-To to creator's email",
   "admin.config.email.share-recipients-reply-to-creator.description":
-    "Whether to set the Reply-To header to the email address of the user who created the share.",
+    "Whether to set the Reply-To header to the email address of the user who created the transfer.",
   "admin.config.email.enable-share-download-notifications":
     "Enable download notifications",
   "admin.config.email.enable-share-download-notifications.description":
-    "Whether to send an email to the share's creator or sender when a file is downloaded. Requires SMTP.",
+    "Whether to send an email to the transfer's creator or sender when a file is downloaded. Requires SMTP.",
   "admin.config.email.enable-new-account-notifications":
     "Notify on new accounts",
   "admin.config.email.enable-new-account-notifications.description":
@@ -865,51 +865,51 @@ export default {
   "admin.config.email.share-download-notification-subject":
     "Download notification subject (named recipient)",
   "admin.config.email.share-download-notification-subject.description":
-    "Subject of the email which gets sent to the share creator when a named recipient downloads a file (Email mode).",
+    "Subject of the email which gets sent to the transfer creator when a named recipient downloads a file (Email mode).",
   "admin.config.email.share-download-notification-message":
     "Download notification message (named recipient)",
   "admin.config.email.share-download-notification-message.description":
-    "Message which gets sent to the share creator when a named recipient downloads a file (Email mode). Available variables:\n {recipientEmail} - The email of the recipient\n {fileName} - The downloaded file name\n {shareUrl} - The URL of the share",
+    "Message which gets sent to the transfer creator when a named recipient downloads a file (Email mode). Available variables:\n {recipientEmail} - The email of the recipient\n {fileName} - The downloaded file name\n {shareUrl} - The URL of the transfer",
   "admin.config.email.owner-download-notification-subject":
     "Download notification subject (link)",
   "admin.config.email.owner-download-notification-subject.description":
-    "Subject of the email sent to the creator or sender of a share with no named recipient (Link mode) when a file is downloaded.",
+    "Subject of the email sent to the creator or sender of a transfer with no named recipient (Link mode) when a file is downloaded.",
   "admin.config.email.owner-download-notification-message":
     "Download notification message (link)",
   "admin.config.email.owner-download-notification-message.description":
-    "Message sent to the creator or sender of a share with no named recipient (Link mode) when a file is downloaded. Available variables:\n {fileName} - The downloaded file name\n {shareUrl} - The URL of the share",
+    "Message sent to the creator or sender of a transfer with no named recipient (Link mode) when a file is downloaded. Available variables:\n {fileName} - The downloaded file name\n {shareUrl} - The URL of the transfer",
   "admin.config.email.enable-expiring-sender-notification":
     "Notify before expiry (sender)",
   "admin.config.email.enable-expiring-sender-notification.description":
-    "Whether to notify a share's creator or sender when it's about to expire. Each user can turn this off from their own account.",
+    "Whether to notify a transfer's creator or sender when it's about to expire. Each user can turn this off from their own account.",
   "admin.config.email.expiring-sender-notification-window":
     "Expiry notice window (sender)",
   "admin.config.email.expiring-sender-notification-window.description":
-    "How long before a share expires to notify its creator or sender.",
+    "How long before a transfer expires to notify its creator or sender.",
   "admin.config.email.expiring-sender-notification-subject":
     "Expiry notice subject (sender)",
   "admin.config.email.expiring-sender-notification-subject.description":
-    "Subject of the email sent to a share's creator or sender when it's about to expire.",
+    "Subject of the email sent to a transfer's creator or sender when it's about to expire.",
   "admin.config.email.expiring-sender-notification-message":
     "Expiry notice message (sender)",
   "admin.config.email.expiring-sender-notification-message.description":
-    "Message sent to a share's creator or sender when it's about to expire. The name, link, and expiration already appear automatically at the top of the email. Available variables:\n {name} - The name of the share, if it has one\n {shareUrl} - The URL of the share",
+    "Message sent to a transfer's creator or sender when it's about to expire. The name, link, and expiration already appear automatically at the top of the email. Available variables:\n {name} - The name of the transfer, if it has one\n {shareUrl} - The URL of the transfer",
   "admin.config.email.enable-expiring-recipient-notification":
     "Notify before expiry (recipient)",
   "admin.config.email.enable-expiring-recipient-notification.description":
-    "Whether to notify a named recipient (Email mode) who hasn't downloaded a share yet when it's about to expire. Requires email recipient sharing to be enabled.",
+    "Whether to notify a named recipient (Email mode) who hasn't downloaded a transfer yet when it's about to expire. Requires email recipient sharing to be enabled.",
   "admin.config.email.expiring-recipient-notification-window":
     "Expiry notice window (recipient)",
   "admin.config.email.expiring-recipient-notification-window.description":
-    "How long before a share expires to notify a recipient who hasn't downloaded it yet.",
+    "How long before a transfer expires to notify a recipient who hasn't downloaded it yet.",
   "admin.config.email.expiring-recipient-notification-subject":
     "Expiry notice subject (recipient)",
   "admin.config.email.expiring-recipient-notification-subject.description":
-    "Subject of the email sent to a recipient who hasn't downloaded a share that's about to expire.",
+    "Subject of the email sent to a recipient who hasn't downloaded a transfer that's about to expire.",
   "admin.config.email.expiring-recipient-notification-message":
     "Expiry notice message (recipient)",
   "admin.config.email.expiring-recipient-notification-message.description":
-    "Message sent to a recipient who hasn't downloaded a share that's about to expire. The link and expiration already appear automatically at the top of the email. Available variables:\n {shareUrl} - The URL of the share",
+    "Message sent to a recipient who hasn't downloaded a transfer that's about to expire. The link and expiration already appear automatically at the top of the email. Available variables:\n {shareUrl} - The URL of the transfer",
   "admin.config.email.enable-email-verification": "Enable email verification",
   "admin.config.email.enable-email-verification.description":
     "Whether to require users to verify their email address before being able to sign in. This can only be enabled if SMTP is activated.",
@@ -923,24 +923,24 @@ export default {
   "admin.config.share.allow-registration.description":
     "Whether registration is allowed",
   "admin.config.share.allow-unauthenticated-shares":
-    "Allow unauthenticated shares",
+    "Allow unauthenticated transfers",
   "admin.config.share.allow-unauthenticated-shares.description":
-    "Lets signed-out visitors create shares and makes the site public. Off, the site requires signing in for everything, including the home page.",
+    "Lets signed-out visitors create transfers and makes the site public. Off, the site requires signing in for everything, including the home page.",
   "admin.config.share.require-email-verification-for-anonymous-shares":
-    "Email verification for anonymous shares",
+    "Email verification for anonymous transfers",
   "admin.config.share.require-email-verification-for-anonymous-shares.description":
-    "Requires entering a code sent by email before a signed-out visitor can send a share. Requires SMTP to be enabled.",
+    "Requires entering a code sent by email before a signed-out visitor can send a transfer. Requires SMTP to be enabled.",
   "admin.config.share.default-expiration": "Default expiration",
   "admin.config.share.default-expiration.description":
-    "The default expiration time selected when creating a new share.",
+    "The default expiration time selected when creating a new transfer.",
   "admin.config.share.max-expiration": "Max expiration",
   "admin.config.share.max-expiration.description":
-    "Maximum share expiration. Set to 0 to allow unlimited expiration.",
-  "admin.config.share.share-id-length": "Default share ID length",
+    "Maximum transfer expiration. Set to 0 to allow unlimited expiration.",
+  "admin.config.share.share-id-length": "Default transfer ID length",
   "admin.config.share.share-id-length.description":
-    "Default length for the generated ID of a share. This value is also used to generate links for reverse shares. A value below 8 is not considered secure.",
+    "Default length for the generated ID of a transfer. This value is also used to generate links for reverse shares. A value below 8 is not considered secure.",
   "admin.config.share.max-size": "Max size",
-  "admin.config.share.max-size.description": "Maximum share size",
+  "admin.config.share.max-size.description": "Maximum transfer size",
   "admin.config.share.zip-compression-level": "Zip compression level",
   "admin.config.share.zip-compression-level.description":
     "Adjust the level to balance between file size and compression speed. Valid values range from 0 to 9, with 0 being no compression and 9 being maximum compression. ",
@@ -948,26 +948,26 @@ export default {
   "admin.config.share.chunk-size.description":
     "Adjust the chunk size for your uploads to balance efficiency and reliability according to your internet connection. Smaller chunks can enhance success rates for unstable connections, while larger chunks make uploads faster for stable connections.",
   "admin.config.share.allow-admin-access-all-shares":
-    "Allow admin access to all shares",
+    "Allow admin access to all transfers",
   "admin.config.share.allow-admin-access-all-shares.description":
-    "Allow administrators to access all shares, even if they are password protected, expired or deleted.",
+    "Allow administrators to access all transfers, even if they are password protected, expired or deleted.",
   "admin.config.share.enable-user-recipients":
     "Enable sharing with registered users",
   "admin.config.share.enable-user-recipients.description":
-    "When enabled, shares sent to a registered user's email address will automatically appear in their account. Users can also restrict share access to named recipients only.",
+    "When enabled, transfers sent to a registered user's email address will automatically appear in their account. Users can also restrict transfer access to named recipients only.",
   "admin.config.share.enable-nas-import": "Enable NAS import",
   "admin.config.share.enable-nas-import.description":
-    "Lets an administrator create a share from files already on the NAS, without duplicating their content. Also requires the NAS_IMPORT_ROOT environment variable to be set to a mounted directory.",
+    "Lets an administrator create a transfer from files already on the NAS, without duplicating their content. Also requires the NAS_IMPORT_ROOT environment variable to be set to a mounted directory.",
   "admin.config.share.enable-video-thumbnails": "Enable video thumbnails",
   "admin.config.share.enable-video-thumbnails.description":
-    "Generates a small poster-frame thumbnail for video files in a share, shown next to the file name in the file list.",
+    "Generates a small poster-frame thumbnail for video files in a transfer, shown next to the file name in the file list.",
   "admin.config.share.enable-video-range-requests":
     "Enable scrubbable video/audio preview",
   "admin.config.share.enable-video-range-requests.description":
-    "Lets the inline preview player seek instantly to any point in a local video or audio file instead of streaming from the start. Has no effect on S3-backed shares, which already support this natively.",
+    "Lets the inline preview player seek instantly to any point in a local video or audio file instead of streaming from the start. Has no effect on S3-backed transfers, which already support this natively.",
   "admin.config.share.file-retention-period": "File retention period",
   "admin.config.share.file-retention-period.description":
-    "How long files are kept after a share expires or gets deleted. Only useful if the 'Allow admin access to all shares' is also enabled. Set to -1 to keep files forever.",
+    "How long files are kept after a transfer expires or gets deleted. Only useful if the 'Allow admin access to all transfers' is also enabled. Set to -1 to keep files forever.",
   "admin.config.verification.code-subject": "Verification code subject",
   "admin.config.verification.code-subject.description":
     "Subject of the email that contains the one-time verification code.",
@@ -1210,7 +1210,7 @@ export default {
   "common.button.edit": "Edit",
   "common.button.profile": "Profile",
   "common.badge.ldap": "LDAP",
-  "common.button.shares": "Shares",
+  "common.button.shares": "Transfers",
   "common.button.save": "Save",
   "common.button.create": "Create",
   "common.button.submit": "Submit",
@@ -1220,7 +1220,7 @@ export default {
   "common.button.refresh": "Refresh",
   "common.button.confirm": "Confirm",
   "common.button.disable": "Disable",
-  "common.button.share": "Share",
+  "common.button.share": "Transfer",
   "common.button.generate": "Generate",
   "common.button.done": "Done",
   "common.button.menu": "Menu",
