@@ -66,5 +66,7 @@
   "shareRecipientsMessage": "{desc}",
   "shareRecipientsSubject": "Des fichiers ont été partagés avec vous",
   "verificationMessage": "Vous venez de vous inscrire. Saisissez le code {code} pour vérifier votre compte, ou cliquez simplement sur ce lien : {url}\n\nCe code expire dans 60 minutes.",
-  "verificationSubject": "Vérifiez votre compte"
+  "verificationSubject": "Vérifiez votre compte",
+  "verificationCodeSubject": "Votre code de vérification",
+  "verificationCodeMessage": "Voici votre code de vérification : {code}\n\nIl expire dans {expires}. Saisissez-le pour continuer votre transfert."
 }

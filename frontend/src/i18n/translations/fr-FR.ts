@@ -805,6 +805,9 @@ export default {
   "admin.config.cache.test-redis.modal.save.description":
     "Pour continuer, vous devez d'abord enregistrer la configuration. Voulez-vous enregistrer la configuration et tester la connexion Redis ?",
   "admin.config.cache.test-redis.modal.save.confirm": "Sauvegarder et tester",
+  "admin.config.verification.code-expiration": "Durée de validité du code",
+  "admin.config.verification.code-expiration.description":
+    "Combien de temps un code de vérification reste valable avant qu’il faille en demander un nouveau. Le courriel qui porte le code annonce cette durée lui-même : la modifier ici change les deux.",
   "admin.config.email.send-html-emails":
     "Activer la compatibilité des emails HTML",
   "admin.config.email.send-html-emails.description":
@@ -896,12 +899,6 @@ export default {
     "Période de conservation des fichiers",
   "admin.config.share.file-retention-period.description":
     "Durée de conservation des fichiers après l'expiration ou la suppression d'un transfert. Utile uniquement si l'option « Autoriser l'accès administrateur à tous les transferts » est également activée. Définir à -1 pour garder les fichiers pour toujours.",
-  "admin.config.verification.code-subject": "Sujet du code de vérification",
-  "admin.config.verification.code-subject.description":
-    "Intitulé du courriel contenant le code de vérification à usage unique.",
-  "admin.config.verification.code-message": "Message du code de vérification",
-  "admin.config.verification.code-message.description":
-    "Contenu du courriel envoyé avec le code de vérification. {code} sera remplacé par le code réel.",
   "admin.config.smtp.enabled": "Activer",
   "admin.config.smtp.enabled.description":
     "Active SMTP. Activez ceci uniquement si vous avez saisi l’hôte, le port, le courriel, l’utilisateur et son mot de passe, de votre serveur SMTP.",

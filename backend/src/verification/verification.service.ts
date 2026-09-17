@@ -9,7 +9,6 @@ import { ConfigService } from "src/config/config.service";
 import { EmailService } from "src/email/email.service";
 import { PrismaService } from "src/prisma/prisma.service";
 
-const CODE_EXPIRY_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
 const ANON_SHARE_TOKEN_COOKIE = "anon_share_token";
 const ANON_SHARE_TOKEN_PURPOSE = "anonymous-share";
@@ -25,6 +24,11 @@ export class VerificationService {
   ) {}
 
   async requestCode(email: string) {
+    // Same row the email quotes back to the reader — see
+    // EmailService.sendVerificationCode, which formats this very value into
+    // {expires}. One setting, so the code's real lifetime and the sentence
+    // describing it cannot drift apart.
+    const expiry = this.config.get("verification.codeExpiration");
     const code = crypto.randomInt(100000, 1000000).toString();
     const codeHash = await argon.hash(code);
 
@@ -32,7 +36,7 @@ export class VerificationService {
       data: {
         email,
         codeHash,
-        expiresAt: moment().add(CODE_EXPIRY_MINUTES, "minutes").toDate(),
+        expiresAt: moment().add(expiry.value, expiry.unit).toDate(),
       },
     });
 

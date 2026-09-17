@@ -216,15 +216,15 @@ export const configVariables = {
     },
   },
   verification: {
-    codeSubject: {
-      type: "string",
-      defaultValue: "Votre code de vérification",
-      secret: false,
-    },
-    codeMessage: {
-      type: "text",
-      defaultValue:
-        "Voici votre code de vérification : {code}\n\nIl expire dans 10 minutes. Saisissez-le pour continuer votre transfert.",
+    // The only thing worth deciding about a one-time code: how long it
+    // lives. Read in two places that must never disagree —
+    // VerificationService stamps expiresAt from it, and the email prints it
+    // as {expires} — so the sentence cannot outlive the setting. It used to
+    // be a constant of 10 alongside copy that said "10 minutes" in its own
+    // words, which is two truths waiting to diverge.
+    codeExpiration: {
+      type: "timespan",
+      defaultValue: "10 minutes",
       secret: false,
     },
   },

@@ -690,13 +690,25 @@ export class EmailService {
   }
 
   async sendVerificationCode(recipientEmail: string, code: string) {
+    const lang = this.config.get("general.defaultLanguage");
+    const locale = this.i18n.translate("email.locale", { lang });
+    // The lifetime VerificationService actually stamped on this code, not a
+    // number retyped into the copy. humanize() so a change of unit reads
+    // naturally — "10 minutes", "une heure" — rather than as arithmetic.
+    const expiry = this.config.get("verification.codeExpiration");
+    const expires = moment
+      .duration(expiry.value, expiry.unit)
+      .locale(locale)
+      .humanize();
+
     await this.sendMail(
       recipientEmail,
-      this.config.get("verification.codeSubject"),
-      this.config
-        .get("verification.codeMessage")
+      this.i18n.t("email.verificationCodeSubject", { lang }),
+      this.i18n
+        .t("email.verificationCodeMessage", { lang })
         .replaceAll("\\n", "\n")
-        .replaceAll("{code}", code),
+        .replaceAll("{code}", code)
+        .replaceAll("{expires}", expires),
       { code },
     );
   }

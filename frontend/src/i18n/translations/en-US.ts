@@ -811,6 +811,9 @@ export default {
   "admin.config.cache.test-redis.modal.save.description":
     "To continue you need to save the configuration first. Do you want to save the configuration and test the Redis connection?",
   "admin.config.cache.test-redis.modal.save.confirm": "Save and test",
+  "admin.config.verification.code-expiration": "Code lifetime",
+  "admin.config.verification.code-expiration.description":
+    "How long a verification code stays valid before a new one has to be requested. The email carrying the code states this duration itself, so changing it here changes both.",
   "admin.config.email.send-html-emails": "Enable HTML email compatibility",
   "admin.config.email.send-html-emails.description":
     "If enabled, emails will be sent in HTML format. Ensure email templates are updated to use HTML.",
@@ -898,12 +901,6 @@ export default {
   "admin.config.share.file-retention-period": "File retention period",
   "admin.config.share.file-retention-period.description":
     "How long files are kept after a transfer expires or gets deleted. Only useful if the 'Allow admin access to all transfers' is also enabled. Set to -1 to keep files forever.",
-  "admin.config.verification.code-subject": "Verification code subject",
-  "admin.config.verification.code-subject.description":
-    "Subject of the email that contains the one-time verification code.",
-  "admin.config.verification.code-message": "Verification code message",
-  "admin.config.verification.code-message.description":
-    "Message which gets sent with the verification code. {code} will be replaced with the actual code.",
   "admin.config.smtp.enabled": "Enable",
   "admin.config.smtp.enabled.description":
     "Whether SMTP is enabled. Only set this to true if you entered the host, port, email, user and password of your SMTP server.",
