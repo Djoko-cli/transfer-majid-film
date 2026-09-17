@@ -51,6 +51,11 @@ model User {
   pendingEmail                 String?
   pendingEmailToken            String?   @unique
   pendingEmailTokenExpiresAt   DateTime?
+  // When the code was last put in the post. Stored rather than tracked in
+  // the browser so the resend cooldown survives a reload — which is exactly
+  // what someone does when the mail has not arrived, the one situation this
+  // whole resend path exists for.
+  pendingEmailLastSentAt       DateTime?
 
   // Granular per-user opt-out for JobsService's sender-side expiry
   // reminder — only meaningful for a registered creator, who's the only

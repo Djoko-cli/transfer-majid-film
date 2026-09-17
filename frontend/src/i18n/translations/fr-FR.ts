@@ -188,6 +188,9 @@ export default {
   "account.card.info.pending-email.description":
     "Un code a été envoyé à {email}. Votre adresse actuelle reste en vigueur tant qu'il n'est pas saisi — si celle-ci comporte une erreur, annulez simplement.",
   "account.card.info.pending-email.code": "Code à 6 chiffres",
+  "account.card.info.pending-email.resend": "Renvoyer le code",
+  "account.card.info.pending-email.resend-in": "Renvoyer dans {seconds} s",
+  "account.notify.email-change.resent": "Un nouveau code a été envoyé à {email}.",
   "account.card.info.pending-email.confirm": "Confirmer",
   "account.card.info.pending-email.cancel": "Annuler",
   "account.notify.email-change.requested":

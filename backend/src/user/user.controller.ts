@@ -10,6 +10,7 @@ import {
   Res,
   UseGuards,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { User } from "@prisma/client";
 import { Response } from "express";
 import { GetUser } from "src/auth/decorator/getUser.decorator";
@@ -68,6 +69,20 @@ export class UserController {
   ) {
     return new UserDTO().from(
       await this.userService.confirmEmailChange(user.id, dto.code),
+    );
+  }
+
+  // The throttle is the outer fence — per IP, cheap, refuses a flood before
+  // it reaches the database. The service checks the row's own last-sent
+  // timestamp behind it, which is the fence that actually matches what is
+  // being protected: one account's mailbox.
+  @Post("me/email/resend")
+  @HttpCode(200)
+  @Throttle({ default: { limit: 3, ttl: 60 * 1000 } })
+  @UseGuards(JwtGuard)
+  async resendEmailChangeCode(@GetUser() user: User) {
+    return new UserDTO().from(
+      await this.userService.resendEmailChangeCode(user.id),
     );
   }
 

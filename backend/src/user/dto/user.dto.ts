@@ -32,6 +32,11 @@ export class UserDTO {
   @Expose()
   pendingEmail?: string;
 
+  // Lets the account page show a truthful countdown instead of guessing —
+  // and keep it truthful across a reload.
+  @Expose()
+  pendingEmailLastSentAt?: Date;
+
   @MinLength(8)
   password: string;
 

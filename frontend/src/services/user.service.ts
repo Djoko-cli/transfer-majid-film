@@ -31,6 +31,10 @@ const confirmEmailChange = async (code: string) => {
   return (await api.post("/users/me/email/confirm", { code })).data;
 };
 
+const resendEmailChangeCode = async () => {
+  return (await api.post("/users/me/email/resend")).data;
+};
+
 const cancelEmailChange = async () => {
   return (await api.delete("/users/me/email")).data;
 };
@@ -56,6 +60,7 @@ export default {
   getCurrentUser,
   updateCurrentUser,
   confirmEmailChange,
+  resendEmailChangeCode,
   cancelEmailChange,
   removeCurrentUser,
 };

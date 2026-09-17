@@ -36,6 +36,11 @@ import userService from "../../services/user.service";
 import { getOAuthIcon, getOAuthUrl, unlinkOAuth } from "../../utils/oauth.util";
 import toast from "../../utils/toast.util";
 
+// Mirrors EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS on the server. Duplicated
+// rather than fetched: this number only decides what a button says, and the
+// server refuses an early click whatever this happens to say.
+const RESEND_COOLDOWN_SECONDS = 60;
+
 const Account = () => {
   const [notifyLoading, setNotifyLoading] = useState(false);
   const [oauth, setOAuth] = useState<string[]>([]);
@@ -49,6 +54,37 @@ const Account = () => {
 
   const { user, refreshUser } = useUser();
   const [emailChangeCode, setEmailChangeCode] = useState("");
+  // Ticks only while a change is pending, so the resend button can count
+  // down truthfully. Derived from the server's own last-sent timestamp
+  // rather than from when this component happened to mount — otherwise a
+  // reload would reset the countdown to zero and invite a click the server
+  // is going to refuse.
+  //
+  // null until an effect runs, and never Date.now() during render: this
+  // block IS server-rendered, so reading the clock while rendering gives
+  // the server one second and the client the next, and React tears the
+  // whole tree down over the mismatch. Caught on screen — "Server:
+  // 'Renvoyer dans 58 s' Client: 'Renvoyer dans 57 s'" — while every
+  // text assertion about the button was passing. Both sides now render the
+  // same idle label, and the countdown appears once the client is alone.
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    if (!user?.pendingEmail) return;
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [user?.pendingEmail]);
+
+  const resendIn =
+    now && user?.pendingEmailLastSentAt
+      ? Math.max(
+          0,
+          RESEND_COOLDOWN_SECONDS -
+            Math.floor(
+              (now - new Date(user.pendingEmailLastSentAt).getTime()) / 1000,
+            ),
+        )
+      : 0;
   const modals = useModals();
   const t = useTranslate();
   const config = useConfig();
@@ -226,6 +262,29 @@ const Account = () => {
                     }
                   />
                   <Group position="right">
+                    <Button
+                      variant="subtle"
+                      disabled={now === null || resendIn > 0}
+                      onClick={() =>
+                        userService
+                          .resendEmailChangeCode()
+                          .then(async () => {
+                            await refreshUser();
+                            toast.success(
+                              t("account.notify.email-change.resent", {
+                                email: user.pendingEmail!,
+                              }),
+                            );
+                          })
+                          .catch(toast.axiosError)
+                      }
+                    >
+                      {resendIn > 0
+                        ? t("account.card.info.pending-email.resend-in", {
+                            seconds: resendIn,
+                          })
+                        : t("account.card.info.pending-email.resend")}
+                    </Button>
                     <Button
                       variant="subtle"
                       onClick={() =>

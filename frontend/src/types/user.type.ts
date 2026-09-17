@@ -9,6 +9,7 @@ type User = {
   hasPassword: boolean;
   // Set while an email change is waiting on a code sent to that address.
   pendingEmail?: string;
+  pendingEmailLastSentAt?: string;
   shareSizeLimit?: string;
   storageQuotaLimit?: string;
   canCreatePermanentShares?: boolean;

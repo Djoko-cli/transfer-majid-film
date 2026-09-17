@@ -19,6 +19,10 @@ import { UpdateUserDto } from "./dto/updateUser.dto";
 // short enough that an abandoned request does not sit claimable for days.
 const EMAIL_CHANGE_CODE_TTL_MINUTES = 30;
 
+// Long enough that a second click is a decision rather than a reflex, short
+// enough to be worth waiting out when the first mail genuinely never came.
+const EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS = 60;
+
 @Injectable()
 export class UserSevice {
   private readonly logger = new Logger(UserSevice.name);
@@ -205,6 +209,7 @@ export class UserSevice {
             pendingEmail: newEmail,
             pendingEmailToken: code,
             pendingEmailTokenExpiresAt: expiresAt,
+            pendingEmailLastSentAt: new Date(),
           },
         });
 
@@ -236,6 +241,58 @@ export class UserSevice {
     }
   }
 
+  // Re-posts the SAME code while it is still valid, rather than minting a
+  // fresh one. Two emails carrying two different codes is how you turn a
+  // delivery hiccup into a reader wondering which of them to trust; one
+  // code, sent twice, has no such ambiguity. Expired, there is nothing left
+  // to re-post, so a new one is issued and the clock restarts.
+  //
+  // The cooldown is enforced here, against the row, not only by the
+  // throttle guard on the route: the guard counts per IP, and it is this
+  // account's mailbox being written to.
+  async resendEmailChangeCode(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.pendingEmail)
+      throw new BadRequestException(this.i18n.t("auth.tokenInvalidOrExpired"));
+
+    const since = user.pendingEmailLastSentAt
+      ? (Date.now() - user.pendingEmailLastSentAt.getTime()) / 1000
+      : Infinity;
+    if (since < EMAIL_CHANGE_RESEND_COOLDOWN_SECONDS)
+      throw new BadRequestException(this.i18n.t("auth.resendTooSoon"));
+
+    const stillValid =
+      user.pendingEmailToken &&
+      user.pendingEmailTokenExpiresAt &&
+      user.pendingEmailTokenExpiresAt > new Date();
+
+    const code = stillValid
+      ? user.pendingEmailToken
+      : crypto.randomInt(100000, 1000000).toString();
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        pendingEmailToken: code,
+        pendingEmailTokenExpiresAt: stillValid
+          ? user.pendingEmailTokenExpiresAt
+          : moment().add(EMAIL_CHANGE_CODE_TTL_MINUTES, "minutes").toDate(),
+        pendingEmailLastSentAt: new Date(),
+      },
+    });
+
+    await this.emailService.sendEmailChangeCode(
+      user.pendingEmail,
+      code,
+      moment
+        .duration(EMAIL_CHANGE_CODE_TTL_MINUTES, "minutes")
+        .locale(this.i18n.translate("email.locale"))
+        .humanize(),
+    );
+
+    return updated;
+  }
+
   async confirmEmailChange(userId: string, code: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user?.pendingEmail || user.pendingEmailToken !== code)
@@ -264,6 +321,7 @@ export class UserSevice {
         pendingEmail: null,
         pendingEmailToken: null,
         pendingEmailTokenExpiresAt: null,
+        pendingEmailLastSentAt: null,
       },
     });
   }
@@ -275,6 +333,7 @@ export class UserSevice {
         pendingEmail: null,
         pendingEmailToken: null,
         pendingEmailTokenExpiresAt: null,
+        pendingEmailLastSentAt: null,
       },
     });
   }

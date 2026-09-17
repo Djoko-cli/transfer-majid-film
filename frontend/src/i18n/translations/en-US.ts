@@ -194,6 +194,9 @@ export default {
   "account.card.info.pending-email.description":
     "A code was sent to {email}. Your current address stays in force until it is entered — if that address is wrong, just cancel.",
   "account.card.info.pending-email.code": "6-digit code",
+  "account.card.info.pending-email.resend": "Resend the code",
+  "account.card.info.pending-email.resend-in": "Resend in {seconds}s",
+  "account.notify.email-change.resent": "A new code was sent to {email}.",
   "account.card.info.pending-email.confirm": "Confirm",
   "account.card.info.pending-email.cancel": "Cancel",
   "account.notify.email-change.requested":
