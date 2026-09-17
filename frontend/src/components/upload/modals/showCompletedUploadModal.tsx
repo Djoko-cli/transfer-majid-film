@@ -120,7 +120,30 @@ const showCompletedUploadModal = (
         // once the content it was padding out actually included the link
         // field. Just comfortable, ordinary spacing now; the box is whatever
         // height its real content needs.
-        header: { ...base.header, paddingTop: 32, paddingBottom: 20 },
+        header: {
+          ...base.header,
+          paddingTop: 32,
+          paddingBottom: 20,
+          // Not pinned, and therefore not tinted. glassModalStyles keeps
+          // Mantine's sticky header and frosts it so the forms in the other
+          // ~24 glass modals cannot scroll up through their own title —
+          // context worth holding in place while you fill something in.
+          // Nothing here is filled in: this is a one-line confirmation you
+          // read once and dismiss, so pinning it buys nothing and the tint
+          // it needs draws a seam across a surface that is translucent
+          // everywhere else. Measured in email mode: 292px tall, zero
+          // overflow — a bar occluding nothing at all.
+          //
+          // It does overflow in one state (link mode with the QR open on a
+          // phone: 764 into 729), and letting the title scroll away there is
+          // the better trade — better than a band that, measured at that
+          // scroll position, left the thumbnail and the file summary plainly
+          // legible through it anyway.
+          position: "static" as const,
+          backgroundColor: "transparent",
+          backdropFilter: "none",
+          WebkitBackdropFilter: "none",
+        },
         body: { ...base.body, padding: "0px 32px 32px" },
       };
     },
