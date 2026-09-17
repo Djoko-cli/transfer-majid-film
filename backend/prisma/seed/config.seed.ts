@@ -286,11 +286,6 @@ export const configVariables = {
       defaultValue: "false",
       secret: false,
     },
-    shareRecipientsReplyToCreator: {
-      type: "boolean",
-      defaultValue: "false",
-      secret: false,
-    },
     // Reminds the owner (signed-in creator or anonymous senderEmail) of a
     // share that's about to expire — see JobsService.notifyExpiringSenders.
     // Per-user opt-out for a registered creator lives on User itself

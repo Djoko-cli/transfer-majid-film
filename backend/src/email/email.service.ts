@@ -194,19 +194,18 @@ export class EmailService {
       creator?.username ??
       this.i18n.t("email.shareRecipientsCreatorFallback", { lang });
 
-    // Whoever actually sent this, account or not. It used to read the
-    // creator alone, so the setting quietly did nothing for anonymous
-    // senders — their recipients' replies went to the app's own address
-    // even though the sender had given one at upload time.
+    // Whoever actually sent this, account or not. Not a setting: its other
+    // value put the app's own mailbox on replies between two people who
+    // have nothing to do with whoever runs the instance — a visitor sends a
+    // transfer, the recipient hits Reply, and the operator receives it.
+    // Nobody wants that, so it is not offered.
     let replyTo: string | undefined = undefined;
-    if (this.config.get("email.shareRecipientsReplyToCreator")) {
-      if (creator?.email) {
-        replyTo = `"${creator.username}" <${creator.email}>`;
-      } else if (senderEmail) {
-        // Bare address: an anonymous sender has no display name to put in
-        // front of it, and inventing one would misrepresent them.
-        replyTo = senderEmail;
-      }
+    if (creator?.email) {
+      replyTo = `"${creator.username}" <${creator.email}>`;
+    } else if (senderEmail) {
+      // Bare address: an anonymous sender has no display name to put in
+      // front of it, and inventing one would misrepresent them.
+      replyTo = senderEmail;
     }
 
     const totalSize = byteToHumanSizeString(

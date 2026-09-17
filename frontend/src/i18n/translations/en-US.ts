@@ -822,10 +822,6 @@ export default {
     "Enable email recipient sharing",
   "admin.config.email.enable-share-email-recipients.description":
     "Whether to allow email sharing with recipients. This can only be enabled if SMTP is activated.",
-  "admin.config.email.share-recipients-reply-to-creator":
-    "Reply to the sender, not the app",
-  "admin.config.email.share-recipients-reply-to-creator.description":
-    "When a recipient replies to the email, the reply goes to the sender's address instead of the app's. The visible sender is unchanged, but their address becomes visible to the recipient. Also applies to signed-out senders, provided their address was verified by code.",
   "admin.config.email.enable-share-download-notifications":
     "Enable download notifications",
   "admin.config.email.enable-share-download-notifications.description":

@@ -817,10 +817,6 @@ export default {
     "Activer le transfert par courriel",
   "admin.config.email.enable-share-email-recipients.description":
     "Autoriser ou non le transfert d'e-mails avec les destinataires. Cette option n'est disponible que si le protocole SMTP est activé.",
-  "admin.config.email.share-recipients-reply-to-creator":
-    "Répondre à l'expéditeur plutôt qu'à l'application",
-  "admin.config.email.share-recipients-reply-to-creator.description":
-    "Quand un destinataire répond au courriel, sa réponse part vers l'adresse de l'expéditeur au lieu de celle de l'application. L'expéditeur affiché ne change pas, mais son adresse devient visible pour le destinataire. Vaut aussi pour les envois sans compte, à condition que leur adresse ait été vérifiée par code.",
   "admin.config.email.enable-share-download-notifications":
     "Activer les notifications de téléchargement",
   "admin.config.email.enable-share-download-notifications.description":
