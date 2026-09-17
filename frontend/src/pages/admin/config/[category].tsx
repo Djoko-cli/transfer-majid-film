@@ -15,6 +15,7 @@ import { useMediaQuery } from "@mantine/hooks";
 
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import userPreferences from "../../../utils/userPreferences.util";
 import { TbAlertTriangle, TbInfoCircle } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import Meta from "../../../components/Meta";
@@ -92,6 +93,47 @@ const AdminConfigPage: NextPageWithLayout = () => {
   >([]);
   const [optionalConfigVariables, setOptionalConfigVariables] =
     useState<AdminConfig[]>();
+
+  // Deux des trois bandeaux ci-dessous décrivent un état permanent de
+  // l'instance : des fichiers sont montés et synchronisés. Un fait qui ne
+  // change jamais n'a pas à être réaffirmé en pleine largeur sur chaque
+  // page de réglages, une fois qu'on l'a lu.
+  //
+  // Masquage par navigateur (userPreferences, localStorage) et non par
+  // instance : AdminNoticeDismissal existe, mais il masque pour tout le
+  // monde à la fois — un futur administrateur n'apprendrait jamais que ses
+  // modifications partent dans un fichier. Ici chacun le lit une fois.
+  //
+  // Le troisième bandeau, celui de l'échec d'écriture, n'est volontairement
+  // pas masquable : c'est une panne, pas un état.
+  const [dismissedNotices, setDismissedNotices] = useState<
+    Record<string, boolean>
+  >({});
+  useEffect(() => {
+    try {
+      setDismissedNotices({
+        configFileSync: userPreferences.get("dismissedConfigFileSync") === "1",
+        secretsFileSync:
+          userPreferences.get("dismissedSecretsFileSync") === "1",
+      });
+    } catch {
+      // Navigation privée, stockage bloqué : on affiche, c'est le défaut sûr
+    }
+  }, []);
+
+  const dismissNotice = (notice: "configFileSync" | "secretsFileSync") => {
+    setDismissedNotices((d) => ({ ...d, [notice]: true }));
+    try {
+      userPreferences.set(
+        notice === "configFileSync"
+          ? "dismissedConfigFileSync"
+          : "dismissedSecretsFileSync",
+        "1",
+      );
+    } catch {
+      // Masqué pour cette visite seulement, ce qui vaut mieux que planter
+    }
+  };
 
   const saveConfigVariables = async () => {
     if (updatedConfigVariables.length > 0) {
@@ -259,28 +301,36 @@ const AdminConfigPage: NextPageWithLayout = () => {
                   }}
                 >
                   <Stack>
-                    {configVariables[0]?.mirroredToFile && (
-                      <Alert
-                        mb={"lg"}
-                        variant="light"
-                        color="primary"
-                        title={t("admin.config.config-file-sync.title")}
-                        icon={<TbInfoCircle />}
-                      >
-                        <FormattedMessage id="admin.config.config-file-sync.description" />
-                      </Alert>
-                    )}
-                    {configVariables.some((cv) => cv.mirroredToSecretsFile) && (
-                      <Alert
-                        mb={"lg"}
-                        variant="light"
-                        color="primary"
-                        title={t("admin.config.secrets-file-sync.title")}
-                        icon={<TbInfoCircle />}
-                      >
-                        <FormattedMessage id="admin.config.secrets-file-sync.description" />
-                      </Alert>
-                    )}
+                    {configVariables[0]?.mirroredToFile &&
+                      !dismissedNotices.configFileSync && (
+                        <Alert
+                          mb={"lg"}
+                          variant="light"
+                          color="primary"
+                          title={t("admin.config.config-file-sync.title")}
+                          icon={<TbInfoCircle />}
+                          withCloseButton
+                          closeButtonLabel={t("admin.config.file-sync.dismiss")}
+                          onClose={() => dismissNotice("configFileSync")}
+                        >
+                          <FormattedMessage id="admin.config.config-file-sync.description" />
+                        </Alert>
+                      )}
+                    {configVariables.some((cv) => cv.mirroredToSecretsFile) &&
+                      !dismissedNotices.secretsFileSync && (
+                        <Alert
+                          mb={"lg"}
+                          variant="light"
+                          color="primary"
+                          title={t("admin.config.secrets-file-sync.title")}
+                          icon={<TbInfoCircle />}
+                          withCloseButton
+                          closeButtonLabel={t("admin.config.file-sync.dismiss")}
+                          onClose={() => dismissNotice("secretsFileSync")}
+                        >
+                          <FormattedMessage id="admin.config.secrets-file-sync.description" />
+                        </Alert>
+                      )}
                     {configVariables.some((cv) => cv.mirrorWriteError) && (
                       <Alert
                         mb={"lg"}

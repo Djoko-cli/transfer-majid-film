@@ -705,6 +705,7 @@ export default {
   // END /contact
 
   // /admin/config
+  "admin.config.file-sync.dismiss": "Ne plus afficher ce message",
   "admin.config.config-file-sync.title": "Synchronisé avec config.yaml",
   "admin.config.config-file-sync.description":
     "Un fichier config.yaml est monté sur cette instance. Les modifications faites ici sont aussi écrites dans le fichier, et inversement — les deux restent synchronisés.",
