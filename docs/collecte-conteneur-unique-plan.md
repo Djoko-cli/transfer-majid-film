@@ -993,6 +993,164 @@ git push
 
 ---
 
+### Task 7: L'interrupteur d'administration
+
+En dernier, et pas par ordre d'importance : il masque et refuse des choses que
+les tâches 2 et 6 viennent de créer. L'écrire avant reviendrait à le réécrire
+après.
+
+**Files:**
+- Modify: `backend/prisma/seed/config.seed.ts`
+- Modify: `backend/src/reverseShare/reverseShare.service.ts`
+- Modify: `frontend/src/components/header/Header.tsx`
+- Modify: `frontend/src/components/header/NavbarShareMenu.tsx`
+- Modify: `frontend/src/pages/account/reverseShares.tsx`
+- Modify: `frontend/src/i18n/translations/fr-FR.ts` et `en-US.ts`
+- Test: `backend/test/newman-system-tests.json`
+
+**Interfaces:**
+- Consomme : tout ce qui précède.
+- Produit : rien.
+
+- [ ] **Step 1: Déclarer le réglage**
+
+Dans `backend/prisma/seed/config.seed.ts`, catégorie `share`, à côté de
+`enableUserRecipients` (`:135-139`) :
+
+```ts
+    enableReverseShares: {
+      type: "boolean",
+      defaultValue: "true",
+      secret: false,
+    },
+```
+
+`true` par défaut : la fonctionnalité existe et tourne déjà, la couper d'office
+surprendrait quiconque s'en sert.
+
+- [ ] **Step 2: Exécuter le seed, sans quoi la clé n'existe pas**
+
+Un réglage neuf renvoie 404 en local tant que le seed n'a pas tourné pour de
+bon — la production le fait au démarrage, pas l'environnement de développement :
+
+```bash
+cd backend && PATH="./node_modules/.bin:$PATH" ./node_modules/.bin/ts-node prisma/seed/config.seed.ts
+```
+
+Puis redémarrer le serveur de développement : `ConfigService` résout ses
+variables une fois, au démarrage.
+
+- [ ] **Step 3: Les deux libellés, dans les deux langues**
+
+Dans `frontend/src/i18n/translations/fr-FR.ts` **et** `en-US.ts` :
+
+```ts
+  "admin.config.share.enable-reverse-shares": "Transferts inversés",
+  "admin.config.share.enable-reverse-shares.description":
+    "Autoriser la création de liens de dépôt. Les liens déjà créés continuent de fonctionner, y compris pour recevoir de nouvelles contributions.",
+```
+
+Sans ces deux clés, la console affiche la clé technique à la place du libellé.
+
+- [ ] **Step 4: Le refus côté serveur, et son test**
+
+Ajouter au dossier Newman `Collection container`, **après** ses tests
+existants : basculer le réglage à `false` par `PATCH {{API_URL}}/configs/admin`
+(corps : un tableau de `{key, value}`, avec un **vrai booléen** — la chaîne
+`"true"` rend 400), tenter `POST {{API_URL}}/reverseShares` et attendre **403**,
+puis vérifier que `GET {{API_URL}}/shares/vacances-test` répond toujours **200**
+— c'est l'assertion qui prouve qu'un album existant survit au réglage. Restaurer
+le réglage à `true` en dernière requête du dossier.
+
+Côté code, dans `ReverseShareService.create()`, tout en haut :
+
+```ts
+    // Only the making of new links is refused. Everything already created
+    // keeps working, contributions included — freezing an album mid-collection
+    // is not what anyone means when they untick a box.
+    if (!this.config.get("share.enableReverseShares"))
+      throw new ForbiddenException(this.i18n.t("reverseShare.disabled"));
+```
+
+Et la clé `disabled` dans `backend/src/i18n/fr-FR/reverseShare.json` et
+`en-US/reverseShare.json`.
+
+- [ ] **Step 5: Masquer les deux entrées de navigation**
+
+Le motif existe déjà à l'identique juste en dessous, pour un réglage voisin.
+
+Dans `frontend/src/components/header/NavbarShareMenu.tsx`, envelopper l'entrée
+« Transferts inversés » (`:30-37`) dans
+`{config.get("share.enableReverseShares") && ( … )}`.
+
+Dans `frontend/src/components/header/Header.tsx`, remplacer l'entrée en dur de
+`mobileShareLinks` (`:503-506`) par la forme conditionnelle que la ligne
+suivante emploie déjà :
+
+```ts
+    ...(config.get("share.enableReverseShares")
+      ? [
+          {
+            link: "/account/reverseShares",
+            label: t("navbar.links.reverse"),
+          },
+        ]
+      : []),
+```
+
+- [ ] **Step 6: La page reste joignable, le bouton disparaît**
+
+Dans `frontend/src/pages/account/reverseShares.tsx` : masquer le bouton de
+création quand le réglage est à l'arrêt, et afficher à sa place une ligne
+expliquant que la création de nouveaux liens est désactivée et que les collectes
+ci-dessous fonctionnent toujours. **Ne pas rediriger, ne pas masquer la liste** :
+c'est le seul index du propriétaire vers des albums qui, eux, marchent encore.
+
+Nouvelle clé dans les deux langues :
+`account.reverseShares.disabled-notice`.
+
+- [ ] **Step 7: Vérifier en direct**
+
+Dans la console d'administration, panneau **Transfert**, décocher le réglage.
+
+1. Le libellé et la description s'affichent en français, pas la clé technique.
+2. L'entrée « Transferts inversés » disparaît du menu, et de la liste mobile à
+   375 px.
+3. `/account/reverseShares` reste joignable en tapant l'adresse : les collectes
+   existantes sont listées, le bouton de création a disparu, la ligne
+   d'explication est là.
+4. **L'album d'une collecte existante s'ouvre normalement**, et on peut encore y
+   déposer. C'est le point de la demande.
+5. Recocher : tout revient, sans rechargement forcé.
+
+- [ ] **Step 8: Commiter**
+
+```bash
+cd "/Users/Majid/Documents/Dev/js:nodejs/fork-wetransfer"
+git add backend frontend
+git commit -F - <<'MSG'
+Let an admin stop new deposit links without breaking the live ones
+
+The setting refuses the making of links and nothing else. Collections
+that already exist keep reading, keep accepting contributions, keep
+their archive and their expiry — freezing an album halfway through a
+collection is not what anyone means when they untick a box, and a link
+already handed to friends should not stop working because of a setting
+they cannot see.
+
+The two navigation entries hide, on the same pattern the sibling setting
+beside them already uses. The management page does not: it stays
+reachable by its address and keeps listing what exists, minus the create
+button. Hiding it would take the owner's only index to albums that still
+work.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+MSG
+git push
+```
+
+---
+
 ## Couverture de la spec
 
 | Section de la spec | Tâche |
@@ -1004,9 +1162,10 @@ git push
 | §7 Les routes | Task 3 (dépôt), Task 5 (DTO du transfert), Task 6 (DTO du lien) |
 | §8 Les deux horloges et l'archive | Task 2 (horloges, cron), Task 3 (archive) |
 | §9 L'ancien chemin retiré | Task 4 |
-| §10 Hors périmètre | non implémenté ; le `maxUseCount` et le bogue du cookie sont les deux exceptions, traités en Task 6 parce qu'ils sont dans le formulaire qu'on rouvre de toute façon |
-| §11 Vérification, tests 1 à 3 | Task 2 step 1, Task 3 step 1 |
-| §11 Vérifications 4 à 7 | Task 5 step 4, Task 6 step 4 |
+| §10 L'interrupteur d'administration | Task 7 |
+| §11 Hors périmètre | non implémenté ; le `maxUseCount` et le bogue du cookie sont les deux exceptions, traités en Task 6 parce qu'ils sont dans le formulaire qu'on rouvre de toute façon |
+| §12 Vérification, tests 1 à 3 | Task 2 step 1, Task 3 step 1 |
+| §12 Vérifications 4 à 7 | Task 5 step 4, Task 6 step 4 |
 
 **Écart assumé** : la lacune du chemin S3, qui ne vérifie pas `uploadLocked` du
 tout, est constatée en Task 3 et reversée dans `docs/chantiers.md` sans être
@@ -1018,4 +1177,5 @@ Strictement séquentiel. La tâche 1 ne compile pas seule et se commite avec la
 tâche 2. La tâche 4 ne doit retirer l'ancien chemin qu'une fois le nouveau vert,
 sans quoi il n'existe plus aucun moyen de déposer. Les tâches 5 et 6 sont
 frontend et pourraient s'inverser, mais la 5 valide les routes de la 3 en
-conditions réelles et vaut d'être faite d'abord.
+conditions réelles et vaut d'être faite d'abord. La 7 vient en dernier parce
+qu'elle masque et refuse ce que les tâches 2 et 6 viennent de construire.

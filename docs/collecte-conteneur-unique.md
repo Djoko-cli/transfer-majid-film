@@ -317,7 +317,71 @@ Si cette affirmation se révélait fausse au moment d'implémenter — un lien v
 retrouvé en base — il faudrait s'arrêter et rouvrir cette section, parce que tout
 ce qui suit en dépend.
 
-## 10. Hors périmètre, délibérément
+## 10. L'interrupteur d'administration
+
+Un réglage `share.enableReverseShares`, booléen, **défaut `true`** — la
+fonctionnalité existe déjà et tourne ; la désactiver d'office surprendrait
+quiconque s'en sert.
+
+### Ce qu'il coupe, et ce qu'il ne coupe pas
+
+> **Lecture que je fais de la demande, à corriger si elle est fausse.**
+> « Désactive la création de nouveau dépôt » = on ne crée plus de **liens**.
+> « Laisse accessible ceux déjà créés » = les liens existants continuent de
+> fonctionner **entièrement**, y compris pour recevoir de nouvelles
+> contributions. Couper aussi les contributions reviendrait à figer les albums
+> en cours au milieu d'une collecte, ce qui n'est presque jamais l'intention de
+> quelqu'un qui décoche une case.
+
+| Ce qui | État quand l'interrupteur est à l'arrêt |
+|---|---|
+| `POST /reverseShares` | refuse, 403 |
+| Les collectes existantes | inchangées : lecture, dépôt, archive, expiration |
+| L'album `/s/<id>` | **totalement inchangé**, il ne sait rien de cet interrupteur — c'est un transfert |
+| `GET /reverseShares` | répond toujours : le propriétaire garde l'index vers ses albums |
+
+Le point important est le troisième : l'album est un transfert ordinaire, et
+aucun garde d'accès ne consulte ce réglage. Un lien déjà distribué à des amis ne
+doit pas cesser de fonctionner parce que l'administrateur a rangé une case.
+
+### Où ça disparaît de l'interface
+
+Deux points de montage, tous deux au même motif qu'un réglage voisin qui fait
+déjà exactement ça — `config.get("share.enableUserRecipients")` :
+
+- l'entrée « Transferts inversés » du menu de navigation
+  ([`NavbarShareMenu.tsx:30-37`](../frontend/src/components/header/NavbarShareMenu.tsx)) ;
+- la même entrée dans la liste mobile
+  ([`Header.tsx:503-506`](../frontend/src/components/header/Header.tsx)).
+
+Et un troisième endroit qui ne disparaît pas mais change :
+
+- `/account/reverseShares` **reste joignable par son adresse directe**, et
+  continue de lister les collectes existantes. Le bouton de création disparaît,
+  remplacé par une ligne disant que la fonctionnalité est désactivée. La
+  masquer entièrement priverait le propriétaire du seul index vers des albums
+  qui, eux, fonctionnent toujours — on lui retirerait l'accès à ses propres
+  affaires pour appliquer un réglage qui ne les concerne pas.
+
+### Le réglage lui-même
+
+Déclaré dans `config.seed.ts`, catégorie `share`, sur le modèle de
+`enableUserRecipients` (`:135-139`). Comme tout réglage affiché, il exige ses
+deux libellés — `admin.config.share.enable-reverse-shares` et sa description —
+**dans les deux langues**, sans quoi la console affiche la clé technique.
+
+### Une question de vocabulaire à trancher
+
+Trois noms coexistent pour une seule chose : le code dit `reverseShare`,
+l'interface dit « transfert inversé », et cette spec dit « collecte ». Le
+réglage prend le nom du code, ce qui est le moindre mal, mais **ce n'est pas une
+décision, c'est un report**. À régler séparément — et si le mot « collecte »
+gagne, c'est un chantier de vocabulaire de la taille de celui de la v3.8.0, pas
+une ligne.
+
+---
+
+## 11. Hors périmètre, délibérément
 
 - **Supprimer ou remplacer sa propre contribution.** Souhaitable, mais demande
   une preuve d'identité persistante côté contributeur. À reprendre ensuite.
@@ -335,7 +399,7 @@ ce qui suit en dépend.
 
 ---
 
-## 11. Vérification
+## 12. Vérification
 
 Trois propriétés à écrire comme tests système, dans la collection Newman :
 
