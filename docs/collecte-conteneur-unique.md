@@ -118,8 +118,8 @@ identité prouvée. Le drapeau dit seulement « ce transfert-là n'est pas figé
   retentionSeconds Int
 ```
 
-`shares Share[]` **reste** : c'est la relation des dépôts déjà créés par les
-liens de l'ancien modèle (§9), et elle ne doit pas être supprimée.
+`shares Share[]` **disparaît** : c'était la relation des dépôts que l'ancien
+modèle fabriquait un par un, et il n'en existe aucun (§9).
 
 `token` demeure, mais cesse d'être une adresse : il sert d'étiquette et de
 source de l'identifiant du conteneur. **Conséquence à ne pas manquer** : les
@@ -299,32 +299,23 @@ une construction à la demande si le coût se voit.
 
 ---
 
-## 9. Les liens existants
+## 9. Les liens existants : il n'y en a pas
 
-La fonctionnalité vient de l'amont et tourne en production depuis toujours : la
-route `/upload/<jeton>` existe, elle n'est pas neuve. Ce qui est éphémère, ce
-sont les **liens** — leur expiration par défaut est de trois jours.
+La fonctionnalité vient de l'amont et tourne en production depuis toujours, mais
+**Majid n'a jamais distribué un seul lien de dépôt** — confirmé par lui le
+18 septembre 2026. Il n'y a donc aucune collecte en cours à préserver, et aucune
+cohabitation entre deux modèles à gérer.
 
-Deux choses en découlent, et elles sont indépendantes :
+Conséquence directe : l'ancien chemin part **en entier**, il n'est pas conservé
+en compatibilité. La page `/upload/<jeton>`, la branche de
+`ShareService.create()` qui fabriquait un transfert par dépôt, le laissez-passer
+inconditionnel de `CreateShareGuard` et l'exemption `!isReverseShare` du
+frontend sont supprimés, pas contournés. `shares Share[]` sur `ReverseShare`
+disparaît avec eux.
 
-- **Les dépôts déjà faits ne sont pas migrés**, et n'ont pas à l'être. Ce sont
-  des transferts ordinaires, joignables par leur propre adresse, et le rester
-  ne demande aucun travail. Les casser pour une cohérence de modèle serait une
-  perte sèche.
-- **Un lien de l'ancien modèle n'a plus de conteneur possible**, puisque le
-  conteneur naît désormais avec le lien. La route `/upload/<jeton>` est donc
-  conservée telle quelle, pour que les liens encore vivants au moment du
-  déploiement finissent leur vie normalement, et **retirée une fois qu'aucun ne
-  l'est plus** — trois jours après le déploiement dans le cas par défaut. Une
-  migration doit vérifier qu'aucun lien sans conteneur n'est encore valide avant
-  cette suppression.
-
-Si aucun lien n'a jamais été distribué, les deux points ci-dessus sont sans
-objet et la route part avec le reste. **À confirmer avant l'implémentation** —
-c'est la seule chose de ce document qui dépende de l'état réel de la
-production.
-
----
+Si cette affirmation se révélait fausse au moment d'implémenter — un lien vivant
+retrouvé en base — il faudrait s'arrêter et rouvrir cette section, parce que tout
+ce qui suit en dépend.
 
 ## 10. Hors périmètre, délibérément
 
