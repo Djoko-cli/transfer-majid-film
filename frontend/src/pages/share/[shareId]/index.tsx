@@ -9,6 +9,7 @@ import {
   Text,
   Title,
 } from "@mantine/core";
+import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
 import { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -16,8 +17,9 @@ import { useRouter } from "next/router";
 import moment from "moment";
 import { useEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
-import { TbDownload, TbEdit, TbFiles } from "react-icons/tb";
+import { TbDownload, TbEdit, TbFiles, TbLink } from "react-icons/tb";
 import Meta from "../../../components/Meta";
+import showShareLinkModal from "../../../components/account/showShareLinkModal";
 import DownloadAllButton from "../../../components/share/DownloadAllButton";
 import FileList from "../../../components/share/FileList";
 import showEnterPasswordModal from "../../../components/share/showEnterPasswordModal";
@@ -36,7 +38,7 @@ import { getQueryString } from "../../../utils/router.util";
 import { HoverTip } from "../../../components/core/HoverTip";
 
 // Wider than the upload card (440) — a file table with a name column plus
-// up to 4 action icons per row needs more room than a form does before it
+// up to 3 action icons per row needs more room than a form does before it
 // starts feeling cramped.
 const CARD_WIDTH = 640;
 
@@ -47,6 +49,7 @@ export function getServerSideProps(context: GetServerSidePropsContext) {
 }
 
 const Share = ({ shareId }: { shareId: string }) => {
+  const clipboard = useClipboard();
   const modals = useModals();
   const router = useRouter();
   const [share, setShare] = useState<ShareType>();
@@ -252,6 +255,39 @@ const Share = ({ shareId }: { shareId: string }) => {
             </Box>
 
             <Group spacing="xs" noWrap>
+              {/* Not gated on isOwner: forwarding the link is the
+                  recipient's need, not the owner's. And the canonical link
+                  rather than window.location.href — the current URL can
+                  carry a ?recipient= that a recipient would then hand on as
+                  their own. */}
+              <HoverTip label={t("common.button.copy-link")}>
+                <ActionIcon
+                  variant="light"
+                  size="lg"
+                  aria-label={t("common.button.copy-link")}
+                  onClick={() => {
+                    const appUrl =
+                      config.get("general.appUrl") !==
+                      config.get("general.appUrl", true)
+                        ? config.get("general.appUrl")
+                        : window.location.origin;
+
+                    if (window.isSecureContext) {
+                      clipboard.copy(`${appUrl}/s/${shareId}`);
+                      toast.success(t("common.notify.copied-link"));
+                    } else {
+                      showShareLinkModal(
+                        modals,
+                        shareId,
+                        config.get("general.appUrl"),
+                        config.get("general.appUrl", true),
+                      );
+                    }
+                  }}
+                >
+                  <TbLink />
+                </ActionIcon>
+              </HoverTip>
               {isOwner && (
                 <HoverTip label={t("account.shares.button.edit")}>
                   <ActionIcon

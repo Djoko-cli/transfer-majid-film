@@ -1,19 +1,9 @@
-import {
-  ActionIcon,
-  Box,
-  Group,
-  MantineProvider,
-  Skeleton,
-  Stack,
-  Table,
-  TextInput,
-} from "@mantine/core";
+import { ActionIcon, Box, Group, Skeleton, Table } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { TbDownload, TbEye, TbLink, TbClipboard } from "react-icons/tb";
+import { TbDownload, TbEye, TbClipboard } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
-import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
 import { FileMetaData } from "../../types/File.type";
@@ -24,8 +14,6 @@ import TableSortIcon, { TableSort } from "../core/SortIcon";
 import showFilePreviewModal from "./modals/showFilePreviewModal";
 import { HoverTip } from "../core/HoverTip";
 import api from "../../services/api.service";
-import glassFormTheme from "../upload/glassFormTheme";
-import { glassModalStyles } from "../upload/glassModalTheme";
 
 // Geometry of one row's action buttons, used to derive the actions column's
 // width below. Kept next to each other so they stay in sync with the
@@ -35,14 +23,12 @@ const ACTION_ICON_GAP = 16; // <Group>'s default "md" spacing
 const CELL_PADDING = 10; // Mantine's Table cell padding, per side
 
 // How many action buttons a given file's row will render — mirrors the
-// conditionals in the actions cell exactly (download is unconditional; the
-// clipboard/preview ones depend on the file type, and the copy-link one on
-// whether the share is password-protected).
-const countActionIcons = (file: FileMetaData, hasPassword: boolean) =>
+// conditionals in the actions cell exactly (download is unconditional,
+// the clipboard and preview ones depend on the file type).
+const countActionIcons = (file: FileMetaData) =>
   1 +
   (shareService.isShareTextFile(file.name) ? 1 : 0) +
-  (shareService.doesFileSupportPreview(file.name) ? 1 : 0) +
-  (hasPassword ? 0 : 1);
+  (shareService.doesFileSupportPreview(file.name) ? 1 : 0);
 
 const actionsColumnWidth = (iconCount: number) =>
   iconCount * ACTION_ICON_SIZE +
@@ -76,7 +62,6 @@ const FileList = ({
   recipientId?: string;
 }) => {
   const clipboard = useClipboard();
-  const config = useConfig();
   const modals = useModals();
   const t = useTranslate();
 
@@ -106,47 +91,20 @@ const FileList = ({
     }
   };
 
-  const copyFileLink = (file: FileMetaData) => {
-    const recipientQuery = recipientId
-      ? `?recipient=${encodeURIComponent(recipientId)}`
-      : "";
-    const link = `${config.get("general.appUrl") !== config.get("general.appUrl", true) ? config.get("general.appUrl") : window.location.origin}/api/shares/${
-      share.id
-    }/files/${file.id}${recipientQuery}`;
-
-    if (window.isSecureContext) {
-      clipboard.copy(link);
-      toast.success(t("common.notify.copied-link"));
-    } else {
-      modals.openModal({
-        title: t("share.modal.file-link"),
-        styles: glassModalStyles,
-        children: (
-          <MantineProvider inherit theme={glassFormTheme}>
-            <Stack align="stretch">
-              <TextInput variant="filled" value={link} />
-            </Stack>
-          </MantineProvider>
-        ),
-      });
-    }
-  };
-
   useEffect(sortFiles, [sort]);
 
   // One width for the whole actions column (a table column can only have
   // one — that's what keeps every column vertically aligned), but derived
   // from the most buttons any row in *this* share actually renders rather
-  // than a hardcoded worst case. So a share of plain binaries reserves
-  // room for 3 buttons, and only one containing a text file (which adds
-  // the copy-contents button) reserves room for 4 — no dead space either
+  // than a hardcoded worst case. So a share of plain, non-previewable
+  // binaries reserves room for 2 buttons, and only one containing a text
+  // file (which adds the copy-contents button, on top of the preview one
+  // text also qualifies for) reserves room for 3 — no dead space either
   // way, and whatever isn't reserved goes to the name column, since that's
   // the one with `width: auto` under table-layout: fixed.
   const maxActionIcons =
     files && files.length > 0
-      ? Math.max(
-          ...files.map((file) => countActionIcons(file, share?.hasPassword)),
-        )
+      ? Math.max(...files.map((file) => countActionIcons(file)))
       : 3;
 
   return (
@@ -281,19 +239,6 @@ const FileList = ({
                           </ActionIcon>
                         </HoverTip>
                       )}
-                      {!share.hasPassword && (
-                        <HoverTip label={t("common.button.copy-link")}>
-                          <ActionIcon
-                            variant="light"
-                            size={ACTION_ICON_SIZE}
-                            aria-label={t("common.button.copy-link")}
-                            onClick={() => copyFileLink(file)}
-                          >
-                            <TbLink />
-                          </ActionIcon>
-                        </HoverTip>
-                      )}
-
                       <HoverTip label={t("common.button.download")}>
                         <ActionIcon
                           color="cyan"
