@@ -44,6 +44,19 @@ export class LocalFileService {
       file.id = crypto.randomUUID();
     } else if (!isValidUUID(file.id)) {
       throw new BadRequestException(this.i18n.t("file.invalidIdFormat"));
+    } else if (await this.prisma.file.findUnique({ where: { id: file.id } })) {
+      // Only ever a real check when the caller supplied the id (a freshly
+      // minted uuid above can't collide) — and it has to be a global
+      // check, not one scoped to this share, because File.id is a global
+      // primary key. Accepting an id that already names a real row would
+      // let this request rename its bytes over that file's on disk below,
+      // before the create() call further down even gets a chance to fail
+      // on the duplicate key. Lives here rather than in a controller so
+      // both upload routes are covered by the one check: the classic one
+      // (FileController.create(), gated by sole ownership of this share)
+      // and the contribution one (reachable by any of several different
+      // contributors to the same collection).
+      throw new BadRequestException(this.i18n.t("file.idInUse"));
     }
 
     const share = await this.prisma.share.findUnique({
@@ -117,7 +130,14 @@ export class LocalFileService {
     const shareSizeSum = fileSizeSum + diskFileSize + buffer.byteLength;
 
     let limit = parseInt(this.config.get("share.maxSize"));
-    if (share.collectionOf?.maxShareSize) {
+    if (contributionId && share.collectionOf?.maxShareSize) {
+      // Gated on contributionId, not just isCollection: this ceiling is a
+      // property of a *deposit*, not of the album. With no contribution
+      // in hand, this write is the owner's own — reaching the container
+      // through the classic route (StrictShareOwnerGuard) rather than
+      // through a contribution — and the pre-existing account-level rule
+      // below is the correct one for them, exactly as it was before
+      // isCollection existed at all.
       limit = parseInt(share.collectionOf.maxShareSize);
     } else if (share.reverseShare?.maxShareSize) {
       limit = parseInt(share.reverseShare.maxShareSize);

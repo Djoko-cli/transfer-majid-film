@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   HttpCode,
@@ -12,7 +11,6 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import { SkipThrottle } from "@nestjs/throttler";
 import { Request } from "express";
-import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
 import { FileService } from "src/file/file.service";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -31,7 +29,6 @@ export class ContributionController {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private config: ConfigService,
-    private readonly i18n: I18nService,
   ) {}
 
   // ShareSecurityGuard is the one door spec §5.1 wants asked before
@@ -80,22 +77,9 @@ export class ContributionController {
     // The id, when present, is never one a caller invents — it's only
     // ever the one this same route handed back in an earlier chunk's
     // response, echoed so the upload can resume (see share.service.ts's
-    // uploadFile on the frontend). File.id is a global primary key, so
-    // any id that already names a real row is illegitimate for a *new*
-    // file: accepting it here would let one contributor's request
-    // rename over another's already-finished file on disk before
-    // create() below even gets a chance to fail on the duplicate key
-    // (local.service.ts renames the last chunk into place first), and a
-    // multi-chunk request that never finishes would let the unscoped
-    // update further down silently re-point someone else's file at this
-    // contribution without ever touching its bytes.
-    if (id) {
-      const existing = await this.prisma.file.findUnique({
-        where: { id },
-      });
-      if (existing)
-        throw new BadRequestException(this.i18n.t("file.idInUse"));
-    }
+    // uploadFile on the frontend). fileService.create() itself refuses an
+    // id that already names a real row (LocalFileService.create()), which
+    // covers this route and the classic one with the one check.
 
     // Data can be empty if the file is empty
     const file = await this.fileService.create(

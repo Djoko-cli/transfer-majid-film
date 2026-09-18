@@ -2915,6 +2915,490 @@
 							}
 						}
 					]
+				},
+				{
+					"name": "Create a collection with only three uses",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"vacances-limitee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 3,\n    \"publicAccess\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open contribution A against the three-use collection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"A\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('LIMIT_CONTRIB_A', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open contribution B against the three-use collection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"B\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('LIMIT_CONTRIB_B', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open contribution C against the three-use collection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"C\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('LIMIT_CONTRIB_C', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open contribution D against the three-use collection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"D\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('LIMIT_CONTRIB_D', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Complete contribution A",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions/{{LIMIT_CONTRIB_A}}/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions",
+								"{{LIMIT_CONTRIB_A}}",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Complete contribution B",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions/{{LIMIT_CONTRIB_B}}/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions",
+								"{{LIMIT_CONTRIB_B}}",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Completing contribution A a second time is refused",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions/{{LIMIT_CONTRIB_A}}/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions",
+								"{{LIMIT_CONTRIB_A}}",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Refused as already closed, not as a fresh deposit', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('contribution_closed');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Double-completing did not spend a second use",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('remainingUses reflects exactly the two real completions (A, B)', () => {",
+									"    const collection = pm.response.json().find((r) => r.token === 'vacances-limitee');",
+									"    pm.expect(collection.remainingUses).to.be.equal(1);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Complete contribution C",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions/{{LIMIT_CONTRIB_C}}/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions",
+								"{{LIMIT_CONTRIB_C}}",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Completing a fourth contribution beyond maxUseCount is refused",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions/{{LIMIT_CONTRIB_D}}/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions",
+								"{{LIMIT_CONTRIB_D}}",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Refused as full, not as a name/identity problem', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('collection_full');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "remainingUses never goes below zero",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('remainingUses sits at exactly zero, not negative', () => {",
+									"    const collection = pm.response.json().find((r) => r.token === 'vacances-limitee');",
+									"    pm.expect(collection.remainingUses).to.be.equal(0);",
+									"});"
+								]
+							}
+						}
+					]
 				}
 			]
 		},

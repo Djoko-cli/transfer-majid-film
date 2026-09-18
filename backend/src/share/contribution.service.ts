@@ -70,6 +70,50 @@ export class ContributionService {
   // multi-gigabyte album that will be felt, and the answer then is to
   // build it on demand instead — measure before assuming either way.
   async complete(contribution: ShareContribution) {
+    // Conditional rather than a plain decrement, and done first: the count
+    // is only *read* at open() (see its own comment), so nothing stops
+    // someone opening far more contributions than maxUseCount while it is
+    // still positive and then completing them all. Bounding it here,
+    // atomically, at the one moment a deposit actually becomes real, is
+    // what makes maxUseCount mean what it says — a plain decrement would
+    // let the count go negative and accept unlimited deposits. Checked
+    // before completedAt is ever touched, so a genuinely exhausted
+    // collection refuses cleanly: no zip rebuild, no contribution left
+    // looking completed behind the error the caller actually sees.
+    const claimed = await this.prisma.reverseShare.updateMany({
+      where: {
+        containerShareId: contribution.shareId,
+        remainingUses: { gt: 0 },
+      },
+      data: { remainingUses: { decrement: 1 } },
+    });
+    if (claimed.count === 0)
+      throw new ForbiddenException(
+        this.i18n.t("share.collectionClosed"),
+        "collection_full",
+      );
+
+    // Conditional on completedAt still being null, so two concurrent
+    // completions of the *same* contribution can both pass the claim
+    // above, but only one of them actually closes it. The loser's write
+    // matches zero rows: refund the use it just claimed (it never really
+    // happened) and say plainly that the contribution is already closed,
+    // rather than double-spending on one deposit made once.
+    const closing = await this.prisma.shareContribution.updateMany({
+      where: { id: contribution.id, completedAt: null },
+      data: { completedAt: new Date() },
+    });
+    if (closing.count === 0) {
+      await this.prisma.reverseShare.updateMany({
+        where: { containerShareId: contribution.shareId },
+        data: { remainingUses: { increment: 1 } },
+      });
+      throw new ForbiddenException(
+        this.i18n.t("share.contributionClosed"),
+        "contribution_closed",
+      );
+    }
+
     await this.prisma.share.update({
       where: { id: contribution.shareId },
       data: { isZipReady: false },
@@ -82,32 +126,21 @@ export class ContributionService {
       }),
     );
 
-    const closed = await this.prisma.shareContribution.update({
-      where: { id: contribution.id },
-      data: { completedAt: new Date() },
-    });
-
-    // remainingUses counts deposits actually made, not attempts to make
-    // one. Spending it here rather than in open() means an opened-then-
-    // abandoned contribution costs the collection nothing — twenty
-    // open-and-walk-away calls would otherwise close it for everyone.
-    const collection = await this.prisma.reverseShare.update({
+    const collection = await this.prisma.reverseShare.findUnique({
       where: { containerShareId: contribution.shareId },
-      data: { remainingUses: { decrement: 1 } },
       include: { creator: true },
     });
 
-    if (
-      collection.sendEmailNotification &&
-      this.config.get("smtp.enabled")
-    ) {
+    if (collection?.sendEmailNotification && this.config.get("smtp.enabled")) {
       await this.emailService.sendMailToReverseShareCreator(
         collection.creator.email,
         contribution.shareId,
       );
     }
 
-    return closed;
+    return this.prisma.shareContribution.findUnique({
+      where: { id: contribution.id },
+    });
   }
 
   // The contributions with their files, for task 5's DTO.
