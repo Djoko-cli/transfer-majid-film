@@ -44,7 +44,16 @@ export class ShareService {
     private readonly i18n: I18nService,
   ) {}
 
-  async create(share: CreateShareDTO, user?: User, reverseShareToken?: string) {
+  async create(
+    share: CreateShareDTO,
+    user?: User,
+    reverseShareToken?: string,
+    // The address the one-time-code flow actually proved belongs to this
+    // visitor, resolved by the controller from the verification cookie.
+    // Not the one they typed into the form: those are two different
+    // things, and only this one may ever be shown to a recipient.
+    verifiedSenderEmail?: string,
+  ) {
     const reverseShare =
       await this.reverseShareService.getByToken(reverseShareToken);
     const quotaOwner = reverseShare ? reverseShare.creator : user;
@@ -179,9 +188,26 @@ export class ShareService {
         // A signed-in creator's identity is already the `creator` relation
         // below — never persist a second, potentially-stale copy of their
         // email here. Only meaningful for an anonymous sender.
+        // When the instance requires a one-time code, the address stored is
+        // the one that code proved — never the one typed into the form.
+        // They can differ, and until now the typed one won: a visitor could
+        // prove an address they own, declare someone else's, and the
+        // recipient would be shown that name and handed it as the Reply-To,
+        // on this domain's letterhead. Proving an address is only worth
+        // doing if it is the address that ends up being shown.
+        //
+        // With the requirement off nothing is proven, and the typed address
+        // is all there is. It is still stored, because the "here is your own
+        // link" backstop further down mails that address and nowhere else —
+        // and ShareService.complete() refuses to hand it to a recipient,
+        // which is the gate that makes storing it safe at all.
         senderEmail: user
           ? null
-          : share.senderEmail?.toLowerCase().trim() || null,
+          : (this.config.get(
+              "share.requireEmailVerificationForAnonymousShares",
+            )
+              ? verifiedSenderEmail?.toLowerCase().trim()
+              : share.senderEmail?.toLowerCase().trim()) || null,
         expiration: expirationDate,
         creator: { connect: user ? { id: user.id } : undefined },
         security: { create: share.security },

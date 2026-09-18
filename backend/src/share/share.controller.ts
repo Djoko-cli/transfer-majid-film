@@ -37,11 +37,13 @@ import { ShareSecurityGuard } from "./guard/shareSecurity.guard";
 import { ShareTokenSecurity } from "./guard/shareTokenSecurity.guard";
 import { IdValidation } from "./guard/shareIdValidation.guard";
 import { ShareService } from "./share.service";
+import { VerificationService } from "src/verification/verification.service";
 import { CompletedShareDTO } from "./dto/shareComplete.dto";
 @Controller("shares")
 export class ShareController {
   constructor(
     private shareService: ShareService,
+    private verificationService: VerificationService,
     private jwtService: JwtService,
     private config: ConfigService,
   ) {}
@@ -107,7 +109,15 @@ export class ShareController {
   ) {
     const { reverse_share_token } = request.cookies;
     return new ShareDTO().from(
-      await this.shareService.create(body, user, reverse_share_token),
+      await this.shareService.create(
+        body,
+        user,
+        reverse_share_token,
+        // Read here rather than in the service: the cookie is an HTTP
+        // detail, and the service should be handed a proven address or
+        // nothing at all.
+        this.verificationService.getVerifiedEmail(request) ?? undefined,
+      ),
     );
   }
 
