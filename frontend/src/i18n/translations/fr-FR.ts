@@ -594,8 +594,6 @@ export default {
     "Nous avons envoyé ce transfert par e-mail à vos destinataires.",
   "upload.modal.completed.summary.singular": "{count} fichier · {size}",
   "upload.modal.completed.summary.plural": "{count} fichiers · {size}",
-  "upload.modal.completed.notified-reverse-share-creator":
-    "Nous avons notifié le créateur du transfert inversé. Vous pouvez également partager manuellement ce lien avec eux par d'autres moyens.",
   "upload.modal.completed.sender-emailed":
     "Nous vous avons aussi envoyé ce lien par e-mail, au cas où.",
   // END /upload

@@ -55,7 +55,6 @@ export class LocalFileService {
       where: { id: shareId },
       include: {
         files: true,
-        reverseShare: { include: { creator: true } },
         creator: true,
         collectionOf: true,
       },
@@ -131,8 +130,6 @@ export class LocalFileService {
       // below is the correct one for them, exactly as it was before
       // isCollection existed at all.
       limit = parseInt(share.collectionOf.maxShareSize);
-    } else if (share.reverseShare?.maxShareSize) {
-      limit = parseInt(share.reverseShare.maxShareSize);
     } else if (share.creator?.shareSizeLimit) {
       limit = parseInt(share.creator.shareSizeLimit);
     }
@@ -144,18 +141,11 @@ export class LocalFileService {
       );
     }
 
-    const quotaOwner = share.reverseShare
-      ? share.reverseShare.creator
-      : share.creator;
-    const quotaOwnerId = share.reverseShare
-      ? share.reverseShare.creatorId
-      : share.creatorId;
-
-    if (quotaOwnerId && quotaOwner?.storageQuotaLimit) {
-      const quotaLimit = parseInt(quotaOwner.storageQuotaLimit);
+    if (share.creatorId && share.creator?.storageQuotaLimit) {
+      const quotaLimit = parseInt(share.creator.storageQuotaLimit);
       const activeStorageUsage = await getUserActiveStorageUsage(
         this.prisma,
-        quotaOwnerId,
+        share.creatorId,
       );
       const projectedUsage =
         activeStorageUsage + diskFileSize + buffer.byteLength;
@@ -164,13 +154,9 @@ export class LocalFileService {
         const exceededBytes = projectedUsage - quotaLimit;
         const exceededSize = byteToHumanSizeString(exceededBytes);
         throw new HttpException(
-          share.reverseShare
-            ? this.i18n.t("file.reverseShareQuotaExceeded", {
-                args: { exceededSize },
-              })
-            : this.i18n.t("file.storageQuotaExceeded", {
-                args: { exceededSize },
-              }),
+          this.i18n.t("file.storageQuotaExceeded", {
+            args: { exceededSize },
+          }),
           HttpStatus.PAYLOAD_TOO_LARGE,
         );
       }

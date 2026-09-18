@@ -298,19 +298,6 @@ const Body = ({
             {t("upload.modal.completed.link-mode.download-notification")}
           </Text>
         )}
-        {share.notifyReverseShareCreator === true && (
-          <Text
-            size="sm"
-            sx={(theme) => ({
-              color:
-                theme.colorScheme === "dark"
-                  ? theme.colors.gray[3]
-                  : theme.colors.dark[4],
-            })}
-          >
-            {t("upload.modal.completed.notified-reverse-share-creator")}
-          </Text>
-        )}
         {
           // An anonymous sender has no account and no "Mes transferts" to
           // fall back to — this link is the only trace of the transfer,

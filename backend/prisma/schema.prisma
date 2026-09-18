@@ -246,12 +246,14 @@ model ReverseShare {
   creatorId String
   creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
-  // The one-share-per-submission relation Share.reverseShareId still points
-  // through, for the upload-via-token path that predates the container and
-  // has not been removed yet (ShareService.create()'s own reverseShare
-  // branch, still live). Not the container itself — that is containerShare
-  // above, a distinct one-to-one relation. Renamed off the old `shares` so
-  // the two can never be confused; dies with that old path.
+  // The one-share-per-submission relation for the old upload-via-token
+  // path, which predated the container and has been removed: nothing
+  // writes Share.reverseShareId any more (ShareService.create()'s own
+  // reverseShare branch is gone), so this is permanently empty going
+  // forward. Left as a field rather than migrated away, since dropping a
+  // column was outside that removal's scope. Not the container itself —
+  // that is containerShare above, a distinct one-to-one relation. Renamed
+  // off the old `shares` so the two can never be confused.
   perSubmissionShares Share[]
 }
 

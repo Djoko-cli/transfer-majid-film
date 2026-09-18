@@ -11,14 +11,7 @@ export type Share = {
   hasPassword: boolean;
 };
 
-export type CompletedShare = Share & {
-  /**
-   * undefined means is not reverse share
-   * true means server was send email to reverse share creator
-   * false means server was not send email to reverse share creator
-   * */
-  notifyReverseShareCreator: boolean | undefined;
-};
+export type CompletedShare = Share;
 
 export type CreateShare = {
   id: string;

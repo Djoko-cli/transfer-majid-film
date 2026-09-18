@@ -1,5 +1,4 @@
 {
-  "notFound": "Jeton de transfert inversé non trouvé",
   "maxShareSizeExceeded": "La taille maximale du transfert ne peut pas être supérieure à {maxSize} octets.",
   "tokenInUse": "Reverse share token already in use"
 }

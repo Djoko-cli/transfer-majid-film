@@ -148,17 +148,6 @@ export class ReverseShareService {
     return { isAvailable: !reverseShare };
   }
 
-  async getByToken(reverseShareToken?: string) {
-    if (!reverseShareToken) return null;
-
-    const reverseShare = await this.prisma.reverseShare.findUnique({
-      where: { token: reverseShareToken },
-      include: { creator: true },
-    });
-
-    return reverseShare;
-  }
-
   async getAllByUser(userId: string) {
     const reverseShares = await this.prisma.reverseShare.findMany({
       where: {
@@ -176,19 +165,6 @@ export class ReverseShareService {
     });
 
     return reverseShares;
-  }
-
-  async isValid(reverseShareToken: string) {
-    const reverseShare = await this.prisma.reverseShare.findUnique({
-      where: { token: reverseShareToken },
-    });
-
-    if (!reverseShare) return false;
-
-    const isExpired = new Date() > reverseShare.collectionEndsAt;
-    const remainingUsesExceeded = reverseShare.remainingUses <= 0;
-
-    return !(isExpired || remainingUsesExceeded);
   }
 
   // Only the link row goes: with a container, removing it must not remove

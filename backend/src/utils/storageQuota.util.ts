@@ -20,14 +20,7 @@ export async function getUserActiveStorageUsage(
           { expiration: { gt: new Date() } },
           { expiration: moment(0).toDate() },
         ],
-        AND: [
-          {
-            OR: [
-              { reverseShare: { creatorId: userId } },
-              { reverseShareId: null, creatorId: userId },
-            ],
-          },
-        ],
+        creatorId: userId,
       },
     },
     select: { size: true },

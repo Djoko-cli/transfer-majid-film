@@ -612,8 +612,6 @@ export default {
     "We've emailed this transfer to your recipients.",
   "upload.modal.completed.summary.singular": "{count} file · {size}",
   "upload.modal.completed.summary.plural": "{count} files · {size}",
-  "upload.modal.completed.notified-reverse-share-creator":
-    "We have notified the creator of the reverse share. You can also manually share this link with them through other means.",
   "upload.modal.completed.sender-emailed":
     "We also sent this link to your email, just in case.",
 
