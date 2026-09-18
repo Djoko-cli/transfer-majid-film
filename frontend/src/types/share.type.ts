@@ -87,14 +87,23 @@ export type MyShare = Omit<Share, "hasPassword"> & {
   security: MyShareSecurity;
 };
 
+// As ReverseShareDTO carries it to the owner's management page — an
+// aggregate view of the collection, not the raw rows behind it (see
+// ReverseShareService.getAllByUser()).
 export type MyReverseShare = {
   id: string;
-  maxShareSize: string;
-  shareExpiration: Date;
-  remainingUses: number;
   token: string;
+  maxShareSize: string;
   name: string | null;
-  shares: MyShare[];
+  description: string | null;
+  collectionEndsAt: Date;
+  containerExpiresAt: Date;
+  contributionsCount: number;
+  filesCount: number;
+  totalSize: number;
+  // null where nobody typed a name — the page falls back to the same
+  // "Anonyme" label the public album uses (share.collection.anonymous).
+  contributorNames: (string | null)[];
 };
 
 export type ShareSecurity = {

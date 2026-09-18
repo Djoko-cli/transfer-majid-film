@@ -48,9 +48,6 @@ export class CreateReverseShareDTO {
   @Max(1000)
   maxUseCount: number;
 
-  @IsBoolean()
-  publicAccess: boolean;
-
   // Same shape as a direct share's own optional description/security
   // (CreateShareDTO/ShareSecurityDTO) — set once here by this reverse
   // share's own creator, applied to every share created through it

@@ -275,7 +275,12 @@ export default {
 
   // showCreateReverseShareModal.tsx
   "account.reverseShares.modal.title": "Create reverse share",
-  "account.reverseShares.modal.expiration.label": "Expiration",
+  "account.reverseShares.modal.collection-ends.label": "Collection open for",
+  "account.reverseShares.modal.collection-ends.preview":
+    "The collection will close on {expiration}.",
+  "account.reverseShares.modal.retention.label": "Album kept after closing",
+  "account.reverseShares.modal.retention.preview":
+    "The album will be deleted on {expiration}.",
   "account.reverseShares.modal.expiration.minute-singular": "Minute",
   "account.reverseShares.modal.expiration.minute-plural": "Minutes",
   "account.reverseShares.modal.expiration.hour-singular": "Hour",
@@ -298,27 +303,24 @@ export default {
   "account.reverseShares.modal.send-email.description":
     "Sends you an email notification when a transfer is created with this reverse share link.",
 
-  "account.reverseShares.modal.public-access": "Public access",
-  "account.reverseShares.modal.public-access.description":
-    "Make the transfers created with this reverse share public. If disabled, only you and the transfer creator will have access to view it.",
-
-  "account.reverseShares.modal.max-use.label": "Max uses",
+  "account.reverseShares.modal.max-use.label": "Number of allowed deposits",
   "account.reverseShares.modal.max-use.description":
-    "The maximum amount of times this URL can be used to create a transfer.",
+    "The maximum number of deposits this link can receive.",
   "account.reverseShares.modal.password.label": "Password protection",
   "account.reverseShares.modal.max-views.label": "Maximum views",
-  "account.reverseShare.never-expires": "This reverse share will never expire.",
-  "account.reverseShare.expires-on":
-    "This reverse share will expire on {expiration}.",
 
-  "account.reverseShares.table.no-shares": "No transfers created yet",
-  "account.reverseShares.table.count.singular": "transfer",
-  "account.reverseShares.table.count.plural": "transfers",
   "account.reverseShares.table.name": "Name",
-  "account.reverseShares.table.shares": "Transfers",
-  "account.reverseShares.table.remaining": "Remaining uses",
-  "account.reverseShares.table.max-size": "Max transfer size",
-  "account.reverseShares.table.expires": "Expires at",
+  "account.reverseShares.table.contributors": "Contributors",
+  "account.reverseShares.table.contributors.none": "No contributions yet",
+  "account.reverseShares.table.contributors.singular": "contributor",
+  "account.reverseShares.table.contributors.plural": "contributors",
+  "account.reverseShares.table.files": "Files",
+  "account.reverseShares.table.files.singular": "file",
+  "account.reverseShares.table.files.plural": "files",
+  "account.reverseShares.table.state": "State",
+  "account.reverseShares.table.state.open": "Open until {date}",
+  "account.reverseShares.table.state.closed": "Closed, album kept until {date}",
+  "account.reverseShares.table.open-album": "Open the album",
 
   "account.reverseShares.modal.reverse-share-link": "Reverse share link",
 

@@ -122,7 +122,6 @@ export class ReverseShareService {
             remainingUses: data.maxUseCount,
             maxShareSize: data.maxShareSize,
             sendEmailNotification: data.sendEmailNotification,
-            publicAccess: data.publicAccess,
             name: data.name || undefined,
             description: data.description || undefined,
             password: hashedPassword,
@@ -161,10 +160,48 @@ export class ReverseShareService {
       orderBy: {
         collectionEndsAt: "desc",
       },
-      include: { containerShare: true },
+      include: {
+        containerShare: {
+          include: {
+            files: { select: { size: true } },
+            // Every contribution, open or closed — same policy as
+            // ContributionService.getWithFiles(), which the public album
+            // (ShareController.buildCollectionState) already reads
+            // without filtering on completedAt: a contribution row only
+            // exists once someone proved an identity, so a still-open one
+            // is a real person mid-deposit, not noise.
+            contributions: {
+              select: { name: true, user: { select: { username: true } } },
+            },
+          },
+        },
+      },
     });
 
-    return reverseShares;
+    // Assembled here rather than left as a raw Prisma row, so the DTO can
+    // simply @Expose() everything it declares — the owner's page wants
+    // aggregates (how many people, how much), not the rows behind them.
+    return reverseShares.map((reverseShare) => {
+      const { containerShare, ...rest } = reverseShare;
+      const contributions = containerShare.contributions;
+
+      return {
+        ...rest,
+        containerExpiresAt: moment(reverseShare.collectionEndsAt)
+          .add(reverseShare.retentionSeconds, "seconds")
+          .toDate(),
+        contributionsCount: contributions.length,
+        filesCount: containerShare.files.length,
+        totalSize: containerShare.files.reduce(
+          (acc, file) => acc + parseInt(file.size),
+          0,
+        ),
+        contributorNames: contributions.map(
+          (contribution) =>
+            contribution.name ?? contribution.user?.username ?? null,
+        ),
+      };
+    });
   }
 
   // Only the link row goes: with a container, removing it must not remove

@@ -430,11 +430,14 @@ const isReverseShareTokenAvailable = async (
 };
 
 const createReverseShare = async (
-  shareExpiration: string,
+  // Two clocks, not one — collectionEndsAt closes deposits, retention
+  // says how long the album survives after that. Same relative-duration
+  // string shape as a direct share's own expiration ("3-days").
+  collectionEndsAt: string,
+  retention: string,
   maxShareSize: number,
   maxUseCount: number,
   sendEmailNotification: boolean,
-  publicAccess: boolean,
   token?: string,
   name?: string,
   description?: string,
@@ -443,11 +446,11 @@ const createReverseShare = async (
 ) => {
   return (
     await api.post("reverseShares", {
-      shareExpiration,
+      collectionEndsAt,
+      retention,
       maxShareSize: maxShareSize.toString(),
       maxUseCount,
       sendEmailNotification,
-      publicAccess,
       token,
       name,
       description,

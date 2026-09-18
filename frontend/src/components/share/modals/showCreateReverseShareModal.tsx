@@ -16,7 +16,6 @@ import {
 import { useForm, yupResolver } from "@mantine/form";
 import { useModals } from "@mantine/modals";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
-import { getCookie, setCookie } from "cookies-next";
 import moment from "moment";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
@@ -25,7 +24,6 @@ import useTranslate, {
 } from "../../../hooks/useTranslate.hook";
 import shareService from "../../../services/share.service";
 import { Timespan } from "../../../types/timespan.type";
-import { getExpirationPreview } from "../../../utils/date.util";
 import { byteToHumanSizeString } from "../../../utils/fileSize.util";
 import { generateShareId } from "../../../utils/share.util";
 import toast from "../../../utils/toast.util";
@@ -97,6 +95,12 @@ const Body = ({
     ? defaultExpiration
     : { value: 7, unit: "days" };
 
+  // No config-driven default for this one — collectionEndsAt has
+  // share.defaultExpiration to fall back on, but how long an album
+  // survives after deposits close is a new question this form didn't use
+  // to ask at all.
+  const defaultRetention = { value: 7, unit: "days" };
+
   const form = useForm({
     initialValues: {
       token: generatedToken,
@@ -112,11 +116,15 @@ const Body = ({
       password: "",
       maxViews: undefined as number | undefined,
       maxShareSize: userMaxShareSize,
-      maxUseCount: 1,
+      // 1 killed the scenario at the first friend: a group deposit link
+      // whose second contributor got refused. 20 leaves room for an
+      // actual group while still being a deliberate cap, not "unlimited".
+      maxUseCount: 20,
       sendEmailNotification: false,
-      expiration_num: defaultTimespan.value,
-      expiration_unit: `-${defaultTimespan.unit}` as string,
-      publicAccess: !!(getCookie("reverse-share.public-access") ?? true),
+      collectionEndsAt_num: defaultTimespan.value,
+      collectionEndsAt_unit: `-${defaultTimespan.unit}` as string,
+      retention_num: defaultRetention.value,
+      retention_unit: `-${defaultRetention.unit}` as string,
     },
     validate: yupResolver(
       yup.object().shape({
@@ -172,24 +180,33 @@ const Body = ({
       return;
     }
 
-    // remember publicAccess in cookies
-    setCookie("reverse-share.public-access", values.publicAccess);
-
-    const expirationDate = moment().add(
-      form.values.expiration_num,
-      form.values.expiration_unit.replace(
+    // The cap has to bind on the container's real death, not just the
+    // close of deposits — same reasoning as
+    // ReverseShareService.create()'s own containerExpiration comment. A
+    // short collection window with years of retention would otherwise
+    // sail straight past an admin-set maxExpiration.
+    const collectionEndsAtDate = moment().add(
+      values.collectionEndsAt_num,
+      values.collectionEndsAt_unit.replace(
+        "-",
+        "",
+      ) as moment.unitOfTime.DurationConstructor,
+    );
+    const containerExpirationDate = collectionEndsAtDate.clone().add(
+      values.retention_num,
+      values.retention_unit.replace(
         "-",
         "",
       ) as moment.unitOfTime.DurationConstructor,
     );
     if (
       maxExpiration.value != 0 &&
-      expirationDate.isAfter(
+      containerExpirationDate.isAfter(
         moment().add(maxExpiration.value, maxExpiration.unit),
       )
     ) {
       form.setFieldError(
-        "expiration_num",
+        "retention_num",
         t("upload.modal.expires.error.too-long", {
           max: moment
             .duration(maxExpiration.value, maxExpiration.unit)
@@ -201,11 +218,11 @@ const Body = ({
 
     shareService
       .createReverseShare(
-        values.expiration_num + values.expiration_unit,
+        values.collectionEndsAt_num + values.collectionEndsAt_unit,
+        values.retention_num + values.retention_unit,
         values.maxShareSize,
         values.maxUseCount,
         values.sendEmailNotification,
-        values.publicAccess,
         values.token,
         // Not just values.name (etc.) — those are "" when left blank (see
         // initialValues' own comment), and the backend's @IsOptional()
@@ -224,6 +241,72 @@ const Body = ({
       })
       .catch(toast.axiosError);
   });
+
+  // Shared by both clocks' unit <Select>s — singular/plural label,
+  // otherwise identical data for either field.
+  const timeUnitOptions = (num: number) => [
+    {
+      value: "-minutes",
+      label:
+        num == 1
+          ? t("upload.modal.expires.minute-singular")
+          : t("upload.modal.expires.minute-plural"),
+    },
+    {
+      value: "-hours",
+      label:
+        num == 1
+          ? t("upload.modal.expires.hour-singular")
+          : t("upload.modal.expires.hour-plural"),
+    },
+    {
+      value: "-days",
+      label:
+        num == 1
+          ? t("upload.modal.expires.day-singular")
+          : t("upload.modal.expires.day-plural"),
+    },
+    {
+      value: "-weeks",
+      label:
+        num == 1
+          ? t("upload.modal.expires.week-singular")
+          : t("upload.modal.expires.week-plural"),
+    },
+    {
+      value: "-months",
+      label:
+        num == 1
+          ? t("upload.modal.expires.month-singular")
+          : t("upload.modal.expires.month-plural"),
+    },
+    {
+      value: "-years",
+      label:
+        num == 1
+          ? t("upload.modal.expires.year-singular")
+          : t("upload.modal.expires.year-plural"),
+    },
+  ];
+
+  // Live previews, recomputed every render off the form's current values
+  // — chained, not independent: the album's real death is collectionEnds
+  // + retention, same as ReverseShareService.create()'s own
+  // containerExpiration.
+  const collectionEndsAtDate = moment().add(
+    form.values.collectionEndsAt_num,
+    form.values.collectionEndsAt_unit.replace(
+      "-",
+      "",
+    ) as moment.unitOfTime.DurationConstructor,
+  );
+  const containerExpiresAtDate = collectionEndsAtDate.clone().add(
+    form.values.retention_num,
+    form.values.retention_unit.replace(
+      "-",
+      "",
+    ) as moment.unitOfTime.DurationConstructor,
+  );
 
   return (
     <Group>
@@ -255,66 +338,31 @@ const Body = ({
             appUrl={appUrl}
             defaultAppUrl={defaultAppUrl}
           />
+          {
+            // Two clocks, not one (spec §8): this one closes deposits,
+            // the next one says how long the album survives after that.
+            // Same "number + unit" shape as the single field this
+            // replaces, duplicated rather than parameterized into a
+            // sub-component — two fields don't earn the indirection.
+          }
           <div>
-            <Grid align={form.errors.expiration_num ? "center" : "flex-end"}>
+            <Grid
+              align={form.errors.collectionEndsAt_num ? "center" : "flex-end"}
+            >
               <Col xs={6}>
                 <NumberInput
                   min={1}
                   max={99999}
                   precision={0}
                   variant="filled"
-                  label={t("account.reverseShares.modal.expiration.label")}
-                  {...form.getInputProps("expiration_num")}
+                  label={t("account.reverseShares.modal.collection-ends.label")}
+                  {...form.getInputProps("collectionEndsAt_num")}
                 />
               </Col>
               <Col xs={6}>
                 <Select
-                  {...form.getInputProps("expiration_unit")}
-                  data={[
-                    // Set the label to singular if the number is 1, else plural
-                    {
-                      value: "-minutes",
-                      label:
-                        form.values.expiration_num == 1
-                          ? t("upload.modal.expires.minute-singular")
-                          : t("upload.modal.expires.minute-plural"),
-                    },
-                    {
-                      value: "-hours",
-                      label:
-                        form.values.expiration_num == 1
-                          ? t("upload.modal.expires.hour-singular")
-                          : t("upload.modal.expires.hour-plural"),
-                    },
-                    {
-                      value: "-days",
-                      label:
-                        form.values.expiration_num == 1
-                          ? t("upload.modal.expires.day-singular")
-                          : t("upload.modal.expires.day-plural"),
-                    },
-                    {
-                      value: "-weeks",
-                      label:
-                        form.values.expiration_num == 1
-                          ? t("upload.modal.expires.week-singular")
-                          : t("upload.modal.expires.week-plural"),
-                    },
-                    {
-                      value: "-months",
-                      label:
-                        form.values.expiration_num == 1
-                          ? t("upload.modal.expires.month-singular")
-                          : t("upload.modal.expires.month-plural"),
-                    },
-                    {
-                      value: "-years",
-                      label:
-                        form.values.expiration_num == 1
-                          ? t("upload.modal.expires.year-singular")
-                          : t("upload.modal.expires.year-plural"),
-                    },
-                  ]}
+                  {...form.getInputProps("collectionEndsAt_unit")}
+                  data={timeUnitOptions(form.values.collectionEndsAt_num)}
                 />
               </Col>
             </Grid>
@@ -326,13 +374,41 @@ const Body = ({
                 color: theme.colors.gray[6],
               })}
             >
-              {getExpirationPreview(
-                {
-                  expiresOn: t("account.reverseShare.expires-on"),
-                  neverExpires: t("account.reverseShare.never-expires"),
-                },
-                form,
-              )}
+              {t("account.reverseShares.modal.collection-ends.preview", {
+                expiration: collectionEndsAtDate.format("LLL"),
+              })}
+            </Text>
+          </div>
+          <div>
+            <Grid align={form.errors.retention_num ? "center" : "flex-end"}>
+              <Col xs={6}>
+                <NumberInput
+                  min={1}
+                  max={99999}
+                  precision={0}
+                  variant="filled"
+                  label={t("account.reverseShares.modal.retention.label")}
+                  {...form.getInputProps("retention_num")}
+                />
+              </Col>
+              <Col xs={6}>
+                <Select
+                  {...form.getInputProps("retention_unit")}
+                  data={timeUnitOptions(form.values.retention_num)}
+                />
+              </Col>
+            </Grid>
+            <Text
+              mt="sm"
+              italic
+              size="xs"
+              sx={(theme) => ({
+                color: theme.colors.gray[6],
+              })}
+            >
+              {t("account.reverseShares.modal.retention.preview", {
+                expiration: containerExpiresAtDate.format("LLL"),
+              })}
             </Text>
           </div>
           <FileSizeInput
@@ -380,17 +456,6 @@ const Body = ({
               })}
             />
           )}
-          <Switch
-            mt="xs"
-            labelPosition="left"
-            label={t("account.reverseShares.modal.public-access")}
-            description={t(
-              "account.reverseShares.modal.public-access.description",
-            )}
-            {...form.getInputProps("publicAccess", {
-              type: "checkbox",
-            })}
-          />
           <Button mt="md" type="submit">
             <FormattedMessage id="common.button.create" />
           </Button>

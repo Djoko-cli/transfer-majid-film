@@ -263,7 +263,14 @@ export default {
     "Vous n’avez aucun transfert inversé.",
   // showCreateReverseShareModal.tsx
   "account.reverseShares.modal.title": "Créer un transfert inversé",
-  "account.reverseShares.modal.expiration.label": "Expiration",
+  "account.reverseShares.modal.collection-ends.label":
+    "Collecte ouverte pendant",
+  "account.reverseShares.modal.collection-ends.preview":
+    "La collecte se fermera le {expiration}.",
+  "account.reverseShares.modal.retention.label":
+    "Album conservé après la fermeture",
+  "account.reverseShares.modal.retention.preview":
+    "L'album sera supprimé le {expiration}.",
   "account.reverseShares.modal.expiration.minute-singular": "Minute",
   "account.reverseShares.modal.expiration.minute-plural": "Minutes",
   "account.reverseShares.modal.expiration.hour-singular": "Heure",
@@ -283,25 +290,24 @@ export default {
     "Envoyer des notifications par courriel",
   "account.reverseShares.modal.send-email.description":
     "Vous envoi une notification par courriel lorsqu'un transfert est créé avec ce lien de transfert inversé.",
-  "account.reverseShares.modal.public-access": "Accès public",
-  "account.reverseShares.modal.public-access.description":
-    "Rendre les transferts créés avec ce transfert inversé public. Si désactivé, seul vous et le créateur du transfert pourrez le voir.",
-  "account.reverseShares.modal.max-use.label": "Nombre d'utilisations max",
+  "account.reverseShares.modal.max-use.label": "Nombre de dépôts autorisés",
   "account.reverseShares.modal.max-use.description":
-    "Le nombre maximal de fois que cette URL peut être utilisée pour créer un transfert.",
+    "Le nombre maximal de dépôts que ce lien peut recevoir.",
   "account.reverseShares.modal.password.label": "Protection par mot de passe",
   "account.reverseShares.modal.max-views.label": "Nombre de vues maximum",
-  "account.reverseShare.never-expires": "Ce transfert inversé n'expirera jamais.",
-  "account.reverseShare.expires-on":
-    "Ce transfert inversé expirera le {expiration}.",
-  "account.reverseShares.table.no-shares": "Aucun transfert créé pour le moment",
-  "account.reverseShares.table.count.singular": "transfert",
-  "account.reverseShares.table.count.plural": "transferts",
   "account.reverseShares.table.name": "Nom",
-  "account.reverseShares.table.shares": "Transferts",
-  "account.reverseShares.table.remaining": "Utilisations restantes",
-  "account.reverseShares.table.max-size": "Taille maximale du transfert",
-  "account.reverseShares.table.expires": "Expire le",
+  "account.reverseShares.table.contributors": "Contributeurs",
+  "account.reverseShares.table.contributors.none": "Aucune contribution pour le moment",
+  "account.reverseShares.table.contributors.singular": "contributeur",
+  "account.reverseShares.table.contributors.plural": "contributeurs",
+  "account.reverseShares.table.files": "Fichiers",
+  "account.reverseShares.table.files.singular": "fichier",
+  "account.reverseShares.table.files.plural": "fichiers",
+  "account.reverseShares.table.state": "État",
+  "account.reverseShares.table.state.open": "Collecte ouverte jusqu'au {date}",
+  "account.reverseShares.table.state.closed":
+    "Fermée, album gardé jusqu'au {date}",
+  "account.reverseShares.table.open-album": "Ouvrir l'album",
   "account.reverseShares.modal.reverse-share-link": "Lien du transfert inversé",
   "account.reverseShares.modal.delete.title": "Supprimer le transfert inversé",
   "account.reverseShares.modal.delete.description":

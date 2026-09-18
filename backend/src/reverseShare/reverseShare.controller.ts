@@ -13,7 +13,7 @@ import { GetUser } from "src/auth/decorator/getUser.decorator";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
 import { ConfigService } from "src/config/config.service";
 import { CreateReverseShareDTO } from "./dto/createReverseShare.dto";
-import { ReverseShareTokenWithShares } from "./dto/reverseShareTokenWithShares";
+import { ReverseShareDTO } from "./dto/reverseShare.dto";
 import { ReverseShareOwnerGuard } from "./guards/reverseShareOwner.guard";
 import { ReverseShareService } from "./reverseShare.service";
 
@@ -49,7 +49,7 @@ export class ReverseShareController {
   @Get()
   @UseGuards(JwtGuard)
   async getAllByUser(@GetUser() user: User) {
-    return new ReverseShareTokenWithShares().fromList(
+    return new ReverseShareDTO().fromList(
       await this.reverseShareService.getAllByUser(user.id),
     );
   }
