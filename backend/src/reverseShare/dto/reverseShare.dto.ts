@@ -42,6 +42,14 @@ export class ReverseShareDTO {
   @Expose()
   totalSize: number;
 
+  // How many more contributions this collection will accept — dropped
+  // silently when this DTO was rewritten to show a collection instead of a
+  // column of ids; the service already computes it (it's a plain spread of
+  // the ReverseShare row) and ContributionService.open() already enforces
+  // it, only the owner's own list never got to see it.
+  @Expose()
+  remainingUses: number;
+
   // One entry per contribution, in the same order as the count above —
   // null where nobody typed a name (the frontend falls back to the same
   // "Anonyme" label FileList.tsx already uses for the public album, rather
