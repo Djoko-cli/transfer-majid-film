@@ -17,8 +17,8 @@ import { Request, Response } from "express";
 import { CreateShareGuard } from "src/share/guard/createShare.guard";
 import { StrictShareOwnerGuard } from "src/share/guard/strictShareOwner.guard";
 import { IdValidation } from "src/share/guard/shareIdValidation.guard";
+import { ShareSecurityGuard } from "src/share/guard/shareSecurity.guard";
 import { FileService } from "./file.service";
-import { FileSecurityGuard } from "./guard/fileSecurity.guard";
 import * as mime from "mime-types";
 
 const VALID_ID_REGEX = /^[a-zA-Z0-9-]*={0,2}$/;
@@ -117,7 +117,7 @@ export class FileController {
   }
 
   @Get("zip")
-  @UseGuards(FileSecurityGuard)
+  @UseGuards(IdValidation, ShareSecurityGuard)
   async getZip(
     @Res({ passthrough: true }) res: Response,
     @Req() request: Request,
@@ -147,7 +147,7 @@ export class FileController {
   }
 
   @Get(":fileId")
-  @UseGuards(FileSecurityGuard)
+  @UseGuards(IdValidation, ShareSecurityGuard)
   async getFile(
     @Res({ passthrough: true }) res: Response,
     @Req() request: Request,
@@ -235,7 +235,7 @@ export class FileController {
   }
 
   @Get(":fileId/thumbnail")
-  @UseGuards(FileSecurityGuard)
+  @UseGuards(IdValidation, ShareSecurityGuard)
   async getThumbnail(
     @Res({ passthrough: true }) res: Response,
     @Param("shareId") shareId: string,
