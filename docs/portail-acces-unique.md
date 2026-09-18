@@ -237,6 +237,12 @@ il ne surcharge que `allowAdmin`).
 
 ### Pourquoi rien ne casse
 
+> **Corrigé à l'exécution.** Ce qui suit était faux tel qu'écrit, et le
+> correctif livré n'est pas `return false` mais `return !share.uploadLocked`.
+> Voir « Amendements » en fin de document. Le raisonnement ci-dessous reste
+> exact pour `ShareOwnerGuard` ; il l'ignorait pour `StrictShareOwnerGuard`,
+> qui hérite de la même branche et fronte sept routes de plus.
+
 Les trois écritures que ce garde protège refusent **déjà** les transferts
 anonymes, plus loin, dans le service :
 
@@ -410,3 +416,43 @@ Consigné parce qu'une erreur corrigée en silence se reproduit.
 Leçon appliquée pour la suite : une citation `fichier:ligne` produite par un
 agent est une **piste**, pas un fait. Toutes celles de ce document ont été
 rouvertes.
+
+---
+
+## Amendements, écrits après livraison
+
+Ce document a servi d'entrée à l'exécution ; l'exécution lui a appris trois
+choses. Elles sont consignées ici plutôt que réécrites dans le corps, pour que
+la phase 1 lise ce qui a été **livré** et non ce qui avait été prévu.
+
+**1. Le §3 disait « Rien d'autre ». Il y a eu autre chose.**
+Supprimer la branche sans cookie a cassé la miniature de la modale de succès
+après envoi : elle ne s'affichait que parce que ce chemin laissait passer tout
+le monde. Un court-circuit a donc été ajouté à `ShareSecurityGuard` — le
+créateur d'un transfert le traverse sans jeton — placé **après** le contrôle
+d'expiration, pour qu'un transfert expiré reste 404 même pour son auteur.
+Ce n'est pas une porte nouvelle : le créateur peut déjà retirer le mot de passe,
+réécrire la limite de vues et lire tout le transfert via `/from-owner`. C'est
+la porte qu'il avait déjà, enfin écrite. Conséquence non prévue et acceptée :
+le créateur ne demande plus de jeton, donc **ses propres visites ne comptent
+plus dans le compteur « Visiteurs »**.
+
+**2. La prémisse du §5 était fausse.**
+`StrictShareOwnerGuard` hérite de la même branche anonyme et fronte en plus les
+quatre routes de téléversement, la suppression d'un fichier, `complete` et
+`revertComplete`. Un `return false` sec aurait tué le parcours d'envoi anonyme :
+créer aurait marché, déposer un fichier non. Le correctif livré est
+`return !share.uploadLocked` — un transfert anonyme n'a pas de propriétaire une
+fois **fini**, mais tant qu'il est en cours de dépôt, la seule personne pouvant
+détenir son identifiant est celle qui le crée. Il referme au passage une
+**troisième** fuite que ce document n'avait pas vue : n'importe quel porteur du
+lien pouvait déverrouiller un transfert anonyme terminé via
+`DELETE /shares/:id/complete`, puis y ajouter ou en supprimer des fichiers.
+
+**3. Le test 2 du §8 n'est pas satisfait tel qu'écrit.**
+Il demandait un `403` portant le code `private_share`. Le refus livré porte
+`share_token_required`, parce que le contrôle de jeton précède de sept lignes
+la règle du dépôt inversé. Le trou nommé est refermé **structurellement** — la
+branche qui le contournait n'existe plus — mais aucune assertion ne vérifie la
+règle elle-même. L'écrire demanderait une seconde identité dans le harnais,
+pour une règle que le garde survivant applique déjà.

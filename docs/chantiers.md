@@ -117,3 +117,33 @@ finit par exiger React 19. Pas avant.
 Réglé le 2026-09-13 dans `2b890d3`. Conservé ici pour mémoire du procédé :
 lire les notes de chaque majeure avant de bumper plutôt que de supposer, et
 vérifier après coup que l'avertissement a bien disparu des runs.
+
+---
+
+## 5. Défauts d'accès laissés ouverts par la phase 0
+
+Relevés en cartographiant le code avant l'unification du portail d'accès
+(`portail-acces-unique.md`, livrée le 2026-09-18), et **délibérément** laissés
+de côté : chacun est réel, aucun n'est sur le chemin du paiement, et les
+empiler dans la même livraison aurait rendu la recette illisible.
+
+| Sujet | Le fait | Urgence |
+|---|---|---|
+| URL présignée S3 | `file.controller.ts:162-179` renvoie une redirection 302 vers une URL valable 300 s, hors de tout garde et irrévocable | **Bloquant pour un transfert payant en S3.** Sans objet en stockage local, qui est la configuration actuelle |
+| Cache des miniatures | `file.controller.ts:249-252` pose `Cache-Control: public, max-age=31536000, immutable` | Acceptable tant que les métadonnées sont visibles avant paiement — le choix retenu. À revoir si ce choix change |
+| `JwtGuard` échoue ouvert | `jwt.guard.ts:14` renvoie `share.allowUnauthenticatedShares` au lieu de `false` en cas d'échec d'authentification ; tous les gardes de transfert en héritent | À traiter avant d'ouvrir l'instance à d'autres comptes |
+| Jeton sans expiration | `generateShareToken` ne pose pas d'`expiresIn` pour un transfert permanent (`share.service.ts:755-759`) | Deviendra sérieux le jour où le jeton prouvera un paiement |
+| Cookie sans `secure` ni `sameSite` | `share.controller.ts:186-189` | Faible derrière un proxy HTTPS, réel sans |
+| `maxViews` non revérifié | `verifyShareToken` ne contrôle que l'identifiant, la date de création et la signature du mot de passe ; un porteur de jeton dépasse la limite de vues | Connu et borné |
+| Cookies élagués à 10 | `clearShareTokenCookies` (`share.controller.ts:194`) | Deviendra un vrai problème le jour où le cookie prouvera un paiement |
+| Secret en clair au panneau | `getByCategory` (`config.service.ts:528`) renvoie la valeur de tout réglage `obscured` | **À trancher avant d'y ranger une clé Stripe**, qui peut débiter et rembourser |
+
+Deux autres, trouvés pendant l'exécution :
+
+- **`maxViews: 0` est traité comme absent** (`!nextMaxViews` dans
+  `updateSecurity`, et le même test à l'application). Convention du dépôt, pas
+  un défaut introduit — mais une limite de zéro vue est donc inexprimable.
+- **`_setup` de la collection Newman capture mal son cookie**, ce qui fait
+  qu'à mi-parcours l'identité ambiante des tests n'est plus celle qu'on croit.
+  Contourné dans le dossier `Anonymous share leaks` par une reconnexion
+  explicite, pas corrigé à la racine.
