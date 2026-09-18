@@ -617,7 +617,7 @@ export default {
   "share.error.access-denied.title": "Transfert privé",
   "share.error.access-denied.description":
     "Le compte actuel n'a pas la permission d'accéder à ce transfert",
-  "share.error.restricted.title": "Partagé restreint",
+  "share.error.restricted.title": "Transfert restreint",
   "share.error.restricted.description":
     "Ce transfert est restreint à certains destinataires. Veuillez vous connecter pour y accéder.",
   "share.error.restricted.button": "Connexion",

@@ -59,16 +59,23 @@ const Share = ({ shareId }: { shareId: string }) => {
   const t = useTranslate();
 
   const isOwner = !!user && !!share && share.creator?.id === user.id;
-
-  const isOwnerOrAdmin =
-    !!user && !!share && (share.creator?.id === user.id || user.isAdmin);
   const recipientId = getQueryString(router.query.recipient);
 
   const handleEditClick = async () => {
     try {
       const myShares = await shareService.getMyShares();
       const myShare = myShares.find((s) => s.id === shareId);
-      if (!myShare) return;
+      // The modal edits a MyShare, and GET /shares only returns the ones
+      // this account created and that are still live. Nothing here can
+      // conjure the rest, so say so instead of returning in silence — a
+      // button that does nothing at all is read as a broken app, and this
+      // one was. Reachable now only for a share of one's own that has
+      // expired since the page was opened; the button is otherwise shown
+      // only to the creator.
+      if (!myShare) {
+        toast.error(t("share.edit.notify.generic-error"));
+        return;
+      }
       showShareInformationsModal(
         modals,
         myShare,
@@ -302,7 +309,17 @@ const Share = ({ shareId }: { shareId: string }) => {
                   </ActionIcon>
                 </HoverTip>
               )}
-              {isOwnerOrAdmin && (
+              {/* The creator, not merely an admin. The modal is filled
+                  from GET /shares, which returns only what this account
+                  created — so for an admin looking at anyone else's
+                  transfer, and for every transfer sent through a file
+                  request (those have no creator at all), the lookup
+                  could never find anything and the click did nothing.
+                  The sibling button above has always been gated this
+                  way; the two now agree. Managing someone else's
+                  transfer belongs in the admin console, which has this
+                  same modal. */}
+              {isOwner && (
                 <HoverTip label={t("share.button.edit-details")}>
                   <ActionIcon
                     variant="light"
