@@ -20,6 +20,16 @@ export class FileDTO {
   // ShareDTO.collection's own comment). Needed client-side so FileList can
   // group an album's files by contribution instead of just knowing the
   // per-contribution counts.
+  //
+  // On the one route every album reader hits (ShareController.get()), this
+  // is never the real ShareContribution id — that id is also the one
+  // credential ContributionGuard checks before writing into or closing a
+  // contribution, so publishing it here would let anyone past the
+  // password gate post into (and complete) another contributor's still-
+  // open upload. ShareController.buildCollectionState() rewrites it to an
+  // opaque per-response key instead, matching collection.contributions[].id
+  // (see that method's own comment). Only the owner-only `/from-owner`
+  // route still carries the real value.
   @Expose()
   contributionId: string | null;
 

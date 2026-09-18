@@ -14,7 +14,7 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Throttle } from "@nestjs/throttler";
-import { ReverseShare, Share, ShareSecurity, User } from "@prisma/client";
+import { File, ReverseShare, Share, ShareSecurity, User } from "@prisma/client";
 import { Request, Response } from "express";
 import * as moment from "moment";
 import { GetUser } from "src/auth/decorator/getUser.decorator";
@@ -76,36 +76,84 @@ export class ShareController {
   @UseGuards(IdValidation, ShareSecurityGuard)
   async get(@Param("id") id: string) {
     const share = await this.shareService.get(id);
-    return new ShareDTO().from({
-      ...share,
-      collection: await this.getCollectionState(id, share),
-    });
+    if (!share.isCollection || !share.collectionOf) {
+      return new ShareDTO().from(share);
+    }
+
+    const { files, collection } = await this.buildCollectionState(id, share);
+    return new ShareDTO().from({ ...share, files, collection });
   }
 
   // Assembled here, not in ShareService.get(), which stays about the Share
   // row alone — this is what turns spec §5.2's "l'album, groupée par
-  // contribution" into ShareDTO.collection. share.collectionOf is only
-  // ever set for a real collection (see ShareService.get()'s own comment
-  // on that include); anything else returns undefined so ShareDTO simply
-  // omits the key for every ordinary transfer.
-  private async getCollectionState(
+  // contribution" into ShareDTO.collection. Only ever called once get()
+  // has already confirmed share.collectionOf is set, i.e. this really is
+  // a collection — every ordinary transfer's response never reaches this
+  // method at all, and simply has no `collection` key.
+  //
+  // A contribution's real id is the only thing ContributionGuard checks
+  // before letting a POST write files into it, or close it (see that
+  // guard's own comment) — identity is proven once, at open(), and every
+  // write after that trusts the id alone. Before this method existed, that
+  // id was known only to whoever opened the contribution. Handing it back
+  // here to every album reader — collection.contributions[].id, and each
+  // file's own contributionId — would let anyone past the password gate
+  // POST into another contributor's still-open upload and complete it, and
+  // since name-level impersonation is accepted by this whole design (a
+  // first name nobody verifies) but the proven address is not, that
+  // reattributes real address-backed files to whoever opens fastest. The
+  // window is the in-flight upload, and it is permanent for one that was
+  // abandoned — a failed deposit leaves its contribution open forever (see
+  // ContributionService.open()'s own comment on that accepted tradeoff).
+  //
+  // So neither the response's contributions list nor any file in it ever
+  // carries the real id: keyByContributionId hands out an opaque key —
+  // stable within this one response, meaningless outside it, useless
+  // against ContributionGuard — and every file's contributionId is
+  // rewritten to match before serialization. The real id keeps going to
+  // exactly one place: the response to POST .../contributions, read only
+  // by whoever just proved their own identity to get it.
+  private async buildCollectionState(
     shareId: string,
-    share: Share & { collectionOf?: ReverseShare | null },
+    share: Share & { collectionOf: ReverseShare; files: File[] },
   ) {
-    if (!share.isCollection || !share.collectionOf) return undefined;
-
     const contributions = await this.contributionService.getWithFiles(shareId);
+    const reverseShare = share.collectionOf;
+
+    const keyByContributionId = new Map(
+      contributions.map((contribution, index) => [contribution.id, String(index)]),
+    );
+
+    const files = share.files.map((file) => ({
+      ...file,
+      contributionId: file.contributionId
+        ? (keyByContributionId.get(file.contributionId) ?? null)
+        : null,
+    }));
 
     return {
-      isOpen: share.collectionOf.collectionEndsAt > new Date(),
-      endsAt: share.collectionOf.collectionEndsAt,
-      description: share.collectionOf.description ?? undefined,
-      contributions: contributions.map((contribution) => ({
-        id: contribution.id,
-        name: contribution.name ?? undefined,
-        createdAt: contribution.createdAt,
-        fileCount: contribution.files.length,
-      })),
+      files,
+      collection: {
+        // Folds in remainingUses, not just the deposit window: a
+        // collection that has spent every use it was given is just as
+        // closed to a new deposit as one whose window has passed, and
+        // the frontend has one boolean to ask, not two.
+        isOpen:
+          reverseShare.collectionEndsAt > new Date() &&
+          reverseShare.remainingUses > 0,
+        endsAt: reverseShare.collectionEndsAt,
+        description: reverseShare.description ?? undefined,
+        contributions: contributions.map((contribution) => ({
+          id: keyByContributionId.get(contribution.id)!,
+          // A signed-in contributor's open() never stores a name — their
+          // account already identifies them (spec §5.3) — so this falls
+          // back to the account's own username rather than reading as
+          // unattributed.
+          name: contribution.name ?? contribution.user?.username ?? undefined,
+          createdAt: contribution.createdAt,
+          fileCount: contribution.files.length,
+        })),
+      },
     };
   }
 

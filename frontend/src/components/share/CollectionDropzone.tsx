@@ -1,9 +1,10 @@
 import { Button, Group, Stack, Text, TextInput } from "@mantine/core";
 import { useModals } from "@mantine/modals";
+import { cleanNotifications } from "@mantine/notifications";
 import { AxiosError } from "axios";
 import moment from "moment";
 import pLimit from "p-limit";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import Dropzone from "../upload/Dropzone";
 import FileList from "../upload/FileList";
@@ -163,13 +164,22 @@ const CollectionDropzone = ({
     cancelledRef.current = true;
     setIsUploading(false);
     setFiles([]);
+    cleanNotifications();
     toast.success(t("upload.notify.cancelled"));
   };
 
-  // Opens the contribution, uploads every file to it, then closes it — the
-  // brief's own "Dépôt" sequence. Not started until identity is settled
-  // (see handleSubmit), so this never needs to itself worry about who the
-  // contribution belongs to.
+  // Opens the contribution, then fires every file's upload without
+  // awaiting them — exactly UploadPage's own uploadFiles, and for the
+  // same reason: completion is decided in exactly one place, the effect
+  // below watching `files`, not here. Earlier this function itself
+  // awaited Promise.all and called completeContribution when every result
+  // came back true — which worked for a clean run, but had no way to
+  // notice a file that failed here and was later fixed by FileList's own
+  // retry action (retryFile below): the bytes would land, and then
+  // nothing would ever close the contribution — no zip rebuild, no owner
+  // notification — and clicking "Envoyer" again (the only visible next
+  // step) opened a SECOND contribution, re-uploaded everything including
+  // the files that had already succeeded, and spent another use for it.
   const depositFiles = async (
     contributorName: string | undefined,
     filesToUpload: FileUpload[],
@@ -189,39 +199,52 @@ const CollectionDropzone = ({
       return;
     }
 
-    const results = await Promise.all(
-      filesToUpload.map((file) => promiseLimit(() => uploadOneFile(file))),
-    );
-
     if (cancelledRef.current) return;
 
-    if (!results.every((ok) => ok)) {
-      // Left as-is for FileList's own per-file retry, exactly like
-      // UploadPage: not completed until every file actually made it.
-      setIsUploading(false);
-      toast.error(
-        t("upload.notify.count-failed", {
-          count: results.filter((ok) => !ok).length,
-        }),
-      );
-      return;
+    Promise.all(
+      filesToUpload.map((file) => promiseLimit(() => uploadOneFile(file))),
+    );
+  };
+
+  // The single trigger for closing a contribution — mirrors UploadPage's
+  // own completion effect. Runs after every change to `files`, which
+  // covers both a clean run (depositFiles' own uploads all reaching 100)
+  // and a delayed one (a permanently-failed file that FileList's retry
+  // button later pushed to 100 on its own) the same way: this is the only
+  // place either path is ever noticed.
+  useEffect(() => {
+    const fileErrorCount = files.filter(
+      (file) => file.uploadingProgress == -1,
+    ).length;
+
+    if (fileErrorCount > 0) {
+      toast.error(t("upload.notify.count-failed", { count: fileErrorCount }), {
+        id: "collection-deposit-error",
+        withCloseButton: true,
+        autoClose: false,
+      });
+    } else {
+      cleanNotifications();
     }
 
-    try {
-      await shareService.completeContribution(
-        shareId,
-        contributionIdRef.current!,
-      );
-      setIsUploading(false);
-      setFiles([]);
-      setName("");
-      contributionIdRef.current = null;
-      onDeposited();
-    } catch {
-      toast.error(t("upload.notify.generic-error"));
-      setIsUploading(false);
+    if (
+      files.length > 0 &&
+      files.every((file) => file.uploadingProgress >= 100) &&
+      fileErrorCount == 0
+    ) {
+      shareService
+        .completeContribution(shareId, contributionIdRef.current!)
+        .then(() => {
+          setIsUploading(false);
+          setFiles([]);
+          setName("");
+          contributionIdRef.current = null;
+          onDeposited();
+        })
+        .catch(() => toast.error(t("upload.notify.generic-error")));
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files]);
 
   const handleFilesChanged = (newFiles: FileUpload[]) => {
     const filtered = filterDuplicateFiles(newFiles, files, (normalizedName) =>

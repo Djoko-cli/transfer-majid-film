@@ -126,11 +126,18 @@ export class ContributionService {
     return closed;
   }
 
-  // The contributions with their files, for task 5's DTO.
+  // The contributions with their files, for task 5's DTO. `user` is
+  // included (username only — never the full row, which would otherwise
+  // carry a password hash into memory for no reason) so a signed-in
+  // contributor's group can show their account name instead of falling
+  // through to "Anonyme": ShareController resolves the display name as
+  // `contribution.name ?? contribution.user?.username`, since a signed-in
+  // open() never stores a name (see open()'s own `name: name || undefined`
+  // — nothing was ever asked, per spec §5.3).
   async getWithFiles(shareId: string) {
     return this.prisma.shareContribution.findMany({
       where: { shareId },
-      include: { files: true },
+      include: { files: true, user: { select: { username: true } } },
       orderBy: { createdAt: "asc" },
     });
   }
