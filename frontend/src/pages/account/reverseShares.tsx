@@ -163,8 +163,19 @@ const MyShares = () => {
               <tbody>
                 {reverseShares.map((reverseShare) => {
                   const link = `${linkOrigin}/s/${reverseShare.token}`;
-                  const isOpen =
-                    moment(reverseShare.collectionEndsAt).isAfter(moment());
+                  // The same two conditions the server folds into
+                  // ShareDTO.collection.isOpen (ShareController.
+                  // buildCollectionState): a collection that has spent
+                  // every use it was given is as closed to a new deposit
+                  // as one whose window has passed. Reading the window
+                  // alone made this page say "ouverte jusqu'au X" about a
+                  // collection every visitor was already being told was
+                  // closed.
+                  const hasWindowLeft = moment(
+                    reverseShare.collectionEndsAt,
+                  ).isAfter(moment());
+                  const isFull = reverseShare.remainingUses <= 0;
+                  const isOpen = hasWindowLeft && !isFull;
                   const contributorNames = reverseShare.contributorNames.map(
                     (name) => name || t("share.collection.anonymous"),
                   );
@@ -236,11 +247,21 @@ const MyShares = () => {
                                   reverseShare.collectionEndsAt,
                                 ).format("LLL"),
                               })
-                            : t("account.reverseShares.table.state.closed", {
-                                date: moment(
-                                  reverseShare.containerExpiresAt,
-                                ).format("LLL"),
-                              })}
+                            : // A full collection and an elapsed one are
+                              // both closed, but only the second one is
+                              // closed *since* a date — saying "fermée"
+                              // about a window that has not run out yet
+                              // needs its own sentence.
+                              t(
+                                hasWindowLeft
+                                  ? "account.reverseShares.table.state.full"
+                                  : "account.reverseShares.table.state.closed",
+                                {
+                                  date: moment(
+                                    reverseShare.containerExpiresAt,
+                                  ).format("LLL"),
+                                },
+                              )}
                         </Text>
                       </td>
                       <td>

@@ -111,6 +111,14 @@ export class ReverseShareService {
             uploadLocked: true,
             expiration: moment(collectionEndsAt).add(10, "years").toDate(),
             creatorId,
+            // Same line ShareService.create() writes, and for the same
+            // reason: FileService.create() routes writes by the global
+            // s3.enabled flag while every read resolves by this column.
+            // Left to its "LOCAL" default, an S3 instance would write
+            // every deposited byte to S3 and then serve it through
+            // LocalFileService — a 404 on every download, and an orphaned
+            // object on every delete.
+            storageProvider: this.config.get("s3.enabled") ? "S3" : "LOCAL",
             security:
               hashedPassword || data.maxViews
                 ? {
@@ -218,7 +226,38 @@ export class ReverseShareService {
   // the album. The `onDelete: Cascade` on containerShare already covers the
   // other direction (deleting the container takes the link with it); this
   // is the one-way street back.
+  //
+  // The album's real death date has to be written here, though, before the
+  // row carrying the two clocks disappears. JobsService.closeEndedCollections()
+  // computes `collectionEndsAt + retentionSeconds` *from that row*; once it
+  // is gone the cron can never select the container again, and it keeps the
+  // ten-years-out placeholder written at birth — retentionSeconds silently
+  // discarded and the album sitting in its owner's quota for a decade.
+  // Written in the same transaction as the delete so the two can never come
+  // apart.
   async remove(id: string) {
-    await this.prisma.reverseShare.delete({ where: { id } });
+    const reverseShare = await this.prisma.reverseShare.findUnique({
+      where: { id },
+    });
+
+    if (!reverseShare) {
+      // Unreachable through the controller (ReverseShareOwnerGuard has
+      // already read the row), kept so this method still fails the way it
+      // always did rather than silently succeeding.
+      await this.prisma.reverseShare.delete({ where: { id } });
+      return;
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.share.update({
+        where: { id: reverseShare.containerShareId },
+        data: {
+          expiration: moment(reverseShare.collectionEndsAt)
+            .add(reverseShare.retentionSeconds, "seconds")
+            .toDate(),
+        },
+      }),
+      this.prisma.reverseShare.delete({ where: { id } }),
+    ]);
   }
 }

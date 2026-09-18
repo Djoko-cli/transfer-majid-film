@@ -309,6 +309,11 @@ export default {
   "account.reverseShares.table.state.open": "Collecte ouverte jusqu'au {date}",
   "account.reverseShares.table.state.closed":
     "Fermée, album gardé jusqu'au {date}",
+  // Une collecte pleine est fermée aux dépôts alors que sa fenêtre court
+  // encore : la dire « fermée » sans plus la ferait suivre d'une date
+  // future.
+  "account.reverseShares.table.state.full":
+    "Complète, album gardé jusqu'au {date}",
   "account.reverseShares.table.open-album": "Ouvrir l'album",
   "account.reverseShares.modal.reverse-share-link": "Lien du transfert inversé",
   "account.reverseShares.modal.delete.title": "Supprimer le transfert inversé",
@@ -659,6 +664,8 @@ export default {
     "{count, plural, =1 {# fichier} other {# fichiers}} de {name} · {date}",
   "share.collection.anonymous": "Anonyme",
   "share.collection.closed-since": "Cette collecte est fermée depuis le {date}.",
+  "share.collection.closed-full":
+    "Cette collecte n'accepte plus de nouveaux dépôts : elle a atteint son nombre maximal de participations. Vous pouvez toujours consulter et télécharger l'album.",
   "share.collection.add-files": "Ajouter des fichiers à l'album",
   "share.collection.identity.title": "Identifiez-vous pour déposer",
   "share.collection.identity.name-label": "Votre prénom",

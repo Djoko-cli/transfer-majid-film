@@ -290,7 +290,15 @@ const Share = ({ shareId }: { shareId: string }) => {
                   <TbLink />
                 </ActionIcon>
               </HoverTip>
-              {isOwner && (
+              {/* Never for a collection — the second door onto the same
+                  edit page "Mes transferts" also used to offer, and the
+                  same reason to close it: that page's save() begins by
+                  unlocking the transfert, which for a container means
+                  making the album invisible and then letting the
+                  unfinished-shares cron delete it. The server refuses it
+                  outright (ShareService.revertComplete); this keeps the
+                  owner from being offered a button that can only fail. */}
+              {isOwner && !share?.isCollection && (
                 <HoverTip label={t("account.shares.button.edit")}>
                   <ActionIcon
                     component={Link}

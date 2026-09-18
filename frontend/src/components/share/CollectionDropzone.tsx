@@ -280,12 +280,22 @@ const CollectionDropzone = ({
   };
 
   if (!isOpen) {
+    // isOpen folds two different closures together (the window, and the
+    // use count — see ShareController.buildCollectionState). Only one of
+    // them makes "fermée depuis le {date}" true: a collection that filled
+    // up while its window was still running printed that sentence
+    // followed by a date in the future.
+    const hasWindowLeft = moment(endsAt).isAfter(moment());
     return (
       <Text size="sm" color="dimmed" mt="lg">
-        <FormattedMessage
-          id="share.collection.closed-since"
-          values={{ date: moment(endsAt).format("LLL") }}
-        />
+        {hasWindowLeft ? (
+          <FormattedMessage id="share.collection.closed-full" />
+        ) : (
+          <FormattedMessage
+            id="share.collection.closed-since"
+            values={{ date: moment(endsAt).format("LLL") }}
+          />
+        )}
       </Text>
     );
   }

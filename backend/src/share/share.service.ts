@@ -171,9 +171,45 @@ export class ShareService {
     return shareTuple;
   }
 
+  // In-flight archive rebuilds, one entry per share id. See createZip.
+  private zipRebuilds = new Map<string, Promise<void>>();
+
+  // Rebuilds are serialised per share, because a collection's container
+  // has many writers by design: several friends closing their deposit in
+  // the same second is the designed case, not a race to shrug at, and two
+  // archiver runs piping into the same `archive.zip` write stream
+  // interleave into a corrupt file that isZipReady still reports ready.
+  //
+  // What this chain protects: concurrent rebuilds inside THIS node
+  // process. What it does NOT protect: a second process, a second
+  // replica, a container restart mid-write, or anything touching the file
+  // outside this method — the map lives in memory and dies with the
+  // process. This app runs as a single node process, which is the whole
+  // reason a promise chain is enough. The day it does not, this needs a
+  // real lock (a lockfile, an advisory DB lock, or a job queue), and a
+  // bigger map will not stand in for one.
   async createZip(shareId: string) {
     if (this.config.get("s3.enabled")) return;
 
+    const previous = this.zipRebuilds.get(shareId) ?? Promise.resolve();
+    // The predecessor's failure must not cancel this rebuild — it is a
+    // queue, not a dependency.
+    const rebuild = previous.catch(() => {}).then(() => this.buildZip(shareId));
+    this.zipRebuilds.set(shareId, rebuild);
+
+    // Dropped once this run is the last one queued, so the map doesn't
+    // keep one entry per share for the lifetime of the process.
+    void rebuild
+      .catch(() => {})
+      .then(() => {
+        if (this.zipRebuilds.get(shareId) === rebuild)
+          this.zipRebuilds.delete(shareId);
+      });
+
+    return rebuild;
+  }
+
+  private async buildZip(shareId: string) {
     const path = `${SHARE_DIRECTORY}/${shareId}`;
 
     const files = await this.prisma.file.findMany({ where: { shareId } });
@@ -189,7 +225,20 @@ export class ShareService {
     }
 
     archive.pipe(writeStream);
+
+    // Resolved on the write stream's own close, not on finalize() alone:
+    // finalize() only says everything has been queued into the archive,
+    // so a rebuild that returned there would hand the queue to the next
+    // run while bytes were still being flushed into the very file it is
+    // about to open.
+    const written = new Promise<void>((resolve, reject) => {
+      writeStream.on("close", () => resolve());
+      writeStream.on("error", reject);
+      archive.on("error", reject);
+    });
+
     await archive.finalize();
+    await written;
   }
 
   async complete(id: string) {
@@ -201,6 +250,13 @@ export class ShareService {
         creator: true,
       },
     });
+
+    // Refused ahead of the alreadyCompleted check below, which a
+    // container would otherwise trip on its way to a misleading message.
+    // A collection is never completed and never reopened: see
+    // revertComplete() for what one owner click used to cost.
+    if (share?.isCollection)
+      throw new BadRequestException(this.i18n.t("share.collectionNotEditable"));
 
     if (await this.isShareCompleted(id))
       throw new BadRequestException(this.i18n.t("share.alreadyCompleted"));
@@ -352,7 +408,26 @@ export class ShareService {
     return this.transformShare(updatedShare);
   }
 
+  // Refused outright for a collection's container, and this is the single
+  // most destructive thing that could happen to one. Unlocking it is not
+  // "reopening an upload": it makes ShareService.get() answer not-found
+  // to everyone including its owner, drops it out of "Mes transferts"
+  // (which filters on uploadLocked), makes the re-complete fail with
+  // completionRequiresFile on an album that is legitimately still empty,
+  // and hands it to JobsService.deleteUnfinishedShares, which within a
+  // day deletes the container and cascades the link, the album and every
+  // contribution away with it. Spec §3 exists to prevent exactly this,
+  // and the check belongs here rather than only in the page that offers
+  // the button — one is a convenience, the other is the rule.
   async revertComplete(id: string) {
+    const share = await this.prisma.share.findUnique({
+      where: { id },
+      select: { isCollection: true },
+    });
+
+    if (share?.isCollection)
+      throw new BadRequestException(this.i18n.t("share.collectionNotEditable"));
+
     return this.prisma.share.update({
       where: { id },
       data: { uploadLocked: false, isZipReady: false },

@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { ShareContribution } from "@prisma/client";
 import { I18nService } from "nestjs-i18n";
+import { ClamScanService } from "src/clamscan/clamscan.service";
 import { ConfigService } from "src/config/config.service";
 import { EmailService } from "src/email/email.service";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -12,6 +13,7 @@ export class ContributionService {
     private prisma: PrismaService,
     private shareService: ShareService,
     private emailService: EmailService,
+    private clamScanService: ClamScanService,
     private config: ConfigService,
     private readonly i18n: I18nService,
   ) {}
@@ -99,12 +101,26 @@ export class ContributionService {
       data: { isZipReady: false },
     });
 
-    void this.shareService.createZip(contribution.shareId).then(() =>
-      this.prisma.share.update({
-        where: { id: contribution.shareId },
-        data: { isZipReady: true },
-      }),
-    );
+    // Scanned, then rebuilt, in that order. A deposit is the one write
+    // path in this product open to someone who does not own the
+    // transfert, so it gets the same antivirus step the ordinary upload
+    // has had all along (ShareService.complete()) — scoped to this
+    // contribution's own files, since the container is everybody's
+    // album. Chaining the rebuild behind it keeps a file the scan is
+    // about to remove out of "tout télécharger". Both stay off the
+    // response's critical path, exactly as the ordinary path does it: a
+    // contributor should not wait on a multi-gigabyte scan to be told
+    // their deposit landed. checkAndRemove() swallows its own errors, so
+    // the rebuild runs either way.
+    void this.clamScanService
+      .checkAndRemove(contribution.shareId, contribution.id)
+      .then(() => this.shareService.createZip(contribution.shareId))
+      .then(() =>
+        this.prisma.share.update({
+          where: { id: contribution.shareId },
+          data: { isZipReady: true },
+        }),
+      );
 
     const closed = await this.prisma.shareContribution.update({
       where: { id: contribution.id },

@@ -227,6 +227,28 @@ export class FileService {
     return storageService.quarantineAllFiles(shareId);
   }
 
+  // The two below are the per-file counterparts of the two above, used by
+  // ClamScanService when it scans one contribution of a collection rather
+  // than a whole transfer: the container is shared by every contributor,
+  // so only the infected deposit's own files may go.
+  async deleteFiles(shareId: string, fileIds: string[]) {
+    const share = await this.prisma.share.findFirst({
+      where: { id: shareId },
+      select: { id: true, storageProvider: true },
+    });
+    const storageService = this.getStorageService(share?.storageProvider);
+    return storageService.deleteFiles(shareId, fileIds);
+  }
+
+  async quarantineFiles(shareId: string, fileIds: string[]) {
+    const share = await this.prisma.share.findFirst({
+      where: { id: shareId },
+      select: { id: true, storageProvider: true },
+    });
+    const storageService = this.getStorageService(share?.storageProvider);
+    return storageService.quarantineFiles(shareId, fileIds);
+  }
+
   async getZip(
     shareId: string,
   ): Promise<{ stream: Readable; name: string | null }> {

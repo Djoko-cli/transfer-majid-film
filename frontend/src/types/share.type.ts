@@ -12,7 +12,7 @@ export type ShareCollectionContribution = {
 };
 
 // Present on Share only when isCollection is true — see
-// ShareController.getCollectionState(), the sole place that assembles it.
+// ShareController.buildCollectionState(), the sole place that assembles it.
 export type ShareCollection = {
   isOpen: boolean;
   endsAt: Date;
@@ -101,6 +101,10 @@ export type MyReverseShare = {
   contributionsCount: number;
   filesCount: number;
   totalSize: number;
+  // How many more contributions this collection will accept. Read
+  // alongside collectionEndsAt to decide whether it is still open — the
+  // server folds the same two conditions into the album's own isOpen.
+  remainingUses: number;
   // null where nobody typed a name — the page falls back to the same
   // "Anonyme" label the public album uses (share.collection.anonymous).
   contributorNames: (string | null)[];

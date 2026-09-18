@@ -1816,7 +1816,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"token\": \"vacances-test\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"publicAccess\": true\n}",
+							"raw": "{\n    \"token\": \"vacances-test\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1889,7 +1889,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"token\": \"test-share\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"publicAccess\": true\n}",
+							"raw": "{\n    \"token\": \"test-share\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1927,7 +1927,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"token\": \"junk-collection-test\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"never\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"publicAccess\": true\n}",
+							"raw": "{\n    \"token\": \"junk-collection-test\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"never\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2618,7 +2618,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"token\": \"vacances-privee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"publicAccess\": true,\n    \"password\": \"s3cretpw\"\n}",
+							"raw": "{\n    \"token\": \"vacances-privee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"password\": \"s3cretpw\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2708,7 +2708,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"token\": \"vacances-limitee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 3,\n    \"publicAccess\": true\n}",
+							"raw": "{\n    \"token\": \"vacances-limitee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 3\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3026,6 +3026,130 @@
 					]
 				},
 				{
+					"name": "Create a collection whose window is already over",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"vacances-finie\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"0-minutes\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Spec SS12 property 3: after a collection's window closes, the",
+									"// album still reads and a deposit is refused. Every other",
+									"// collection here is created with a 3-day window, so this one is",
+									"// born with a window of zero minutes: CreateReverseShareDTO only",
+									"// accepts a relative duration (no absolute date, no 'never'), and",
+									"// parseRelativeDateToAbsolute turns '0-minutes' into now - which",
+									"// every later request in this run is already past.",
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "A closed collection's album still reads",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-finie",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-finie"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('The album is readable and reports itself closed', () => {",
+									"    const b = pm.response.json();",
+									"    pm.expect(b.id).to.be.equal('vacances-finie');",
+									"    pm.expect(b.isCollection).to.be.equal(true);",
+									"    pm.expect(b.collection.isOpen).to.be.equal(false);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Depositing into a closed collection is refused",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Tardif\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-finie/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-finie",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Refused for the window, not for anything else', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('collection_closed');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
 					"name": "Sign in as admin to reach the config switch",
 					"request": {
 						"method": "POST",
@@ -3128,7 +3252,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"token\": \"vacances-refusee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"publicAccess\": true\n}",
+							"raw": "{\n    \"token\": \"vacances-refusee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3177,6 +3301,198 @@
 					]
 				},
 				{
+					"name": "A visitor holding the link asks for its share token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/token",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"token"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// The three requests after this one deposit into an existing",
+									"// collection while the admin switch is off. They ride the ambient",
+									"// session, which at this point is the admin signed in above - not",
+									"// the collection's creator, so ShareSecurityGuard wants the share",
+									"// token any link-holder gets, exactly as a friend with the link",
+									"// would. Newman keeps it in its own cookie jar for the three",
+									"// requests that follow.",
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Opening a contribution still works with the switch off",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Interrupteur\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// The heart of what the switch promises (spec SS10): it stops new",
+									"// deposit LINKS, it does not freeze the collections already out",
+									"// there. The request just above proved the first half; this one and",
+									"// the two after it prove the second, across the whole write path",
+									"// rather than just the read.",
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('SWITCH_CONTRIB', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Depositing a file still works with the switch off",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,VGVzdCBmaWxl"
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions/{{SWITCH_CONTRIB}}/files?name=switch.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions",
+								"{{SWITCH_CONTRIB}}",
+								"files"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "switch.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Closing the deposit still works with the switch off",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions/{{SWITCH_CONTRIB}}/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions",
+								"{{SWITCH_CONTRIB}}",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
 					"name": "An existing collection's album still answers with the switch off",
 					"request": {
 						"method": "GET",
@@ -3200,7 +3516,7 @@
 								"exec": [
 									"// The two config-toggle requests just above authenticated as admin,",
 									"// and Newman's cookie jar is keyed per host, so an admin cookie set",
-									"// on {{API_URL}} (localhost) would otherwise still ride along here \u2014",
+									"// on {{API_URL}} (localhost) would otherwise still ride along here —",
 									"// see 'Read the album before depositing, as any visitor would' above",
 									"// for the same API_URL_ANON (127.0.0.1) + strip pairing, and the",
 									"// comment on 'Anonymous share leaks / Sign in as admin' for why a",

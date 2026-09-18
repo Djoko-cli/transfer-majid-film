@@ -298,6 +298,23 @@ export class LocalFileService {
     });
   }
 
+  // The scoped counterpart of deleteAllFiles, for a collection's
+  // container: it belongs to every contributor at once, so an infected
+  // deposit may take its own bytes and nothing else. Files only — the
+  // File rows are the caller's business, exactly as with deleteAllFiles.
+  async deleteFiles(shareId: string, fileIds: string[]) {
+    for (const fileId of fileIds) {
+      await fs.rm(`${SHARE_DIRECTORY}/${shareId}/${fileId}`, { force: true });
+      // Best-effort, same as remove() above: most files never had a
+      // thumbnail generated at all.
+      await fs
+        .rm(`${SHARE_DIRECTORY}/${shareId}/${fileId}.thumb.jpg`, {
+          force: true,
+        })
+        .catch(() => {});
+    }
+  }
+
   // Moves rather than deletes — used instead of deleteAllFiles when
   // clamav.infectedFileAction is "quarantine", so an admin can inspect a
   // flagged share (a false positive, or confirm a real one) before it's
@@ -323,6 +340,35 @@ export class LocalFileService {
         verbatimSymlinks: true,
       });
       await fs.rm(source, { recursive: true, force: true });
+    }
+  }
+
+  // Scoped quarantine, for the same reason deleteFiles exists: moving a
+  // collection's whole directory would take every other contributor's
+  // files with it. Lands in the same QUARANTINE_DIRECTORY/<shareId>
+  // folder an admin already knows to look in, one file at a time, with
+  // the same rename-then-copy fallback across filesystems.
+  async quarantineFiles(shareId: string, fileIds: string[]) {
+    const destination = `${QUARANTINE_DIRECTORY}/${shareId}`;
+    await fs.mkdir(destination, { recursive: true });
+
+    for (const fileId of fileIds) {
+      const source = `${SHARE_DIRECTORY}/${shareId}/${fileId}`;
+      try {
+        await fs.rename(source, `${destination}/${fileId}`);
+      } catch (err: any) {
+        if (err?.code === "ENOENT") continue;
+        if (err?.code !== "EXDEV") throw err;
+        await fs.cp(source, `${destination}/${fileId}`, {
+          verbatimSymlinks: true,
+        });
+        await fs.rm(source, { force: true });
+      }
+      await fs
+        .rm(`${SHARE_DIRECTORY}/${shareId}/${fileId}.thumb.jpg`, {
+          force: true,
+        })
+        .catch(() => {});
     }
   }
 

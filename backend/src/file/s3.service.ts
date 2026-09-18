@@ -334,6 +334,40 @@ export class S3FileService {
     await this.deleteAllFiles(shareId);
   }
 
+  // The scoped counterpart of deleteAllFiles — see LocalFileService's own
+  // for why a collection's container can only ever lose one contribution's
+  // files. Keyed by file *name*, like every other object this service
+  // writes, so the ids are resolved to names first.
+  async deleteFiles(shareId: string, fileIds: string[]) {
+    if (fileIds.length === 0) return;
+
+    const files = await this.prisma.file.findMany({
+      where: { id: { in: fileIds } },
+      select: { name: true },
+    });
+    const s3Instance = this.getS3Instance();
+    const bucketName = this.config.get("s3.bucketName");
+
+    for (const file of files) {
+      try {
+        await s3Instance.send(
+          new DeleteObjectCommand({
+            Bucket: bucketName,
+            Key: `${this.getS3Path()}${shareId}/${file.name}`,
+          }),
+        );
+      } catch {
+        // ignore per-object failure, same as deleteAllFiles' fallback
+      }
+    }
+  }
+
+  // Falls back to an outright delete for exactly the reason
+  // quarantineAllFiles does — S3 has no quarantine location yet.
+  async quarantineFiles(shareId: string, fileIds: string[]) {
+    await this.deleteFiles(shareId, fileIds);
+  }
+
   async getFileSize(shareId: string, fileName: string): Promise<number> {
     const key = `${this.getS3Path()}${shareId}/${fileName}`;
     const s3Instance = this.getS3Instance();

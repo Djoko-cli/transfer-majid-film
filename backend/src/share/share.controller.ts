@@ -76,7 +76,15 @@ export class ShareController {
   @UseGuards(IdValidation, ShareSecurityGuard)
   async get(@Param("id") id: string) {
     const share = await this.shareService.get(id);
-    if (!share.isCollection || !share.collectionOf) {
+    // Keyed off isCollection alone, deliberately not off collectionOf: a
+    // container whose link row has been deleted is still a collection,
+    // still full of contributions, and used to fall through to a raw
+    // ShareDTO here — which published every real ShareContribution uuid in
+    // files[].contributionId. Those ids happen to be unusable while
+    // collectionOf is missing (ContributionGuard refuses too), but the
+    // rule is that they are never published, and it must not rest on a
+    // second check elsewhere happening to agree.
+    if (!share.isCollection) {
       return new ShareDTO().from(share);
     }
 
@@ -87,9 +95,16 @@ export class ShareController {
   // Assembled here, not in ShareService.get(), which stays about the Share
   // row alone — this is what turns spec §5.2's "l'album, groupée par
   // contribution" into ShareDTO.collection. Only ever called once get()
-  // has already confirmed share.collectionOf is set, i.e. this really is
-  // a collection — every ordinary transfer's response never reaches this
+  // has already confirmed share.isCollection, i.e. this really is a
+  // collection — every ordinary transfer's response never reaches this
   // method at all, and simply has no `collection` key.
+  //
+  // collectionOf may still be null here, for a container whose link row
+  // was deleted: there is then no window and no use count to report, so
+  // `collection` is left out exactly as for an ordinary transfer (the
+  // frontend already treats it as optional) — but the file projection
+  // below still runs, because the opaque keys are not a nicety of the
+  // open state.
   //
   // A contribution's real id is the only thing ContributionGuard checks
   // before letting a POST write files into it, or close it (see that
@@ -115,7 +130,7 @@ export class ShareController {
   // by whoever just proved their own identity to get it.
   private async buildCollectionState(
     shareId: string,
-    share: Share & { collectionOf: ReverseShare; files: File[] },
+    share: Share & { collectionOf: ReverseShare | null; files: File[] },
   ) {
     const contributions = await this.contributionService.getWithFiles(shareId);
     const reverseShare = share.collectionOf;
@@ -130,6 +145,8 @@ export class ShareController {
         ? (keyByContributionId.get(file.contributionId) ?? null)
         : null,
     }));
+
+    if (!reverseShare) return { files, collection: undefined };
 
     return {
       files,

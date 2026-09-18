@@ -56,7 +56,7 @@ type FileGroup = {
 };
 
 // Partitions `files` into contribution-labelled groups when `contributions`
-// is provided (a collection — see ShareController.getCollectionState()),
+// is provided (a collection — see ShareController.buildCollectionState()),
 // preserving each file's position from the array it was handed — so
 // sorting by name/size (sortFiles below, which reorders that same array)
 // still sorts within each group instead of fighting the grouping, with no

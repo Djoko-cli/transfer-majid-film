@@ -322,6 +322,9 @@ export default {
   "account.reverseShares.table.state": "State",
   "account.reverseShares.table.state.open": "Open until {date}",
   "account.reverseShares.table.state.closed": "Closed, album kept until {date}",
+  // A full collection is closed to deposits while its window is still
+  // running, so calling it "closed" would print a future date after it.
+  "account.reverseShares.table.state.full": "Full, album kept until {date}",
   "account.reverseShares.table.open-album": "Open the album",
 
   "account.reverseShares.modal.reverse-share-link": "Reverse share link",
@@ -675,6 +678,8 @@ export default {
     "{count, plural, =1 {# file} other {# files}} from {name} · {date}",
   "share.collection.anonymous": "Anonymous",
   "share.collection.closed-since": "This collection has been closed since {date}.",
+  "share.collection.closed-full":
+    "This collection isn't taking new deposits: it has reached its maximum number of contributions. You can still browse and download the album.",
   "share.collection.add-files": "Add files to the album",
   "share.collection.identity.title": "Identify yourself to contribute",
   "share.collection.identity.name-label": "Your first name",

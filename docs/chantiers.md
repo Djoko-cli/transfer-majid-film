@@ -162,3 +162,18 @@ d'écriture sur aucun transfert verrouillé, collecte ou pas. Sans objet tant
 que l'instance tourne en stockage local (configuration actuelle) ; à combler
 avant d'activer S3 pour une collecte, sous peine de laisser un chemin
 d'écriture qui ne passe par aucune contribution.
+
+### Et la clé d'objet S3 écrase les homonymes d'une collecte
+
+Relevé en corrigeant le `storageProvider` manquant du conteneur
+(2026-09-19). Sur S3, la clé d'un fichier est `<shareId>/<fileName>`
+(`s3.service.ts`, `getS3Path()` + le nom du fichier), c'est-à-dire qu'elle
+ne contient ni l'identifiant du fichier ni celui de la contribution. Or la
+spec autorise explicitement deux contributeurs à déposer `IMG_4821.jpg`
+dans le même album (§11, « la déduplication entre contributions » est hors
+périmètre) : en stockage local les deux coexistent, chacune sous son propre
+uuid, mais sur S3 la seconde **écrase silencieusement** la première — deux
+lignes `File` en base, un seul objet, et deux entrées identiques dans
+l'archive. Sans objet tant que l'instance tourne en stockage local ; à
+régler en même temps que le point ci-dessus, en faisant entrer l'identifiant
+du fichier dans la clé (ce qui est une migration de stockage, pas une ligne).
