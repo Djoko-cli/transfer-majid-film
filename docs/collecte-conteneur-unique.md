@@ -100,11 +100,13 @@ identité prouvée. Le drapeau dit seulement « ce transfert-là n'est pas figé
 ### `ReverseShare`
 
 ```prisma
-  // Le conteneur, créé paresseusement à la première contribution — un lien
-  // que personne n'utilise ne doit pas laisser un transfert vide derrière
-  // lui. Un lien, un conteneur, pour toujours.
-  containerShareId String? @unique
-  containerShare   Share?  @relation("ReverseShareContainer", fields: [containerShareId], references: [id], onDelete: SetNull)
+  // Le conteneur, créé en même temps que le lien et jamais après. Son
+  // identifiant EST le jeton saisi par le créateur, si bien qu'il n'existe
+  // qu'une seule adresse publique et que c'est lui qui l'écrit. Un lien
+  // jamais utilisé laisse donc un transfert vide dans « Mes transferts » :
+  // c'est voulu, ce transfert vide est la collecte, en attente.
+  containerShareId String @unique
+  containerShare   Share  @relation("ReverseShareContainer", fields: [containerShareId], references: [id], onDelete: Cascade)
 
   // Fin de la collecte. Remplace l'usage actuel de shareExpiration comme
   // date unique : après elle, on ne dépose plus, mais l'album reste.
@@ -118,6 +120,14 @@ identité prouvée. Le drapeau dit seulement « ce transfert-là n'est pas figé
 
 `shares Share[]` **reste** : c'est la relation des dépôts déjà créés par les
 liens de l'ancien modèle (§9), et elle ne doit pas être supprimée.
+
+`token` demeure, mais cesse d'être une adresse : il sert d'étiquette et de
+source de l'identifiant du conteneur. **Conséquence à ne pas manquer** : les
+identifiants de transfert et les jetons de collecte partagent désormais un
+espace de noms. La création d'une collecte doit donc vérifier la disponibilité
+auprès des deux (`isShareIdAvailable` en plus de
+`isReverseShareTokenAvailable`), sans quoi une collecte peut naître à l'adresse
+d'un transfert existant.
 
 ### `ShareContribution` (nouveau)
 
@@ -170,14 +180,13 @@ emporter des fichiers que l'album affiche déjà.
 
 ## 5. Le parcours du contributeur
 
-Le lien `/upload/<token>` devient **la seule surface publique** : l'album et le
-dépôt sur la même page. C'est ce que « un lien » veut dire.
+**Il n'y a qu'une seule adresse**, et c'est celle du conteneur :
+`/s/vacances-corse`. Le créateur l'écrit lui-même — le champ existe déjà, un
+slug de 3 à 50 caractères dans `[a-zA-Z0-9_-]`, exactement l'alphabet d'un
+identifiant de transfert. Elle sert à lire et à déposer, sur la même page.
 
-> **Décision que je prends, à confirmer.** Le conteneur étant un `Share`, il a
-> aussi une page `/s/<id>` qui fonctionnera. Elle n'est annoncée nulle part et
-> aucune interface n'y mène ; le lien de jeton est l'adresse de l'album. Deux
-> URL pour un même contenu est un défaut mineur, et le supprimer coûterait plus
-> que de le tolérer.
+La notion de jeton disparaît donc du parcours public : il n'y a plus un lien de
+dépôt *et* une page de transfert, il y a le transfert.
 
 1. **La porte.** Si le lien porte un mot de passe, il est demandé avant tout —
    avant de lire comme avant de déposer. Une seule porte, pas deux.
@@ -229,17 +238,27 @@ Et le conteneur apparaît dans « Mes transferts », puisqu'il a enfin un créat
 
 ## 7. Les routes
 
-Aucune route existante ne change de comportement. Trois routes nouvelles portent
-le dépôt, ce qui évite de toucher `POST /shares` et son garde :
+Aucune route existante ne change de comportement ; deux voient leur réponse
+s'enrichir. Trois routes nouvelles portent le dépôt, ce qui évite de toucher
+`POST /shares` et son garde :
 
 | Route | Rôle | Garde |
 |---|---|---|
-| `POST /reverseShares/:token/contributions` | Ouvre une contribution. Crée le conteneur s'il n'existe pas encore. Corps : `{ name? }` | Jeton valide **et** collecte ouverte **et** identité établie : compte connecté, ou adresse prouvée par le cookie de vérification |
-| `POST /reverseShares/:token/contributions/:id/files?name=…&chunkIndex=…&totalChunks=…` | Reçoit les fichiers | La contribution est ouverte et appartient à ce lien |
-| `POST /reverseShares/:token/contributions/:id/complete` | Ferme la contribution, invalide l'archive, notifie | Mêmes conditions |
+| `POST /shares/:id/contributions` | Ouvre une contribution. Corps : `{ name? }` | Le transfert est une collecte **et** elle est ouverte **et** l'identité est établie : compte connecté, ou adresse prouvée par le cookie de vérification |
+| `POST /shares/:id/contributions/:contributionId/files?name=…&chunkIndex=…&totalChunks=…` | Reçoit les fichiers | La contribution est ouverte et appartient à cette collecte |
+| `POST /shares/:id/contributions/:contributionId/complete` | Ferme la contribution, invalide l'archive, notifie | Mêmes conditions |
 
-`GET /reverseShares/:token` s'enrichit : il expose enfin `name` et `description`
-— aujourd'hui absents du DTO — plus l'état de la collecte et le conteneur.
+**`GET /shares/:id` porte désormais la collecte.** C'est la seule route que le
+visiteur interroge, puisque l'adresse publique est celle du transfert. Sa
+réponse gagne, quand le transfert est une collecte : l'état ouvert ou fermé, la
+date de fermeture, la description saisie par le créateur, et la liste des
+contributions avec leur prénom et leur date — c'est ce qui permet d'afficher
+« 40 photos de Sophie · 12 septembre » plutôt qu'un tas.
+
+**`GET /reverseShares/:token` reste la vue du propriétaire**, pour sa page de
+gestion. Il expose enfin `name` et `description`, aujourd'hui absents du DTO
+([`reverseShare.dto.ts:3`](../backend/src/reverseShare/dto/reverseShare.dto.ts)),
+plus le décompte des contributions et le poids total.
 
 **Pourquoi une route de téléversement neuve plutôt que celle qui existe.**
 `POST /shares/:shareId/files` est gardée par `StrictShareOwnerGuard`
@@ -248,8 +267,8 @@ par la propriété du transfert — exactement ce qu'un contributeur n'a pas. Lu
 ajouter un second identifiant acceptable élargirait le droit d'écriture sur
 **tous** les transferts pour n'y servir qu'ici. La route neuve porte le même
 corps, les mêmes paramètres de découpage et le même service en dessous ; seule
-son autorisation diffère, et elle ne peut viser que le conteneur du lien nommé
-dans son chemin.
+son autorisation diffère, et elle ne peut viser que la collecte nommée dans son
+chemin.
 
 **Relations inverses à ne pas oublier** — Prisma les exige des deux côtés :
 `Share` reçoit `collectionOf ReverseShare? @relation("ReverseShareContainer")`
@@ -282,14 +301,28 @@ une construction à la demande si le coût se voit.
 
 ## 9. Les liens existants
 
-Un lien créé avant cette version possède déjà des dépôts séparés, rattachés par
-`shares Share[]`. **Ils ne sont pas migrés** : ces transferts existent, ont leurs
-liens, et les casser pour une cohérence de modèle serait une perte sèche.
+La fonctionnalité vient de l'amont et tourne en production depuis toujours : la
+route `/upload/<jeton>` existe, elle n'est pas neuve. Ce qui est éphémère, ce
+sont les **liens** — leur expiration par défaut est de trois jours.
 
-À sa prochaine utilisation, un ancien lien se crée un conteneur et se comporte
-comme un neuf. Ses anciens dépôts restent listés séparément, sous un intitulé qui
-dit ce qu'ils sont. L'expiration par défaut d'un lien étant de trois jours, cette
-cohabitation se résorbe d'elle-même en quelques jours.
+Deux choses en découlent, et elles sont indépendantes :
+
+- **Les dépôts déjà faits ne sont pas migrés**, et n'ont pas à l'être. Ce sont
+  des transferts ordinaires, joignables par leur propre adresse, et le rester
+  ne demande aucun travail. Les casser pour une cohérence de modèle serait une
+  perte sèche.
+- **Un lien de l'ancien modèle n'a plus de conteneur possible**, puisque le
+  conteneur naît désormais avec le lien. La route `/upload/<jeton>` est donc
+  conservée telle quelle, pour que les liens encore vivants au moment du
+  déploiement finissent leur vie normalement, et **retirée une fois qu'aucun ne
+  l'est plus** — trois jours après le déploiement dans le cas par défaut. Une
+  migration doit vérifier qu'aucun lien sans conteneur n'est encore valide avant
+  cette suppression.
+
+Si aucun lien n'a jamais été distribué, les deux points ci-dessus sont sans
+objet et la route part avec le reste. **À confirmer avant l'implémentation** —
+c'est la seule chose de ce document qui dépende de l'état réel de la
+production.
 
 ---
 
