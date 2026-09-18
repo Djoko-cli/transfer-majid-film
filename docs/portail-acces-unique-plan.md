@@ -96,6 +96,15 @@ un test, parce que leur réponse change la forme des tâches 2 à 4.
   à citer telle quelle dans les tâches 2, 3 et 4 ; et un **verdict** sur le
   cookie — « vider `COOKIES` suffit » ou « il faut passer par la CI ».
 
+> ### ⚠️ Corrigé après exécution — ne lancez pas `npm run test:system`
+>
+> Ce script commence par `prisma migrate reset -f`, et `backend/prisma/.env:2`
+> pointe `DATABASE_URL="file:../data/transfer.db"` : **il détruirait la base de
+> développement locale**. Il dispute aussi le port 8080 au serveur de dev.
+> La commande réellement utilisée, établie par cette tâche et employée par les
+> tâches 2 à 4, est en fin de tâche sous « Commande de référence ». Les étapes 1
+> et 2 ci-dessous sont conservées comme récit de ce qui a été essayé.
+
 - [ ] **Step 1: Tenter le script tel qu'il existe**
 
 ```bash
@@ -117,12 +126,31 @@ Puis, dans deux terminaux séparés — le `&` du script d'origine mélange les
 sorties et masque les erreurs de démarrage :
 
 ```bash
-cd backend && ./node_modules/.bin/prisma migrate reset -f && ./node_modules/.bin/nest start
+cd backend && PATH="./node_modules/.bin:$PATH" DATABASE_URL=file:../data/system-test.db BACKEND_PORT=8081 ./node_modules/.bin/prisma migrate reset -f && PATH="./node_modules/.bin:$PATH" DATABASE_URL=file:../data/system-test.db BACKEND_PORT=8081 ./node_modules/.bin/nest start
 ```
 
 ```bash
-cd backend && ./node_modules/.bin/wait-on http://localhost:8080/api/configs && ./node_modules/.bin/newman run ./test/newman-system-tests.json
+cd backend && ./node_modules/.bin/wait-on http://localhost:8081/api/configs && ./node_modules/.bin/newman run ./test/newman-system-tests.json --env-var "API_URL=http://localhost:8081/api" --env-var "API_URL_ANON=http://127.0.0.1:8081/api"
 ```
+
+### Commande de référence
+
+Les deux blocs ci-dessus **sont** la commande de référence, dans sa forme
+finale. Trois choses s'y sont ajoutées au fil de l'exécution, chacune pour une
+raison mesurée :
+
+- `DATABASE_URL=file:../data/system-test.db` — sans quoi le reset détruit la
+  base de développement.
+- `BACKEND_PORT=8081` plus les deux `--env-var` — sans quoi le harnais dispute
+  le port 8080 au serveur de dev.
+- `PATH="./node_modules/.bin:$PATH"` — Prisma lance sa commande de seed
+  (`ts-node …`) par `PATH`, et l'entrée doit être **relative** : une entrée
+  absolue contiendrait le deux-points de `js:nodejs`, que `PATH` scinde
+  lui-même en deux entrées mortes.
+
+`API_URL_ANON` vise `127.0.0.1` et non `localhost` : le bocal à cookies de
+Newman apparie sur la chaîne d'hôte, c'est le seul moyen mesuré d'émettre une
+requête réellement non authentifiée depuis cette collection.
 
 - [ ] **Step 3: Vérifier que la collection passe entièrement au vert sur le code actuel**
 

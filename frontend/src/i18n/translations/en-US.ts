@@ -657,7 +657,6 @@ export default {
   "share.notify.copy-not-supported-error":
     "Copying to clipboard requires a HTTPS connection",
 
-  "share.modal.file-link": "File link",
   "share.table.name": "Name",
   "share.table.size": "Size",
   "share.table.sort-ascending": "Sort by {label} (ascending)",

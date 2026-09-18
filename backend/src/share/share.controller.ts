@@ -88,9 +88,12 @@ export class ShareController {
     return new ShareMetaDataDTO().from(await this.shareService.getMetaData(id));
   }
 
-  // Same guard pair as PATCH :id below - creator or admin, and (matching
-  // that same route's own existing behavior, not a new exception) anyone
-  // holding an anonymous share's id.
+  // Same guard as PATCH :id below - creator or admin, plus, for an
+  // anonymous share (which has no creator to check against), whoever
+  // holds its id while it's still being uploaded to. Once that share is
+  // marked complete, ShareOwnerGuard locks anonymous access out entirely,
+  // so nobody but the creator or an admin can reach this route after that
+  // point.
   @Get(":id/downloads")
   @UseGuards(IdValidation, ShareOwnerGuard)
   async getDownloads(@Param("id") id: string, @GetUser() user: User) {

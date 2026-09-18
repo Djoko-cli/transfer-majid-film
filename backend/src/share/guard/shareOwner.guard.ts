@@ -58,8 +58,28 @@ export class ShareOwnerGuard extends JwtGuard {
     // If the user is an admin, allow access
     if (this.allowAdmin && user?.isAdmin) return true;
 
-    // If it's a anonymous share, allow access
-    if (!share.creatorId) return true;
+    // An anonymous share has no owner once it is finished, so nobody
+    // passes an ownership check for it — least of all whoever merely
+    // holds its link. While it is still being uploaded to, though, the
+    // only person who can hold its id is the person creating it, and
+    // this same guard fronts every upload route: refusing outright would
+    // let an anonymous sender create a share and then fail to put a
+    // single file in it.
+    //
+    // What this closes is the two reads nothing checked afterwards, both
+    // of which only happen once the share is complete: GET :id/downloads,
+    // whose service method has no ownership check at all, and
+    // GET :id/from-owner, which returns the whole share — file list
+    // included — past both the password and the visitor limit. It also
+    // closes a third, worse one: DELETE :id/complete, fronted by this
+    // same check via StrictShareOwnerGuard, which flips uploadLocked back
+    // to false — without this, anyone holding a completed anonymous
+    // share's id could reopen it that way and then add or delete files
+    // through the four upload routes and DELETE :shareId/files/:fileId,
+    // all fronted by the same guard. The three writes the base guard
+    // fronts already refuse anonymous shares further in
+    // (ShareService.update, remove and expire).
+    if (!share.creatorId) return !share.uploadLocked;
 
     // If not signed in, deny access
     if (!user) return false;

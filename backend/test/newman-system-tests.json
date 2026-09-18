@@ -1233,6 +1233,1203 @@
 					]
 				}
 			]
+		},
+		{
+			"name": "Access gate",
+			"item": [
+				{
+					"name": "Create share without password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"open-share\",\n    \"expiration\": \"1-day\",\n    \"recipients\": []\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Upload file to open share",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,VGhpcyBpcyBhIHRlc3QgZmlsZWQgdXNlZCBmb3IgdXBsb2FkaW5nIGluIHRoZSBzeXN0ZW0gdGVzdC4="
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/open-share/files?name=open-file.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"open-share",
+								"files"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "open-file.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('OPEN_FILE_ID', pm.response.json().id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Upload second file to open share",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,VGhpcyBpcyBhIHRlc3QgZmlsZWQgdXNlZCBmb3IgdXBsb2FkaW5nIGluIHRoZSBzeXN0ZW0gdGVzdC4="
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/open-share/files?name=open-file-2.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"open-share",
+								"files"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "open-file-2.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Complete open share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/open-share/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"open-share",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 202', () => {",
+									"    pm.response.to.have.status(202);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Creator reaches their own file without a share token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/shares/open-share/files/{{OPEN_FILE_ID}}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"open-share",
+								"files",
+								"{{OPEN_FILE_ID}}"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get file without a share token is refused",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/open-share/files/{{OPEN_FILE_ID}}",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"open-share",
+								"files",
+								"{{OPEN_FILE_ID}}"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Refusal carries the machine code the page reacts to', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('share_token_required');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get zip without a share token is refused",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/open-share/files/zip",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"open-share",
+								"files",
+								"zip"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create a private reverse share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"shareExpiration\": \"1-day\",\n    \"maxUseCount\": 1,\n    \"publicAccess\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"const token = pm.response.json().token;",
+									"pm.collectionVariables.set('REVERSE_TOKEN', token);",
+									"pm.collectionVariables.set('COOKIES', `${pm.collectionVariables.get('COOKIES')};reverse_share_token=${token}`);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create share through the private reverse share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"reverse-private\",\n    \"expiration\": \"1-day\",\n    \"recipients\": []\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Upload file to the reverse share",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,VGhpcyBpcyBhIHRlc3QgZmlsZWQgdXNlZCBmb3IgdXBsb2FkaW5nIGluIHRoZSBzeXN0ZW0gdGVzdC4="
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/reverse-private/files?name=reverse-file.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"reverse-private",
+								"files"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "reverse-file.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('REVERSE_FILE_ID', pm.response.json().id);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Complete the reverse share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/reverse-private/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"reverse-private",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 202', () => {",
+									"    pm.response.to.have.status(202);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Private reverse share file is not served without a token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/reverse-private/files/{{REVERSE_FILE_ID}}",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"reverse-private",
+								"files",
+								"{{REVERSE_FILE_ID}}"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Security merge",
+			"item": [
+				{
+					"name": "Create a recipient-restricted share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"restricted-share\",\n    \"expiration\": \"1-day\",\n    \"recipients\": [],\n    \"security\": {\n        \"restrictToRecipients\": true\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Upload file to the restricted share",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,VGhpcyBpcyBhIHRlc3QgZmlsZWQgdXNlZCBmb3IgdXBsb2FkaW5nIGluIHRoZSBzeXN0ZW0gdGVzdC4="
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/restricted-share/files?name=restricted-file.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"restricted-share",
+								"files"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "restricted-file.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Complete the restricted share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/restricted-share/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"restricted-share",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 202', () => {",
+									"    pm.response.to.have.status(202);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Restriction holds before any edit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/restricted-share",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"restricted-share"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Refused for the restriction, not for a missing token', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('share_restricted_to_recipients');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Edit the share exactly as the info modal does",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"renamed\",\n    \"description\": null,\n    \"expiration\": \"1-day\",\n    \"security\": {\n        \"maxViews\": null\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/restricted-share",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"restricted-share"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Restriction survives the edit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/restricted-share",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"restricted-share"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Still refused for the restriction after a plain rename', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('share_restricted_to_recipients');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Anonymous share leaks",
+			"item": [
+				{
+					"name": "Sign in as admin",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"system@test.org\",\n    \"password\": \"J2y8unpJUcJDRv\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/signIn",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"signIn"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// _setup > Sign Up already created this account, the",
+									"// collection's only admin (the first account ever created",
+									"// is admin - auth.service.ts:100), but its own Cookie",
+									"// handling only kept the response's last Set-Cookie header",
+									"// (refresh_token), never the access_token the JWT strategy",
+									"// actually reads (jwt.strategy.ts:22-25). Signing in again",
+									"// here, self-contained, gives this folder its own reliable",
+									"// admin token without touching that shared setup step.",
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.collectionVariables.set('ADMIN_ACCESS_TOKEN', pm.response.json().accessToken);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Allow anonymous shares",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"key\": \"share.allowUnauthenticatedShares\",\n        \"value\": true\n    },\n    {\n        \"key\": \"share.requireEmailVerificationForAnonymousShares\",\n        \"value\": false\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/configs/admin",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"configs",
+								"admin"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// This folder runs last, and by then the ambiently logged-in user",
+									"// is not the admin from _setup: Auth > Positive > Sign In",
+									"// (system2@test.org, not an admin) overwrote Newman's cookie jar for",
+									"// the localhost host, and every later {{API_URL}} request picks",
+									"// that jar cookie up regardless of the COOKIES collection variable.",
+									"// Measured: with only a stripped cookie, this request gets 403",
+									"// (authenticated as a non-admin), not the 401 a missing token would",
+									"// give. Setting our own Cookie from ADMIN_ACCESS_TOKEN (captured by",
+									"// 'Sign in as admin' above) fixes it regardless of host.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create an anonymous share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"anon-share\",\n    \"expiration\": \"1-day\",\n    \"recipients\": []\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Upload file to the anonymous share",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,VGhpcyBpcyBhIHRlc3QgZmlsZWQgdXNlZCBmb3IgdXBsb2FkaW5nIGluIHRoZSBzeXN0ZW0gdGVzdC4="
+						},
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/anon-share/files?name=anon-file.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"anon-share",
+								"files"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "anon-file.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Complete the anonymous share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/anon-share/complete",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"anon-share",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 202', () => {",
+									"    pm.response.to.have.status(202);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Download log of an anonymous share is not public",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/anon-share/downloads",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"anon-share",
+								"downloads"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "File list of an anonymous share is not public",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/anon-share/from-owner",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"anon-share",
+								"from-owner"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Restore anonymous share settings",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"key\": \"share.allowUnauthenticatedShares\",\n        \"value\": false\n    },\n    {\n        \"key\": \"share.requireEmailVerificationForAnonymousShares\",\n        \"value\": true\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/configs/admin",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"configs",
+								"admin"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// This folder runs last, and by then the ambiently logged-in user",
+									"// is not the admin from _setup: Auth > Positive > Sign In",
+									"// (system2@test.org, not an admin) overwrote Newman's cookie jar for",
+									"// the localhost host, and every later {{API_URL}} request picks",
+									"// that jar cookie up regardless of the COOKIES collection variable.",
+									"// Measured: with only a stripped cookie, this request gets 403",
+									"// (authenticated as a non-admin), not the 401 a missing token would",
+									"// give. Setting our own Cookie from ADMIN_ACCESS_TOKEN (captured by",
+									"// 'Sign in as admin' above) fixes it regardless of host.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
 		}
 	],
 	"event": [
@@ -1259,6 +2456,11 @@
 		{
 			"key": "API_URL",
 			"value": "http://localhost:8080/api",
+			"type": "string"
+		},
+		{
+			"key": "API_URL_ANON",
+			"value": "http://127.0.0.1:8080/api",
 			"type": "string"
 		}
 	]

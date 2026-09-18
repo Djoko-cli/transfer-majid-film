@@ -105,6 +105,15 @@ export class ShareSecurityGuard extends JwtGuard {
       throw new NotFoundException(this.i18n.t("share.notFound"));
     }
 
+    // The creator never needed a token to prove anything about their own
+    // share: they can already read the whole of it through /from-owner,
+    // delete it and expire it. Until the tokenless byte path was removed
+    // they reached their own files only because that path let *everyone*
+    // through — so this is not a new door, it is the one door the creator
+    // always had, finally written down. The restriction check below has
+    // exempted them all along, for the same reason.
+    if (user && share.creatorId === user.id) return true;
+
     // If user sharing is enabled, check if the authenticated user is a recipient
     if (await this.isRecipient(share, user)) {
       return true;
