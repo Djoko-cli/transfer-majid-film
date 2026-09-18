@@ -145,7 +145,7 @@ export class ShareService {
 
     // If share is created by a reverse share token override the expiration date
     if (reverseShare) {
-      expirationDate = reverseShare.shareExpiration;
+      expirationDate = reverseShare.collectionEndsAt;
     } else {
       expirationDate = this.parseExpiration(share.expiration);
       if (!user?.isAdmin && !user?.canCreatePermanentShares) {
@@ -225,7 +225,7 @@ export class ShareService {
       await this.prisma.reverseShare.update({
         where: { token: reverseShareToken },
         data: {
-          shares: {
+          perSubmissionShares: {
             connect: { id: shareTuple.id },
           },
         },

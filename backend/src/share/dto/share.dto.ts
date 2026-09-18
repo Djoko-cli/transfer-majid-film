@@ -29,6 +29,9 @@ export class ShareDTO {
   @Expose()
   size: number;
 
+  @Expose()
+  isCollection: boolean;
+
   // Deliberately NOT @Expose()d — whether a share's files were imported
   // from the NAS or uploaded normally must be invisible to whoever's
   // downloading it, not just unstyled in the UI. FileService.getZip()

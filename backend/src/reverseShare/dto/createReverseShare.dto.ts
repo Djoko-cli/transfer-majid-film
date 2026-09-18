@@ -21,8 +21,14 @@ export class CreateReverseShareDTO {
   })
   maxShareSize: string;
 
+  // When depositing stops, as a relative "3-days" string, same shape as
+  // the field it replaces.
   @IsString()
-  shareExpiration: string;
+  collectionEndsAt: string;
+
+  // How long the album survives after that, same shape.
+  @IsString()
+  retention: string;
 
   @Min(1)
   @Max(1000)
@@ -49,13 +55,15 @@ export class CreateReverseShareDTO {
   @IsOptional()
   maxViews?: number;
 
+  // The container's own id, chosen by the creator — never generated for
+  // them any more, now that it is the collection's one public address
+  // rather than a bearer token (see ReverseShareService.create()).
   @IsString()
-  @IsOptional()
   @Matches("^[a-zA-Z0-9_-]+$", undefined, {
     message: i18nValidationMessage("validation.idPattern"),
   })
   @Length(3, 50)
-  token?: string;
+  token: string;
 
   // Same bounds as a direct share's own name (CreateUploadModalBody's own
   // yup validation) — the two are the same concept, just set by whoever

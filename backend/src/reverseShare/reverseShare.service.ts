@@ -19,27 +19,24 @@ export class ReverseShareService {
   ) {}
 
   async create(data: CreateReverseShareDTO, creatorId: string) {
-    // Parse date string to date
-    const expirationDate = moment()
-      .add(
-        data.shareExpiration.split("-")[0],
-        data.shareExpiration.split(
-          "-",
-        )[1] as moment.unitOfTime.DurationConstructor,
+    const collectionEndsAt = parseRelativeDateToAbsolute(data.collectionEndsAt);
+    const retentionSeconds = moment
+      .duration(
+        data.retention.split("-")[0],
+        data.retention.split("-")[1] as moment.unitOfTime.DurationConstructor,
       )
-      .toDate();
+      .asSeconds();
 
     const creator = await this.prisma.user.findUnique({
       where: { id: creatorId },
     });
 
-    const parsedExpiration = parseRelativeDateToAbsolute(data.shareExpiration);
     const maxExpiration = this.config.get("share.maxExpiration");
     if (
       !creator?.isAdmin &&
       !creator?.canCreatePermanentShares &&
       maxExpiration.value !== 0 &&
-      parsedExpiration >
+      collectionEndsAt >
         moment().add(maxExpiration.value, maxExpiration.unit).toDate()
     ) {
       throw new BadRequestException(this.i18n.t("share.maxExpirationExceeded"));
@@ -55,30 +52,68 @@ export class ReverseShareService {
         }),
       );
 
-    if (data.token) {
-      if (!(await this.isReverseShareTokenAvailable(data.token)).isAvailable) {
-        throw new BadRequestException(this.i18n.t("reverseShare.tokenInUse"));
-      }
-    }
+    // Two namespaces became one the day the container took the token for
+    // its id, so both have to be clear. Checking only the token would let
+    // a collection be born at the address of an existing transfer.
+    if (!(await this.isReverseShareTokenAvailable(data.token)).isAvailable)
+      throw new BadRequestException(this.i18n.t("reverseShare.tokenInUse"));
+    // Queried here rather than through ShareService: ShareModule already
+    // imports ReverseShareModule, so injecting it back would be circular
+    // and would need a forwardRef for a single findUnique.
+    if (await this.prisma.share.findUnique({ where: { id: data.token } }))
+      throw new BadRequestException(this.i18n.t("share.idInUse"));
+
+    // Hashed here, once — ShareService.create() reads this same hash
+    // straight into each new share's own security record rather than
+    // re-hashing (it isn't the plaintext any more).
+    const hashedPassword = data.password
+      ? await argon.hash(data.password)
+      : undefined;
 
     try {
-      const reverseShare = await this.prisma.reverseShare.create({
-        data: {
-          token: data.token || undefined,
-          shareExpiration: expirationDate,
-          remainingUses: data.maxUseCount,
-          maxShareSize: data.maxShareSize,
-          sendEmailNotification: data.sendEmailNotification,
-          publicAccess: data.publicAccess,
-          name: data.name || undefined,
-          description: data.description || undefined,
-          // Hashed here, once — ShareService.create() reads this same
-          // hash straight into each new share's own security record
-          // rather than re-hashing (it isn't the plaintext any more).
-          password: data.password ? await argon.hash(data.password) : undefined,
-          maxViews: data.maxViews || undefined,
-          creatorId,
-        },
+      // The container is born locked, which is what makes it readable at
+      // once: an unlocked transfer answers "not found" and a cron deletes it
+      // within a day. Its expiration is far off until the collection closes,
+      // at which point the cron in JobsService computes the real one.
+      const reverseShare = await this.prisma.$transaction(async (tx) => {
+        await tx.share.create({
+          data: {
+            id: data.token,
+            name: data.name || undefined,
+            description: data.description || undefined,
+            isCollection: true,
+            uploadLocked: true,
+            expiration: moment(collectionEndsAt).add(10, "years").toDate(),
+            creatorId,
+            security:
+              hashedPassword || data.maxViews
+                ? {
+                    create: {
+                      password: hashedPassword,
+                      maxViews: data.maxViews || undefined,
+                    },
+                  }
+                : undefined,
+          },
+        });
+
+        return tx.reverseShare.create({
+          data: {
+            token: data.token,
+            containerShareId: data.token,
+            collectionEndsAt,
+            retentionSeconds,
+            remainingUses: data.maxUseCount,
+            maxShareSize: data.maxShareSize,
+            sendEmailNotification: data.sendEmailNotification,
+            publicAccess: data.publicAccess,
+            name: data.name || undefined,
+            description: data.description || undefined,
+            password: hashedPassword,
+            maxViews: data.maxViews || undefined,
+            creatorId,
+          },
+        });
       });
 
       return reverseShare.token;
@@ -112,12 +147,12 @@ export class ReverseShareService {
     const reverseShares = await this.prisma.reverseShare.findMany({
       where: {
         creatorId: userId,
-        shareExpiration: { gt: new Date() },
+        collectionEndsAt: { gt: new Date() },
       },
       orderBy: {
-        shareExpiration: "desc",
+        collectionEndsAt: "desc",
       },
-      include: { shares: { include: { creator: true } } },
+      include: { containerShare: true },
     });
 
     return reverseShares;
@@ -130,21 +165,17 @@ export class ReverseShareService {
 
     if (!reverseShare) return false;
 
-    const isExpired = new Date() > reverseShare.shareExpiration;
+    const isExpired = new Date() > reverseShare.collectionEndsAt;
     const remainingUsesExceeded = reverseShare.remainingUses <= 0;
 
     return !(isExpired || remainingUsesExceeded);
   }
 
+  // Only the link row goes: with a container, removing it must not remove
+  // the album. The `onDelete: Cascade` on containerShare already covers the
+  // other direction (deleting the container takes the link with it); this
+  // is the one-way street back.
   async remove(id: string) {
-    await this.prisma.share.updateMany({
-      where: { reverseShareId: id },
-      data: {
-        reverseShareId: null,
-        expiration: new Date(),
-      },
-    });
-
     await this.prisma.reverseShare.delete({ where: { id } });
   }
 }

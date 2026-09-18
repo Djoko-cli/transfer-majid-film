@@ -432,7 +432,7 @@
 											"    const responseBody = pm.response.json();",
 											"    pm.expect(responseBody).to.have.property(\"id\")",
 											"    pm.expect(responseBody).to.have.property(\"expiration\")",
-											"    pm.expect(Object.keys(responseBody).length).be.equal(4)",
+											"    pm.expect(Object.keys(responseBody).length).be.equal(5)",
 											"});",
 											""
 										],
@@ -626,7 +626,7 @@
 											"    const responseBody = pm.response.json();",
 											"    pm.expect(responseBody).to.have.property(\"id\")",
 											"    pm.expect(responseBody).to.have.property(\"expiration\")",
-											"    pm.expect(Object.keys(responseBody).length).be.equal(6)",
+											"    pm.expect(Object.keys(responseBody).length).be.equal(7)",
 											"});",
 											""
 										],
@@ -1550,7 +1550,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"shareExpiration\": \"1-day\",\n    \"maxUseCount\": 1,\n    \"publicAccess\": false\n}",
+							"raw": "{\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"1-day\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 1,\n    \"publicAccess\": false,\n    \"token\": \"reverse-private-link\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2014,6 +2014,122 @@
 									"});",
 									"pm.test('Still refused for the restriction after a plain rename', () => {",
 									"    pm.expect(pm.response.json().error).to.be.equal('share_restricted_to_recipients');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Collection container",
+			"item": [
+				{
+					"name": "Create a collection link",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"vacances-test\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"publicAccess\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "The container exists at the token's own address",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('It is a collection, open, and empty', () => {",
+									"    const b = pm.response.json();",
+									"    pm.expect(b.isCollection).to.be.true;",
+									"    pm.expect(b.files.length).to.be.equal(0);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "A collection cannot take an id a transfer already owns",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"test-share\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"publicAccess\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 400', () => {",
+									"    pm.response.to.have.status(400);",
 									"});"
 								]
 							}

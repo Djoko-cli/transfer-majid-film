@@ -59,22 +59,35 @@ export class JobsService {
     }
   }
 
+  // The first of the two clocks running out. Depositing stops on its own,
+  // because every write checks collectionEndsAt — what this does is start
+  // the second clock, by giving the container the expiration it will
+  // actually die of. Computed once, here, rather than derived on every
+  // read: an album whose death date moves is one nobody can answer "until
+  // when?" about.
   @Cron("0 * * * *")
-  async deleteExpiredReverseShares() {
-    const expiredReverseShares = await this.prisma.reverseShare.findMany({
+  async closeEndedCollections() {
+    const ended = await this.prisma.reverseShare.findMany({
       where: {
-        shareExpiration: { lt: new Date() },
+        collectionEndsAt: { lt: new Date() },
+        containerShare: { expiration: { gt: moment().add(1, "year").toDate() } },
       },
+      include: { containerShare: true },
     });
 
-    for (const expiredReverseShare of expiredReverseShares) {
-      await this.reverseShareService.remove(expiredReverseShare.id);
+    for (const collection of ended) {
+      await this.prisma.share.update({
+        where: { id: collection.containerShareId },
+        data: {
+          expiration: moment(collection.collectionEndsAt)
+            .add(collection.retentionSeconds, "seconds")
+            .toDate(),
+        },
+      });
     }
 
-    if (expiredReverseShares.length > 0) {
-      this.logger.log(
-        `Deleted ${expiredReverseShares.length} expired reverse shares`,
-      );
+    if (ended.length > 0) {
+      this.logger.log(`Closed ${ended.length} collections`);
     }
   }
 
