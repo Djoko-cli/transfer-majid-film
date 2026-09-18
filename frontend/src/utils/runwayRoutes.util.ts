@@ -24,7 +24,6 @@ const RUNWAY_ROUTES = new Set([
   "/auth/verify/[token]",
   "/auth/verify/info",
   "/contact",
-  "/upload/[reverseShareToken]",
   // Plain documents in the default layout. No card and no photograph, but
   // the runway was never only about the photograph: it is what lets the
   // header's glass run under the status bar and the footer's under the
@@ -82,7 +81,6 @@ const ZOOM_LOCKED_ROUTES = new Set([
   "/auth/verify/[token]",
   "/auth/verify/info",
   "/contact",
-  "/upload/[reverseShareToken]",
 ]);
 
 export const isZoomLockedRoute = (pathname: string) =>

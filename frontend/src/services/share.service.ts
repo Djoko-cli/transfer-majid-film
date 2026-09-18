@@ -1,4 +1,3 @@
-import { deleteCookie, setCookie } from "cookies-next";
 import mime from "mime-types";
 import axios from "axios";
 import { translateOutsideContext } from "../hooks/useTranslate.hook";
@@ -22,18 +21,13 @@ const list = async (): Promise<MyShare[]> => {
   return (await api.get(`shares/all`)).data;
 };
 
-const create = async (share: CreateShare, isReverseShare = false) => {
-  if (!isReverseShare) {
-    deleteCookie("reverse_share_token");
-  }
+const create = async (share: CreateShare) => {
   return (await api.post("shares", share)).data;
 };
 
 const completeShare = async (id: string) => {
   if (!isValidId(id)) throw new Error("Invalid ID");
-  const response = (await api.post(`shares/${id}/complete`)).data;
-  deleteCookie("reverse_share_token");
-  return response;
+  return (await api.post(`shares/${id}/complete`)).data;
 };
 
 const revertComplete = async (id: string) => {
@@ -406,16 +400,6 @@ const getMyReverseShares = async (): Promise<MyReverseShare[]> => {
   return (await api.get("reverseShares")).data;
 };
 
-const setReverseShare = async (reverseShareToken: string) => {
-  if (!isValidId(reverseShareToken))
-    throw new Error(
-      translateOutsideContext()("upload.modal.link.error.invalid"),
-    );
-  const { data } = await api.get(`/reverseShares/${reverseShareToken}`);
-  setCookie("reverse_share_token", reverseShareToken);
-  return data;
-};
-
 const removeReverseShare = async (id: string) => {
   if (!isValidId(id)) throw new Error("Invalid ID");
   await api.delete(`/reverseShares/${id}`);
@@ -445,7 +429,6 @@ export default {
   getThumbnailUrl,
   removeFile,
   uploadFile,
-  setReverseShare,
   createReverseShare,
   getMyReverseShares,
   removeReverseShare,

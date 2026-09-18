@@ -7,5 +7,5 @@ export default function Home() {
   // twitter:* tag sets with different content - this page used to
   // render both, so the actual served HTML carried two conflicting
   // og:title/og:description pairs at once.
-  return <Upload isReverseShare={false} />;
+  return <Upload />;
 }

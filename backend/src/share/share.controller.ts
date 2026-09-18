@@ -110,12 +110,10 @@ export class ShareController {
     @Req() request: Request,
     @GetUser() user: User,
   ) {
-    const { reverse_share_token } = request.cookies;
     return new ShareDTO().from(
       await this.shareService.create(
         body,
         user,
-        reverse_share_token,
         // Read here rather than in the service: the cookie is an HTTP
         // detail, and the service should be handed a proven address or
         // nothing at all.
@@ -140,11 +138,8 @@ export class ShareController {
   @Post(":id/complete")
   @HttpCode(202)
   @UseGuards(IdValidation, CreateShareGuard, StrictShareOwnerGuard)
-  async complete(@Param("id") id: string, @Req() request: Request) {
-    const { reverse_share_token } = request.cookies;
-    return new CompletedShareDTO().from(
-      await this.shareService.complete(id, reverse_share_token),
-    );
+  async complete(@Param("id") id: string) {
+    return new CompletedShareDTO().from(await this.shareService.complete(id));
   }
 
   @Delete(":id/complete")

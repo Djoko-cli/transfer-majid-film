@@ -232,7 +232,7 @@ const MyShares = () => {
                             onClick={() => {
                               if (window.isSecureContext) {
                                 clipboard.copy(
-                                  `${appUrl !== defaultAppUrl ? appUrl : window.location.origin}/upload/${
+                                  `${appUrl !== defaultAppUrl ? appUrl : window.location.origin}/s/${
                                     reverseShare.token
                                   }`,
                                 );

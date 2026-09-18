@@ -219,7 +219,7 @@ const Body = ({
       )
       .then(({ token }) => {
         modals.closeAll();
-        const link = `${appUrl !== defaultAppUrl ? appUrl : window.location.origin}/upload/${token}`;
+        const link = `${appUrl !== defaultAppUrl ? appUrl : window.location.origin}/s/${token}`;
         showCompletedReverseShareModal(modals, link, getReverseShares);
       })
       .catch(toast.axiosError);
@@ -254,7 +254,6 @@ const Body = ({
             shareIdLength={shareIdLength}
             appUrl={appUrl}
             defaultAppUrl={defaultAppUrl}
-            pathPrefix="/upload/"
           />
           <div>
             <Grid align={form.errors.expiration_num ? "center" : "flex-end"}>

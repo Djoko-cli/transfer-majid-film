@@ -18,7 +18,6 @@ import { ConfigService } from "src/config/config.service";
 import { EmailService } from "src/email/email.service";
 import { FileService } from "src/file/file.service";
 import { PrismaService } from "src/prisma/prisma.service";
-import { ReverseShareService } from "src/reverseShare/reverseShare.service";
 import { SystemService } from "src/system/system.service";
 import { parseRelativeDateToAbsolute } from "src/utils/date.util";
 import { byteToHumanSizeString } from "src/utils/fileSize.util";
@@ -38,7 +37,6 @@ export class ShareService {
     private emailService: EmailService,
     private config: ConfigService,
     private jwtService: JwtService,
-    private reverseShareService: ReverseShareService,
     private clamScanService: ClamScanService,
     private systemService: SystemService,
     private readonly i18n: I18nService,
@@ -47,28 +45,23 @@ export class ShareService {
   async create(
     share: CreateShareDTO,
     user?: User,
-    reverseShareToken?: string,
     // The address the one-time-code flow actually proved belongs to this
     // visitor, resolved by the controller from the verification cookie.
     // Not the one they typed into the form: those are two different
     // things, and only this one may ever be shown to a recipient.
     verifiedSenderEmail?: string,
   ) {
-    const reverseShare =
-      await this.reverseShareService.getByToken(reverseShareToken);
-    const quotaOwner = reverseShare ? reverseShare.creator : user;
-
     if (share.size) {
       const systemInfo = await this.systemService.getSystemInfo();
       if (systemInfo && systemInfo.total - systemInfo.used < share.size) {
         throw new BadRequestException(this.i18n.t("share.notEnoughSpace"));
       }
 
-      if (quotaOwner?.storageQuotaLimit) {
-        const quotaLimit = parseInt(quotaOwner.storageQuotaLimit);
+      if (user?.storageQuotaLimit) {
+        const quotaLimit = parseInt(user.storageQuotaLimit);
         const activeStorageUsage = await getUserActiveStorageUsage(
           this.prisma,
-          quotaOwner.id,
+          user.id,
         );
 
         const projectedUsage = activeStorageUsage + share.size;
@@ -76,13 +69,9 @@ export class ShareService {
           const exceededBytes = projectedUsage - quotaLimit;
           const exceededSize = byteToHumanSizeString(exceededBytes);
           throw new BadRequestException(
-            reverseShare
-              ? this.i18n.t("share.reverseShareQuotaExceeded", {
-                  args: { exceededSize },
-                })
-              : this.i18n.t("share.storageQuotaExceeded", {
-                  args: { exceededSize },
-                }),
+            this.i18n.t("share.storageQuotaExceeded", {
+              args: { exceededSize },
+            }),
           );
         }
       }
@@ -91,80 +80,39 @@ export class ShareService {
     if (!(await this.isShareIdAvailable(share.id)).isAvailable)
       throw new BadRequestException(this.i18n.t("share.idInUse"));
 
-    // Same reasoning as expirationDate/finalName below: a reverse share's
-    // own security is set once by its creator (CreateReverseShareDTO),
-    // never per-submission any more — the frontend sends no security of
-    // its own for a reverse share at all. reverseShare.password is
-    // already hashed (ReverseShareService.create, at reverse share
-    // creation time), so it's used as-is here, not re-hashed — hashing an
-    // already-hashed value would just make it permanently unverifiable.
-    // restrictToRecipients has no reverse-share equivalent (there's no
-    // creator-facing recipients field to restrict to), so it's simply
-    // never set on this path.
-    if (reverseShare) {
-      share.security =
-        reverseShare.password || reverseShare.maxViews
-          ? {
-              password: reverseShare.password || undefined,
-              maxViews: reverseShare.maxViews || undefined,
-              restrictToRecipients: undefined,
-            }
-          : undefined;
-    } else {
-      if (!share.security || Object.keys(share.security).length == 0)
-        share.security = undefined;
+    if (!share.security || Object.keys(share.security).length == 0)
+      share.security = undefined;
 
-      if (share.security?.restrictToRecipients && share.security?.password) {
+    if (share.security?.restrictToRecipients && share.security?.password) {
+      throw new BadRequestException(
+        "Cannot set a password on a share restricted to recipients.",
+      );
+    }
+
+    if (share.security?.password) {
+      share.security.password = await argon.hash(share.security.password);
+    }
+
+    if (
+      this.configService.get("share.enableUserRecipients") &&
+      share.security?.restrictToRecipients
+    ) {
+      if (!share.recipients?.length) {
         throw new BadRequestException(
-          "Cannot set a password on a share restricted to recipients.",
+          "A share restricted to recipients must have at least one recipient.",
         );
       }
-
-      if (share.security?.password) {
-        share.security.password = await argon.hash(share.security.password);
-      }
-
-      if (
-        this.configService.get("share.enableUserRecipients") &&
-        share.security?.restrictToRecipients
-      ) {
-        if (!share.recipients?.length) {
-          throw new BadRequestException(
-            "A share restricted to recipients must have at least one recipient.",
-          );
-        }
-        // Note: we intentionally do NOT check whether the recipient emails belong
-        // to registered accounts. Doing so would leak which emails have an account
-        // (account enumeration). Recipients who aren't registered yet simply sign
-        // up to gain access (see ShareSecurityGuard); if signups are disabled they
-        // can't access it.
-      }
+      // Note: we intentionally do NOT check whether the recipient emails belong
+      // to registered accounts. Doing so would leak which emails have an account
+      // (account enumeration). Recipients who aren't registered yet simply sign
+      // up to gain access (see ShareSecurityGuard); if signups are disabled they
+      // can't access it.
     }
 
-    let expirationDate: Date;
-
-    // If share is created by a reverse share token override the expiration date
-    if (reverseShare) {
-      expirationDate = reverseShare.collectionEndsAt;
-    } else {
-      expirationDate = this.parseExpiration(share.expiration);
-      if (!user?.isAdmin && !user?.canCreatePermanentShares) {
-        this.validateExpiration(expirationDate);
-      }
+    const expirationDate = this.parseExpiration(share.expiration);
+    if (!user?.isAdmin && !user?.canCreatePermanentShares) {
+      this.validateExpiration(expirationDate);
     }
-
-    // Same idea as expirationDate above: a reverse share's own name (set
-    // only by its creator, at creation time — see CreateReverseShareDTO)
-    // always wins over whatever the submission itself carries, which for
-    // a reverse share is never a visitor's own choice any more (the
-    // frontend no longer offers that field) but still a real, sometimes-
-    // meaningful fallback: the file-derived default name computed
-    // client-side. Only actually overrides when the creator set one —
-    // reverseShare.name is optional, same as a direct share's.
-    const finalName = reverseShare?.name || share.name;
-    // Same pattern, one field over — the frontend sends no description of
-    // its own for a reverse share submission any more either.
-    const finalDescription = reverseShare?.description || share.description;
 
     fs.mkdirSync(`${SHARE_DIRECTORY}/${share.id}`, {
       recursive: true,
@@ -183,8 +131,8 @@ export class ShareService {
     const shareTuple = await this.prisma.share.create({
       data: {
         ...shareData,
-        name: finalName,
-        description: finalDescription,
+        name: share.name,
+        description: share.description,
         // A signed-in creator's identity is already the `creator` relation
         // below — never persist a second, potentially-stale copy of their
         // email here. Only meaningful for an anonymous sender.
@@ -220,18 +168,6 @@ export class ShareService {
       },
     });
 
-    if (reverseShare) {
-      // Assign share to reverse share token
-      await this.prisma.reverseShare.update({
-        where: { token: reverseShareToken },
-        data: {
-          perSubmissionShares: {
-            connect: { id: shareTuple.id },
-          },
-        },
-      });
-    }
-
     return shareTuple;
   }
 
@@ -256,14 +192,13 @@ export class ShareService {
     await archive.finalize();
   }
 
-  async complete(id: string, reverseShareToken?: string) {
+  async complete(id: string) {
     const share = await this.prisma.share.findUnique({
       where: { id },
       include: {
         files: true,
         recipients: true,
         creator: true,
-        reverseShare: { include: { creator: true } },
       },
     });
 
@@ -313,7 +248,7 @@ export class ShareService {
         recipient.id,
         share.id,
         share.name,
-        share.creator || share.reverseShare?.creator,
+        share.creator,
         // Only when the OTP flow has actually proven this address belongs to
         // the person who typed it. senderEmail is collected for every
         // anonymous share regardless of that toggle (see create() above), so
@@ -346,18 +281,6 @@ export class ShareService {
           });
         }
       }
-    }
-
-    const notifyReverseShareCreator = share.reverseShare
-      ? this.config.get("smtp.enabled") &&
-        share.reverseShare.sendEmailNotification
-      : undefined;
-
-    if (notifyReverseShareCreator) {
-      await this.emailService.sendMailToReverseShareCreator(
-        share.reverseShare.creator.email,
-        share.id,
-      );
     }
 
     // An anonymous sender (no account, so no "Mes transferts" to fall back
@@ -412,13 +335,6 @@ export class ShareService {
     // Check if any file is malicious with ClamAV
     void this.clamScanService.checkAndRemove(share.id);
 
-    if (share.reverseShare) {
-      await this.prisma.reverseShare.update({
-        where: { token: reverseShareToken },
-        data: { remainingUses: { decrement: 1 } },
-      });
-    }
-
     await this.prisma.share.update({
       where: { id },
       data: { uploadLocked: true },
@@ -433,10 +349,7 @@ export class ShareService {
       include: { files: true },
     });
 
-    return {
-      ...this.transformShare(updatedShare),
-      notifyReverseShareCreator,
-    };
+    return this.transformShare(updatedShare);
   }
 
   async revertComplete(id: string) {

@@ -28,7 +28,6 @@ const EditableUpload = ({
   files: savedFiles = [],
 }: {
   maxShareSize?: number;
-  isReverseShare?: boolean;
   shareId: string;
   files?: FileMetaData[];
 }) => {
