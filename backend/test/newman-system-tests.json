@@ -2135,6 +2135,44 @@
 							}
 						}
 					]
+				},
+				{
+					"name": "A junk collectionEndsAt is rejected, not just ignored",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"junk-collection-test\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"never\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"publicAccess\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 400', () => {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					]
 				}
 			]
 		},

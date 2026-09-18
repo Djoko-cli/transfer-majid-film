@@ -22,12 +22,26 @@ export class CreateReverseShareDTO {
   maxShareSize: string;
 
   // When depositing stops, as a relative "3-days" string, same shape as
-  // the field it replaces.
+  // the field it replaces. Same pattern ShareService.parseExpiration()
+  // matches for a direct share's relative expiration — deliberately
+  // narrower than that one, though: no "never" and no absolute date here,
+  // since parseRelativeDateToAbsolute() turns an unmatched string (a stray
+  // "never", or any other junk) into the epoch, which reads as "already
+  // expired" and gets the container deleted, link and all, within a minute.
   @IsString()
+  @Matches(/^\d+-(minute|hour|day|week|month|year|minutes|hours|days|weeks|months|years)$/, {
+    message:
+      "collectionEndsAt must be a relative duration, e.g. \"3-days\"",
+  })
   collectionEndsAt: string;
 
-  // How long the album survives after that, same shape.
+  // How long the album survives after that, same shape and same reason to
+  // reject anything else: an unparseable string silently yields 0 seconds
+  // of retention instead of failing loudly.
   @IsString()
+  @Matches(/^\d+-(minute|hour|day|week|month|year|minutes|hours|days|weeks|months|years)$/, {
+    message: "retention must be a relative duration, e.g. \"7-days\"",
+  })
   retention: string;
 
   @Min(1)

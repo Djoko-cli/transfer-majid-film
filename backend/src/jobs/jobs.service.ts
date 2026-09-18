@@ -6,7 +6,6 @@ import { BrandSyncService } from "src/brandSlides/brandSync.service";
 import { EmailService } from "src/email/email.service";
 import { FileService } from "src/file/file.service";
 import { PrismaService } from "src/prisma/prisma.service";
-import { ReverseShareService } from "src/reverseShare/reverseShare.service";
 import { ConfigService } from "src/config/config.service";
 import { SHARE_DIRECTORY } from "../constants";
 
@@ -16,7 +15,6 @@ export class JobsService {
 
   constructor(
     private prisma: PrismaService,
-    private reverseShareService: ReverseShareService,
     private fileService: FileService,
     private configServer: ConfigService,
     private emailService: EmailService,
@@ -67,12 +65,26 @@ export class JobsService {
   // when?" about.
   @Cron("0 * * * *")
   async closeEndedCollections() {
-    const ended = await this.prisma.reverseShare.findMany({
+    const candidates = await this.prisma.reverseShare.findMany({
       where: {
         collectionEndsAt: { lt: new Date() },
-        containerShare: { expiration: { gt: moment().add(1, "year").toDate() } },
       },
       include: { containerShare: true },
+    });
+
+    // Exact rather than heuristic ("expiration is far in the future"): a
+    // multi-year retention makes "far in the future" true forever, which
+    // would reselect — and re-log — an already-closed collection every hour
+    // for the rest of its life. Comparing to the real, computed death date
+    // is idempotent regardless of how long the retention is.
+    const ended = candidates.filter((collection) => {
+      const realExpiration = moment(collection.collectionEndsAt)
+        .add(collection.retentionSeconds, "seconds")
+        .toDate();
+      return (
+        collection.containerShare.expiration.getTime() !==
+        realExpiration.getTime()
+      );
     });
 
     for (const collection of ended) {

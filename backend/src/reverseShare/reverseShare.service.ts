@@ -26,6 +26,13 @@ export class ReverseShareService {
         data.retention.split("-")[1] as moment.unitOfTime.DurationConstructor,
       )
       .asSeconds();
+    // The date the container actually dies — collectionEndsAt only closes
+    // deposits, the album lives on for retentionSeconds after that. The cap
+    // below has to bind on this date: checking collectionEndsAt alone would
+    // let a short collection window with years of retention sail past it.
+    const containerExpiration = moment(collectionEndsAt)
+      .add(retentionSeconds, "seconds")
+      .toDate();
 
     const creator = await this.prisma.user.findUnique({
       where: { id: creatorId },
@@ -36,7 +43,7 @@ export class ReverseShareService {
       !creator?.isAdmin &&
       !creator?.canCreatePermanentShares &&
       maxExpiration.value !== 0 &&
-      collectionEndsAt >
+      containerExpiration >
         moment().add(maxExpiration.value, maxExpiration.unit).toDate()
     ) {
       throw new BadRequestException(this.i18n.t("share.maxExpirationExceeded"));
@@ -147,7 +154,11 @@ export class ReverseShareService {
     const reverseShares = await this.prisma.reverseShare.findMany({
       where: {
         creatorId: userId,
-        collectionEndsAt: { gt: new Date() },
+        // The album's death, not the end of deposits — those are two
+        // different dates now, and filtering on the first hides a
+        // collection that is closed but entirely alive from the only
+        // page that lists it.
+        containerShare: { expiration: { gt: new Date() } },
       },
       orderBy: {
         collectionEndsAt: "desc",
