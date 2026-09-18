@@ -32,6 +32,25 @@ export class ShareDTO {
   @Expose()
   isCollection: boolean;
 
+  // Only ever populated for a collection (see ShareController.get(), which
+  // is the only place this is assembled — ShareService.get() itself stays
+  // ignorant of contributions). A plain transfer's response simply omits
+  // the key, since a nested plain object outside excludeExtraneousValues's
+  // reach isn't itself filtered by @Expose(): the frontend types this as
+  // optional and reads it accordingly.
+  @Expose()
+  collection?: {
+    isOpen: boolean;
+    endsAt: Date;
+    description?: string;
+    contributions: {
+      id: string;
+      name?: string;
+      createdAt: Date;
+      fileCount: number;
+    }[];
+  };
+
   // Deliberately NOT @Expose()d — whether a share's files were imported
   // from the NAS or uploaded normally must be invisible to whoever's
   // downloading it, not just unstyled in the UI. FileService.getZip()

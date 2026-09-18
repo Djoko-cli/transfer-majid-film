@@ -14,7 +14,7 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Throttle } from "@nestjs/throttler";
-import { Share, ShareSecurity, User } from "@prisma/client";
+import { ReverseShare, Share, ShareSecurity, User } from "@prisma/client";
 import { Request, Response } from "express";
 import * as moment from "moment";
 import { GetUser } from "src/auth/decorator/getUser.decorator";
@@ -37,12 +37,14 @@ import { ShareSecurityGuard } from "./guard/shareSecurity.guard";
 import { ShareTokenSecurity } from "./guard/shareTokenSecurity.guard";
 import { IdValidation } from "./guard/shareIdValidation.guard";
 import { ShareService } from "./share.service";
+import { ContributionService } from "./contribution.service";
 import { VerificationService } from "src/verification/verification.service";
 import { CompletedShareDTO } from "./dto/shareComplete.dto";
 @Controller("shares")
 export class ShareController {
   constructor(
     private shareService: ShareService,
+    private contributionService: ContributionService,
     private verificationService: VerificationService,
     private jwtService: JwtService,
     private config: ConfigService,
@@ -73,7 +75,38 @@ export class ShareController {
   @Get(":id")
   @UseGuards(IdValidation, ShareSecurityGuard)
   async get(@Param("id") id: string) {
-    return new ShareDTO().from(await this.shareService.get(id));
+    const share = await this.shareService.get(id);
+    return new ShareDTO().from({
+      ...share,
+      collection: await this.getCollectionState(id, share),
+    });
+  }
+
+  // Assembled here, not in ShareService.get(), which stays about the Share
+  // row alone — this is what turns spec §5.2's "l'album, groupée par
+  // contribution" into ShareDTO.collection. share.collectionOf is only
+  // ever set for a real collection (see ShareService.get()'s own comment
+  // on that include); anything else returns undefined so ShareDTO simply
+  // omits the key for every ordinary transfer.
+  private async getCollectionState(
+    shareId: string,
+    share: Share & { collectionOf?: ReverseShare | null },
+  ) {
+    if (!share.isCollection || !share.collectionOf) return undefined;
+
+    const contributions = await this.contributionService.getWithFiles(shareId);
+
+    return {
+      isOpen: share.collectionOf.collectionEndsAt > new Date(),
+      endsAt: share.collectionOf.collectionEndsAt,
+      description: share.collectionOf.description ?? undefined,
+      contributions: contributions.map((contribution) => ({
+        id: contribution.id,
+        name: contribution.name ?? undefined,
+        createdAt: contribution.createdAt,
+        fileCount: contribution.files.length,
+      })),
+    };
   }
 
   @Get(":id/from-owner")

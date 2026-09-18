@@ -20,6 +20,7 @@ import { FormattedMessage } from "react-intl";
 import { TbDownload, TbEdit, TbFiles, TbLink } from "react-icons/tb";
 import Meta from "../../../components/Meta";
 import showShareLinkModal from "../../../components/account/showShareLinkModal";
+import CollectionDropzone from "../../../components/share/CollectionDropzone";
 import DownloadAllButton from "../../../components/share/DownloadAllButton";
 import FileList from "../../../components/share/FileList";
 import showEnterPasswordModal from "../../../components/share/showEnterPasswordModal";
@@ -372,7 +373,25 @@ const Share = ({ shareId }: { shareId: string }) => {
             share={share!}
             isLoading={!share}
             recipientId={recipientId}
+            contributions={share?.collection?.contributions}
           />
+
+          {
+            // The deposit, appended to the album's own page rather than a
+            // page of its own — see docs/collecte-conteneur-unique.md §5.
+            // Held back until `share` has actually loaded: isOpen/endsAt
+            // would otherwise read as "closed" for the one render before
+            // the real collection state arrives.
+            share?.isCollection && share.collection && (
+              <CollectionDropzone
+                shareId={shareId}
+                isOpen={share.collection.isOpen}
+                endsAt={share.collection.endsAt}
+                maxShareSize={parseInt(config.get("share.maxSize"))}
+                onDeposited={getFiles}
+              />
+            )
+          }
         </MantineProvider>
       </SplitTransferLayout>
     </>

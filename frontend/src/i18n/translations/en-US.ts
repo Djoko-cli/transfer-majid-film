@@ -665,6 +665,17 @@ export default {
     "Previews are not supported for this type of files. Please download the file to view it.",
   "share.modal.file-preview.view-original": "View original file",
 
+  // The deposit and the per-contribution grouping of a collection — see
+  // docs/collecte-conteneur-unique.md §5.
+  "share.collection.contributed-by":
+    "{count, plural, =1 {# file} other {# files}} from {name} · {date}",
+  "share.collection.anonymous": "Anonymous",
+  "share.collection.closed-since": "This collection has been closed since {date}.",
+  "share.collection.add-files": "Add files to the album",
+  "share.collection.identity.title": "Identify yourself to contribute",
+  "share.collection.identity.name-label": "Your first name",
+  "share.collection.identity.signed-in-as": "You're depositing as {name}.",
+
   // END /share/[id]
 
   // /share/[id]/edit

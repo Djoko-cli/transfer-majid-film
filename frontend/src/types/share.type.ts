@@ -1,5 +1,25 @@
 import User from "./user.type";
 
+// One contribution's summary, as ShareDTO.collection.contributions carries
+// it — enough for FileList to group and caption a group ("40 photos de
+// Sophie · 12 septembre"), not the files themselves (those still come
+// through Share.files, each tagged with its own contributionId).
+export type ShareCollectionContribution = {
+  id: string;
+  name?: string;
+  createdAt: Date;
+  fileCount: number;
+};
+
+// Present on Share only when isCollection is true — see
+// ShareController.getCollectionState(), the sole place that assembles it.
+export type ShareCollection = {
+  isOpen: boolean;
+  endsAt: Date;
+  description?: string;
+  contributions: ShareCollectionContribution[];
+};
+
 export type Share = {
   id: string;
   name?: string;
@@ -9,6 +29,8 @@ export type Share = {
   expiration: Date;
   size: number;
   hasPassword: boolean;
+  isCollection?: boolean;
+  collection?: ShareCollection;
 };
 
 export type CompletedShare = Share;

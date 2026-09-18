@@ -357,6 +357,67 @@ const uploadFile = async (
   );
 };
 
+// Opens a contribution against a collection — POST /shares/:id/contributions
+// (task 3). Identity is never sent here: the guard behind this route reads
+// it off the session (a signed-in account) or off the verification cookie
+// a prior verify-code call already set, exactly like ShareService.create()
+// for an anonymous sender. `name` is the only thing this call actually
+// carries.
+const openContribution = async (
+  shareId: string,
+  name?: string,
+): Promise<{ id: string }> => {
+  if (!isValidId(shareId)) throw new Error("Invalid ID");
+  return (await api.post(`shares/${shareId}/contributions`, { name })).data;
+};
+
+// The chunked-upload counterpart of uploadFile above, aimed at a
+// contribution instead of a plain share. Deliberately not folded into
+// uploadFile itself: the contribution route (task 3) has no S3-direct-
+// upload variant, so this only ever needs uploadFileProxied's shape, not
+// the fallback/session bookkeeping uploadFile carries for the plain path.
+const uploadContributionFile = async (
+  shareId: string,
+  contributionId: string,
+  chunk: Blob,
+  file: { id?: string; name: string },
+  chunkIndex: number,
+  totalChunks: number,
+  onUploadProgress?: (progressEvent: any) => void,
+): Promise<FileUploadResponse> => {
+  if (!isValidId(shareId) || !isValidId(contributionId))
+    throw new Error("Invalid ID");
+  return (
+    await api.post(
+      `shares/${shareId}/contributions/${contributionId}/files`,
+      chunk,
+      {
+        headers: { "Content-Type": "application/octet-stream" },
+        params: {
+          id: file.id,
+          name: file.name,
+          chunkIndex,
+          totalChunks,
+        },
+        onUploadProgress,
+      },
+    )
+  ).data;
+};
+
+const completeContribution = async (
+  shareId: string,
+  contributionId: string,
+) => {
+  if (!isValidId(shareId) || !isValidId(contributionId))
+    throw new Error("Invalid ID");
+  return (
+    await api.post(
+      `shares/${shareId}/contributions/${contributionId}/complete`,
+    )
+  ).data;
+};
+
 const isReverseShareTokenAvailable = async (
   token: string,
 ): Promise<boolean> => {
@@ -429,6 +490,9 @@ export default {
   getThumbnailUrl,
   removeFile,
   uploadFile,
+  openContribution,
+  uploadContributionFile,
+  completeContribution,
   createReverseShare,
   getMyReverseShares,
   removeReverseShare,

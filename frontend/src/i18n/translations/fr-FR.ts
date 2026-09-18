@@ -644,6 +644,17 @@ export default {
   "share.modal.file-preview.error.not-supported.description":
     "Les aperçus ne sont pas pris en charge pour ce type de fichiers. Veuillez télécharger le fichier pour le voir.",
   "share.modal.file-preview.view-original": "Voir le fichier original",
+
+  // Le dépôt et le groupement par contribution d'une collecte — voir
+  // docs/collecte-conteneur-unique.md §5.
+  "share.collection.contributed-by":
+    "{count, plural, =1 {# fichier} other {# fichiers}} de {name} · {date}",
+  "share.collection.anonymous": "Anonyme",
+  "share.collection.closed-since": "Cette collecte est fermée depuis le {date}.",
+  "share.collection.add-files": "Ajouter des fichiers à l'album",
+  "share.collection.identity.title": "Identifiez-vous pour déposer",
+  "share.collection.identity.name-label": "Votre prénom",
+  "share.collection.identity.signed-in-as": "Vous déposez en tant que {name}.",
   // END /share/[id]
 
   // /share/[id]/edit

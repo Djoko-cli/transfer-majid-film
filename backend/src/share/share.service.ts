@@ -401,6 +401,12 @@ export class ShareService {
         },
         creator: true,
         security: true,
+        // Only ever non-null for a collection, and only its own owner-set
+        // fields are read from it (collectionEndsAt, description) —
+        // ShareController.get() is what turns this into ShareDTO's
+        // `collection`, not this method, which stays about the Share row
+        // itself.
+        collectionOf: true,
       },
     });
 
