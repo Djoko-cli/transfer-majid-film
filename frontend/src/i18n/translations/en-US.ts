@@ -269,6 +269,8 @@ export default {
   "account.reverseShares.description":
     "A reverse share allows you to generate a unique URL that allows external users to create a transfer.",
 
+  "account.reverseShares.disabled-notice":
+    "Creating new deposit links is disabled. The collections below keep working as before.",
   "account.reverseShares.title.empty": "It's empty here 👀",
   "account.reverseShares.description.empty":
     "You don't have any reverse shares.",
@@ -918,6 +920,9 @@ export default {
     "Enable sharing with registered users",
   "admin.config.share.enable-user-recipients.description":
     "When enabled, transfers sent to a registered user's email address will automatically appear in their account. Users can also restrict transfer access to named recipients only.",
+  "admin.config.share.enable-reverse-shares": "Reverse shares",
+  "admin.config.share.enable-reverse-shares.description":
+    "Allow creating deposit links. Links already created keep working, including for receiving new contributions.",
   "admin.config.share.enable-nas-import": "Enable NAS import",
   "admin.config.share.enable-nas-import.description":
     "Lets an administrator create a transfer from files already on the NAS, without duplicating their content. Also requires the NAS_IMPORT_ROOT environment variable to be set to a mounted directory.",

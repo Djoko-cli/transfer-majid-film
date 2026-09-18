@@ -3024,6 +3024,261 @@
 							}
 						}
 					]
+				},
+				{
+					"name": "Sign in as admin to reach the config switch",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"system@test.org\",\n    \"password\": \"J2y8unpJUcJDRv\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/signIn",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"signIn"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.collectionVariables.set('ADMIN_ACCESS_TOKEN', pm.response.json().accessToken);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Turn the reverse-share switch off",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"key\": \"share.enableReverseShares\",\n        \"value\": false\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/configs/admin",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"configs",
+								"admin"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// This folder runs before 'Anonymous share leaks' captures its own",
+									"// admin token, and the ambiently logged-in user at this point is",
+									"// system2@test.org from Auth > Positive > Sign In, not an admin.",
+									"// Setting our own Cookie from ADMIN_ACCESS_TOKEN (captured by",
+									"// 'Sign in as admin' above), the same way 'Anonymous share leaks'",
+									"// does it, avoids relying on Newman's cookie jar for the",
+									"// access_token cookie at all.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Creating a collection link is refused while the switch is off",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"vacances-refusee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"publicAccess\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// This folder runs before 'Anonymous share leaks' captures its own",
+									"// admin token, and the ambiently logged-in user at this point is",
+									"// system2@test.org from Auth > Positive > Sign In, not an admin.",
+									"// Setting our own Cookie from ADMIN_ACCESS_TOKEN (captured by",
+									"// 'Sign in as admin' above), the same way 'Anonymous share leaks'",
+									"// does it, avoids relying on Newman's cookie jar for the",
+									"// access_token cookie at all.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "An existing collection's album still answers with the switch off",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/vacances-test",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// The two config-toggle requests just above authenticated as admin,",
+									"// and Newman's cookie jar is keyed per host, so an admin cookie set",
+									"// on {{API_URL}} (localhost) would otherwise still ride along here \u2014",
+									"// see 'Read the album before depositing, as any visitor would' above",
+									"// for the same API_URL_ANON (127.0.0.1) + strip pairing, and the",
+									"// comment on 'Anonymous share leaks / Sign in as admin' for why a",
+									"// stray cookie reads as a bad token and gets refused rather than",
+									"// falling through anonymous. This read has to prove itself for 'any",
+									"// visitor', not for whoever last signed in.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Turn the reverse-share switch back on",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"key\": \"share.enableReverseShares\",\n        \"value\": true\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/configs/admin",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"configs",
+								"admin"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// This folder runs before 'Anonymous share leaks' captures its own",
+									"// admin token, and the ambiently logged-in user at this point is",
+									"// system2@test.org from Auth > Positive > Sign In, not an admin.",
+									"// Setting our own Cookie from ADMIN_ACCESS_TOKEN (captured by",
+									"// 'Sign in as admin' above), the same way 'Anonymous share leaks'",
+									"// does it, avoids relying on Newman's cookie jar for the",
+									"// access_token cookie at all.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
 				}
 			]
 		},

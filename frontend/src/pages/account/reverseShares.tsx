@@ -14,7 +14,13 @@ import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
 import moment from "moment";
 import { useEffect, useState } from "react";
-import { TbExternalLink, TbInfoCircle, TbLink, TbPlus, TbTrash } from "react-icons/tb";
+import {
+  TbExternalLink,
+  TbInfoCircle,
+  TbLink,
+  TbPlus,
+  TbTrash,
+} from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import Meta from "../../components/Meta";
 import showReverseShareLinkModal from "../../components/account/showReverseShareLinkModal";
@@ -90,26 +96,37 @@ const MyShares = () => {
             </ActionIcon>
           </HoverTip>
         </Group>
-        <Button
-          onClick={() =>
-            showCreateReverseShareModal(
-              modals,
-              config.get("smtp.enabled"),
-              user?.isAdmin || user?.canCreatePermanentShares
-                ? { value: 0, unit: "days" }
-                : config.get("share.maxExpiration"),
-              config.get("share.defaultExpiration"),
-              appUrl,
-              defaultAppUrl,
-              userMaxShareSize,
-              getReverseShares,
-              config.get("share.shareIdLength"),
-            )
-          }
-          leftIcon={<TbPlus size={20} />}
-        >
-          <FormattedMessage id="common.button.create" />
-        </Button>
+        {config.get("share.enableReverseShares") ? (
+          <Button
+            onClick={() =>
+              showCreateReverseShareModal(
+                modals,
+                config.get("smtp.enabled"),
+                user?.isAdmin || user?.canCreatePermanentShares
+                  ? { value: 0, unit: "days" }
+                  : config.get("share.maxExpiration"),
+                config.get("share.defaultExpiration"),
+                appUrl,
+                defaultAppUrl,
+                userMaxShareSize,
+                getReverseShares,
+                config.get("share.shareIdLength"),
+              )
+            }
+            leftIcon={<TbPlus size={20} />}
+          >
+            <FormattedMessage id="common.button.create" />
+          </Button>
+        ) : (
+          <Text
+            color="dimmed"
+            size="sm"
+            sx={{ display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <TbInfoCircle />
+            <FormattedMessage id="account.reverseShares.disabled-notice" />
+          </Text>
+        )}
       </Group>
       {reverseShares.length == 0 ? (
         <Center style={{ height: "70vh" }}>

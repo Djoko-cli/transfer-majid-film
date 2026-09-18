@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import * as argon from "argon2";
 import * as fs from "fs";
@@ -21,6 +25,12 @@ export class ReverseShareService {
   ) {}
 
   async create(data: CreateReverseShareDTO, creatorId: string) {
+    // Only the making of new links is refused. Everything already created
+    // keeps working, contributions included — freezing an album mid-collection
+    // is not what anyone means when they untick a box.
+    if (!this.config.get("share.enableReverseShares"))
+      throw new ForbiddenException(this.i18n.t("reverseShare.disabled"));
+
     const collectionEndsAt = parseRelativeDateToAbsolute(data.collectionEndsAt);
     const retentionSeconds = moment
       .duration(

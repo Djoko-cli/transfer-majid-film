@@ -258,6 +258,8 @@ export default {
   "account.reverseShares.title": "Transferts inversés",
   "account.reverseShares.description":
     "Un transfert inversé vous permet de générer une URL unique qui permet à des utilisateurs externes de créer un transfert.",
+  "account.reverseShares.disabled-notice":
+    "La création de nouveaux liens de dépôt est désactivée. Les collectes ci-dessous continuent de fonctionner normalement.",
   "account.reverseShares.title.empty": "C’est plutôt vide 👀",
   "account.reverseShares.description.empty":
     "Vous n’avez aucun transfert inversé.",
@@ -918,6 +920,9 @@ export default {
     "Activer le transfert avec les utilisateurs enregistrés",
   "admin.config.share.enable-user-recipients.description":
     "Lorsqu'il est activé, les transferts envoyés à l'adresse e-mail d'un utilisateur enregistré apparaîtront automatiquement dans son compte. Les utilisateurs peuvent également restreindre l'accès au transfert aux destinataires nommés uniquement.",
+  "admin.config.share.enable-reverse-shares": "Transferts inversés",
+  "admin.config.share.enable-reverse-shares.description":
+    "Autoriser la création de liens de dépôt. Les liens déjà créés continuent de fonctionner, y compris pour recevoir de nouvelles contributions.",
   "admin.config.share.enable-nas-import": "Activer l'import depuis le NAS",
   "admin.config.share.enable-nas-import.description":
     "Permet à un administrateur de créer un transfert à partir de fichiers déjà présents sur le NAS, sans en dupliquer le contenu. Nécessite également que la variable d'environnement NAS_IMPORT_ROOT soit définie sur un dossier monté.",
