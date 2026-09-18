@@ -55,6 +55,23 @@ export class FileService {
     shareId: string,
     contributionId?: string,
   ) {
+    // Only ever a real check when the caller supplied the id (a freshly
+    // minted uuid, generated further down in whichever storage service
+    // actually handles this call, can't collide) — and it has to be a
+    // global check, not one scoped to this share, because File.id is a
+    // global primary key. Lives here, in the provider-agnostic facade,
+    // rather than in LocalFileService or S3FileService individually, so
+    // both storage backends refuse an already-existing id the same way:
+    // one that only held for LOCAL would leave S3 taking a caller-chosen
+    // id at face value into a duplicate-key 500 instead of a clean 400.
+    if (file.id) {
+      const existing = await this.prisma.file.findUnique({
+        where: { id: file.id },
+      });
+      if (existing)
+        throw new BadRequestException(this.i18n.t("file.idInUse"));
+    }
+
     await this.touchShare(shareId);
     const storageService = this.getStorageService();
     return storageService.create(data, chunk, file, shareId, contributionId);

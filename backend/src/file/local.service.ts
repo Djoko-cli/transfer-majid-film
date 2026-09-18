@@ -40,23 +40,15 @@ export class LocalFileService {
     // collection — see the size check below for why it matters.
     contributionId?: string,
   ) {
+    // The id-collision check (an existing id is illegitimate for a *new*
+    // file) lives in FileService.create(), the provider-agnostic facade
+    // both this method and S3FileService.create() are called through —
+    // not here, so it covers both storage backends with the one check
+    // rather than one that only holds for LOCAL.
     if (!file.id) {
       file.id = crypto.randomUUID();
     } else if (!isValidUUID(file.id)) {
       throw new BadRequestException(this.i18n.t("file.invalidIdFormat"));
-    } else if (await this.prisma.file.findUnique({ where: { id: file.id } })) {
-      // Only ever a real check when the caller supplied the id (a freshly
-      // minted uuid above can't collide) — and it has to be a global
-      // check, not one scoped to this share, because File.id is a global
-      // primary key. Accepting an id that already names a real row would
-      // let this request rename its bytes over that file's on disk below,
-      // before the create() call further down even gets a chance to fail
-      // on the duplicate key. Lives here rather than in a controller so
-      // both upload routes are covered by the one check: the classic one
-      // (FileController.create(), gated by sole ownership of this share)
-      // and the contribution one (reachable by any of several different
-      // contributors to the same collection).
-      throw new BadRequestException(this.i18n.t("file.idInUse"));
     }
 
     const share = await this.prisma.share.findUnique({

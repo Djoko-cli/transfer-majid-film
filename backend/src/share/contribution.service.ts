@@ -39,21 +39,39 @@ export class ContributionService {
         "collection_closed",
       );
 
-    if (share.collectionOf.remainingUses <= 0)
-      throw new ForbiddenException(
-        this.i18n.t("share.collectionClosed"),
-        "collection_closed",
-      );
-
     // An identity is required, and it is never the one that was typed: a
     // signed-in account, or an address the one-time code proved. The link
     // used to stand in for identity — a valid token was a free pass — and
-    // that is exactly why nobody could tell who had sent what.
+    // that is exactly why nobody could tell who had sent what. Checked
+    // before the claim below, so a request with no identity never spends
+    // a use it was always going to be refused anyway.
     if (!userId && !verifiedEmail) throw new ForbiddenException();
 
-    // remainingUses is spent in complete(), not here: it counts deposits
-    // actually made, and an opened-then-abandoned contribution must cost
-    // the collection nothing — see complete()'s own comment.
+    // Claimed atomically, right here, rather than merely read: a plain
+    // `remainingUses <= 0` check is what let someone open far more
+    // contributions than maxUseCount while the count stayed positive and
+    // then complete them all. open() is the one action every
+    // contribution goes through exactly once — finished or abandoned —
+    // so it is the one place that can bind the count without adding
+    // reclaim machinery. The alternative (claiming at complete()) was
+    // tried and reverted: it strands an uploaded-but-never-closed
+    // contribution forever, with no use spent, no notification, no zip,
+    // and nothing on the server that ever reconciles it. An abandoned
+    // contribution costs a use now, and that is accepted — these routes
+    // require the collection's password and a proven identity, so
+    // spending twenty uses means being an invited participant who
+    // chooses to sabotage the album they were invited to, not a stranger
+    // with a free pass.
+    const claimed = await this.prisma.reverseShare.updateMany({
+      where: { containerShareId: shareId, remainingUses: { gt: 0 } },
+      data: { remainingUses: { decrement: 1 } },
+    });
+    if (claimed.count === 0)
+      throw new ForbiddenException(
+        this.i18n.t("share.collectionClosed"),
+        "collection_full",
+      );
+
     return this.prisma.shareContribution.create({
       data: {
         shareId,
@@ -69,51 +87,13 @@ export class ContributionService {
   // The archive is rebuilt from scratch on every contribution. On a
   // multi-gigabyte album that will be felt, and the answer then is to
   // build it on demand instead — measure before assuming either way.
+  //
+  // A plain close: the use this contribution spends was already claimed
+  // at open() (see its own comment), and re-completing an already-closed
+  // contribution is refused before this ever runs — ContributionGuard
+  // reads the same completedAt and throws the same "contribution_closed"
+  // for a request the guard itself already turned back.
   async complete(contribution: ShareContribution) {
-    // Conditional rather than a plain decrement, and done first: the count
-    // is only *read* at open() (see its own comment), so nothing stops
-    // someone opening far more contributions than maxUseCount while it is
-    // still positive and then completing them all. Bounding it here,
-    // atomically, at the one moment a deposit actually becomes real, is
-    // what makes maxUseCount mean what it says — a plain decrement would
-    // let the count go negative and accept unlimited deposits. Checked
-    // before completedAt is ever touched, so a genuinely exhausted
-    // collection refuses cleanly: no zip rebuild, no contribution left
-    // looking completed behind the error the caller actually sees.
-    const claimed = await this.prisma.reverseShare.updateMany({
-      where: {
-        containerShareId: contribution.shareId,
-        remainingUses: { gt: 0 },
-      },
-      data: { remainingUses: { decrement: 1 } },
-    });
-    if (claimed.count === 0)
-      throw new ForbiddenException(
-        this.i18n.t("share.collectionClosed"),
-        "collection_full",
-      );
-
-    // Conditional on completedAt still being null, so two concurrent
-    // completions of the *same* contribution can both pass the claim
-    // above, but only one of them actually closes it. The loser's write
-    // matches zero rows: refund the use it just claimed (it never really
-    // happened) and say plainly that the contribution is already closed,
-    // rather than double-spending on one deposit made once.
-    const closing = await this.prisma.shareContribution.updateMany({
-      where: { id: contribution.id, completedAt: null },
-      data: { completedAt: new Date() },
-    });
-    if (closing.count === 0) {
-      await this.prisma.reverseShare.updateMany({
-        where: { containerShareId: contribution.shareId },
-        data: { remainingUses: { increment: 1 } },
-      });
-      throw new ForbiddenException(
-        this.i18n.t("share.contributionClosed"),
-        "contribution_closed",
-      );
-    }
-
     await this.prisma.share.update({
       where: { id: contribution.shareId },
       data: { isZipReady: false },
@@ -125,6 +105,11 @@ export class ContributionService {
         data: { isZipReady: true },
       }),
     );
+
+    const closed = await this.prisma.shareContribution.update({
+      where: { id: contribution.id },
+      data: { completedAt: new Date() },
+    });
 
     const collection = await this.prisma.reverseShare.findUnique({
       where: { containerShareId: contribution.shareId },
@@ -138,9 +123,7 @@ export class ContributionService {
       );
     }
 
-    return this.prisma.shareContribution.findUnique({
-      where: { id: contribution.id },
-    });
+    return closed;
   }
 
   // The contributions with their files, for task 5's DTO.
