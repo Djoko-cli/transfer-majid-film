@@ -220,9 +220,36 @@ export class EmailService {
       files.reduce((sum, file) => sum + file.size, 0),
     );
 
+    // One line, used twice: as the subject and as the body's title. The
+    // subject used to be a fixed sentence — "Files have been transferred to
+    // you" — which told the recipient nothing the arrival of the mail had
+    // not already told them, and left three deliveries from the same person
+    // in one month indistinguishable before opening any of them. The
+    // sender's own confirmation has carried its transfer's name in the
+    // subject since the day it was asked to; this is that same need, seen
+    // from the other end of the transfer.
+    const headline = shareName
+      ? this.i18n.t("email.recipientHeadlineNamed", {
+          lang,
+          args: { creator: creatorName, name: shareName },
+        })
+      : this.i18n.t(
+          files.length === 1
+            ? "email.recipientHeadlineSingular"
+            : "email.recipientHeadlinePlural",
+          {
+            lang,
+            args: {
+              creator: creatorName,
+              fileName: files[0]?.name,
+              count: files.length,
+            },
+          },
+        );
+
     await this.sendMail(
       recipientEmail,
-      this.i18n.t("email.shareRecipientsSubject", { lang }),
+      headline,
       this.i18n
         .t("email.shareRecipientsMessage", { lang })
         .replaceAll("\\n", "\n")
@@ -265,24 +292,7 @@ export class EmailService {
         // split the sender's own confirmation already makes (see
         // senderHeadlineNamed in sendShareLinkToSender), so both ends of
         // one transfer now call it by the same name.
-        headline: shareName
-          ? this.i18n.t("email.recipientHeadlineNamed", {
-              lang,
-              args: { creator: creatorName, name: shareName },
-            })
-          : this.i18n.t(
-              files.length === 1
-                ? "email.recipientHeadlineSingular"
-                : "email.recipientHeadlinePlural",
-              {
-                lang,
-                args: {
-                  creator: creatorName,
-                  fileName: files[0]?.name,
-                  count: files.length,
-                },
-              },
-            ),
+        headline,
         metaLine: files.length
           ? this.buildMetaLine(files.length, totalSize, expiration)
           : undefined,
