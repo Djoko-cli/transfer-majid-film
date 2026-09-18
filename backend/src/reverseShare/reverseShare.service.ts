@@ -1,8 +1,10 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import * as argon from "argon2";
+import * as fs from "fs";
 import * as moment from "moment";
 import { I18nService } from "nestjs-i18n";
+import { SHARE_DIRECTORY } from "src/constants";
 import { ConfigService } from "src/config/config.service";
 import { FileService } from "src/file/file.service";
 import { PrismaService } from "src/prisma/prisma.service";
@@ -76,6 +78,13 @@ export class ReverseShareService {
     const hashedPassword = data.password
       ? await argon.hash(data.password)
       : undefined;
+
+    // Every other Share gets this directory from ShareService.create()'s
+    // own mkdirSync, right before its own row is written. The container is
+    // never created through that path, so nothing else will ever make this
+    // directory exist — LocalFileService.create() assumes it already does
+    // and just appends into it.
+    fs.mkdirSync(`${SHARE_DIRECTORY}/${data.token}`, { recursive: true });
 
     try {
       // The container is born locked, which is what makes it readable at

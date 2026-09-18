@@ -15,5 +15,7 @@
   "tokenRequired": "Share token required",
   "privateShare": "Only reverse share creator can access this share",
   "maxViewsExceeded": "Maximum views exceeded",
-  "restrictedToRecipients": "This share is restricted to specific recipients. Please log in to access it."
+  "restrictedToRecipients": "This share is restricted to specific recipients. Please log in to access it.",
+  "contributionClosed": "Contribution already completed",
+  "collectionClosed": "This collection is no longer accepting deposits"
 }

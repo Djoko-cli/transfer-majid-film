@@ -147,3 +147,18 @@ Deux autres, trouvés pendant l'exécution :
   qu'à mi-parcours l'identité ambiante des tests n'est plus celle qu'on croit.
   Contourné dans le dossier `Anonymous share leaks` par une reconnexion
   explicite, pas corrigé à la racine.
+
+---
+
+## 6. Le verrou d'upload d'une collecte n'a pas d'équivalent côté S3
+
+Relevé en implémentant la tâche 3 de « collecte comme conteneur unique »
+(2026-09-18). `LocalFileService.create()` refuse désormais l'écriture sur un
+transfert verrouillé **sauf** s'il s'agit d'une collecte
+(`local.service.ts:55`, colonne `Share.isCollection`). Le chemin S3
+équivalent, `createPreSignedUploadUrls` (`file.service.ts:79`), ne consulte
+`uploadLocked` **nulle part** — ce qui veut dire qu'il n'a jamais refusé
+d'écriture sur aucun transfert verrouillé, collecte ou pas. Sans objet tant
+que l'instance tourne en stockage local (configuration actuelle) ; à combler
+avant d'activer S3 pour une collecte, sous peine de laisser un chemin
+d'écriture qui ne passe par aucune contribution.

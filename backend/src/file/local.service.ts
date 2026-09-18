@@ -52,7 +52,12 @@ export class LocalFileService {
       },
     });
 
-    if (share.uploadLocked)
+    // A collection is the one transfer that is locked and still writable:
+    // locked is what makes it readable, and it has to be readable while it
+    // fills. What actually authorises this write is the open contribution
+    // the controller checked before getting here — this flag only says the
+    // transfer is not frozen.
+    if (share.uploadLocked && !share.isCollection)
       throw new BadRequestException(this.i18n.t("file.alreadyCompleted"));
 
     let diskFileSize: number;
