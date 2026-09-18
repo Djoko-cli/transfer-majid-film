@@ -56,6 +56,11 @@ export class S3FileService {
     chunk: { index: number; total: number },
     file: { id?: string; name: string },
     shareId: string,
+    // Accepted only so this stays call-compatible with
+    // LocalFileService.create() — not read here. The S3 path has no
+    // uploadLocked check at all yet (see docs/chantiers.md §6), so a
+    // per-contribution size ceiling would be moot without that first.
+    _contributionId?: string,
   ) {
     if (!file.id) {
       file.id = crypto.randomUUID();

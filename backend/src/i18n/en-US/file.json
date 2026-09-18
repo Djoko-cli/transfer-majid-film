@@ -1,5 +1,6 @@
 {
   "invalidIdFormat": "Invalid ID format",
+  "idInUse": "File id already in use",
   "notFound": "File not found",
   "passwordProtected": "This share is password protected",
   "alreadyCompleted": "Share is already completed",

@@ -51,22 +51,18 @@ export class ContributionService {
     // that is exactly why nobody could tell who had sent what.
     if (!userId && !verifiedEmail) throw new ForbiddenException();
 
-    return this.prisma.$transaction(async (tx) => {
-      await tx.reverseShare.update({
-        where: { id: share.collectionOf.id },
-        data: { remainingUses: { decrement: 1 } },
-      });
-
-      return tx.shareContribution.create({
-        data: {
-          shareId,
-          name: name || undefined,
-          userId: userId || undefined,
-          // Only ever the address the code proved, never re-declared once
-          // a userId is known — see the schema's own comment on this field.
-          email: !userId ? verifiedEmail : undefined,
-        },
-      });
+    // remainingUses is spent in complete(), not here: it counts deposits
+    // actually made, and an opened-then-abandoned contribution must cost
+    // the collection nothing — see complete()'s own comment.
+    return this.prisma.shareContribution.create({
+      data: {
+        shareId,
+        name: name || undefined,
+        userId: userId || undefined,
+        // Only ever the address the code proved, never re-declared once
+        // a userId is known — see the schema's own comment on this field.
+        email: !userId ? verifiedEmail : undefined,
+      },
     });
   }
 
@@ -91,13 +87,18 @@ export class ContributionService {
       data: { completedAt: new Date() },
     });
 
-    const collection = await this.prisma.reverseShare.findUnique({
+    // remainingUses counts deposits actually made, not attempts to make
+    // one. Spending it here rather than in open() means an opened-then-
+    // abandoned contribution costs the collection nothing — twenty
+    // open-and-walk-away calls would otherwise close it for everyone.
+    const collection = await this.prisma.reverseShare.update({
       where: { containerShareId: contribution.shareId },
+      data: { remainingUses: { decrement: 1 } },
       include: { creator: true },
     });
 
     if (
-      collection?.sendEmailNotification &&
+      collection.sendEmailNotification &&
       this.config.get("smtp.enabled")
     ) {
       await this.emailService.sendMailToReverseShareCreator(

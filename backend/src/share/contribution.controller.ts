@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   HttpCode,
@@ -11,12 +12,14 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import { SkipThrottle } from "@nestjs/throttler";
 import { Request } from "express";
+import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
 import { FileService } from "src/file/file.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { VerificationService } from "src/verification/verification.service";
 import { ContributionService } from "./contribution.service";
 import { ContributionGuard } from "./guard/contribution.guard";
+import { ShareSecurityGuard } from "./guard/shareSecurity.guard";
 import { IdValidation } from "./guard/shareIdValidation.guard";
 
 @Controller("shares/:id/contributions")
@@ -28,10 +31,18 @@ export class ContributionController {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private config: ConfigService,
+    private readonly i18n: I18nService,
   ) {}
 
+  // ShareSecurityGuard is the one door spec §5.1 wants asked before
+  // reading *or* depositing: a password-protected (or recipient-
+  // restricted) collection must refuse a deposit exactly as it refuses a
+  // read, and it must do so before ContributionGuard ever runs — a
+  // stranger holding a link's slug but not its password proves nothing
+  // by opening a contribution. It costs a real contributor nothing extra:
+  // reading the album already put them through the same token cycle.
   @Post()
-  @UseGuards(IdValidation)
+  @UseGuards(IdValidation, ShareSecurityGuard)
   async open(
     @Param("id") shareId: string,
     @Body() body: { name?: string },
@@ -51,7 +62,7 @@ export class ContributionController {
 
   @Post(":contributionId/files")
   @SkipThrottle()
-  @UseGuards(IdValidation, ContributionGuard)
+  @UseGuards(IdValidation, ShareSecurityGuard, ContributionGuard)
   async uploadFile(
     @Query()
     query: {
@@ -66,21 +77,47 @@ export class ContributionController {
   ) {
     const { id, name, chunkIndex, totalChunks } = query;
 
+    // The id, when present, is never one a caller invents — it's only
+    // ever the one this same route handed back in an earlier chunk's
+    // response, echoed so the upload can resume (see share.service.ts's
+    // uploadFile on the frontend). File.id is a global primary key, so
+    // any id that already names a real row is illegitimate for a *new*
+    // file: accepting it here would let one contributor's request
+    // rename over another's already-finished file on disk before
+    // create() below even gets a chance to fail on the duplicate key
+    // (local.service.ts renames the last chunk into place first), and a
+    // multi-chunk request that never finishes would let the unscoped
+    // update further down silently re-point someone else's file at this
+    // contribution without ever touching its bytes.
+    if (id) {
+      const existing = await this.prisma.file.findUnique({
+        where: { id },
+      });
+      if (existing)
+        throw new BadRequestException(this.i18n.t("file.idInUse"));
+    }
+
     // Data can be empty if the file is empty
     const file = await this.fileService.create(
       body,
       { index: parseInt(chunkIndex), total: parseInt(totalChunks) },
       { id, name },
       shareId,
+      contributionId,
     );
 
     // Only ever matches a row once the last chunk has landed and
     // LocalFileService.create() has actually created the File — a no-op
     // on every chunk before that, since this route (like
     // FileController.create() itself) has no way to know which chunk is
-    // last ahead of the call above returning.
+    // last ahead of the call above returning. Scoped to this share and to
+    // a file with no contribution yet: even if some future caller ever
+    // reused an id the check above didn't catch, this can still only ever
+    // claim a file of this collection that belongs to nobody yet — never
+    // repoint an already-attributed file, and never reach into another
+    // transfer entirely.
     await this.prisma.file.updateMany({
-      where: { id: file.id },
+      where: { id: file.id, shareId, contributionId: null },
       data: { contributionId },
     });
 
@@ -89,7 +126,7 @@ export class ContributionController {
 
   @Post(":contributionId/complete")
   @HttpCode(200)
-  @UseGuards(IdValidation, ContributionGuard)
+  @UseGuards(IdValidation, ShareSecurityGuard, ContributionGuard)
   async complete(@Req() request: Request) {
     return this.contributionService.complete((request as any).contribution);
   }

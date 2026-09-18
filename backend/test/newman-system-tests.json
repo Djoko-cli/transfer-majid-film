@@ -2175,6 +2175,56 @@
 					]
 				},
 				{
+					"name": "Read the album before depositing, as any visitor would",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/vacances-test/token",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"token"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.collectionVariables.set('VACANCES_TEST_TOKEN', pm.response.json().token)"
+								]
+							}
+						}
+					]
+				},
+				{
 					"name": "Open a contribution without an identity is refused",
 					"request": {
 						"method": "POST",
@@ -2206,7 +2256,8 @@
 							"script": {
 								"type": "text/javascript",
 								"exec": [
-									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'share_vacances-test_token=' + pm.collectionVariables.get('VACANCES_TEST_TOKEN')});"
 								]
 							}
 						},
@@ -2315,7 +2366,8 @@
 								"exec": [
 									"pm.test('Status code is 201', () => {",
 									"    pm.response.to.have.status(201);",
-									"});"
+									"});",
+									"pm.collectionVariables.set('FILE_ID', pm.response.json().id)"
 								]
 							}
 						}
@@ -2433,6 +2485,104 @@
 									"    pm.response.to.have.status(201);",
 									"});",
 									"pm.collectionVariables.set('CONTRIB_ID_2', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "A second contributor cannot claim an existing file's id",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,SGlqYWNrZWQ="
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions/{{CONTRIB_ID_2}}/files?id={{FILE_ID}}&name=hijack.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions",
+								"{{CONTRIB_ID_2}}",
+								"files"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{FILE_ID}}"
+								},
+								{
+									"key": "name",
+									"value": "hijack.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 400', () => {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "The targeted file is unchanged and still unclaimed by the second contributor",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"The first contributor's file kept its own name and is still the only file\", () => {",
+									"    const b = pm.response.json();",
+									"    pm.expect(b.files.length).to.be.equal(1);",
+									"    const target = b.files.find((f) => f.id === pm.collectionVariables.get('FILE_ID'));",
+									"    pm.expect(target).to.not.be.undefined;",
+									"    pm.expect(target.name).to.be.equal('photo.txt');",
+									"});"
 								]
 							}
 						}
@@ -2566,6 +2716,200 @@
 									"    const b = pm.response.json();",
 									"    pm.expect(b.files.length).to.be.equal(2);",
 									"    pm.expect(b.id).to.be.equal('vacances-test');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Check remaining uses before an abandoned contribution",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"const collection = pm.response.json().find((r) => r.token === 'vacances-test');",
+									"pm.collectionVariables.set('REMAINING_USES_BEFORE', String(collection.remainingUses))"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open a third contribution and abandon it",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Ghost\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Abandoning a contribution does not spend a use",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('remainingUses is unchanged by the abandoned contribution', () => {",
+									"    const collection = pm.response.json().find((r) => r.token === 'vacances-test');",
+									"    pm.expect(String(collection.remainingUses)).to.be.equal(pm.collectionVariables.get('REMAINING_USES_BEFORE'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create a password-protected collection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"vacances-privee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"publicAccess\": true,\n    \"password\": \"s3cretpw\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Depositing into a password-protected collection is refused",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/vacances-privee/contributions",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"vacances-privee",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Refused for the password, not for a missing identity', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('share_password_required');",
 									"});"
 								]
 							}

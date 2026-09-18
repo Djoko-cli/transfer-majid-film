@@ -53,10 +53,11 @@ export class FileService {
       name: string;
     },
     shareId: string,
+    contributionId?: string,
   ) {
     await this.touchShare(shareId);
     const storageService = this.getStorageService();
-    return storageService.create(data, chunk, file, shareId);
+    return storageService.create(data, chunk, file, shareId, contributionId);
   }
 
   private async touchShare(shareId: string) {

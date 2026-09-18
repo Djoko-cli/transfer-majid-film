@@ -1,5 +1,6 @@
 {
   "invalidIdFormat": "Format d'ID invalide",
+  "idInUse": "ID de fichier déjà utilisé",
   "notFound": "Fichier non trouvé",
   "passwordProtected": "Ce transfert est protégé par mot de passe",
   "alreadyCompleted": "Le transfert est déjà terminé",

@@ -36,6 +36,9 @@ export class LocalFileService {
     chunk: { index: number; total: number },
     file: { id?: string; name: string },
     shareId: string,
+    // Only ever set by ContributionController, for a write into a
+    // collection — see the size check below for why it matters.
+    contributionId?: string,
   ) {
     if (!file.id) {
       file.id = crypto.randomUUID();
@@ -49,6 +52,7 @@ export class LocalFileService {
         files: true,
         reverseShare: { include: { creator: true } },
         creator: true,
+        collectionOf: true,
       },
     });
 
@@ -91,8 +95,21 @@ export class LocalFileService {
       );
     }
 
-    // Check if share size limit is exceeded
-    const fileSizeSum = share.files.reduce(
+    // Check if share size limit is exceeded. A collection's own
+    // maxShareSize (set once by the link's creator — see
+    // ReverseShareService.create()) is a per-contribution ceiling, not a
+    // whole-album one (spec §11) — so when this write belongs to a
+    // contribution, both halves of the check are scoped to it: the
+    // running total counts only that contribution's own files, never the
+    // whole collection's, and the limit is the collection's own, never the
+    // owner's whole-account shareSizeLimit (which the separate storage
+    // quota check further down still enforces regardless — that one is
+    // about the owner's total disk usage, not this per-deposit ceiling).
+    const filesInScope = contributionId
+      ? share.files.filter((f) => f.contributionId === contributionId)
+      : share.files;
+
+    const fileSizeSum = filesInScope.reduce(
       (n, { size }) => n + parseInt(size),
       0,
     );
@@ -100,7 +117,9 @@ export class LocalFileService {
     const shareSizeSum = fileSizeSum + diskFileSize + buffer.byteLength;
 
     let limit = parseInt(this.config.get("share.maxSize"));
-    if (share.reverseShare?.maxShareSize) {
+    if (share.collectionOf?.maxShareSize) {
+      limit = parseInt(share.collectionOf.maxShareSize);
+    } else if (share.reverseShare?.maxShareSize) {
       limit = parseInt(share.reverseShare.maxShareSize);
     } else if (share.creator?.shareSizeLimit) {
       limit = parseInt(share.creator.shareSizeLimit);
