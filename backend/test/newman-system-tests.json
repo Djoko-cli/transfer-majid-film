@@ -1762,6 +1762,267 @@
 			]
 		},
 		{
+			"name": "Security merge",
+			"item": [
+				{
+					"name": "Create a recipient-restricted share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"restricted-share\",\n    \"expiration\": \"1-day\",\n    \"recipients\": [],\n    \"security\": {\n        \"restrictToRecipients\": true\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Upload file to the restricted share",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,VGhpcyBpcyBhIHRlc3QgZmlsZWQgdXNlZCBmb3IgdXBsb2FkaW5nIGluIHRoZSBzeXN0ZW0gdGVzdC4="
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/restricted-share/files?name=restricted-file.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"restricted-share",
+								"files"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "restricted-file.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Complete the restricted share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/restricted-share/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"restricted-share",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 202', () => {",
+									"    pm.response.to.have.status(202);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Restriction holds before any edit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/restricted-share",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"restricted-share"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Refused for the restriction, not for a missing token', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('share_restricted_to_recipients');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Edit the share exactly as the info modal does",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"renamed\",\n    \"description\": null,\n    \"expiration\": \"1-day\",\n    \"security\": {\n        \"maxViews\": null\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/restricted-share",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"restricted-share"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Restriction survives the edit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/restricted-share",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"restricted-share"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Still refused for the restriction after a plain rename', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('share_restricted_to_recipients');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
 			"name": "Anonymous share leaks",
 			"item": [
 				{

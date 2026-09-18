@@ -588,8 +588,22 @@ export class ShareService {
       body.security.maxViews !== undefined
         ? body.security.maxViews
         : currentSecurity?.maxViews;
+    // Carried, never authored here: no edit path can set or clear the
+    // restriction, so its only job is to survive one. It used to not:
+    // the row was deleted whenever password and maxViews both came out
+    // empty, and the upsert's create branch never copied it — so a share
+    // restricted to its recipients, with no password and no view limit,
+    // lost its restriction the moment its owner renamed it.
+    const nextRestrictToRecipients =
+      currentSecurity?.restrictToRecipients ?? false;
 
-    if (!nextPassword && !nextMaxViews) {
+    // A row carrying nothing has no reason to exist; a row carrying only
+    // the restriction very much does. The old test asked about two of the
+    // three columns and threw the row away on their word alone.
+    const carriesNothing =
+      !nextPassword && !nextMaxViews && !nextRestrictToRecipients;
+
+    if (carriesNothing) {
       if (currentSecurity) {
         await this.prisma.shareSecurity.delete({ where: { shareId } });
       }
@@ -602,10 +616,12 @@ export class ShareService {
         share: { connect: { id: shareId } },
         password: nextPassword,
         maxViews: nextMaxViews,
+        restrictToRecipients: nextRestrictToRecipients,
       },
       update: {
         password: nextPassword,
         maxViews: nextMaxViews,
+        restrictToRecipients: nextRestrictToRecipients,
       },
     });
   }
