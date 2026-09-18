@@ -1760,6 +1760,415 @@
 					]
 				}
 			]
+		},
+		{
+			"name": "Anonymous share leaks",
+			"item": [
+				{
+					"name": "Sign in as admin",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"system@test.org\",\n    \"password\": \"J2y8unpJUcJDRv\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/signIn",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"signIn"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// _setup > Sign Up already created this account, the",
+									"// collection's only admin (the first account ever created",
+									"// is admin - auth.service.ts:100), but its own Cookie",
+									"// handling only kept the response's last Set-Cookie header",
+									"// (refresh_token), never the access_token the JWT strategy",
+									"// actually reads (jwt.strategy.ts:22-25). Signing in again",
+									"// here, self-contained, gives this folder its own reliable",
+									"// admin token without touching that shared setup step.",
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.collectionVariables.set('ADMIN_ACCESS_TOKEN', pm.response.json().accessToken);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Allow anonymous shares",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"key\": \"share.allowUnauthenticatedShares\",\n        \"value\": true\n    },\n    {\n        \"key\": \"share.requireEmailVerificationForAnonymousShares\",\n        \"value\": false\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/configs/admin",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"configs",
+								"admin"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// This folder runs last, and by then the ambiently logged-in user",
+									"// is not the admin from _setup: Auth > Positive > Sign In",
+									"// (system2@test.org, not an admin) overwrote Newman's cookie jar for",
+									"// the localhost host, and every later {{API_URL}} request picks",
+									"// that jar cookie up regardless of the COOKIES collection variable.",
+									"// Measured: with only a stripped cookie, this request gets 403",
+									"// (authenticated as a non-admin), not the 401 a missing token would",
+									"// give. Setting our own Cookie from ADMIN_ACCESS_TOKEN (captured by",
+									"// 'Sign in as admin' above) fixes it regardless of host.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create an anonymous share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"anon-share\",\n    \"expiration\": \"1-day\",\n    \"recipients\": []\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Upload file to the anonymous share",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,VGhpcyBpcyBhIHRlc3QgZmlsZWQgdXNlZCBmb3IgdXBsb2FkaW5nIGluIHRoZSBzeXN0ZW0gdGVzdC4="
+						},
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/anon-share/files?name=anon-file.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"anon-share",
+								"files"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "anon-file.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Complete the anonymous share",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/anon-share/complete",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"anon-share",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 202', () => {",
+									"    pm.response.to.have.status(202);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Download log of an anonymous share is not public",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/anon-share/downloads",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"anon-share",
+								"downloads"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "File list of an anonymous share is not public",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/anon-share/from-owner",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"anon-share",
+								"from-owner"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Restore anonymous share settings",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"key\": \"share.allowUnauthenticatedShares\",\n        \"value\": false\n    },\n    {\n        \"key\": \"share.requireEmailVerificationForAnonymousShares\",\n        \"value\": true\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/configs/admin",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"configs",
+								"admin"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// This folder runs last, and by then the ambiently logged-in user",
+									"// is not the admin from _setup: Auth > Positive > Sign In",
+									"// (system2@test.org, not an admin) overwrote Newman's cookie jar for",
+									"// the localhost host, and every later {{API_URL}} request picks",
+									"// that jar cookie up regardless of the COOKIES collection variable.",
+									"// Measured: with only a stripped cookie, this request gets 403",
+									"// (authenticated as a non-admin), not the 401 a missing token would",
+									"// give. Setting our own Cookie from ADMIN_ACCESS_TOKEN (captured by",
+									"// 'Sign in as admin' above) fixes it regardless of host.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
 		}
 	],
 	"event": [
