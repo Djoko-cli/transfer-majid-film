@@ -638,7 +638,6 @@ export default {
     "Le fichier est trop volumineux pour être copié dans le presse-papiers",
   "share.notify.copy-not-supported-error":
     "La copie dans le presse-papiers nécessite une connexion HTTPS",
-  "share.modal.file-link": "Lien du fichier",
   "share.table.name": "Nom",
   "share.table.size": "Taille",
   "share.table.sort-ascending": "Trier par {label} (croissant)",

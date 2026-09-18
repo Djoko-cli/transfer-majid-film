@@ -97,7 +97,7 @@ const FileList = ({
   // one — that's what keeps every column vertically aligned), but derived
   // from the most buttons any row in *this* share actually renders rather
   // than a hardcoded worst case. So a share of plain, non-previewable
-  // binaries reserves room for 2 buttons, and only one containing a text
+  // binaries reserves room for 1 button, and only one containing a text
   // file (which adds the copy-contents button, on top of the preview one
   // text also qualifies for) reserves room for 3 — no dead space either
   // way, and whatever isn't reserved goes to the name column, since that's

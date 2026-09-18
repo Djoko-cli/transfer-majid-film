@@ -268,6 +268,16 @@ const Body = ({
                   border: `1px solid ${glass ? "rgba(255, 255, 255, 0.25)" : "rgba(128, 128, 128, 0.25)"}`,
                   flexShrink: 0,
                 }}
+                onError={(e) => {
+                  // An anonymous sender has no identity for the guard's
+                  // creator short-circuit and no share token, so this
+                  // request is legitimately refused — reverse-share
+                  // uploads and anonymous sends both land here. The
+                  // thumbnail is a grace note, not information: losing it
+                  // silently beats showing a broken frame where the
+                  // confirmation should be.
+                  e.currentTarget.style.display = "none";
+                }}
               />
             )}
             <Text size="sm" color="dimmed">
