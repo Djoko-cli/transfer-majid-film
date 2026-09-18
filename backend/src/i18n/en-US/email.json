@@ -64,7 +64,7 @@
   "shareDownloadNotificationMessage": "{recipientEmail} downloaded {fileName} from your transfer: {shareUrl}",
   "shareDownloadNotificationSubject": "Your file was downloaded",
   "shareRecipientsMessage": "{desc}",
-  "shareRecipientsSubject": "Files have been shared with you",
+  "shareRecipientsSubject": "Files have been transferred to you",
   "verificationMessage": "You've just signed up. Enter the code {code} to verify your account, or simply click this link: {url}\n\nThis code expires in 60 minutes.",
   "verificationSubject": "Verify your account",
   "verificationCodeSubject": "Your verification code",

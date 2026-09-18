@@ -296,6 +296,15 @@ export class JobsService {
           recipient.id,
           recipient.share.id,
           recipient.share.creator,
+          // Gated on the toggle, not on the value's presence — exactly as
+          // ShareService.complete gates the same address for the transfer's
+          // own email. senderEmail is stored for every anonymous share; what
+          // makes it safe to show a recipient is that the OTP flow proved it.
+          this.configServer.get(
+            "share.requireEmailVerificationForAnonymousShares",
+          )
+            ? (recipient.share.senderEmail ?? undefined)
+            : undefined,
           recipient.share.expiration,
           recipient.share.files.map((file) => ({
             name: file.name,

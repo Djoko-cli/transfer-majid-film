@@ -190,8 +190,16 @@ export class EmailService {
     )}/s/${shareId}?recipient=${encodeURIComponent(recipientId)}`;
     const lang = this.config.get("general.defaultLanguage");
     const locale = this.i18n.translate("email.locale", { lang });
+    // An anonymous sender has no username, but they usually do have a
+    // proven address — the very one the Reply-To below is about to use.
+    // Naming it beats "Someone": a recipient who was expecting this
+    // transfer can tell at a glance that it is the one they expected, and
+    // a recipient who was not can see who to distrust. The generic
+    // fallback survives for the only case with nothing at all to show, an
+    // anonymous send on an instance that does not verify addresses.
     const creatorName =
       creator?.username ??
+      senderEmail ??
       this.i18n.t("email.shareRecipientsCreatorFallback", { lang });
 
     // Whoever actually sent this, account or not. Not a setting: its other
@@ -602,6 +610,11 @@ export class EmailService {
     recipientId: string,
     shareId: string,
     creator: User | undefined,
+    // Same rule and same position as sendMailToShareRecipients': only ever
+    // an address the caller has established belongs to the sender. Without
+    // it this reminder would call the sender "Someone" while the transfer's
+    // own email named them, which reads as two different senders.
+    senderEmail: string | undefined,
     expiration: Date,
     files: TransferFile[] = [],
   ) {
@@ -614,6 +627,7 @@ export class EmailService {
     );
     const creatorName =
       creator?.username ??
+      senderEmail ??
       this.i18n.t("email.shareRecipientsCreatorFallback", { lang });
 
     await this.sendMail(
