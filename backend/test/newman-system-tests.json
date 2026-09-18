@@ -1427,7 +1427,7 @@
 					]
 				},
 				{
-					"name": "Get file without a share token is refused",
+					"name": "Creator reaches their own file without a share token",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -1450,6 +1450,47 @@
 							"script": {
 								"type": "text/javascript",
 								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get file without a share token is refused",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/open-share/files/{{OPEN_FILE_ID}}",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"open-share",
+								"files",
+								"{{OPEN_FILE_ID}}"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
 									"pm.test('Status code is 403', () => {",
 									"    pm.response.to.have.status(403);",
 									"});",
@@ -1467,9 +1508,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{API_URL}}/shares/open-share/files/zip",
+							"raw": "{{API_URL_ANON}}/shares/open-share/files/zip",
 							"host": [
-								"{{API_URL}}"
+								"{{API_URL_ANON}}"
 							],
 							"path": [
 								"shares",
@@ -1480,6 +1521,15 @@
 						}
 					},
 					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
 						{
 							"listen": "test",
 							"script": {
@@ -1674,9 +1724,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{API_URL}}/shares/reverse-private/files/{{REVERSE_FILE_ID}}",
+							"raw": "{{API_URL_ANON}}/shares/reverse-private/files/{{REVERSE_FILE_ID}}",
 							"host": [
-								"{{API_URL}}"
+								"{{API_URL_ANON}}"
 							],
 							"path": [
 								"shares",
@@ -1687,6 +1737,15 @@
 						}
 					},
 					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
 						{
 							"listen": "test",
 							"script": {
@@ -1727,6 +1786,11 @@
 		{
 			"key": "API_URL",
 			"value": "http://localhost:8080/api",
+			"type": "string"
+		},
+		{
+			"key": "API_URL_ANON",
+			"value": "http://127.0.0.1:8080/api",
 			"type": "string"
 		}
 	]
