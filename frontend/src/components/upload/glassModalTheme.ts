@@ -152,8 +152,25 @@ export const glassModalStyles = (theme: any) => {
       flex: 1,
       minHeight: 0,
     },
+    // Several modals title themselves with a filename a user chose — the
+    // file preview and the text editor both put one straight in — and a
+    // filename with no spaces in it has no break opportunity at all.
+    // Measured at 375px before this: a 78-character name rendered 832px
+    // wide inside a 337px modal, ran off the right edge unreadable, and
+    // pushed the close button 512px out of the box, where `overflow:
+    // hidden` on `content` clipped it away entirely. On the preview modal
+    // that button is the way out.
+    //
+    // `anywhere` rather than `break-word` on purpose: only `anywhere`
+    // counts toward min-content, which is what a flex item in this header
+    // is sized by — `break-word` would wrap the text and still reserve the
+    // unbroken width, leaving the close button exactly where it was. The
+    // cost is that the header grows a line or two, which costs nothing:
+    // the header takes its natural height and the body takes the rest, at
+    // any height (see the two notes above).
     title: {
       color: dark ? theme.white : theme.black,
+      overflowWrap: "anywhere" as const,
     },
     close: {
       color: dark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)",
