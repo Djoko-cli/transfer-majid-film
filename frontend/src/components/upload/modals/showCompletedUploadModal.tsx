@@ -122,13 +122,19 @@ const showCompletedUploadModal = (
         // to visually balance against on the right; centering it reads as
         // intentional instead of just off to one side for no reason.
         title: { ...base.title, width: "100%", textAlign: "center" },
-        // Mantine forces the body's own padding-top to 0 whenever a header
-        // is present (a built-in `:not(:only-child)` rule, unbeatable from
-        // here) — so the gap above the content has to live in the header's
-        // bottom padding instead, not the body's top padding. Both this and
-        // the body's own bottom padding used to be inflated way past this
-        // (120/130) chasing a specific roughly-square aspect ratio for the
-        // modal box itself — reported directly as reading like dead space
+        // The gap above the content is the shared one: glassModalTheme's
+        // body rule matches Mantine's own `:not(:only-child)` selector, so
+        // it outranks the `padding` shorthand set below and this body gets
+        // the same 20px under the hairline as every other modal — measured,
+        // not assumed. This header's bottom padding is the other half of
+        // that, the air above the line. (An older note here said Mantine's
+        // rule was unbeatable and the whole gap had to live up here. The
+        // rule is real; matching its selector is what beats it.)
+        //
+        // Both this header's padding and the body's own bottom padding used
+        // to be inflated way past these values (120/130) chasing a specific
+        // roughly-square aspect ratio for the modal box itself — reported
+        // directly as reading like dead space
         // once the content it was padding out actually included the link
         // field. Just comfortable, ordinary spacing now; the box is whatever
         // height its real content needs.
