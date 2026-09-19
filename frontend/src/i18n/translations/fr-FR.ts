@@ -257,7 +257,7 @@ export default {
   // /account/reverseShares
   "account.reverseShares.title": "Transferts inversés",
   "account.reverseShares.description":
-    "Un transfert inversé vous permet de générer une URL unique qui permet à des utilisateurs externes de créer un transfert.",
+    "Un transfert inversé vous permet de générer une URL unique où plusieurs personnes déposent leurs fichiers. Tout ce qui y est déposé se rassemble dans un seul album, à cette même adresse.",
   "account.reverseShares.disabled-notice":
     "La création de nouveaux liens de dépôt est désactivée. Les collectes ci-dessous continuent de fonctionner normalement.",
   "account.reverseShares.title.empty": "C’est plutôt vide 👀",
@@ -318,7 +318,7 @@ export default {
   "account.reverseShares.modal.reverse-share-link": "Lien du transfert inversé",
   "account.reverseShares.modal.delete.title": "Supprimer le transfert inversé",
   "account.reverseShares.modal.delete.description":
-    "Voulez-vous vraiment supprimer ce transfert inversé ? Si vous le faites, les transferts qu’il contient seront également supprimés.",
+    "Voulez-vous vraiment supprimer ce lien ? Plus personne ne pourra y déposer. L’album et les fichiers déjà déposés, eux, restent accessibles jusqu’à leur date d’expiration.",
   // END /account/reverseShares
 
   // /admin

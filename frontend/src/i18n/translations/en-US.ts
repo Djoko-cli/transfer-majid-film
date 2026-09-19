@@ -267,7 +267,7 @@ export default {
   // /account/reverseShares
   "account.reverseShares.title": "Reverse shares",
   "account.reverseShares.description":
-    "A reverse share allows you to generate a unique URL that allows external users to create a transfer.",
+    "A reverse share lets you generate a single URL where several people deposit their files. Everything deposited gathers into one album, at that same address.",
 
   "account.reverseShares.disabled-notice":
     "Creating new deposit links is disabled. The collections below keep working as before.",
@@ -331,7 +331,7 @@ export default {
 
   "account.reverseShares.modal.delete.title": "Delete reverse share",
   "account.reverseShares.modal.delete.description":
-    "Do you really want to delete this reverse share? If you do, the associated transfers will be deleted as well.",
+    "Do you really want to delete this link? Nobody will be able to deposit through it any more. The album and the files already deposited stay available until their expiry date.",
 
   // END /account/reverseShares
 
