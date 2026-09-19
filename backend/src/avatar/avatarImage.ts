@@ -21,6 +21,9 @@ export class UndecodableAvatarError extends Error {}
 //    l'appelant contrôle ;
 //  - ce qui sort est une image que sharp a écrite, donc un fichier piégé ne
 //    survit pas au passage ;
+//  - `.rotate()` (sans argument) applique l'orientation EXIF puis la jette,
+//    avant le recadrage carré : sans lui une photo prise au téléphone en
+//    portrait arriverait couchée ;
 //  - toutes les métadonnées sautent, coordonnées GPS comprises, ce qui est le
 //    comportement voulu pour une image qu'un compte expose de lui-même ;
 //  - `limitInputPixels` borne la bombe à décompression : une image de 100 Ko
@@ -34,11 +37,40 @@ const MAX_INPUT_PIXELS = 50_000_000;
 // reference des ressources externes, ce qui rouvre par la bande le SSRF que le
 // validateur d'URL ferme a l'autre bout, et il pese sur un parseur bien plus
 // large que celui d'un PNG. Aucune photo de profil n'a besoin d'etre
-// vectorielle. Le format est lu avant tout traitement, donc avant tout
-// rendu.
+// vectorielle.
+//
+// Ce Set n'est qu'un filet de secours, pas la barrière : il n'est consulté
+// qu'après `image.metadata()`, qui a déjà fait tourner le parseur qu'on
+// voulait éviter. Pour un SVG, libvips choisit l'opération `svgload`, dont la
+// fonction d'en-tête appelle `rsvg_handle_new_from_data` — le document XML est
+// intégralement parsé par librsvg avant même que `format` soit connu, donc
+// avant que ce Set ne soit atteint. La vraie barrière est `looksLikeMarkup`
+// ci-dessous, qui refuse avant de construire l'instance sharp.
 const REFUSED_FORMATS = new Set(["svg"]);
 
+// Renifle le premier octet non blanc du buffer, avant même de construire
+// l'instance sharp — donc avant que libvips ne choisisse un décodeur et,
+// pour un SVG, avant que librsvg ne parse quoi que ce soit. Un document XML
+// commence par `<`, que ce soit `<svg`, `<?xml` ou `<!DOCTYPE` : aucun format
+// qu'on accepte par ailleurs (PNG, JPEG, WebP, GIF, AVIF) ne commence ainsi.
+function looksLikeMarkup(bytes: Buffer): boolean {
+  for (const byte of bytes) {
+    // Espaces ASCII usuels en tête d'un document texte : espace, tabulation,
+    // saut de ligne, retour chariot, saut de page.
+    if (byte === 0x20 || byte === 0x09 || byte === 0x0a || byte === 0x0d || byte === 0x0c)
+      continue;
+    return byte === 0x3c; // '<'
+  }
+  return false;
+}
+
 export async function encodeAvatar(bytes: Buffer): Promise<Buffer> {
+  // Doit précéder tout appel à sharp : c'est le seul contrôle qui s'exécute
+  // avant que le document soit donné à un parseur, SVG en tête. Voir
+  // `looksLikeMarkup` et le commentaire de `REFUSED_FORMATS` ci-dessus.
+  if (looksLikeMarkup(bytes))
+    throw new UndecodableAvatarError("format refusé : document XML/markup");
+
   try {
     // Une seule instance, décodée une seule fois : `limitInputPixels` ne borne
     // ainsi qu'un décodage, pas deux, et la bombe à décompression est
@@ -46,7 +78,8 @@ export async function encodeAvatar(bytes: Buffer): Promise<Buffer> {
     // masquerait un second mal câblé.
     const image = sharp(bytes, { limitInputPixels: MAX_INPUT_PIXELS });
 
-    // Le format est lu avant tout traitement, donc avant tout rendu.
+    // Filet de secours seulement (voir REFUSED_FORMATS ci-dessus) : à ce
+    // stade `metadata()` a déjà fait tourner le décodeur, SVG compris.
     const { format } = await image.metadata();
     if (!format || REFUSED_FORMATS.has(format))
       throw new UndecodableAvatarError(`format refusé : ${format ?? "inconnu"}`);
