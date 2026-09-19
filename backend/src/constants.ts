@@ -1,3 +1,12 @@
+// Ce fichier est chargé tel quel par `node --test`, via l'import avec
+// extension (`../constants.ts`) que fait `src/avatar/avatar.fetch.ts` — pas
+// seulement compilé par `tsc` comme le reste du back. Il doit donc rester
+// exécutable par le runner de tests de Node sans transpilation : aucun
+// import de valeur (un import de `@nestjs/common` autre qu'`import type`
+// romprait ce fichier sous `node --test`), et aucune syntaxe TypeScript non
+// effaçable — `enum`, `namespace`, décorateur, paramètre de constructeur à
+// modificateur d'accès. `import type` reste permis : il disparaît
+// entièrement à la compilation, `node --test` ne le voit jamais.
 import type { LogLevel } from "@nestjs/common";
 
 // Used to be admin-configurable (general.appName) — now a fixed constant,
