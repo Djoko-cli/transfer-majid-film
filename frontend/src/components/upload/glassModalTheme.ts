@@ -95,14 +95,30 @@ export const glassModalStyles = (theme: any) => {
       borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
     },
     // The hairline above needs air on BOTH sides of it, and the header's own
-    // paddingBottom only buys the half above. Mantine forces the body's
-    // padding-top to 0 whenever a header is present (a built-in
-    // `:not(:only-child)` rule), so the gap below the line has to be a margin
-    // — that rule does not touch margins. Measured before adding it: the
+    // paddingBottom only buys the half above. Measured before adding it: the
     // first element of the body started at exactly the header's bottom edge,
     // 0px under the line, so a thumbnail sat flush against it.
+    //
+    // It has to be padding, and it was a margin until the body became the
+    // scrolling box just above. A margin sits OUTSIDE that box, so it pushed
+    // the clipping edge 20px down the modal: text scrolled out of sight a
+    // visible gap short of the hairline instead of disappearing under it.
+    // Padding is inside the box — the same air at rest, but it travels with
+    // the content, which then reaches the line exactly. Measured both ways,
+    // header bottom against body top: margin 97 vs 117, padding 97 vs 97.
+    //
+    // Which is why the padding is declared on `&:not(:only-child)` and not
+    // plainly. Mantine really does force this body's padding-top to 0 as soon
+    // as a header is present — `.mantine-<hash>:not(:only-child)
+    // { padding-top: 0 }`, one class more specific than the base rule our
+    // `styles` prop is merged into, so a plain `paddingTop: 20` there is
+    // silently overruled (measured: computes 0). Matching that selector puts
+    // us at equal specificity and later in the sheet. Nothing here applies
+    // to a modal with no header, which keeps the padding it always had.
     body: {
-      marginTop: 20,
+      "&:not(:only-child)": {
+        paddingTop: 20,
+      },
       // The scroll lives here now. `minHeight: 0` is what lets a flex child
       // actually shrink below its content's height — without it the body
       // refuses to be smaller than its form and the whole modal grows past
