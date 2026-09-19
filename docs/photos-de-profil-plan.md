@@ -818,12 +818,18 @@ donc jamais exercé en production. Une dépendance déclarée n'est pas une
 dépendance qui fonctionne.
 
 ```bash
-docker build -t transfer-sharp-check . \
-  && docker run --rm --entrypoint node transfer-sharp-check \
+docker build --platform linux/amd64 -t transfer-sharp-check . \
+  && docker run --rm --platform linux/amd64 --entrypoint node transfer-sharp-check \
      -e 'const s=require("/opt/app/backend/node_modules/sharp"); s({create:{width:8,height:8,channels:3,background:{r:1,g:2,b:3}}}).webp().toBuffer().then(b=>console.log("sharp OK dans l_image,", b.length, "octets"))'
 ```
 
 Attendu : `sharp OK dans l_image, <n> octets`.
+
+**`--platform linux/amd64` n'est pas décoratif.** La machine de développement
+est un Mac arm64 ; sans ce drapeau, Docker construirait et exercerait le binaire
+`@img/sharp-linuxmusl-arm64`, c'est-à-dire pas celui qui part en production
+(`docker-build-push.yml` ne publie que `linux/amd64`). La vérification paraîtrait
+concluante en ne prouvant rien.
 
 **Si cette étape échoue**, c'est que le binaire musl n'est pas installé :
 s'arrêter et remonter le problème plutôt que contourner. Le lockfile contient
