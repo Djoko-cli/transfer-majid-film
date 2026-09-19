@@ -133,8 +133,13 @@ export const glassModalStyles = (theme: any) => {
     // { padding-top: 0 }`, one class more specific than the base rule our
     // `styles` prop is merged into, so a plain `paddingTop: 20` there is
     // silently overruled (measured: computes 0). Matching that selector puts
-    // us at equal specificity and later in the sheet. Nothing here applies
-    // to a modal with no header, which keeps the padding it always had.
+    // us at equal specificity, where order decides — and order is not luck
+    // here. Mantine collapses the library's styles, the provider's and this
+    // prop's into ONE emotion class, passing this prop last (@mantine/styles
+    // tss/create-styles, the final argument to `cx`), so our declarations
+    // are always serialized after theirs. Two sibling rules, same selector,
+    // ours second. Nothing here applies to a modal with no header, which
+    // keeps the symmetric padding it always had.
     body: {
       "&:not(:only-child)": {
         paddingTop: 20,
