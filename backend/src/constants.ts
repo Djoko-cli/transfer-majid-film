@@ -1,4 +1,4 @@
-import { LogLevel } from "@nestjs/common";
+import type { LogLevel } from "@nestjs/common";
 
 // Used to be admin-configurable (general.appName) — now a fixed constant,
 // like the accent color and radius in the frontend's mantine.style.ts.

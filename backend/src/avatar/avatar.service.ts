@@ -1,20 +1,12 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { createReadStream, ReadStream } from "fs";
 import * as fs from "fs/promises";
-import * as https from "node:https";
 import { I18nService } from "nestjs-i18n";
 import { PrismaService } from "../prisma/prisma.service";
-import { AVATAR_DIRECTORY, AVATAR_MAX_BYTES } from "../constants";
+import { AVATAR_DIRECTORY } from "../constants";
 import { encodeAvatar } from "./avatarImage";
-import {
-  assertPublicUrl,
-  guardedLookup,
-  UnsafeAvatarUrlError,
-} from "./avatarUrl.guard";
-import { shouldIngest } from "./avatar.fetch";
-
-const MAX_REDIRECTS = 3;
-const FETCH_TIMEOUT_MS = 5_000;
+import { assertPublicUrl } from "./avatarUrl.guard";
+import { fetchAvatarBytes, shouldIngest } from "./avatar.fetch";
 
 @Injectable()
 export class AvatarService {
@@ -91,82 +83,31 @@ export class AvatarService {
   // connexion, bornée à cinq secondes, plutôt qu'une colonne de plus dont le
   // seul rôle serait de mémoriser un échec.
   async ingestFromOidc(
-    user: { id: string; avatarUpdatedAt: Date | null },
+    user: { id: string; avatarUpdatedAt: Date | null } | null,
     pictureUrl?: string,
   ): Promise<void> {
-    if (!shouldIngest(user, pictureUrl)) return;
     try {
-      // `shouldIngest` a déjà établi que l'URL est présente, mais TypeScript ne
-      // rétrécit pas à travers un appel de fonction — et ce dépôt compile avec
-      // `strictNullChecks: false`, donc l'erreur ne se verrait pas ici.
+      // La garde vit à l'intérieur du `try`, pas avant : `shouldIngest`
+      // accepte désormais `user: null` (une lecture Prisma qui rend
+      // `User | null`, dans un dépôt qui compile en
+      // `strictNullChecks: false`, donc rien ne le signale à la
+      // compilation) et y répond `false` plutôt que de déréférencer
+      // `user.avatarUpdatedAt`. Un rejet ici doit de toute façon être
+      // attrapé comme n'importe quel autre échec — pas fuiter en promesse
+      // non gérée depuis l'appel en `void` d'OAuthService.
+      if (!shouldIngest(user, pictureUrl)) return;
+      // `shouldIngest` a déjà établi que `user` et l'URL sont présents, mais
+      // TypeScript ne rétrécit pas à travers un appel de fonction — et ce
+      // dépôt compile avec `strictNullChecks: false`, donc l'erreur ne se
+      // verrait pas ici.
       const url = assertPublicUrl(pictureUrl as string);
-      await this.store(user.id, await this.fetchBytes(url));
+      await this.store(user!.id, await fetchAvatarBytes(url));
     } catch (error) {
       this.logger.warn(
-        `Avatar OpenID non récupéré pour ${user.id} : ${
+        `Avatar OpenID non récupéré pour ${user?.id ?? "inconnu"} : ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
     }
-  }
-
-  private fetchBytes(url: URL, hop = 0): Promise<Buffer> {
-    if (hop > MAX_REDIRECTS)
-      return Promise.reject(new UnsafeAvatarUrlError("trop de redirections"));
-
-    return new Promise<Buffer>((resolve, reject) => {
-      const request = https.request(
-        url,
-        // `lookup` est ce qui ferme la reliaison DNS : la vérification se fait
-        // à l'instant où la socket utilise l'adresse, pas sur une résolution
-        // séparée faite plus tôt.
-        { method: "GET", lookup: guardedLookup, timeout: FETCH_TIMEOUT_MS },
-        (response) => {
-          const { statusCode, headers } = response;
-
-          if (
-            statusCode &&
-            [301, 302, 303, 307, 308].includes(statusCode) &&
-            headers.location
-          ) {
-            response.resume();
-            let next: URL;
-            try {
-              // Chaque saut repasse par les mêmes règles : une redirection est
-              // une URL fournie par un tiers, exactement comme la première.
-              next = assertPublicUrl(new URL(headers.location, url).toString());
-            } catch (error) {
-              return reject(error);
-            }
-            return resolve(this.fetchBytes(next, hop + 1));
-          }
-
-          if (statusCode !== 200) {
-            response.resume();
-            return reject(new Error(`statut ${statusCode}`));
-          }
-
-          const chunks: Buffer[] = [];
-          let size = 0;
-          response.on("data", (chunk: Buffer) => {
-            size += chunk.length;
-            // On ne fait pas confiance au Content-Length annoncé : c'est la
-            // lecture réelle qu'on coupe.
-            if (size > AVATAR_MAX_BYTES) {
-              request.destroy();
-              reject(new Error("image trop lourde"));
-              return;
-            }
-            chunks.push(chunk);
-          });
-          response.on("end", () => resolve(Buffer.concat(chunks)));
-          response.on("error", reject);
-        },
-      );
-
-      request.on("timeout", () => request.destroy(new Error("délai dépassé")));
-      request.on("error", reject);
-      request.end();
-    });
   }
 }
