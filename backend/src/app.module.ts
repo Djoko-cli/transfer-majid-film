@@ -11,6 +11,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AppCacheModule } from "./cache/cache.module";
 import { AppController } from "./app.controller";
+import { AvatarModule } from "./avatar/avatar.module";
 import { BrandSlidesModule } from "./brandSlides/brandSlides.module";
 import { ClamScanModule } from "./clamscan/clamscan.module";
 import { ConfigModule } from "./config/config.module";
@@ -44,6 +45,7 @@ const i18nPath = existsSync(join(__dirname, "../i18n"))
     PrismaModule,
     JobsModule,
     UserModule,
+    AvatarModule,
     SystemModule,
     AdminNoticeModule,
     VerificationModule,
