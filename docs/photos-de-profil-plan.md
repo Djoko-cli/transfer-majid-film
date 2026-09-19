@@ -1663,9 +1663,13 @@ git commit
 - [ ] `cd backend && ./node_modules/.bin/tsc --noEmit` — aucune sortie
 - [ ] `cd backend && ./node_modules/.bin/tsc -p tsconfig.spec.json` — aucune
       sortie (c'est ce qui type-vérifie les fichiers de test)
-- [ ] `cd backend && ./node_modules/.bin/eslint src` — aucune sortie
+- [ ] `cd backend && ./node_modules/.bin/eslint src` — **0 erreur** (des avertissements
+      `no-explicit-any` existent déjà ailleurs dans le back ; le critère est
+      l'absence d'erreur, pas l'absence de sortie)
 - [ ] `cd frontend && ./node_modules/.bin/tsc --noEmit` — aucune sortie
-- [ ] `cd frontend && ESLINT_USE_FLAT_CONFIG=false ./node_modules/.bin/eslint src` — aucune sortie
+- [ ] `cd frontend && ESLINT_USE_FLAT_CONFIG=false ./node_modules/.bin/eslint src` — **0 erreur** (des avertissements
+      `no-explicit-any` existent déjà ailleurs dans le back ; le critère est
+      l'absence d'erreur, pas l'absence de sortie)
 - [ ] Suite Newman sur la base jetable — `failures: 0`, **avec le compte
       d'assertions reporté**
 - [ ] `find backend/src frontend/src -name "* [0-9].*"` — aucune sortie (les
