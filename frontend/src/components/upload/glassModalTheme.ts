@@ -33,6 +33,14 @@ export const glassModalStyles = (theme: any) => {
       // body scrolling inside it, is the same modal with the overlap simply
       // absent — see the header's own note for why no amount of styling on
       // the bar itself could have fixed it.
+      //
+      // The column below is what does that work. `overflow` here does not:
+      // measured, it computes to `hidden auto`, because Mantine's own
+      // `overflow-y: auto` on this element outlives anything we put in
+      // `styles.content` — including an explicit `overflowY: "hidden"`,
+      // which was tried and changed nothing. So this line buys the x axis
+      // and the rounded corners, and nothing on the y axis. What actually
+      // keeps this box from scrolling is arithmetic, stated just below.
       overflow: "hidden" as const,
       display: "flex" as const,
       flexDirection: "column" as const,
@@ -93,6 +101,18 @@ export const glassModalStyles = (theme: any) => {
     header: {
       backgroundColor: dark ? "rgba(0, 0, 0, 0.28)" : "rgba(0, 0, 0, 0.07)",
       borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
+      // Half of the split that makes this layout independent of how tall a
+      // header happens to be: the header takes its natural height and is
+      // never squeezed, the body takes what is left (`flex: 1; min-height:
+      // 0`, below). Their two heights therefore sum to exactly this box's,
+      // which is what keeps it from scrolling — no number here or anywhere
+      // else encodes how tall a header is. A flex item already refuses to
+      // shrink past its content through `min-height: auto`, so this is
+      // stating the rule rather than changing today's behaviour; the point
+      // is that it stays stated if someone ever gives the header a
+      // min-height. Measured at 55, 87, 177 and 393px of header: the seam
+      // sits at 0 and the box never scrolls at any of them.
+      flexShrink: 0,
     },
     // The hairline above needs air on BOTH sides of it, and the header's own
     // paddingBottom only buys the half above. Measured before adding it: the
