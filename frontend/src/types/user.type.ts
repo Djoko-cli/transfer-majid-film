@@ -15,6 +15,8 @@ type User = {
   canCreatePermanentShares?: boolean;
   notifyOnExpiringSentShares?: boolean;
   notifyOnSentShares?: boolean;
+  // Sérialisé en ISO 8601 par le DTO. Non-nul = ce compte a une photo.
+  avatarUpdatedAt?: string;
 };
 
 export type CreateUser = {

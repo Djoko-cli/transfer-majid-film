@@ -21,6 +21,12 @@ model User {
   storageQuotaLimit        String?
   canCreatePermanentShares Boolean @default(false)
 
+  // Non-nulle veut dire « ce compte a une photo » ; le chemin du fichier s'en
+  // déduit (AVATAR_DIRECTORY/<id>.webp), il n'a pas à être stocké. L'horodatage
+  // sert aussi de cache-buster : la navbar demande l'image avec `?v=<ms>`, donc
+  // changer de photo change l'URL et contourne un cache posé à un an.
+  avatarUpdatedAt DateTime?
+
   shares                Share[]
   refreshTokens         RefreshToken[]
   loginTokens           LoginToken[]

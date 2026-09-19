@@ -60,6 +60,14 @@ export const SHARE_DIRECTORY = `${DATA_DIRECTORY}/uploads/shares`;
 // into SHARE_DIRECTORY: the real bytes stay on the read-only NAS mount,
 // this directory only ever holds links into it.
 export const BRAND_IMAGE_DIRECTORY = `${DATA_DIRECTORY}/brand-images`;
+// Un fichier par compte, nommé par son identifiant : AVATAR_DIRECTORY/<id>.webp.
+// Même volume que SHARE_DIRECTORY, donc rien de plus à monter en production.
+export const AVATAR_DIRECTORY = `${DATA_DIRECTORY}/avatars`;
+// Ce qu'on accepte en entrée, avant ré-encodage. En dur et pas dans la table de
+// configuration : ce n'est pas un réglage d'exploitation, personne ne le
+// tournera, et un réglage que personne ne tourne est une case de plus à lire
+// dans la console d'administration pour rien.
+export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 // Where a share's files land when clamav.infectedFileAction is
 // "quarantine" instead of "delete" — moved here rather than removed, so
 // an admin can inspect a false positive (or confirm a real one) before
