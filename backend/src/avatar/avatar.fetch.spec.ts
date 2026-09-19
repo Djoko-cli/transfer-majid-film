@@ -2,8 +2,20 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import type * as https from "node:https";
-import { makeAvatarFetcher, shouldIngest } from "./avatar.fetch.ts";
+import {
+  DEFAULT_MAX_BYTES,
+  DEFAULT_MAX_REDIRECTS,
+  DEFAULT_TIMEOUT_MS,
+  makeAvatarFetcher,
+  shouldIngest,
+} from "./avatar.fetch.ts";
 import { guardedLookup, UnsafeAvatarUrlError } from "./avatarUrl.guard.ts";
+
+test("les valeurs par defaut sont celles de la spec : 3 redirections, 5 Mio, 5000 ms", () => {
+  assert.equal(DEFAULT_MAX_REDIRECTS, 3);
+  assert.equal(DEFAULT_MAX_BYTES, 5 * 1024 * 1024);
+  assert.equal(DEFAULT_TIMEOUT_MS, 5_000);
+});
 
 // `https.request` a une signature très surchargée ; caster une fausse
 // implémentation à ce type se fait toujours en deux temps, via `unknown`.
@@ -156,6 +168,25 @@ test("suit une chaine de redirections jusqu'a la limite, refuse la suivante", as
   );
 });
 
+test("le nombre de redirections par defaut est celui de la spec (3), sans le surcharger", async () => {
+  // N'injecte que `request` : `maxRedirects` doit venir de
+  // `DEFAULT_MAX_REDIRECTS`, pas d'une valeur passee par le test.
+  const okFetch = makeAvatarFetcher({
+    request: asHttpsRequest(makeRedirectChainRequest(3)),
+  });
+  await assert.doesNotReject(okFetch(new URL("https://x/a.png")));
+
+  const tooLongFetch = makeAvatarFetcher({
+    request: asHttpsRequest(makeRedirectChainRequest(4)),
+  });
+  await assert.rejects(
+    tooLongFetch(new URL("https://x/a.png")),
+    (error: unknown) =>
+      error instanceof UnsafeAvatarUrlError &&
+      /trop de redirections/.test((error as Error).message),
+  );
+});
+
 test("refuse une redirection vers http://", async () => {
   const fetch = makeAvatarFetcher({
     request: asHttpsRequest(makeSingleRedirectRequest("http://x/a.png")),
@@ -221,5 +252,69 @@ test(
     const fetch = makeAvatarFetcher({ request: asHttpsRequest(requestFn), timeoutMs: 30 });
     await assert.rejects(fetch(new URL("https://x/a.png")), /d.lai d.pass/);
     assert.equal(capturedReq?.destroyed, true);
+  },
+);
+
+test(
+  "l'evenement 'timeout' du socket regle aussi la promesse, pas seulement l'echeance absolue",
+  { timeout: 2_000 },
+  async () => {
+    let capturedReq: ReturnType<typeof fakeClientRequest> | undefined;
+    const requestFn: RequestFn = (_url, _options, _callback) => {
+      const req = fakeClientRequest();
+      capturedReq = req;
+      // `timeoutMs` est fixe a une heure plus bas : l'echeance absolue ne
+      // peut pas gagner la course pendant la duree du test. C'est
+      // l'evenement `"timeout"` ci-dessous — celui que `net.Socket` emet
+      // quand expire l'option `timeout` de `https.request` — qui doit a lui
+      // seul regler la promesse.
+      queueMicrotask(() => req.emit("timeout"));
+      return req;
+    };
+
+    const fetch = makeAvatarFetcher({
+      request: asHttpsRequest(requestFn),
+      timeoutMs: 60 * 60 * 1000,
+    });
+    await assert.rejects(fetch(new URL("https://x/a.png")), /d.lai d.pass/);
+    assert.equal(capturedReq?.destroyed, true);
+  },
+);
+
+// Repond `redirectCount` fois par une 302 vers la meme location, puis 200 —
+// en consommant `delayMs` de temps reel avant chaque reponse, pour simuler
+// une chaine de sauts qui prend du temps.
+function makeSlowRedirectChainRequest(redirectCount: number, delayMs: number): RequestFn {
+  let calls = 0;
+  return (_url, _options, callback) => {
+    calls++;
+    const req = fakeClientRequest();
+    const spec: FakeResponseSpec =
+      calls <= redirectCount
+        ? { statusCode: 302, headers: { location: "https://x/next" } }
+        : { statusCode: 200 };
+    setTimeout(() => {
+      const res = fakeIncomingMessage(spec);
+      callback(res);
+      queueMicrotask(() => res.emit("end"));
+    }, delayMs);
+    return req;
+  };
+}
+
+test(
+  "l'echeance ne se rearme pas a chaque saut de redirection",
+  { timeout: 5_000 },
+  async () => {
+    // 4 requetes (3 redirections + la reponse finale), chacune consommant
+    // 80 ms de temps reel avant de repondre : environ 320 ms au total, au
+    // dela du budget de 200 ms fixe une seule fois a l'entree. Aucun saut
+    // pris isolement ne depasse ce budget (80 ms < 200 ms a chaque fois) :
+    // seule une echeance qui traverse vraiment les sauts peut le detecter.
+    const fetch = makeAvatarFetcher({
+      request: asHttpsRequest(makeSlowRedirectChainRequest(3, 80)),
+      timeoutMs: 200,
+    });
+    await assert.rejects(fetch(new URL("https://x/a.png")), /d.lai d.pass/);
   },
 );
