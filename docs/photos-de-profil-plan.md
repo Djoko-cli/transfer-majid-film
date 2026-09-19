@@ -305,6 +305,38 @@ Dans `backend/tsconfig.json`, ajouter au premier niveau (frère de
 
 Sans ça, `tsc --noEmit` refuse l'import à extension `.ts` des fichiers de test.
 
+Mais les exclure de `tsconfig.json` les sort aussi du projet que le parseur
+d'ESLint référence, et ESLint refuse alors de lire un fichier hors projet — en
+**erreur**, pas en avertissement. Les tests ne seraient donc ni typés ni lintés,
+ce qui est un prix plus élevé que celui qu'on voulait payer. Un projet dédié les
+récupère tous les deux. Créer `backend/tsconfig.spec.json` :
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+`exclude` doit être **redéclaré** : `extends` hérite de celui du parent, qui
+exclut précisément les specs, et un `exclude` hérité l'emporte sur un `include`.
+`allowImportingTsExtensions` exige `noEmit`, d'où les deux ensemble ; ce projet
+ne produit rien, il vérifie.
+
+Puis, dans `backend/eslint.config.mjs`, pointer le parseur sur les deux :
+
+```js
+        project: ["./tsconfig.json", "./tsconfig.spec.json"],
+```
+
+Ne rien ajouter à `ignores`. Vérifié : `eslint src` rend 0 erreur, `nest build`
+reste propre et `dist/` ne contient aucun artefact de spec.
+
 **Ne pas toucher `tsconfig.build.json`** : il étend `tsconfig.json` mais
 **écrase** `exclude`, et le sien contient déjà `**/*spec.ts`. C'est précisément
 pourquoi les fichiers de test de ce chantier s'appellent `*.spec.ts` et non
@@ -445,7 +477,7 @@ Attendu : `Cannot find module './avatarUrl.guard.ts'`.
 Créer `backend/src/avatar/avatarUrl.guard.ts` :
 
 ```ts
-import { lookup as dnsLookup, LookupAddress } from "node:dns";
+import { lookup as dnsLookup, type LookupAddress } from "node:dns";
 import { isIP } from "node:net";
 
 // Sans dépendance NestJS, volontairement : c'est ce qui rend ce module
@@ -1629,6 +1661,8 @@ git commit
 
 - [ ] `cd backend && npm run test:unit` — `fail 0`
 - [ ] `cd backend && ./node_modules/.bin/tsc --noEmit` — aucune sortie
+- [ ] `cd backend && ./node_modules/.bin/tsc -p tsconfig.spec.json` — aucune
+      sortie (c'est ce qui type-vérifie les fichiers de test)
 - [ ] `cd backend && ./node_modules/.bin/eslint src` — aucune sortie
 - [ ] `cd frontend && ./node_modules/.bin/tsc --noEmit` — aucune sortie
 - [ ] `cd frontend && ESLINT_USE_FLAT_CONFIG=false ./node_modules/.bin/eslint src` — aucune sortie
