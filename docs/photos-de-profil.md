@@ -29,7 +29,7 @@ son seul propriétaire.
 | Le cadrage | **Recadrage carré automatique**, à la volée (§4) | Un recadreur dans la page : porte laissée ouverte (§8), le serveur n'aura pas à bouger |
 | La préséance | **Un envoi manuel gagne toujours** sur l'annuaire | |
 | La visibilité | **Son propriétaire seul** | Montrer l'avatar sur les listes de contributeurs : c'est une décision d'exposition publique, elle mérite sa propre conversation |
-| La taille acceptée | **5 Mo**, comme Review.majid.film | |
+| La taille acceptée | **5 Mio** (5 × 1024 × 1024 octets), comme Review.majid.film | |
 | La taille stockée | **10 à 25 Ko** — WebP carré **512 px**, toujours ré-encodé | Stocker l'original : voir §4. 256 px : trop petit pour un écran Rétina sur la page « mon compte » |
 
 ---
@@ -149,7 +149,7 @@ paramètre, il vient du jeton.
 
 | Route | Corps | Réponse |
 |---|---|---|
-| `POST /api/users/me/avatar` | octets bruts, `Content-Type: image/*`, **≤ 5 Mo** | `200` + le `UserDTO` à jour |
+| `POST /api/users/me/avatar` | octets bruts, `Content-Type: image/*`, **≤ 5 Mio** | `201` + le `UserDTO` à jour |
 | `GET /api/users/me/avatar` | — | `200` WebP, ou `404` si la colonne est nulle |
 | `DELETE /api/users/me/avatar` | — | `204`, idempotent |
 
@@ -234,9 +234,18 @@ tâche.
   confiance au `Content-Length` annoncé.
 
 Un échec est journalisé en `warn` et rien d'autre ne se passe : la personne
-enverra sa photo à la main. Tant que la colonne reste nulle, la tentative sera
-rejouée à la connexion suivante. C'est **assumé** : une requête sortante en
-arrière-plan par connexion, bornée à cinq secondes.
+enverra sa photo à la main.
+
+**Corrigé pendant l'exécution — la récupération n'a lieu qu'à l'inscription, pas
+à chaque connexion.** Cette section disait d'abord « tant que la colonne reste
+nulle, la tentative sera rejouée à la connexion suivante », ce qui contredisait
+le §1 : `remove()` remet la colonne à nul, donc un retrait délibéré était défait
+à la connexion suivante par l'annuaire. Un retrait est une décision manuelle au
+même titre qu'un envoi, et « un envoi manuel gagne toujours » doit valoir pour
+les deux. Ce qu'on perd : le rattrapage d'un échec réseau à la connexion
+suivante — qui échoue à l'inscription enverra sa photo à la main. Ce qu'on
+gagne : un retrait qui tient, et la disparition complète de la requête sortante
+par connexion que cette section assumait « à contrecœur ».
 
 ---
 
