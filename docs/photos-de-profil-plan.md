@@ -776,6 +776,13 @@ const MAX_INPUT_PIXELS = 50_000_000;
 // rendu.
 const REFUSED_FORMATS = new Set(["svg"]);
 
+// CORRECTIF APPLIQUÉ EN COURS D'EXÉCUTION — le bloc ci-dessous instancie sharp
+// DEUX fois, une pour lire le format et une pour encoder. C'est un défaut : le
+// premier appel intercepte déjà la bombe à décompression, donc le
+// `limitInputPixels` du second n'est contraint par aucun test, et l'entrée est
+// décodée deux fois pour rien. La forme livrée n'a qu'UNE instance, dont on lit
+// les métadonnées avant d'enchaîner dessus. Le code fait foi.
+
 export async function encodeAvatar(bytes: Buffer): Promise<Buffer> {
   try {
     const { format } = await sharp(bytes, {
