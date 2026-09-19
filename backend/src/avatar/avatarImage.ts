@@ -28,13 +28,18 @@ const REFUSED_FORMATS = new Set(["svg"]);
 
 export async function encodeAvatar(bytes: Buffer): Promise<Buffer> {
   try {
-    const { format } = await sharp(bytes, {
-      limitInputPixels: MAX_INPUT_PIXELS,
-    }).metadata();
+    // Une seule instance, décodée une seule fois : `limitInputPixels` ne borne
+    // ainsi qu'un décodage, pas deux, et la bombe à décompression est
+    // contrainte par le seul appel qui reste plutôt que par un premier qui
+    // masquerait un second mal câblé.
+    const image = sharp(bytes, { limitInputPixels: MAX_INPUT_PIXELS });
+
+    // Le format est lu avant tout traitement, donc avant tout rendu.
+    const { format } = await image.metadata();
     if (!format || REFUSED_FORMATS.has(format))
       throw new UndecodableAvatarError(`format refusé : ${format ?? "inconnu"}`);
 
-    return await sharp(bytes, { limitInputPixels: MAX_INPUT_PIXELS })
+    return await image
       // Sans argument : applique l'orientation EXIF puis la jette. Sans lui,
       // une photo prise au téléphone en portrait arrive couchée.
       .rotate()

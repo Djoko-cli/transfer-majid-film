@@ -16,6 +16,37 @@ async function sourceJpeg(width: number, height: number): Promise<Buffer> {
     .toBuffer();
 }
 
+// Carree pour que le fit "cover" ne recadre rien : entree et sortie ont le
+// meme ratio (1:1), rotation EXIF ou pas, donc le seul effet visible d'un
+// .rotate() manquant ou present est la position du contenu, jamais une
+// difference de recadrage qui viendrait brouiller la mesure.
+const HALVES_SIZE = 100;
+
+// Moitie gauche rouge, moitie droite bleue, taguee Orientation = 6 (rotation
+// 90 degres horaire a l'affichage). Sans .rotate(), le decoupage gauche/droite
+// (colonnes) reste tel quel. Avec, la rotation 90 degres horaire transforme ce
+// decoupage vertical en decoupage haut/bas (lignes) : la colonne d'origine x
+// devient la ligne y' = x de l'image affichee. C'est cette bascule que le test
+// verifie, en echantillonnant un pixel choisi loin des deux limites (donc a
+// l'abri du flou d'interpolation et des artefacts de bloc JPEG/WebP).
+async function halvesJpegWithOrientation6(): Promise<Buffer> {
+  const raw = Buffer.alloc(HALVES_SIZE * HALVES_SIZE * 3);
+  for (let y = 0; y < HALVES_SIZE; y++) {
+    for (let x = 0; x < HALVES_SIZE; x++) {
+      const i = (y * HALVES_SIZE + x) * 3;
+      if (x < HALVES_SIZE / 2) {
+        raw[i] = 255; // rouge, moitie gauche
+      } else {
+        raw[i + 2] = 255; // bleu, moitie droite
+      }
+    }
+  }
+  return sharp(raw, { raw: { width: HALVES_SIZE, height: HALVES_SIZE, channels: 3 } })
+    .withMetadata({ orientation: 6 })
+    .jpeg()
+    .toBuffer();
+}
+
 test("sort un WebP carre de 512 px, quelle que soit la source", async () => {
   for (const [w, h] of [
     [3000, 2000],
@@ -41,6 +72,25 @@ test("ne garde aucune metadonnee de la source", async () => {
 
   const meta = await sharp(await encodeAvatar(withExif)).metadata();
   assert.equal(meta.exif, undefined);
+});
+
+test("applique l'orientation EXIF avant le recadrage", async () => {
+  const out = await encodeAvatar(await halvesJpegWithOrientation6());
+  const { data, info } = await sharp(out).raw().toBuffer({ resolveWithObject: true });
+
+  // (384, 64) : a 128 px des deux limites (256, 256) dans les deux axes. Une
+  // fois la rotation appliquee, la ligne y = 64 est dans la moitie haute
+  // (ex-colonne gauche, rouge) quelle que soit la colonne. Sans rotation, ce
+  // point resterait dans la moitie droite d'origine (bleue).
+  const x = 384;
+  const y = 64;
+  const idx = (y * info.width + x) * info.channels;
+  const [r, g, b] = [data[idx], data[idx + 1], data[idx + 2]];
+
+  assert.ok(
+    r > 150 && b < 100,
+    `attendu un pixel rouge en (${x}, ${y}) apres rotation, obtenu rgb(${r}, ${g}, ${b})`,
+  );
 });
 
 test("refuse un SVG", async () => {
