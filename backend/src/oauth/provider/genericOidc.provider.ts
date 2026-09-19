@@ -251,6 +251,7 @@ export abstract class GenericOidcProvider implements OAuthProvider<OidcToken> {
       email: idTokenData.email,
       providerId: idTokenData.sub,
       providerUsername: username,
+      pictureUrl: idTokenData.picture,
       ...(isAdmin !== undefined && { isAdmin }),
       idToken: `${this.name}:${token.idToken}`,
     };
@@ -515,5 +516,8 @@ export interface OidcIdToken {
   name: string;
   nickname: string;
   preferred_username: string;
+  // Claim standard OpenID Connect. Il arrivait déjà dans le jeton décodé ; il
+  // n'était simplement lu par personne.
+  picture?: string;
   nonce: string;
 }

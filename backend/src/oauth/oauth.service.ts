@@ -2,6 +2,7 @@ import { forwardRef, Inject, Injectable, Logger } from "@nestjs/common";
 import { User } from "@prisma/client";
 import { nanoid } from "nanoid";
 import { AuthService } from "../auth/auth.service";
+import { AvatarService } from "../avatar/avatar.service";
 import { ConfigService } from "../config/config.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { OAuthSignInDto } from "./dto/oauthSignIn.dto";
@@ -14,6 +15,7 @@ export class OAuthService {
     private prisma: PrismaService,
     private config: ConfigService,
     @Inject(forwardRef(() => AuthService)) private auth: AuthService,
+    private avatar: AvatarService,
     @Inject("OAUTH_PLATFORMS") private platforms: string[],
     @Inject("OAUTH_PROVIDERS")
     private oAuthProviders: Record<string, OAuthProvider<unknown>>,
@@ -70,6 +72,8 @@ export class OAuthService {
         },
       });
       this.logger.log(`Successful login for user ${user.email} from IP ${ip}`);
+      // Sans `await` : la connexion ne doit dépendre en rien de cette requête.
+      void this.avatar.ingestFromOidc(updatedUser, user.pictureUrl);
       return this.auth.generateToken(updatedUser, { idToken: user.idToken });
     }
 
@@ -186,6 +190,11 @@ export class OAuthService {
         userId: result.user.id,
       },
     });
+
+    void this.avatar.ingestFromOidc(
+      { id: result.user.id, avatarUpdatedAt: null },
+      user.pictureUrl,
+    );
 
     return result;
   }
