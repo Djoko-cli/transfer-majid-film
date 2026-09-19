@@ -178,10 +178,18 @@ puis, dans le dossier ainsi créé, écrire `migration.sql` avec la sortie de :
 
 ```bash
 cd backend && ./node_modules/.bin/prisma migrate diff \
-  --from-schema-datasource prisma/schema.prisma \
+  --from-migrations prisma/migrations \
   --to-schema-datamodel prisma/schema.prisma \
+  --shadow-database-url "file:../data/shadow-migrate.db" \
   --script
 ```
+
+**`--from-migrations`, surtout pas `--from-schema-datasource`.** Ce dernier lit
+la base de développement *vivante*, sur laquelle d'autres chantiers de ce dépôt
+ont déjà appliqué leurs propres migrations — celle du conteneur de collecte, par
+exemple, qui vit sur une autre branche et n'existe pas ici. Le diff aurait alors
+embarqué leur dérive dans cette migration-ci. Partir du dossier de migrations de
+**cette** branche isole le seul `ALTER TABLE ... ADD COLUMN` qu'on veut.
 
 - [ ] **Étape 3 : appliquer et régénérer**
 
