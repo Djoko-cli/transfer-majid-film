@@ -2,5 +2,6 @@
   "empty": "No image received.",
   "undecodable": "This file is not an image we can read.",
   "notFound": "This account has no profile picture.",
-  "signInRequired": "You must be signed in to manage your profile picture."
+  "signInRequired": "You must be signed in to manage your profile picture.",
+  "tooLarge": "This image is larger than the maximum allowed size (5 MiB)."
 }

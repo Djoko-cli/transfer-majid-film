@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Get,
   HttpCode,
+  PayloadTooLargeException,
   Post,
   Req,
   Res,
@@ -16,6 +17,7 @@ import { Request, Response } from "express";
 import { I18nService } from "nestjs-i18n";
 import { GetUser } from "src/auth/decorator/getUser.decorator";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
+import { AVATAR_MAX_BYTES } from "../constants";
 import { UserDTO } from "../user/dto/user.dto";
 import { AvatarService } from "./avatar.service";
 import { UndecodableAvatarError } from "./avatarImage";
@@ -53,6 +55,18 @@ export class AvatarController {
     const bytes = request.body;
     if (!Buffer.isBuffer(bytes) || bytes.length === 0)
       throw new BadRequestException(this.i18n.t("avatar.empty"));
+
+    // Le parseur d'en-tête `image/*` borné à `AVATAR_MAX_BYTES` ne protège
+    // que les appelants qui annoncent honnêtement leur type. Le parseur
+    // global de `main.ts`, non borné à un chemin et calé sur
+    // `share.chunkSize` (un réglage d'administration, potentiellement bien
+    // au-dessus de 5 Mio), reste enregistré avant le nôtre : un envoi en
+    // `application/octet-stream` lui échappe et arrive ici avec la limite de
+    // l'admin, pas la nôtre. Ce contrôle est donc indépendant du parseur qui
+    // a produit `bytes` — il tient même si celui qui a lu la requête n'est
+    // pas le nôtre.
+    if (bytes.length > AVATAR_MAX_BYTES)
+      throw new PayloadTooLargeException(this.i18n.t("avatar.tooLarge"));
 
     try {
       const avatarUpdatedAt = await this.avatar.store(authedUser.id, bytes);

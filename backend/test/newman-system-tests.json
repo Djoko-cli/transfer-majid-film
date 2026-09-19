@@ -382,7 +382,7 @@
 									"});",
 									"",
 									"pm.test(\"Response contains an avatarUpdatedAt timestamp\", () => {",
-									"    pm.expect(pm.response.json().avatarUpdatedAt).to.not.be.null;",
+									"    pm.expect(pm.response.json().avatarUpdatedAt).to.exist;",
 									"});",
 									""
 								]
@@ -430,9 +430,19 @@
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Response is a non-empty webp image\", () => {",
+									"pm.test(\"Content-Type header is image/webp\", () => {",
 									"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.equal(\"image/webp\");",
-									"    pm.expect(pm.response.responseSize).to.be.above(0);",
+									"});",
+									"",
+									"pm.test(\"Cache-Control is private, long-lived, and immutable\", () => {",
+									"    pm.expect(pm.response.headers.get(\"Cache-Control\")).to.equal(\"private, max-age=31536000, immutable\");",
+									"});",
+									"",
+									"pm.test(\"Response bytes are a real WebP image, not just a Content-Type claim\", () => {",
+									"    const bytes = pm.response.stream;",
+									"    pm.expect(bytes.slice(0, 4).toString(\"latin1\")).to.equal(\"RIFF\");",
+									"    pm.expect(bytes.slice(8, 12).toString(\"latin1\")).to.equal(\"WEBP\");",
+									"    pm.expect(bytes.length).to.be.above(200);",
 									"});",
 									""
 								]
@@ -500,6 +510,61 @@
 					"response": []
 				},
 				{
+					"name": "Upload avatar - oversized via octet-stream",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Un vrai octet-stream de 6 Mio : au-dessus des 5 Mio d'AVATAR_MAX_BYTES,",
+									"// mais en dessous des 10 Mio par defaut de share.chunkSize, pour rester lu",
+									"// par le parseur global de main.ts plutot que rejete par lui.",
+									"pm.variables.set(\"bigPayload\", \"x\".repeat(6 * 1024 * 1024));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 413\", () => {",
+									"    pm.response.to.have.status(413);",
+									"});",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{bigPayload}}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/users/me/avatar",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"avatar"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Get avatar - anonymous",
 					"event": [
 						{
@@ -518,6 +583,10 @@
 								"exec": [
 									"pm.test(\"Status code is 403\", () => {",
 									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test(\"The guard itself refused it, not our own signInRequired check\", () => {",
+									"    pm.expect(pm.response.json().message).to.equal(\"Forbidden resource\");",
 									"});",
 									""
 								]

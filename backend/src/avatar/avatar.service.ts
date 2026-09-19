@@ -40,7 +40,24 @@ export class AvatarService {
     });
     if (!user?.avatarUpdatedAt)
       throw new NotFoundException(this.i18n.t("avatar.notFound"));
-    return createReadStream(this.path(userId));
+
+    const path = this.path(userId);
+    try {
+      await fs.access(path);
+    } catch {
+      // `remove` efface le fichier puis la base : un arrêt du process entre
+      // les deux laisse la base annoncer une photo dont le fichier n'existe
+      // plus. Sans ce contrôle, `createReadStream` sur un chemin absent lève
+      // son erreur en événement, que le gestionnaire par défaut de
+      // `StreamableFile` traduit en 400 avec le chemin absolu du serveur
+      // dans le message (`ENOENT: … open '/…/data/avatars/<id>.webp'`). Même
+      // réponse que « pas de photo » dans les deux cas, sans fuite de chemin.
+      this.logger.warn(
+        `Avatar manquant sur disque pour ${userId} alors que la base l'annonce (${path})`,
+      );
+      throw new NotFoundException(this.i18n.t("avatar.notFound"));
+    }
+    return createReadStream(path);
   }
 
   // Idempotente des deux côtés : un compte sans photo se supprime sans erreur,
