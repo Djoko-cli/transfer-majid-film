@@ -15,6 +15,7 @@ import {
 import { User } from "@prisma/client";
 import { Request, Response } from "express";
 import { I18nService } from "nestjs-i18n";
+import { Throttle } from "@nestjs/throttler";
 import { GetUser } from "src/auth/decorator/getUser.decorator";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
 import { AVATAR_MAX_BYTES } from "../constants";
@@ -45,7 +46,16 @@ export class AvatarController {
     return user;
   }
 
+  // Le `ThrottlerGuard` global (100 requêtes/60 s/IP, `app.module.ts`) est
+  // calibré pour des chunks de partage, pas pour du décodage d'image :
+  // `limitInputPixels: 50_000_000` autorise une image de quelques centaines
+  // de kilo-octets à se déplier en ~200 Mo de raster pendant le décodage, et
+  // 100 décodages/minute sur les 4 fils du pool libuv, c'est ~800 Mo de pic
+  // et quatre cœurs saturés — accessible à tout compte authentifié sans ce
+  // frein propre à la route. Cinq changements de photo par minute reste
+  // large pour une action qu'on fait trois fois dans une vie.
   @Post()
+  @Throttle({ default: { limit: 5, ttl: 60 * 1000 } })
   @UseGuards(JwtGuard)
   async upload(
     @GetUser() user: User | undefined,
