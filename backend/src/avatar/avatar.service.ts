@@ -73,15 +73,18 @@ export class AvatarService {
     });
   }
 
-  // Appelée sans `await` depuis OAuthService : une photo n'a pas le droit de
-  // ralentir une connexion, encore moins de la faire échouer. Elle ne rejette
-  // donc jamais — tout échec est journalisé et la personne enverra sa photo à
-  // la main.
+  // Appelée sans `await`, uniquement depuis `OAuthService.signUp` — plus
+  // depuis `signIn` : une photo n'a pas le droit de ralentir une inscription,
+  // encore moins de la faire échouer. Elle ne rejette donc jamais — tout
+  // échec est journalisé et la personne enverra sa photo à la main.
   //
-  // Tant que la colonne reste nulle, la tentative est rejouée à la connexion
-  // suivante. C'est assumé : une requête sortante en arrière-plan par
-  // connexion, bornée à cinq secondes, plutôt qu'une colonne de plus dont le
-  // seul rôle serait de mémoriser un échec.
+  // N'est plus rejouée à la connexion. `remove()` remet `avatarUpdatedAt` à
+  // `null` — la même colonne que « jamais encore récupérée » — donc rejouer
+  // ici à chaque connexion aurait fait revenir une photo qu'on vient de
+  // retirer délibérément : un retrait est une décision manuelle au même titre
+  // qu'un envoi, et la spec dit qu'un envoi manuel gagne toujours sur
+  // l'annuaire. Le prix : un échec réseau à l'inscription n'est plus
+  // rattrapé plus tard, la personne enverra sa photo à la main.
   async ingestFromOidc(
     user: { id: string; avatarUpdatedAt: Date | null } | null,
     pictureUrl?: string,
