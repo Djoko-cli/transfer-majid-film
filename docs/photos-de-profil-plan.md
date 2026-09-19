@@ -76,9 +76,9 @@ Elles s'appliquent implicitement à **chaque** tâche.
 | Fichier | Responsabilité |
 |---|---|
 | `backend/src/avatar/avatarUrl.guard.ts` | Pur, sans NestJS : valide une URL et refuse toute adresse non publique. C'est la pièce qui porte le risque. |
-| `backend/src/avatar/avatarUrl.guard.test.ts` | Ses tests, exécutés par `node --test`. |
+| `backend/src/avatar/avatarUrl.guard.spec.ts` | Ses tests, exécutés par `node --test`. |
 | `backend/src/avatar/avatarImage.ts` | Pur, sans NestJS : `encodeAvatar(bytes) → Buffer` WebP 512 px. |
-| `backend/src/avatar/avatarImage.test.ts` | Ses tests. |
+| `backend/src/avatar/avatarImage.spec.ts` | Ses tests. |
 | `backend/src/avatar/avatar.service.ts` | Orchestration : disque, Prisma, récupération OpenID. |
 | `backend/src/avatar/avatar.controller.ts` | Les trois routes. |
 | `backend/src/avatar/avatar.module.ts` | Câblage ; exporte `AvatarService`. |
@@ -120,7 +120,7 @@ pas de configuration, pas un seul `.spec.ts` — la seule suite est Newman
 sécurité du chantier sur un validateur d'URL testé en unitaire.
 
 **Décision : le runner intégré de Node, sans aucune dépendance nouvelle.**
-Vérifié sur cette machine (Node 24.15) : `node --test "src/**/*.test.ts"`
+Vérifié sur cette machine (Node 24.15) : `node --test "src/**/*.spec.ts"`
 exécute des fichiers TypeScript directement, sans transpilation ni
 configuration. Le drapeau `--experimental-strip-types` est ajouté pour que la
 même commande fonctionne sur le `node:22` de la CI, où le déshabillage des types
@@ -128,7 +128,7 @@ n'est pas actif par défaut ; sur Node 24 il est accepté sans effet.
 
 **Ce que ça coûte :** les fichiers de test doivent importer avec l'extension
 (`from "./avatarUrl.guard.ts"`), ce que `tsc` refuse sans
-`allowImportingTsExtensions` — d'où l'exclusion des `*.test.ts` du `tsconfig`
+`allowImportingTsExtensions` — d'où l'exclusion des `*.spec.ts` du `tsconfig`
 (tâche 2). Les fichiers de test ne sont donc pas typés-vérifiés. C'est le prix,
 il est payé sciemment, et il reste inférieur à celui d'ajouter Jest à un dépôt
 qui n'en a jamais voulu.
@@ -271,7 +271,7 @@ le réseau privé du NAS. Elle est écrite en premier et testée en premier.
 
 **Fichiers :**
 - Créer : `backend/src/avatar/avatarUrl.guard.ts`
-- Créer : `backend/src/avatar/avatarUrl.guard.test.ts`
+- Créer : `backend/src/avatar/avatarUrl.guard.spec.ts`
 - Modifier : `backend/tsconfig.json`
 - Modifier : `backend/package.json`
 - Modifier : `.github/workflows/backend-system-tests.yml`
@@ -281,7 +281,10 @@ le réseau privé du NAS. Elle est écrite en premier et testée en premier.
   - `class UnsafeAvatarUrlError extends Error`
   - `isPublicAddress(address: string): boolean`
   - `assertPublicUrl(raw: string): URL` — lève `UnsafeAvatarUrlError`
-  - `guardedLookup` — à passer tel quel dans les options de `https.request`
+  - `makeGuardedLookup(resolve?): lookup` — fabrique, le paramètre n'existe que
+    pour les tests
+  - `guardedLookup` — `makeGuardedLookup()`, à passer tel quel dans les options
+    de `https.request`
 
 - [ ] **Étape 1 : ouvrir la porte aux fichiers de test**
 
@@ -289,16 +292,21 @@ Dans `backend/tsconfig.json`, ajouter au premier niveau (frère de
 `compilerOptions`) :
 
 ```json
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
 ```
 
-Sans ça, `tsc` refuse l'import à extension `.ts` des fichiers de test, et
-`nest build` émettrait les tests dans `dist`.
+Sans ça, `tsc --noEmit` refuse l'import à extension `.ts` des fichiers de test.
+
+**Ne pas toucher `tsconfig.build.json`** : il étend `tsconfig.json` mais
+**écrase** `exclude`, et le sien contient déjà `**/*spec.ts`. C'est précisément
+pourquoi les fichiers de test de ce chantier s'appellent `*.spec.ts` et non
+`*.test.ts` — le suffixe que la configuration de build de ce dépôt exclut
+déjà. `nest build` les ignore donc sans qu'on ait à le lui dire.
 
 Dans `backend/package.json`, ajouter aux `scripts` :
 
 ```json
-    "test:unit": "node --experimental-strip-types --test \"src/**/*.test.ts\"",
+    "test:unit": "node --experimental-strip-types --test \"src/**/*.spec.ts\"",
 ```
 
 Le motif est **entre guillemets** : c'est Node qui l'étend, pas le shell. Le
@@ -307,7 +315,7 @@ par défaut ; sur le Node 24 de l'image Docker il est accepté sans effet.
 
 - [ ] **Étape 2 : écrire les tests qui échouent**
 
-Créer `backend/src/avatar/avatarUrl.guard.test.ts` :
+Créer `backend/src/avatar/avatarUrl.guard.spec.ts` :
 
 ```ts
 import { test } from "node:test";
@@ -315,6 +323,7 @@ import assert from "node:assert/strict";
 import {
   assertPublicUrl,
   isPublicAddress,
+  makeGuardedLookup,
   UnsafeAvatarUrlError,
 } from "./avatarUrl.guard.ts";
 
@@ -368,6 +377,41 @@ test("refuse les identifiants dans l'URL", () => {
 
 test("refuse une URL malformee", () => {
   assert.throws(() => assertPublicUrl("pas une url"), UnsafeAvatarUrlError);
+});
+
+test("le resolveur refuse un nom qui pointe vers une adresse privee", (_, done) => {
+  // La reliaison DNS est exactement ce cas : le nom est irreprochable, la
+  // reponse ne l'est pas. Le refus doit venir du resolveur, pas de l'URL.
+  const lookup = makeGuardedLookup(((h: string, o: any, cb: any) =>
+    cb(null, "127.0.0.1", 4)) as any);
+  lookup("rebind.example.com", {}, (err: Error | null) => {
+    assert.ok(err instanceof UnsafeAvatarUrlError, "devrait refuser");
+    done();
+  });
+});
+
+test("le resolveur refuse si UNE SEULE des adresses rendues est privee", (_, done) => {
+  // Avec `all: true`, dns.lookup rend un tableau. En accepter un seul element
+  // sans verifier les autres serait le trou evident.
+  const lookup = makeGuardedLookup(((h: string, o: any, cb: any) =>
+    cb(null, [
+      { address: "93.184.216.34", family: 4 },
+      { address: "10.0.0.5", family: 4 },
+    ])) as any);
+  lookup("mixte.example.com", { all: true }, (err: Error | null) => {
+    assert.ok(err instanceof UnsafeAvatarUrlError, "devrait refuser");
+    done();
+  });
+});
+
+test("le resolveur laisse passer une adresse publique", (_, done) => {
+  const lookup = makeGuardedLookup(((h: string, o: any, cb: any) =>
+    cb(null, "93.184.216.34", 4)) as any);
+  lookup("example.com", {}, (err: Error | null, address?: string) => {
+    assert.equal(err, null);
+    assert.equal(address, "93.184.216.34");
+    done();
+  });
 });
 
 test("refuse une adresse litterale non publique dans l'URL", () => {
@@ -489,12 +533,16 @@ export function assertPublicUrl(raw: string): URL {
 // DNS : un contrôle fait sur un `lookup` séparé, puis suivi d'un `connect`,
 // laisse une fenêtre où le nom résout vers une adresse publique pendant le test
 // et vers 127.0.0.1 pendant la connexion.
-export const guardedLookup = ((
+// Fabriqué plutôt qu'écrit en dur pour que le résolveur soit remplaçable dans
+// les tests : c'est ce morceau-là qui ferme la reliaison DNS, il ne peut pas
+// être la seule pièce non couverte du module.
+export function makeGuardedLookup(resolve: typeof dnsLookup = dnsLookup) {
+  return ((
   hostname: string,
   options: any,
   callback: (err: NodeJS.ErrnoException | null, address?: any, family?: number) => void,
 ) => {
-  dnsLookup(hostname, options, (err: any, address: any, family?: number) => {
+  resolve(hostname, options, (err: any, address: any, family?: number) => {
     if (err) return callback(err);
     const resolved: LookupAddress[] = Array.isArray(address)
       ? address
@@ -510,6 +558,9 @@ export const guardedLookup = ((
     callback(null, address, family);
   });
 }) as any;
+}
+
+export const guardedLookup = makeGuardedLookup();
 ```
 
 - [ ] **Étape 5 : les faire passer**
@@ -518,7 +569,7 @@ export const guardedLookup = ((
 cd backend && npm run test:unit
 ```
 
-Attendu : `pass 7`, `fail 0`.
+Attendu : `pass 10`, `fail 0`.
 
 - [ ] **Étape 6 : vérifier que rien d'autre n'a cassé**
 
@@ -556,7 +607,7 @@ sans dépendance, et pourquoi c'est ce module-là qui en méritait un.
 
 **Fichiers :**
 - Créer : `backend/src/avatar/avatarImage.ts`
-- Créer : `backend/src/avatar/avatarImage.test.ts`
+- Créer : `backend/src/avatar/avatarImage.spec.ts`
 
 **Interfaces :**
 - Consomme : rien des tâches précédentes.
@@ -565,7 +616,7 @@ sans dépendance, et pourquoi c'est ce module-là qui en méritait un.
 
 - [ ] **Étape 1 : écrire les tests qui échouent**
 
-Créer `backend/src/avatar/avatarImage.test.ts` :
+Créer `backend/src/avatar/avatarImage.spec.ts` :
 
 ```ts
 import { test } from "node:test";
@@ -1116,7 +1167,7 @@ git commit
 - Modifier : `backend/src/oauth/oauth.module.ts`
 - Modifier : `backend/src/avatar/avatar.service.ts`
 - Créer : `backend/src/avatar/avatar.fetch.ts`
-- Créer : `backend/src/avatar/avatar.fetch.test.ts`
+- Créer : `backend/src/avatar/avatar.fetch.spec.ts`
 
 **Interfaces :**
 - Consomme : `assertPublicUrl`, `guardedLookup`, `UnsafeAvatarUrlError`
@@ -1151,7 +1202,7 @@ Dans `backend/src/oauth/dto/oauthSignIn.dto.ts` :
 
 - [ ] **Étape 2 : écrire les tests qui échouent**
 
-Créer `backend/src/avatar/avatar.fetch.test.ts`. Ces tests couvrent la décision
+Créer `backend/src/avatar/avatar.fetch.spec.ts`. Ces tests couvrent la décision
 de récupérer ou non ; la récupération réseau elle-même est couverte par les
 tests d'`avatarUrl.guard.ts`, qui portent le risque.
 
