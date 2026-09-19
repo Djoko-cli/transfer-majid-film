@@ -113,6 +113,14 @@ const BLOCKED_V6: BlockedV6Prefix[] = [
   { prefix: [0x0100, 0, 0, 0, 0, 0, 0, 0], bits: 64 }, // 100::/64 trou noir (RFC 6666)
   { prefix: [0, 0, 0, 0, 0, 0xffff, 0, 0], bits: 96, delegateToIpv4: true }, // ::ffff:0:0/96 v4-mappée
   { prefix: [0x0064, 0xff9b, 0, 0, 0, 0, 0, 0], bits: 96, delegateToIpv4: true }, // 64:ff9b::/96 NAT64 (RFC 6052)
+  // 2002::/16 6to4 (RFC 3056) : les 32 bits qui suivent le préfixe encodent une
+  // IPv4 arbitraire (ex. 2002:0a00:0001::1 encapsule 10.0.0.1), pas forcément
+  // publique. Bloqué en bloc, comme son relais IPv4 192.88.99.0/24 ci-dessus —
+  // fermer l'un sans l'autre serait incohérent.
+  { prefix: [0x2002, 0, 0, 0, 0, 0, 0, 0], bits: 16 },
+  // 2001::/32 Teredo (RFC 4380) : même encapsulation IPv4-dans-IPv6 arbitraire
+  // que 6to4, même raison de la fermer en bloc plutôt qu'au cas par cas.
+  { prefix: [0x2001, 0, 0, 0, 0, 0, 0, 0], bits: 32 },
 ];
 
 export function isPublicAddress(address: string): boolean {
