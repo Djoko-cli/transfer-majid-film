@@ -277,10 +277,12 @@ export default {
 
   // showCreateReverseShareModal.tsx
   "account.reverseShares.modal.title": "Create reverse share",
-  "account.reverseShares.modal.collection-ends.label": "Collection open for",
+  "account.reverseShares.modal.collection-ends.label":
+    "Collection open for (days)",
   "account.reverseShares.modal.collection-ends.preview":
     "The collection will close on {expiration}.",
-  "account.reverseShares.modal.retention.label": "Album kept after closing",
+  "account.reverseShares.modal.retention.label":
+    "Album kept after closing (days)",
   "account.reverseShares.modal.retention.preview":
     "The album will be deleted on {expiration}.",
   "account.reverseShares.modal.expiration.minute-singular": "Minute",

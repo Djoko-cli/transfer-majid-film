@@ -28,6 +28,14 @@ export const glassModalStyles = (theme: any) => {
       boxShadow: dark
         ? "0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)"
         : "0 24px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+      // Mantine scrolls this box, which is what put the form underneath the
+      // heading in the first place. A column that does not scroll, with the
+      // body scrolling inside it, is the same modal with the overlap simply
+      // absent — see the header's own note for why no amount of styling on
+      // the bar itself could have fixed it.
+      overflow: "hidden" as const,
+      display: "flex" as const,
+      flexDirection: "column" as const,
     },
     // Mantine makes this header `position: sticky; top: 0` and gives it an
     // opaque background for exactly one reason: so the body scrolling under
@@ -67,6 +75,21 @@ export const glassModalStyles = (theme: any) => {
     // even 0.82 left a thumbnail and its caption plainly legible under the
     // title — so the choice was only ever between looking wrong and looking
     // right.
+    // A third attempt went for a light frost here — a small backdrop-filter,
+    // meant to turn the text passing underneath into texture. It renders,
+    // computes, and does exactly nothing, which is worth writing down so
+    // nobody tries it a fourth time. `backdrop-filter` samples the backdrop
+    // of its *backdrop root*, and `content` above declares one by having a
+    // backdrop-filter of its own; everything painted inside that root, the
+    // scrolling body included, is therefore not in this bar's backdrop at
+    // all. Measured directly: with the parent's filter removed the frost
+    // appeared instantly, and the modal lost its glass.
+    //
+    // Which made the real answer obvious. The bar never needed to hide the
+    // body — the body never needed to pass under the bar. `content` no
+    // longer scrolls (above), so the header is simply a row above a
+    // scrolling one, and the wash below is back to being what it always
+    // wanted to be: a shade, not a lid.
     header: {
       backgroundColor: dark ? "rgba(0, 0, 0, 0.28)" : "rgba(0, 0, 0, 0.07)",
       borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
@@ -80,6 +103,13 @@ export const glassModalStyles = (theme: any) => {
     // 0px under the line, so a thumbnail sat flush against it.
     body: {
       marginTop: 20,
+      // The scroll lives here now. `minHeight: 0` is what lets a flex child
+      // actually shrink below its content's height — without it the body
+      // refuses to be smaller than its form and the whole modal grows past
+      // the viewport instead of scrolling.
+      overflowY: "auto" as const,
+      flex: 1,
+      minHeight: 0,
     },
     title: {
       color: dark ? theme.white : theme.black,

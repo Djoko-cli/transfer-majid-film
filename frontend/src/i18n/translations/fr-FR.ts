@@ -266,11 +266,11 @@ export default {
   // showCreateReverseShareModal.tsx
   "account.reverseShares.modal.title": "Créer un transfert inversé",
   "account.reverseShares.modal.collection-ends.label":
-    "Collecte ouverte pendant",
+    "Collecte ouverte pendant (jours)",
   "account.reverseShares.modal.collection-ends.preview":
     "La collecte se fermera le {expiration}.",
   "account.reverseShares.modal.retention.label":
-    "Album conservé après la fermeture",
+    "Album conservé après la fermeture (jours)",
   "account.reverseShares.modal.retention.preview":
     "L'album sera supprimé le {expiration}.",
   "account.reverseShares.modal.expiration.minute-singular": "Minute",

@@ -91,6 +91,16 @@ const Body = ({
   const userMaxShareSize = maxShareSize;
   const generatedToken = generateShareId(shareIdLength);
 
+  const toDays = (span: { value: number; unit: string }) =>
+    Math.max(
+      1,
+      Math.round(
+        moment
+          .duration(span.value, span.unit as moment.unitOfTime.Base)
+          .asDays(),
+      ),
+    );
+
   const defaultTimespan = defaultExpiration
     ? defaultExpiration
     : { value: 7, unit: "days" };
@@ -121,10 +131,12 @@ const Body = ({
       // actual group while still being a deliberate cap, not "unlimited".
       maxUseCount: 20,
       sendEmailNotification: false,
-      collectionEndsAt_num: defaultTimespan.value,
-      collectionEndsAt_unit: `-${defaultTimespan.unit}` as string,
-      retention_num: defaultRetention.value,
-      retention_unit: `-${defaultRetention.unit}` as string,
+      // Days, and only days. A collection lasts a few days or a few
+      // weeks; offering hours and years cost a second control that said
+      // nothing the first one could not. The configured default may be
+      // expressed in any unit, so it is converted rather than assumed.
+      collectionEndsAt_days: toDays(defaultTimespan),
+      retention_days: toDays(defaultRetention),
     },
     validate: yupResolver(
       yup.object().shape({
@@ -186,19 +198,12 @@ const Body = ({
     // short collection window with years of retention would otherwise
     // sail straight past an admin-set maxExpiration.
     const collectionEndsAtDate = moment().add(
-      values.collectionEndsAt_num,
-      values.collectionEndsAt_unit.replace(
-        "-",
-        "",
-      ) as moment.unitOfTime.DurationConstructor,
+      values.collectionEndsAt_days,
+      "days",
     );
-    const containerExpirationDate = collectionEndsAtDate.clone().add(
-      values.retention_num,
-      values.retention_unit.replace(
-        "-",
-        "",
-      ) as moment.unitOfTime.DurationConstructor,
-    );
+    const containerExpirationDate = collectionEndsAtDate
+      .clone()
+      .add(values.retention_days, "days");
     if (
       maxExpiration.value != 0 &&
       containerExpirationDate.isAfter(
@@ -206,7 +211,7 @@ const Body = ({
       )
     ) {
       form.setFieldError(
-        "retention_num",
+        "retention_days",
         t("upload.modal.expires.error.too-long", {
           max: moment
             .duration(maxExpiration.value, maxExpiration.unit)
@@ -218,8 +223,8 @@ const Body = ({
 
     shareService
       .createReverseShare(
-        values.collectionEndsAt_num + values.collectionEndsAt_unit,
-        values.retention_num + values.retention_unit,
+        `${values.collectionEndsAt_days}-days`,
+        `${values.retention_days}-days`,
         values.maxShareSize,
         values.maxUseCount,
         values.sendEmailNotification,
@@ -244,69 +249,37 @@ const Body = ({
 
   // Shared by both clocks' unit <Select>s — singular/plural label,
   // otherwise identical data for either field.
-  const timeUnitOptions = (num: number) => [
-    {
-      value: "-minutes",
-      label:
-        num == 1
-          ? t("upload.modal.expires.minute-singular")
-          : t("upload.modal.expires.minute-plural"),
-    },
-    {
-      value: "-hours",
-      label:
-        num == 1
-          ? t("upload.modal.expires.hour-singular")
-          : t("upload.modal.expires.hour-plural"),
-    },
-    {
-      value: "-days",
-      label:
-        num == 1
-          ? t("upload.modal.expires.day-singular")
-          : t("upload.modal.expires.day-plural"),
-    },
-    {
-      value: "-weeks",
-      label:
-        num == 1
-          ? t("upload.modal.expires.week-singular")
-          : t("upload.modal.expires.week-plural"),
-    },
-    {
-      value: "-months",
-      label:
-        num == 1
-          ? t("upload.modal.expires.month-singular")
-          : t("upload.modal.expires.month-plural"),
-    },
-    {
-      value: "-years",
-      label:
-        num == 1
-          ? t("upload.modal.expires.year-singular")
-          : t("upload.modal.expires.year-plural"),
-    },
-  ];
-
   // Live previews, recomputed every render off the form's current values
   // — chained, not independent: the album's real death is collectionEnds
   // + retention, same as ReverseShareService.create()'s own
   // containerExpiration.
   const collectionEndsAtDate = moment().add(
-    form.values.collectionEndsAt_num,
-    form.values.collectionEndsAt_unit.replace(
-      "-",
-      "",
-    ) as moment.unitOfTime.DurationConstructor,
+    form.values.collectionEndsAt_days,
+    "days",
   );
-  const containerExpiresAtDate = collectionEndsAtDate.clone().add(
-    form.values.retention_num,
-    form.values.retention_unit.replace(
-      "-",
-      "",
-    ) as moment.unitOfTime.DurationConstructor,
-  );
+  const containerExpiresAtDate = collectionEndsAtDate
+    .clone()
+    .add(form.values.retention_days, "days");
+
+  // The ceiling is not this form's to pick: it is share.maxExpiration from
+  // the admin console, and a 0 there means no ceiling at all (which is also
+  // what an admin or a permanent-share user is handed, see the call site).
+  // The two fields share that one budget, so each one's own maximum is
+  // whatever the other leaves — without which the form would cheerfully
+  // accept a pair the server then refuses, which is a worse way to learn
+  // the rule than not being offered it.
+  const capDays =
+    maxExpiration.value === 0
+      ? null
+      : Math.floor(
+          moment.duration(maxExpiration.value, maxExpiration.unit).asDays(),
+        );
+  const maxCollectionDays = capDays
+    ? Math.max(1, capDays - form.values.retention_days)
+    : undefined;
+  const maxRetentionDays = capDays
+    ? Math.max(1, capDays - form.values.collectionEndsAt_days)
+    : undefined;
 
   return (
     <Group>
@@ -346,26 +319,14 @@ const Body = ({
             // sub-component — two fields don't earn the indirection.
           }
           <div>
-            <Grid
-              align={form.errors.collectionEndsAt_num ? "center" : "flex-end"}
-            >
-              <Col xs={6}>
-                <NumberInput
-                  min={1}
-                  max={99999}
-                  precision={0}
-                  variant="filled"
-                  label={t("account.reverseShares.modal.collection-ends.label")}
-                  {...form.getInputProps("collectionEndsAt_num")}
-                />
-              </Col>
-              <Col xs={6}>
-                <Select
-                  {...form.getInputProps("collectionEndsAt_unit")}
-                  data={timeUnitOptions(form.values.collectionEndsAt_num)}
-                />
-              </Col>
-            </Grid>
+            <NumberInput
+              min={1}
+              max={maxCollectionDays}
+              precision={0}
+              variant="filled"
+              label={t("account.reverseShares.modal.collection-ends.label")}
+              {...form.getInputProps("collectionEndsAt_days")}
+            />
             <Text
               mt="sm"
               italic
@@ -380,24 +341,14 @@ const Body = ({
             </Text>
           </div>
           <div>
-            <Grid align={form.errors.retention_num ? "center" : "flex-end"}>
-              <Col xs={6}>
-                <NumberInput
-                  min={1}
-                  max={99999}
-                  precision={0}
-                  variant="filled"
-                  label={t("account.reverseShares.modal.retention.label")}
-                  {...form.getInputProps("retention_num")}
-                />
-              </Col>
-              <Col xs={6}>
-                <Select
-                  {...form.getInputProps("retention_unit")}
-                  data={timeUnitOptions(form.values.retention_num)}
-                />
-              </Col>
-            </Grid>
+            <NumberInput
+              min={1}
+              max={maxRetentionDays}
+              precision={0}
+              variant="filled"
+              label={t("account.reverseShares.modal.retention.label")}
+              {...form.getInputProps("retention_days")}
+            />
             <Text
               mt="sm"
               italic
