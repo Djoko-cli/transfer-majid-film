@@ -23,6 +23,15 @@ export class AvatarService {
 
   // Le seul point d'écriture d'un avatar dans tout le code. Les deux sources —
   // l'envoi manuel et la récupération OpenID — passent par ici, sans exception.
+  //
+  // Le fichier s'écrit avant la ligne en base — l'inverse de `remove()`
+  // ci-dessous, qui efface le fichier puis la base, volontairement. Un arrêt
+  // du process entre les deux étapes d'ici laisse au pire un fichier
+  // orphelin sur disque : invisible (rien en base ne le référence), écrasé
+  // sans incident au prochain envoi, et effacé avec le reste à la
+  // suppression du compte. L'ordre inverse laisserait une ligne en base qui
+  // pointe vers un fichier absent — un 404 sur sa propre photo, au lieu d'un
+  // octet mort qu'on ne verra jamais.
   async store(userId: string, bytes: Buffer): Promise<Date> {
     const encoded = await encodeAvatar(bytes);
     await fs.mkdir(AVATAR_DIRECTORY, { recursive: true });
