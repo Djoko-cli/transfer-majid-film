@@ -1,4 +1,16 @@
-import sharp from "sharp";
+import * as sharpNamespace from "sharp";
+
+// Cale d'interopérabilité, et elle n'est pas décorative. Ce fichier est chargé
+// de deux façons : compilé en CommonJS par `tsc` pour le serveur, et lu tel
+// quel comme module ES par le runner de tests de Node. `import sharp from
+// "sharp"` marche sous le second et casse sous le premier — `esModuleInterop`
+// n'est pas activé dans ce dépôt, et l'activer lève 58 erreurs ailleurs — en
+// émettant `sharp_1.default`, qui vaut `undefined` pour un module CommonJS
+// exportant une fonction. L'échec était masqué : le `catch` plus bas le
+// traduisait en « ce fichier n'est pas une image ».
+const sharp: typeof import("sharp").default =
+  (sharpNamespace as unknown as { default?: typeof import("sharp").default })
+    .default ?? (sharpNamespace as unknown as typeof import("sharp").default);
 
 // Sans dépendance NestJS, comme avatarUrl.guard.ts et pour la même raison.
 export class UndecodableAvatarError extends Error {}
@@ -50,6 +62,14 @@ export async function encodeAvatar(bytes: Buffer): Promise<Buffer> {
       .toBuffer();
   } catch (error) {
     if (error instanceof UndecodableAvatarError) throw error;
+    // Une erreur de programmation (import cassé, appel invalide, TypeError
+    // sur un objet qui n'a pas la forme attendue) n'est pas une image
+    // illisible : elle doit remonter telle quelle jusqu'au 500 qu'elle
+    // mérite, pas se déguiser en 400 « fichier illisible ». C'est exactement
+    // ce déguisement qui a caché le bug d'import de `sharp` derrière un
+    // message plausible et faux.
+    if (error instanceof TypeError || error instanceof ReferenceError)
+      throw error;
     throw new UndecodableAvatarError(
       error instanceof Error ? error.message : String(error),
     );

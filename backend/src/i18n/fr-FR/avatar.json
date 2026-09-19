@@ -1,5 +1,6 @@
 {
   "empty": "Aucune image reçue.",
   "undecodable": "Ce fichier n'est pas une image que nous savons lire.",
-  "notFound": "Ce compte n'a pas de photo de profil."
+  "notFound": "Ce compte n'a pas de photo de profil.",
+  "signInRequired": "Vous devez être connecté pour gérer votre photo de profil."
 }

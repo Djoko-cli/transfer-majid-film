@@ -377,8 +377,8 @@
 							"script": {
 								"type": "text/javascript",
 								"exec": [
-									"pm.test(\"Status code is 200\", () => {",
-									"    pm.response.to.have.status(200);",
+									"pm.test(\"Status code is 201\", () => {",
+									"    pm.response.to.have.status(201);",
 									"});",
 									"",
 									"pm.test(\"Response contains an avatarUpdatedAt timestamp\", () => {",

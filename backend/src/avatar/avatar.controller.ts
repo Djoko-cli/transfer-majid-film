@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   Post,
@@ -30,16 +31,32 @@ export class AvatarController {
     private i18n: I18nService,
   ) {}
 
+  // `JwtGuard` échoue ouvert : si `share.allowUnauthenticatedShares` est activé
+  // (réglage d'administration, faux par défaut), une requête anonyme passe le
+  // garde et `@GetUser()` rend `undefined` au lieu de faire échouer la requête
+  // plus tôt — `user.controller.ts` (`getCurrentUser`) connaît déjà ce piège.
+  // Sans ce contrôle, `user.id` plus bas plante en 500 non intentionnel au
+  // lieu d'un refus explicite.
+  private requireUser(user?: User): User {
+    if (!user)
+      throw new ForbiddenException(this.i18n.t("avatar.signInRequired"));
+    return user;
+  }
+
   @Post()
   @UseGuards(JwtGuard)
-  async upload(@GetUser() user: User, @Req() request: Request) {
+  async upload(
+    @GetUser() user: User | undefined,
+    @Req() request: Request,
+  ) {
+    const authedUser = this.requireUser(user);
     const bytes = request.body;
     if (!Buffer.isBuffer(bytes) || bytes.length === 0)
       throw new BadRequestException(this.i18n.t("avatar.empty"));
 
     try {
-      const avatarUpdatedAt = await this.avatar.store(user.id, bytes);
-      return new UserDTO().from({ ...user, avatarUpdatedAt });
+      const avatarUpdatedAt = await this.avatar.store(authedUser.id, bytes);
+      return new UserDTO().from({ ...authedUser, avatarUpdatedAt });
     } catch (error) {
       if (error instanceof UndecodableAvatarError)
         throw new BadRequestException(this.i18n.t("avatar.undecodable"));
@@ -50,10 +67,11 @@ export class AvatarController {
   @Get()
   @UseGuards(JwtGuard)
   async read(
-    @GetUser() user: User,
+    @GetUser() user: User | undefined,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const stream = await this.avatar.read(user.id);
+    const authedUser = this.requireUser(user);
+    const stream = await this.avatar.read(authedUser.id);
     response.set({
       "Content-Type": "image/webp",
       // Un an et `immutable` ne sont corrects que parce que le front demande
@@ -69,7 +87,8 @@ export class AvatarController {
   @Delete()
   @HttpCode(204)
   @UseGuards(JwtGuard)
-  async remove(@GetUser() user: User) {
-    await this.avatar.remove(user.id);
+  async remove(@GetUser() user: User | undefined) {
+    const authedUser = this.requireUser(user);
+    await this.avatar.remove(authedUser.id);
   }
 }
