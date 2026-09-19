@@ -39,6 +39,19 @@ const cancelEmailChange = async () => {
   return (await api.delete("/users/me/email")).data;
 };
 
+// Le `File` part tel quel, avec son propre type : le serveur ne le croit pas
+// sur parole — il le passe à sharp, qui décode ou refuse — mais c'est ce type
+// qui fait retenir la requête par le parseur borné à cette route.
+const uploadAvatar = async (file: File) => {
+  await api.post("/users/me/avatar", file, {
+    headers: { "Content-Type": file.type },
+  });
+};
+
+const deleteAvatar = async () => {
+  await api.delete("/users/me/avatar");
+};
+
 const removeCurrentUser = async () => {
   await api.delete("/users/me");
 };
@@ -62,5 +75,7 @@ export default {
   confirmEmailChange,
   resendEmailChangeCode,
   cancelEmailChange,
+  uploadAvatar,
+  deleteAvatar,
   removeCurrentUser,
 };

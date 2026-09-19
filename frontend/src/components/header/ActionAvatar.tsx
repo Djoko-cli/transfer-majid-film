@@ -13,12 +13,20 @@ const ActionAvatar = () => {
   const t = useTranslate();
   const [menuOpened, setMenuOpened] = useState(false);
 
+  // `radius="xl"` est le cercle : Mantine 6 rend un carré arrondi par défaut.
+  // Sans photo, `src` vaut `undefined` et Mantine retombe sur son propre
+  // placeholder — c'est-à-dire exactement l'affichage d'avant ce chantier.
+  // `?v=` est ce qui rend correct le cache d'un an posé par la route.
+  const avatarSrc = user?.avatarUpdatedAt
+    ? `/api/users/me/avatar?v=${new Date(user.avatarUpdatedAt).getTime()}`
+    : undefined;
+
   return (
     <Menu position="bottom-start" withinPortal onChange={setMenuOpened}>
       <Menu.Target>
         <ActionIcon aria-label={t("common.button.profile")}>
           <HoverTip label={t("common.button.profile")} disabled={menuOpened}>
-            <Avatar size={28} />
+            <Avatar size={28} radius="xl" src={avatarSrc} />
           </HoverTip>
         </ActionIcon>
       </Menu.Target>

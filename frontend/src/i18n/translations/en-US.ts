@@ -122,6 +122,14 @@ export default {
   "account.card.info.title": "Account info",
   "account.card.info.username": "Username",
   "account.card.info.email": "Email",
+  "account.card.avatar.title": "Profile picture",
+  "account.card.avatar.description":
+    "It replaces your account icon. Only you can see it. 5 MB maximum.",
+  "account.card.avatar.change": "Choose a picture",
+  "account.card.avatar.remove": "Remove",
+  "account.card.avatar.saved": "Profile picture saved.",
+  "account.card.avatar.removed": "Profile picture removed.",
+  "account.card.avatar.too-large": "That image is over 5 MB.",
   "account.notify.info.success": "Account updated successfully",
 
   "account.card.password.title": "Password",
