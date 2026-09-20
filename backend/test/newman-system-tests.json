@@ -765,8 +765,69 @@
 					"response": []
 				},
 				{
+					"name": "Sign in as the non-admin account for this test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"// Capture explicite : le test suivant pose ce jeton lui-meme en",
+									"// en-tete plutot que de compter sur l'identite ambiante du pot a",
+									"// cookies de Newman -- system2.test est bien l'identite ambiante",
+									"// ici, mais rien dans la requete elle-meme ne le prouverait sans",
+									"// cette capture.",
+									"pm.collectionVariables.set('NON_ADMIN_ACCESS_TOKEN', pm.response.json().accessToken);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"system2@test.org\",\n    \"password\": \"N44HcHgeuAvfCT\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/signIn",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"signIn"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Non-admin reading another account's avatar is refused",
 					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Preuve, pas supposition : l'appelant est explicitement",
+									"// system2.test (non-admin), capture juste au-dessus par 'Sign in",
+									"// as the non-admin account for this test', et pose ici en",
+									"// en-tete -- pas laisse a l'identite ambiante du pot a cookies de",
+									"// Newman, qui pourrait changer sans que ce test s'en apercoive.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('NON_ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
 						{
 							"listen": "test",
 							"script": {
@@ -920,6 +981,144 @@
 					"response": []
 				},
 				{
+					"name": "Admin's DELETE with a path-traversal id",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Meme geste que \"Collection container\" et \"Anonymous share leaks\" :",
+									"// system2@test.org (Auth > Positive > Sign In, pas admin) tient le pot",
+									"// a cookies de Newman pour cet hote, et un sign-in ulterieur ne l'y",
+									"// remplace pas -- mesure la-bas, pas suppose ici. On ne s'appuie donc",
+									"// pas sur le pot a cookies pour le cookie access_token : on le pose",
+									"// nous-memes depuis ADMIN_ACCESS_TOKEN (capture par 'Sign in as admin",
+									"// for the avatar admin tests' ci-dessus), quel que soit l'hote.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// AvatarService.remove() est idempotente par construction : ce",
+									"// 204 ne prouve rien par lui-meme, dans un sens comme dans",
+									"// l'autre -- avec ou sans la garde qui verifie que le compte",
+									"// existe, la reponse est la meme. C'est la requete suivante",
+									"// ('The real avatar targeted by the traversal survives untouched')",
+									"// qui porte l'assertion reelle : elle verifie que le fichier",
+									"// vise par la traversee (..%2favatars%2f<id reel>, qui resout",
+									"// hors AVATAR_DIRECTORY vers ce meme id reel) est toujours la.",
+									"pm.test(\"Status code is 204\", () => {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/users/:id/avatar",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users",
+								":id",
+								"avatar"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "..%2favatars%2f{{AVATAR_ADMIN_TARGET_ID}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "The real avatar targeted by the traversal survives untouched",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Meme geste que \"Collection container\" et \"Anonymous share leaks\" :",
+									"// system2@test.org (Auth > Positive > Sign In, pas admin) tient le pot",
+									"// a cookies de Newman pour cet hote, et un sign-in ulterieur ne l'y",
+									"// remplace pas -- mesure la-bas, pas suppose ici. On ne s'appuie donc",
+									"// pas sur le pot a cookies pour le cookie access_token : on le pose",
+									"// nous-memes depuis ADMIN_ACCESS_TOKEN (capture par 'Sign in as admin",
+									"// for the avatar admin tests' ci-dessus), quel que soit l'hote.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// C'est ici que la traversee de la requete precedente se voit,",
+									"// ou pas : ..%2favatars%2f{{AVATAR_ADMIN_TARGET_ID}}, une fois",
+									"// concatene par AvatarService.path() sous AVATAR_DIRECTORY,",
+									"// resout au meme fichier que cette route-ci lit directement --",
+									"// data/avatars/../avatars/<id>.webp == data/avatars/<id>.webp.",
+									"// Sans la verification d'existence dans AvatarService.remove(),",
+									"// ce GET rendrait 404 (fichier efface par la requete precedente,",
+									"// alors que sa cible declaree etait un id fabrique qui ne",
+									"// correspond a aucun compte). Confirme rouge avant le correctif,",
+									"// en dehors de Newman (voir le rapport) : le fichier reel de la",
+									"// victime disparaissait bel et bien.",
+									"pm.test(\"Status code is 200\", () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response bytes are a real WebP image, not just a Content-Type claim\", () => {",
+									"    const bytes = pm.response.stream;",
+									"    pm.expect(bytes.slice(0, 4).toString(\"latin1\")).to.equal(\"RIFF\");",
+									"    pm.expect(bytes.slice(8, 12).toString(\"latin1\")).to.equal(\"WEBP\");",
+									"    pm.expect(bytes.length).to.be.above(200);",
+									"});",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/users/:id/avatar",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users",
+								":id",
+								"avatar"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{AVATAR_ADMIN_TARGET_ID}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Admin removes another account's avatar",
 					"event": [
 						{
@@ -954,6 +1153,68 @@
 					],
 					"request": {
 						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/users/:id/avatar",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users",
+								":id",
+								"avatar"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{AVATAR_ADMIN_TARGET_ID}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Avatar is actually gone after the admin's real removal",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Meme geste que \"Collection container\" et \"Anonymous share leaks\" :",
+									"// system2@test.org (Auth > Positive > Sign In, pas admin) tient le pot",
+									"// a cookies de Newman pour cet hote, et un sign-in ulterieur ne l'y",
+									"// remplace pas -- mesure la-bas, pas suppose ici. On ne s'appuie donc",
+									"// pas sur le pot a cookies pour le cookie access_token : on le pose",
+									"// nous-memes depuis ADMIN_ACCESS_TOKEN (capture par 'Sign in as admin",
+									"// for the avatar admin tests' ci-dessus), quel que soit l'hote.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Miroir de 'Avatar > Get avatar - after delete'. Sans cette",
+									"// requete, 'Admin removes another account's avatar' n'affirmait",
+									"// que 204 -- et remove() est idempotente par construction, donc",
+									"// ce 204 est rendu que le retrait ait fait quoi que ce soit ou",
+									"// non. C'est cette assertion-ci qui rougit si le retrait ne",
+									"// fait rien.",
+									"pm.test(\"Status code is 404\", () => {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
 						"header": [],
 						"url": {
 							"raw": "{{API_URL}}/users/:id/avatar",

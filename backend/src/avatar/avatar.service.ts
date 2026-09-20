@@ -74,7 +74,26 @@ export class AvatarService {
   // Idempotente des deux côtés : un compte sans photo se supprime sans erreur,
   // et un fichier déjà absent ne fait pas échouer l'appel. C'est ce qui permet
   // à UserService.delete de l'appeler sans se demander s'il y avait une photo.
+  //
+  // Confirme que le compte existe AVANT de construire le moindre chemin —
+  // exactement ce que `read()` fait déjà, pour la même raison. Jusqu'à
+  // AdminAvatarController, tout appelant de `remove` passait un `userId`
+  // pris sur le jeton : jamais autre chose qu'un identifiant de compte réel.
+  // AdminAvatarController est le premier à y faire entrer un segment d'URL,
+  // et `path()` concatène `userId` sans le vérifier — un `userId` du genre
+  // `"../../../etc/passwd"` fait sortir `fs.rm` de `AVATAR_DIRECTORY`. Le
+  // contrôle vit ici, dans le service, et pas dans le contrôleur : `path()`
+  // ne doit jamais pouvoir recevoir autre chose qu'un identifiant confirmé,
+  // pour tout appelant, présent ou futur — pas seulement pour celui-ci.
+  // Un compte introuvable rend la main silencieusement : indiscernable, du
+  // point de vue de l'appelant, d'un compte qui n'a simplement pas de photo.
   async remove(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!user) return;
+
     await fs.rm(this.path(userId), { force: true });
     await this.prisma.user.updateMany({
       where: { id: userId, avatarUpdatedAt: { not: null } },
