@@ -253,19 +253,29 @@ encore écraser la clé, ce qui casse les paiements sans rien prendre. Ça suppr
 le vol, qui est la seule des deux dont les conséquences survivent à
 l'application.
 
-### Le piège, écrit ici parce qu'il mordra sinon
+### Ce qu'il faut afficher — et le piège qui n'en est pas un
 
-Le panneau renvoie aujourd'hui **toutes** les valeurs à l'enregistrement, et
-`update()` traite `value === ""` comme « efface »
-([`config.service.ts:684`](../backend/src/config/config.service.ts)). Si le
-champ devient vide à l'affichage sans que le front cesse de l'envoyer, le
-premier enregistrement des réglages SMTP efface le mot de passe SMTP.
+**Correction, écrite après vérification du code.** Cette section affirmait
+d'abord que le panneau renvoie toutes les valeurs à l'enregistrement, donc que
+masquer un secret effacerait le mot de passe SMTP au premier enregistrement des
+réglages SMTP. C'est **faux** : `updateConfigVariable`
+([`[category].tsx:160-175`](../frontend/src/pages/admin/config/[category].tsx))
+n'accumule que les variables réellement modifiées, et `saveConfigVariables`
+(`:138-141`) n'envoie que celles-là. Un champ auquel personne n'a touché n'est
+jamais envoyé. Le scénario catastrophe n'existe pas.
 
-**Le front ne doit inclure une clé `obscured` dans le `PATCH` que si
-l'administrateur a réellement tapé quelque chose.** C'est une non-régression à
-écrire comme test, pas une consigne de revue.
+Ce qui reste, et qui est le vrai travail :
 
----
+- Le `PasswordInput`
+  ([`AdminConfigInput.tsx:77-86`](../frontend/src/components/admin/configuration/AdminConfigInput.tsx))
+  s'affichera **vide**, puisqu'il n'a plus de valeur à recevoir. Sans rien
+  d'autre, l'administrateur croira le réglage non posé et le ressaisira pour
+  rien. D'où `isSet`, et un libellé qui dit « défini » quand il l'est.
+- **Effacer volontairement le champ reste le moyen d'effacer le secret** :
+  `update()` traite `""` comme `null`
+  ([`config.service.ts:684`](../backend/src/config/config.service.ts)). C'est
+  cohérent, et ça doit le rester — sans ça, un secret posé par erreur serait
+  ineffaçable depuis la console.
 
 ## 8. Quand l'argent tourne mal
 
@@ -322,7 +332,7 @@ suffit — y compris pour la rejouer deux fois et prouver l'idempotence.
 8. `remove()` refuse un transfert dont un paiement court, et l'accepte avec la
    dérogation explicite.
 9. **Un `PATCH` de configuration qui ne mentionne pas `smtp.password` le laisse
-   intact.**
+   intact** — c'est déjà le comportement, ce test le verrouille.
 10. `getByCategory` ne renvoie plus de valeur pour un réglage `obscured`, et
     renvoie `isSet` correctement pour un réglage posé comme pour un réglage vide.
 11. **Aucun réglage `obscured` n'a `secret: false`** — l'invariant du §7, qui est
