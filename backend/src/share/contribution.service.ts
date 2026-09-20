@@ -62,7 +62,7 @@ export class ContributionService {
     // contribution costs a use now, and that is accepted — these routes
     // require the collection's password and a proven identity, so
     // spending twenty uses means being an invited participant who
-    // chooses to sabotage the album they were invited to, not a stranger
+    // chooses to sabotage the transfer they were invited to, not a stranger
     // with a free pass.
     const claimed = await this.prisma.reverseShare.updateMany({
       where: { containerShareId: shareId, remainingUses: { gt: 0 } },
@@ -87,7 +87,7 @@ export class ContributionService {
   }
 
   // The archive is rebuilt from scratch on every contribution. On a
-  // multi-gigabyte album that will be felt, and the answer then is to
+  // multi-gigabyte transfer that will be felt, and the answer then is to
   // build it on demand instead — measure before assuming either way.
   //
   // A plain close: the use this contribution spends was already claimed
@@ -106,7 +106,7 @@ export class ContributionService {
     // transfert, so it gets the same antivirus step the ordinary upload
     // has had all along (ShareService.complete()) — scoped to this
     // contribution's own files, since the container is everybody's
-    // album. Chaining the rebuild behind it keeps a file the scan is
+    // transfer. Chaining the rebuild behind it keeps a file the scan is
     // about to remove out of "tout télécharger". Both stay off the
     // response's critical path, exactly as the ordinary path does it: a
     // contributor should not wait on a multi-gigabyte scan to be told

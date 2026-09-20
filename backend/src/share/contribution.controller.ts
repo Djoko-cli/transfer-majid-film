@@ -37,7 +37,7 @@ export class ContributionController {
   // read, and it must do so before ContributionGuard ever runs — a
   // stranger holding a link's slug but not its password proves nothing
   // by opening a contribution. It costs a real contributor nothing extra:
-  // reading the album already put them through the same token cycle.
+  // reading the transfer already put them through the same token cycle.
   @Post()
   @UseGuards(IdValidation, ShareSecurityGuard)
   async open(

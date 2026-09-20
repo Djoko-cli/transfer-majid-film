@@ -102,7 +102,7 @@ export class LocalFileService {
     // Check if share size limit is exceeded. A collection's own
     // maxShareSize (set once by the link's creator — see
     // ReverseShareService.create()) is a per-contribution ceiling, not a
-    // whole-album one (spec §11) — so when this write belongs to a
+    // whole-transfer one (spec §11) — so when this write belongs to a
     // contribution, both halves of the check are scoped to it: the
     // running total counts only that contribution's own files, never the
     // whole collection's, and the limit is the collection's own, never the
@@ -123,7 +123,7 @@ export class LocalFileService {
     let limit = parseInt(this.config.get("share.maxSize"));
     if (contributionId && share.collectionOf?.maxShareSize) {
       // Gated on contributionId, not just isCollection: this ceiling is a
-      // property of a *deposit*, not of the album. With no contribution
+      // property of a *deposit*, not of the transfer. With no contribution
       // in hand, this write is the owner's own — reaching the container
       // through the classic route (StrictShareOwnerGuard) rather than
       // through a contribution — and the pre-existing account-level rule

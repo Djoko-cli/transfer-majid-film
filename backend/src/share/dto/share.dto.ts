@@ -47,7 +47,7 @@ export class ShareDTO {
       // Never the real ShareContribution id — see
       // ShareController.buildCollectionState()'s own comment for why: that
       // id is also what ContributionGuard trusts to let a POST write into
-      // or close a contribution, so publishing it to every album reader
+      // or close a contribution, so publishing it to every transfer reader
       // would let anyone past the password gate impersonate an open
       // deposit. This is an opaque key, stable only within this one
       // response, and FileDTO.contributionId is rewritten to match it.

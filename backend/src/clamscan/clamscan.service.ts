@@ -307,7 +307,7 @@ export class ClamScanService {
   // the log row are all the same — only the blast radius narrows, and it
   // has to: the container belongs to every contributor at once, so
   // wiping it (or stamping removedReason on it, which 404s it for
-  // everyone) because one deposit was infected would punish the album for
+  // everyone) because one deposit was infected would punish the transfer for
   // one person's file. Everything else the ordinary path does, a
   // contribution gets too.
   async checkAndRemove(shareId: string, contributionId?: string) {
@@ -379,7 +379,7 @@ export class ClamScanService {
 
         // Never for a contribution: removedReason is what makes
         // ShareService.get() answer "not found" to everyone, and the
-        // container is the album every other contributor reads.
+        // container is the transfer every other contributor reads.
         if (!contributionId) {
           await this.prisma.share.update({
             where: { id: shareId },

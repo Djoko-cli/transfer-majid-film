@@ -413,9 +413,9 @@ export class ShareService {
   // "reopening an upload": it makes ShareService.get() answer not-found
   // to everyone including its owner, drops it out of "Mes transferts"
   // (which filters on uploadLocked), makes the re-complete fail with
-  // completionRequiresFile on an album that is legitimately still empty,
+  // completionRequiresFile on an transfer that is legitimately still empty,
   // and hands it to JobsService.deleteUnfinishedShares, which within a
-  // day deletes the container and cascades the link, the album and every
+  // day deletes the container and cascades the link, the transfer and every
   // contribution away with it. Spec §3 exists to prevent exactly this,
   // and the check belongs here rather than only in the page that offers
   // the button — one is a convenience, the other is the rule.

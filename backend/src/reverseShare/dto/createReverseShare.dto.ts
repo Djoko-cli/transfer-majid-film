@@ -37,7 +37,7 @@ export class CreateReverseShareDTO {
   })
   collectionEndsAt: string;
 
-  // How long the album survives after that, same shape and same reason to
+  // How long the transfer survives after that, same shape and same reason to
   // reject anything else: an unparseable string silently yields 0 seconds
   // of retention instead of failing loudly.
   @IsString()

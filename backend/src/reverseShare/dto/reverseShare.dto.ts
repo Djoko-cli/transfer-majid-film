@@ -25,7 +25,7 @@ export class ReverseShareDTO {
   @Expose()
   collectionEndsAt: Date;
 
-  // When the album itself is removed: collectionEndsAt + retentionSeconds.
+  // When the transfer itself is removed: collectionEndsAt + retentionSeconds.
   // Computed here rather than read off containerShare.expiration, because
   // that column only carries this real value once JobsService's hourly
   // cron has closed the collection — before that it still holds the
@@ -52,7 +52,7 @@ export class ReverseShareDTO {
 
   // One entry per contribution, in the same order as the count above —
   // null where nobody typed a name (the frontend falls back to the same
-  // "Anonyme" label FileList.tsx already uses for the public album, rather
+  // "Anonyme" label FileList.tsx already uses for the public transfer, rather
   // than baking a display string into the API response).
   @Expose()
   contributorNames: (string | null)[];

@@ -294,7 +294,7 @@ const Share = ({ shareId }: { shareId: string }) => {
                   edit page "Mes transferts" also used to offer, and the
                   same reason to close it: that page's save() begins by
                   unlocking the transfert, which for a container means
-                  making the album invisible and then letting the
+                  making the transfer invisible and then letting the
                   unfinished-shares cron delete it. The server refuses it
                   outright (ShareService.revertComplete); this keeps the
                   owner from being offered a button that can only fail. */}

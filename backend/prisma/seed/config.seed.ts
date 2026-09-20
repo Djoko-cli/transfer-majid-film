@@ -138,7 +138,7 @@ export const configVariables = {
       secret: false,
     },
     // Gates ReverseShareService.create() only — existing links (and their
-    // albums, contributions, archive and expiry) keep working regardless.
+    // transfers, contributions, archive and expiry) keep working regardless.
     // True by default: the feature already exists and runs, so shipping it
     // off would surprise anyone already using it.
     enableReverseShares: {

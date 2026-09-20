@@ -93,7 +93,7 @@ export class ShareController {
   }
 
   // Assembled here, not in ShareService.get(), which stays about the Share
-  // row alone — this is what turns spec §5.2's "l'album, groupée par
+  // row alone — this is what turns spec §5.2's "l'transfer, groupée par
   // contribution" into ShareDTO.collection. Only ever called once get()
   // has already confirmed share.isCollection, i.e. this really is a
   // collection — every ordinary transfer's response never reaches this
@@ -111,7 +111,7 @@ export class ShareController {
   // guard's own comment) — identity is proven once, at open(), and every
   // write after that trusts the id alone. Before this method existed, that
   // id was known only to whoever opened the contribution. Handing it back
-  // here to every album reader — collection.contributions[].id, and each
+  // here to every transfer reader — collection.contributions[].id, and each
   // file's own contributionId — would let anyone past the password gate
   // POST into another contributor's still-open upload and complete it, and
   // since name-level impersonation is accepted by this whole design (a

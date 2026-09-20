@@ -31,7 +31,7 @@ export class ReverseShareService {
 
   async create(data: CreateReverseShareDTO, creatorId: string) {
     // Only the making of new links is refused. Everything already created
-    // keeps working, contributions included — freezing an album mid-collection
+    // keeps working, contributions included — freezing an transfer mid-collection
     // is not what anyone means when they untick a box.
     if (!this.config.get("share.enableReverseShares"))
       throw new ForbiddenException(this.i18n.t("reverseShare.disabled"));
@@ -44,7 +44,7 @@ export class ReverseShareService {
       )
       .asSeconds();
     // The date the container actually dies — collectionEndsAt only closes
-    // deposits, the album lives on for retentionSeconds after that. The cap
+    // deposits, the transfer lives on for retentionSeconds after that. The cap
     // below has to bind on this date: checking collectionEndsAt alone would
     // let a short collection window with years of retention sail past it.
     const containerExpiration = moment(collectionEndsAt)
@@ -201,7 +201,7 @@ export class ReverseShareService {
     const reverseShares = await this.prisma.reverseShare.findMany({
       where: {
         creatorId: userId,
-        // The album's death, not the end of deposits — those are two
+        // The transfer's death, not the end of deposits — those are two
         // different dates now, and filtering on the first hides a
         // collection that is closed but entirely alive from the only
         // page that lists it.
@@ -215,7 +215,7 @@ export class ReverseShareService {
           include: {
             files: { select: { size: true } },
             // Every contribution, open or closed — same policy as
-            // ContributionService.getWithFiles(), which the public album
+            // ContributionService.getWithFiles(), which the public transfer
             // (ShareController.buildCollectionState) already reads
             // without filtering on completedAt: a contribution row only
             // exists once someone proved an identity, so a still-open one
@@ -255,16 +255,16 @@ export class ReverseShareService {
   }
 
   // Only the link row goes: with a container, removing it must not remove
-  // the album. The `onDelete: Cascade` on containerShare already covers the
+  // the transfer. The `onDelete: Cascade` on containerShare already covers the
   // other direction (deleting the container takes the link with it); this
   // is the one-way street back.
   //
-  // The album's real death date has to be written here, though, before the
+  // The transfer's real death date has to be written here, though, before the
   // row carrying the two clocks disappears. JobsService.closeEndedCollections()
   // computes `collectionEndsAt + retentionSeconds` *from that row*; once it
   // is gone the cron can never select the container again, and it keeps the
   // ten-years-out placeholder written at birth — retentionSeconds silently
-  // discarded and the album sitting in its owner's quota for a decade.
+  // discarded and the transfer sitting in its owner's quota for a decade.
   // Written in the same transaction as the delete so the two can never come
   // apart.
   async remove(id: string) {

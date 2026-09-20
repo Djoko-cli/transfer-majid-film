@@ -18,10 +18,10 @@ export class FileDTO {
   // predates the column, for any ordinary transfer, and for a file the
   // collection's own owner added through the plain upload route (see
   // ShareDTO.collection's own comment). Needed client-side so FileList can
-  // group an album's files by contribution instead of just knowing the
+  // group an transfer's files by contribution instead of just knowing the
   // per-contribution counts.
   //
-  // On the one route every album reader hits (ShareController.get()), this
+  // On the one route every transfer reader hits (ShareController.get()), this
   // is never the real ShareContribution id — that id is also the one
   // credential ContributionGuard checks before writing into or closing a
   // contribution, so publishing it here would let anyone past the

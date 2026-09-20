@@ -61,7 +61,7 @@ export class JobsService {
   // because every write checks collectionEndsAt — what this does is start
   // the second clock, by giving the container the expiration it will
   // actually die of. Computed once, here, rather than derived on every
-  // read: an album whose death date moves is one nobody can answer "until
+  // read: an transfer whose death date moves is one nobody can answer "until
   // when?" about.
   @Cron("0 * * * *")
   async closeEndedCollections() {
