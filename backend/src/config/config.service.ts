@@ -17,6 +17,7 @@ import { I18nContext } from "nestjs-i18n";
 import { YamlConfig } from "../../prisma/seed/config.seed";
 import { CONFIG_FILE, SECRETS_FILE } from "src/constants";
 import { hasAnySignInMethod } from "../utils/signInMethod.util";
+import { redactObscured } from "./obscuredValue.util";
 
 /**
  * ConfigService extends EventEmitter to allow listening for config updates,
@@ -526,9 +527,8 @@ export class ConfigService extends EventEmitter {
 
     return configVariables.map((variable) => {
       return {
-        ...variable,
+        ...redactObscured(variable),
         key: `${variable.category}.${variable.name}`,
-        value: variable.value ?? variable.defaultValue,
         // Every field mirrors the DB in both directions now, config.yaml
         // and secrets.env alike (see writeYamlConfig/applyYamlToConfig and
         // writeSecretsFile/applySecretsToConfig) — nothing left that's
