@@ -17,6 +17,13 @@ export class AdminConfigDTO extends ConfigDTO {
   @Expose()
   obscured: boolean;
 
+  // Ce qui remplace `value` à l'écran pour un réglage obscured, dont la
+  // valeur elle-même ne traverse jamais cette DTO (voir
+  // obscuredValue.util.ts) : sans lui, un champ vide veut dire « non posé »
+  // autant que « posé mais masqué ».
+  @Expose()
+  isSet: boolean;
+
   @Expose()
   allowEdit: boolean;
 
