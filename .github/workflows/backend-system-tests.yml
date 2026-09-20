@@ -4,11 +4,37 @@ on:
   pull_request:
     branches:
       - main
+    # Une modification qui ne touche que de la documentation ne peut rien
+    # casser dans le backend, et lançait pourtant la suite complète. Mesuré sur
+    # un cycle de facturation : 25 commits de `main` sur 243 ne touchaient que
+    # du Markdown, soit ~50 minutes d'Actions par mois dépensées à tester des
+    # phrases. `paths-ignore` ne saute que si TOUS les fichiers modifiés
+    # correspondent — un commit mixte code + doc continue donc d'être testé.
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
   push:
     branches:
       - main
     tags:
       - "v*"
+    # Le même filtre s'applique aux poussées de tag, et c'est sans danger ici :
+    # `promote-stable.yml` résout le tag vers un COMMIT et lit les checks de ce
+    # commit, pas ceux du run déclenché par le tag. Une version est toujours
+    # posée sur une fusion, qui contient du code, donc son run de `main` existe
+    # et la porte de promotion trouve ce qu'elle cherche.
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+
+# Dix poussées successives sur une branche de PR lançaient dix suites qui
+# allaient toutes au bout, alors que seule la dernière compte. On n'annule que
+# sur les PR : sur `main` et sur les tags, un run interrompu laisserait un
+# commit sans check vert, et c'est précisément ce que la porte de promotion
+# exige de trouver.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   system-tests:

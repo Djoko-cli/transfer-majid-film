@@ -16,6 +16,12 @@ name: Docker Security
   pull_request:
     branches:
       - main
+    # Un build Docker complet sans cache coûte ~5,5 minutes. Le lancer parce
+    # qu'une phrase de `docs/` a changé n'apprend rien : l'image produite est
+    # identique, et le scan Trivy y verrait exactement les mêmes paquets.
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
   schedule:
     - cron: "0 4 * * 0"
   workflow_dispatch:
