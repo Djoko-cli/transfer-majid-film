@@ -717,7 +717,11 @@ export class ConfigService extends EventEmitter {
     await this.writeYamlConfig();
     await this.writeSecretsFile();
 
-    return updatedVariable;
+    // Same leak as getByCategory, through PATCH /api/configs/admin this
+    // time: the row Prisma just wrote back carries the secret in plain
+    // text. updateMany() accumulates these straight into its response, so
+    // redacting here closes it for both callers at once.
+    return redactObscured(updatedVariable);
   }
 
   validateConfigVariable(key: string, value: string | number | boolean) {

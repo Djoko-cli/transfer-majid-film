@@ -38,3 +38,34 @@ test("un secret dont la valeur est une chaîne vide est non posé", () => {
   const out = redactObscured({ obscured: true, value: "", defaultValue: "" });
   assert.equal(out.isSet, false);
 });
+
+test("la ligne Prisma brute que renvoie update() passe aussi par la fonction sans perdre ses autres champs", () => {
+  // Même fuite que celle fermée dans getByCategory, mais côté
+  // PATCH /api/configs/admin : update() (config.service.ts) renvoyait
+  // jusqu'ici l'enregistrement Prisma brut, secret en clair compris, et
+  // updateMany() accumulait cette liste telle quelle. update() renvoie
+  // maintenant redactObscured(updatedVariable) — ce test fixe le
+  // comportement sur la forme exacte d'une ligne Config de Prisma (plus de
+  // champs que les 3 dont redactObscured a besoin), pour qu'un futur
+  // resserrement de sa signature générique ne la rende pas silencieusement
+  // incompatible avec cet appelant.
+  const prismaRow = {
+    name: "password",
+    category: "smtp",
+    type: "string",
+    locked: false,
+    secret: true,
+    order: 1,
+    updatedAt: new Date(),
+    obscured: true,
+    value: "hunter2",
+    defaultValue: "",
+  };
+
+  const out = redactObscured(prismaRow);
+
+  assert.equal(out.value, null);
+  assert.equal(out.isSet, true);
+  assert.equal(out.name, "password");
+  assert.equal(out.category, "smtp");
+});
