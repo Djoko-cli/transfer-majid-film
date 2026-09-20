@@ -100,11 +100,14 @@ export class AvatarService {
   ): Promise<void> {
     try {
       // La garde vit à l'intérieur du `try`, pas avant : `shouldIngest`
-      // accepte désormais `user: null` (une lecture Prisma qui rend
-      // `User | null`, dans un dépôt qui compile en
-      // `strictNullChecks: false`, donc rien ne le signale à la
-      // compilation) et y répond `false` plutôt que de déréférencer
-      // `user.avatarUpdatedAt`. Un rejet ici doit de toute façon être
+      // accepte `user: null` et y répond `false` plutôt que de déréférencer
+      // `user.avatarUpdatedAt`. Le seul appelant restant (`OAuthService.signUp`)
+      // ne passe jamais `null` — il construit un littéral
+      // `{ id, avatarUpdatedAt: null }` — mais le type le permet toujours, en
+      // défense en profondeur pour un futur appelant qui relirait l'utilisateur
+      // via Prisma (`findFirst`/`findUnique` rendent `User | null`, dans un
+      // dépôt qui compile en `strictNullChecks: false`, donc rien ne le
+      // signale à la compilation). Un rejet ici doit de toute façon être
       // attrapé comme n'importe quel autre échec — pas fuiter en promesse
       // non gérée depuis l'appel en `void` d'OAuthService.
       if (!shouldIngest(user, pictureUrl)) return;

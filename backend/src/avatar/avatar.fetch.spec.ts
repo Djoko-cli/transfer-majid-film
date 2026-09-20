@@ -34,10 +34,13 @@ test("ne recupere pas sans URL", () => {
 });
 
 test("ne recupere pas si le compte est null", () => {
-  // `AvatarService.ingestFromOidc` reçoit `updatedUser` d'un
-  // `prisma.user.findFirst` (donc `User | null`) dans un dépôt qui compile
-  // en `strictNullChecks: false` : rien ne signale à la compilation que
-  // `user` peut être `null` ici. Sans ce contrôle, `user.avatarUpdatedAt`
+  // Le seul appelant restant (`OAuthService.signUp`) ne passe jamais `null` —
+  // il construit un littéral `{ id, avatarUpdatedAt: null }` — mais le type
+  // de `shouldIngest` l'accepte toujours, en défense en profondeur pour un
+  // futur appelant qui relirait l'utilisateur via Prisma (`findFirst`/
+  // `findUnique` rendent `User | null`), dans un dépôt qui compile en
+  // `strictNullChecks: false` : rien ne signalerait alors à la compilation
+  // que `user` peut être `null` ici. Sans ce contrôle, `user.avatarUpdatedAt`
   // lèverait une `TypeError` — sur un appel fait en `void`, ça devient une
   // promesse rejetée non gérée.
   assert.equal(shouldIngest(null, "https://x/a.png"), false);
