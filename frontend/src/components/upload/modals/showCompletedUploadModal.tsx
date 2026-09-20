@@ -122,13 +122,19 @@ const showCompletedUploadModal = (
         // to visually balance against on the right; centering it reads as
         // intentional instead of just off to one side for no reason.
         title: { ...base.title, width: "100%", textAlign: "center" },
-        // Mantine forces the body's own padding-top to 0 whenever a header
-        // is present (a built-in `:not(:only-child)` rule, unbeatable from
-        // here) — so the gap above the content has to live in the header's
-        // bottom padding instead, not the body's top padding. Both this and
-        // the body's own bottom padding used to be inflated way past this
-        // (120/130) chasing a specific roughly-square aspect ratio for the
-        // modal box itself — reported directly as reading like dead space
+        // The gap above the content is the shared one: glassModalTheme's
+        // body rule matches Mantine's own `:not(:only-child)` selector, so
+        // it outranks the `padding` shorthand set below and this body gets
+        // the same 20px under the hairline as every other modal — measured,
+        // not assumed. This header's bottom padding is the other half of
+        // that, the air above the line. (An older note here said Mantine's
+        // rule was unbeatable and the whole gap had to live up here. The
+        // rule is real; matching its selector is what beats it.)
+        //
+        // Both this header's padding and the body's own bottom padding used
+        // to be inflated way past these values (120/130) chasing a specific
+        // roughly-square aspect ratio for the modal box itself — reported
+        // directly as reading like dead space
         // once the content it was padding out actually included the link
         // field. Just comfortable, ordinary spacing now; the box is whatever
         // height its real content needs.
@@ -187,33 +193,14 @@ const Body = ({
     setShowQR(!showQR);
   };
 
-  const isReverseShare = !!router.query["reverseShareToken"];
-
-  // Non-reverse-share only: navigates back to "/" once this modal closes
-  // (regardless of *how* — the "Terminé" button below, or a click outside
-  // now that closeOnClickOutside is on), since this is the only thing that
+  // Navigates back to "/" once this modal closes (regardless of *how* —
+  // the "Terminé" button below, or a click outside now that
+  // closeOnClickOutside is on), since this is the only thing that
   // unmounts it (the ModalsProvider lives above page transitions, so an
   // unrelated navigation elsewhere wouldn't trigger this).
-  //
-  // The reverse-share branch used to call router.reload() here instead —
-  // removed. UploadPage's own completion handler already resets `files`
-  // back to [] the instant this modal is opened (before the visitor could
-  // possibly have closed it yet), which is everything this page needs to
-  // be ready for a next transfer; a reload was never buying anything past
-  // that except re-validating the token. For the common
-  // remainingUses: 1 case, that re-validation is the token this exact
-  // upload just consumed — walking the visitor straight into "this link
-  // is invalid" the instant after successfully sending something, not a
-  // fresh page ready for another. The backend enforces remainingUses/
-  // expiration independently at request time either way (CreateShareGuard
-  // → reverseShareService.isValid), so a visitor who does try to send
-  // again through an exhausted link still gets a correct, and far less
-  // alarming, inline error instead of this.
   useEffect(() => {
     return () => {
-      if (!isReverseShare) {
-        router.push("/");
-      }
+      router.push("/");
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -315,19 +302,6 @@ const Body = ({
         {mode === "link" && canNotifyOnDownload && (
           <Text size="sm" color="dimmed">
             {t("upload.modal.completed.link-mode.download-notification")}
-          </Text>
-        )}
-        {share.notifyReverseShareCreator === true && (
-          <Text
-            size="sm"
-            sx={(theme) => ({
-              color:
-                theme.colorScheme === "dark"
-                  ? theme.colors.gray[3]
-                  : theme.colors.dark[4],
-            })}
-          >
-            {t("upload.modal.completed.notified-reverse-share-creator")}
           </Text>
         )}
         {

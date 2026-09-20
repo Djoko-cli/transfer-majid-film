@@ -500,10 +500,14 @@ const Header = () => {
       link: "/account/shares",
       label: t("navbar.links.shares"),
     },
-    {
-      link: "/account/reverseShares",
-      label: t("navbar.links.reverse"),
-    },
+    ...(config.get("share.enableReverseShares")
+      ? [
+          {
+            link: "/account/reverseShares",
+            label: t("navbar.links.reverse"),
+          },
+        ]
+      : []),
     ...(config.get("share.enableUserRecipients")
       ? [
           {

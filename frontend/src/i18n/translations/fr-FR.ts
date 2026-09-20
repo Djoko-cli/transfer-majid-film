@@ -265,13 +265,22 @@ export default {
   // /account/reverseShares
   "account.reverseShares.title": "Transferts inversés",
   "account.reverseShares.description":
-    "Un transfert inversé vous permet de générer une URL unique qui permet à des utilisateurs externes de créer un transfert.",
+    "Un transfert inversé vous permet de générer une URL unique où plusieurs personnes déposent leurs fichiers. Tout ce qui y est déposé se rassemble dans un seul album, à cette même adresse.",
+  "account.reverseShares.disabled-notice":
+    "La création de nouveaux liens de dépôt est désactivée. Les collectes ci-dessous continuent de fonctionner normalement.",
   "account.reverseShares.title.empty": "C’est plutôt vide 👀",
   "account.reverseShares.description.empty":
     "Vous n’avez aucun transfert inversé.",
   // showCreateReverseShareModal.tsx
   "account.reverseShares.modal.title": "Créer un transfert inversé",
-  "account.reverseShares.modal.expiration.label": "Expiration",
+  "account.reverseShares.modal.collection-ends.label":
+    "Collecte ouverte pendant (jours)",
+  "account.reverseShares.modal.collection-ends.preview":
+    "La collecte se fermera le {expiration}.",
+  "account.reverseShares.modal.retention.label":
+    "Album conservé après la fermeture (jours)",
+  "account.reverseShares.modal.retention.preview":
+    "L'album sera supprimé le {expiration}.",
   "account.reverseShares.modal.expiration.minute-singular": "Minute",
   "account.reverseShares.modal.expiration.minute-plural": "Minutes",
   "account.reverseShares.modal.expiration.hour-singular": "Heure",
@@ -291,29 +300,33 @@ export default {
     "Envoyer des notifications par courriel",
   "account.reverseShares.modal.send-email.description":
     "Vous envoi une notification par courriel lorsqu'un transfert est créé avec ce lien de transfert inversé.",
-  "account.reverseShares.modal.public-access": "Accès public",
-  "account.reverseShares.modal.public-access.description":
-    "Rendre les transferts créés avec ce transfert inversé public. Si désactivé, seul vous et le créateur du transfert pourrez le voir.",
-  "account.reverseShares.modal.max-use.label": "Nombre d'utilisations max",
+  "account.reverseShares.modal.max-use.label": "Nombre de dépôts autorisés",
   "account.reverseShares.modal.max-use.description":
-    "Le nombre maximal de fois que cette URL peut être utilisée pour créer un transfert.",
+    "Le nombre maximal de dépôts que ce lien peut recevoir.",
   "account.reverseShares.modal.password.label": "Protection par mot de passe",
   "account.reverseShares.modal.max-views.label": "Nombre de vues maximum",
-  "account.reverseShare.never-expires": "Ce transfert inversé n'expirera jamais.",
-  "account.reverseShare.expires-on":
-    "Ce transfert inversé expirera le {expiration}.",
-  "account.reverseShares.table.no-shares": "Aucun transfert créé pour le moment",
-  "account.reverseShares.table.count.singular": "transfert",
-  "account.reverseShares.table.count.plural": "transferts",
   "account.reverseShares.table.name": "Nom",
-  "account.reverseShares.table.shares": "Transferts",
-  "account.reverseShares.table.remaining": "Utilisations restantes",
-  "account.reverseShares.table.max-size": "Taille maximale du transfert",
-  "account.reverseShares.table.expires": "Expire le",
+  "account.reverseShares.table.contributors": "Contributeurs",
+  "account.reverseShares.table.contributors.none": "Aucune contribution pour le moment",
+  "account.reverseShares.table.contributors.singular": "contributeur",
+  "account.reverseShares.table.contributors.plural": "contributeurs",
+  "account.reverseShares.table.files": "Fichiers",
+  "account.reverseShares.table.files.singular": "fichier",
+  "account.reverseShares.table.files.plural": "fichiers",
+  "account.reverseShares.table.state": "État",
+  "account.reverseShares.table.state.open": "Collecte ouverte jusqu'au {date}",
+  "account.reverseShares.table.state.closed":
+    "Fermée, album gardé jusqu'au {date}",
+  // Une collecte pleine est fermée aux dépôts alors que sa fenêtre court
+  // encore : la dire « fermée » sans plus la ferait suivre d'une date
+  // future.
+  "account.reverseShares.table.state.full":
+    "Complète, album gardé jusqu'au {date}",
+  "account.reverseShares.table.open-album": "Ouvrir l'album",
   "account.reverseShares.modal.reverse-share-link": "Lien du transfert inversé",
   "account.reverseShares.modal.delete.title": "Supprimer le transfert inversé",
   "account.reverseShares.modal.delete.description":
-    "Voulez-vous vraiment supprimer ce transfert inversé ? Si vous le faites, les transferts qu’il contient seront également supprimés.",
+    "Voulez-vous vraiment supprimer ce lien ? Plus personne ne pourra y déposer. L’album et les fichiers déjà déposés, eux, restent accessibles jusqu’à leur date d’expiration.",
   // END /account/reverseShares
 
   // /admin
@@ -602,8 +615,6 @@ export default {
     "Nous avons envoyé ce transfert par e-mail à vos destinataires.",
   "upload.modal.completed.summary.singular": "{count} fichier · {size}",
   "upload.modal.completed.summary.plural": "{count} fichiers · {size}",
-  "upload.modal.completed.notified-reverse-share-creator":
-    "Nous avons notifié le créateur du transfert inversé. Vous pouvez également partager manuellement ce lien avec eux par d'autres moyens.",
   "upload.modal.completed.sender-emailed":
     "Nous vous avons aussi envoyé ce lien par e-mail, au cas où.",
   // END /upload
@@ -654,6 +665,19 @@ export default {
   "share.modal.file-preview.error.not-supported.description":
     "Les aperçus ne sont pas pris en charge pour ce type de fichiers. Veuillez télécharger le fichier pour le voir.",
   "share.modal.file-preview.view-original": "Voir le fichier original",
+
+  // Le dépôt et le groupement par contribution d'une collecte — voir
+  // docs/collecte-conteneur-unique.md §5.
+  "share.collection.contributed-by":
+    "{count, plural, =1 {# fichier} other {# fichiers}} de {name} · {date}",
+  "share.collection.anonymous": "Anonyme",
+  "share.collection.closed-since": "Cette collecte est fermée depuis le {date}.",
+  "share.collection.closed-full":
+    "Cette collecte n'accepte plus de nouveaux dépôts : elle a atteint son nombre maximal de participations. Vous pouvez toujours consulter et télécharger l'album.",
+  "share.collection.add-files": "Ajouter des fichiers à l'album",
+  "share.collection.identity.title": "Identifiez-vous pour déposer",
+  "share.collection.identity.name-label": "Votre prénom",
+  "share.collection.identity.signed-in-as": "Vous déposez en tant que {name}.",
   // END /share/[id]
 
   // /share/[id]/edit
@@ -911,6 +935,9 @@ export default {
     "Activer le transfert avec les utilisateurs enregistrés",
   "admin.config.share.enable-user-recipients.description":
     "Lorsqu'il est activé, les transferts envoyés à l'adresse e-mail d'un utilisateur enregistré apparaîtront automatiquement dans son compte. Les utilisateurs peuvent également restreindre l'accès au transfert aux destinataires nommés uniquement.",
+  "admin.config.share.enable-reverse-shares": "Transferts inversés",
+  "admin.config.share.enable-reverse-shares.description":
+    "Autoriser la création de liens de dépôt. Les liens déjà créés continuent de fonctionner, y compris pour recevoir de nouvelles contributions.",
   "admin.config.share.enable-nas-import": "Activer l'import depuis le NAS",
   "admin.config.share.enable-nas-import.description":
     "Permet à un administrateur de créer un transfert à partir de fichiers déjà présents sur le NAS, sans en dupliquer le contenu. Nécessite également que la variable d'environnement NAS_IMPORT_ROOT soit définie sur un dossier monté.",

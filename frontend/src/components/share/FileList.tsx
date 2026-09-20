@@ -1,13 +1,14 @@
-import { ActionIcon, Box, Group, Skeleton, Table } from "@mantine/core";
+import { ActionIcon, Box, Group, Skeleton, Table, Text } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import moment from "moment";
+import { Dispatch, Fragment, ReactNode, SetStateAction, useEffect, useState } from "react";
 import { TbDownload, TbEye, TbClipboard } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
 import { FileMetaData } from "../../types/File.type";
-import { Share } from "../../types/share.type";
+import { Share, ShareCollectionContribution } from "../../types/share.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
 import TableSortIcon, { TableSort } from "../core/SortIcon";
@@ -48,18 +49,78 @@ const renderFileName = (name: string) => {
   );
 };
 
+type FileGroup = {
+  key: string;
+  header: ReactNode | null;
+  files: FileMetaData[];
+};
+
+// Partitions `files` into contribution-labelled groups when `contributions`
+// is provided (a collection — see ShareController.buildCollectionState()),
+// preserving each file's position from the array it was handed — so
+// sorting by name/size (sortFiles below, which reorders that same array)
+// still sorts within each group instead of fighting the grouping, with no
+// extra logic needed here. `contributions` undefined is the plain,
+// ungrouped case every other transfer uses: one group, no header, the
+// exact rendering this had before grouping existed.
+const buildGroups = (
+  files: FileMetaData[],
+  contributions: ShareCollectionContribution[] | undefined,
+  anonymousLabel: string,
+): FileGroup[] => {
+  if (!contributions) return [{ key: "all", header: null, files }];
+
+  const groups = contributions
+    .map((contribution) => ({
+      key: contribution.id,
+      header: (
+        <FormattedMessage
+          id="share.collection.contributed-by"
+          values={{
+            count: files.filter((file) => file.contributionId === contribution.id)
+              .length,
+            name: contribution.name || anonymousLabel,
+            date: moment(contribution.createdAt).format("LL"),
+          }}
+        />
+      ),
+      files: files.filter((file) => file.contributionId === contribution.id),
+    }))
+    .filter((group) => group.files.length > 0);
+
+  // Files with no contribution at all: predate the column, or were
+  // uploaded directly by the collection's own owner through the ordinary
+  // route (FileDTO.contributionId's own comment) rather than a deposit.
+  // Never silently dropped — they get their own fallback group instead.
+  const unattributed = files.filter((file) => !file.contributionId);
+  if (unattributed.length > 0) {
+    groups.push({
+      key: "unattributed",
+      header: <FormattedMessage id="share.collection.anonymous" />,
+      files: unattributed,
+    });
+  }
+
+  return groups;
+};
+
 const FileList = ({
   files,
   setShare,
   share,
   isLoading,
   recipientId,
+  contributions,
 }: {
   files?: FileMetaData[];
   setShare: Dispatch<SetStateAction<Share | undefined>>;
   share: Share;
   isLoading: boolean;
   recipientId?: string;
+  // Present only for a collection's album — see the page that renders this
+  // (share/[shareId]/index.tsx). Grouping is entirely additive: omitted,
+  // this renders exactly the same flat list every other transfer gets.
+  contributions?: ShareCollectionContribution[];
 }) => {
   const clipboard = useClipboard();
   const modals = useModals();
@@ -153,113 +214,137 @@ const FileList = ({
         <tbody>
           {isLoading
             ? skeletonRows
-            : files!.map((file) => (
-                <tr key={file.name}>
-                  <td
-                    style={{
-                      whiteSpace: "normal",
-                      overflowWrap: "break-word",
-                      verticalAlign: "top",
-                    }}
-                  >
-                    {file.thumbnailStatus === "ready" ? (
-                      <Group spacing="xs" noWrap>
-                        <img
-                          src={shareService.getThumbnailUrl(
-                            share.id,
-                            file.id,
-                            recipientId,
-                          )}
-                          alt=""
-                          loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                          style={{
-                            width: 48,
-                            height: 32,
-                            objectFit: "cover",
-                            borderRadius: 6,
-                            flexShrink: 0,
-                          }}
-                        />
-                        {renderFileName(file.name)}
-                      </Group>
-                    ) : (
-                      renderFileName(file.name)
+            : buildGroups(files!, contributions, t("share.collection.anonymous")).map(
+                (group) => (
+                  <Fragment key={group.key}>
+                    {group.header && (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          style={{ paddingTop: 16, paddingBottom: 4 }}
+                        >
+                          <Text size="sm" weight={600} color="dimmed">
+                            {group.header}
+                          </Text>
+                        </td>
+                      </tr>
                     )}
-                  </td>
-                  <td style={{ whiteSpace: "nowrap", verticalAlign: "top" }}>
-                    {byteToHumanSizeString(parseInt(file.size))}
-                  </td>
-                  <td style={{ whiteSpace: "nowrap", verticalAlign: "top" }}>
-                    <Group position="right" noWrap>
-                      {shareService.isShareTextFile(file.name) && (
-                        <HoverTip label={t("share.copy-text-contents")}>
-                          <ActionIcon
-                            color="blue"
-                            variant="light"
-                            size={ACTION_ICON_SIZE}
-                            aria-label={t("share.copy-text-contents")}
-                            onClick={() => {
-                              api
-                                .get(
-                                  `/shares/${share.id}/files/${file.id}?download=false`,
-                                )
-                                .then((res) => {
-                                  if (window.isSecureContext) {
-                                    clipboard.copy(res.data);
-                                    toast.success(
-                                      t("share.notify.copied-contents"),
-                                    );
-                                  } else {
-                                    toast.error(
-                                      t("share.notify.copy-not-supported"),
-                                    );
-                                  }
-                                });
-                            }}
-                          >
-                            <TbClipboard />
-                          </ActionIcon>
-                        </HoverTip>
-                      )}
-                      {shareService.doesFileSupportPreview(file.name) && (
-                        <HoverTip label={t("common.button.preview")}>
-                          <ActionIcon
-                            color="green"
-                            variant="light"
-                            size={ACTION_ICON_SIZE}
-                            aria-label={t("common.button.preview")}
-                            onClick={() =>
-                              showFilePreviewModal(share.id, file, modals)
-                            }
-                          >
-                            <TbEye />
-                          </ActionIcon>
-                        </HoverTip>
-                      )}
-                      <HoverTip label={t("common.button.download")}>
-                        <ActionIcon
-                          color="cyan"
-                          variant="light"
-                          size={ACTION_ICON_SIZE}
-                          aria-label={t("common.button.download")}
-                          onClick={async () => {
-                            await shareService.downloadFile(
-                              share.id,
-                              file.id,
-                              recipientId,
-                            );
+                    {group.files.map((file) => (
+                      <tr key={file.id}>
+                        <td
+                          style={{
+                            whiteSpace: "normal",
+                            overflowWrap: "break-word",
+                            verticalAlign: "top",
                           }}
                         >
-                          <TbDownload />
-                        </ActionIcon>
-                      </HoverTip>
-                    </Group>
-                  </td>
-                </tr>
-              ))}
+                          {file.thumbnailStatus === "ready" ? (
+                            <Group spacing="xs" noWrap>
+                              <img
+                                src={shareService.getThumbnailUrl(
+                                  share.id,
+                                  file.id,
+                                  recipientId,
+                                )}
+                                alt=""
+                                loading="lazy"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                }}
+                                style={{
+                                  width: 48,
+                                  height: 32,
+                                  objectFit: "cover",
+                                  borderRadius: 6,
+                                  flexShrink: 0,
+                                }}
+                              />
+                              {renderFileName(file.name)}
+                            </Group>
+                          ) : (
+                            renderFileName(file.name)
+                          )}
+                        </td>
+                        <td
+                          style={{ whiteSpace: "nowrap", verticalAlign: "top" }}
+                        >
+                          {byteToHumanSizeString(parseInt(file.size))}
+                        </td>
+                        <td
+                          style={{ whiteSpace: "nowrap", verticalAlign: "top" }}
+                        >
+                          <Group position="right" noWrap>
+                            {shareService.isShareTextFile(file.name) && (
+                              <HoverTip label={t("share.copy-text-contents")}>
+                                <ActionIcon
+                                  color="blue"
+                                  variant="light"
+                                  size={ACTION_ICON_SIZE}
+                                  aria-label={t("share.copy-text-contents")}
+                                  onClick={() => {
+                                    api
+                                      .get(
+                                        `/shares/${share.id}/files/${file.id}?download=false`,
+                                      )
+                                      .then((res) => {
+                                        if (window.isSecureContext) {
+                                          clipboard.copy(res.data);
+                                          toast.success(
+                                            t("share.notify.copied-contents"),
+                                          );
+                                        } else {
+                                          toast.error(
+                                            t(
+                                              "share.notify.copy-not-supported",
+                                            ),
+                                          );
+                                        }
+                                      });
+                                  }}
+                                >
+                                  <TbClipboard />
+                                </ActionIcon>
+                              </HoverTip>
+                            )}
+                            {shareService.doesFileSupportPreview(file.name) && (
+                              <HoverTip label={t("common.button.preview")}>
+                                <ActionIcon
+                                  color="green"
+                                  variant="light"
+                                  size={ACTION_ICON_SIZE}
+                                  aria-label={t("common.button.preview")}
+                                  onClick={() =>
+                                    showFilePreviewModal(share.id, file, modals)
+                                  }
+                                >
+                                  <TbEye />
+                                </ActionIcon>
+                              </HoverTip>
+                            )}
+                            <HoverTip label={t("common.button.download")}>
+                              <ActionIcon
+                                color="cyan"
+                                variant="light"
+                                size={ACTION_ICON_SIZE}
+                                aria-label={t("common.button.download")}
+                                onClick={async () => {
+                                  await shareService.downloadFile(
+                                    share.id,
+                                    file.id,
+                                    recipientId,
+                                  );
+                                }}
+                              >
+                                <TbDownload />
+                              </ActionIcon>
+                            </HoverTip>
+                          </Group>
+                        </td>
+                      </tr>
+                    ))}
+                  </Fragment>
+                ),
+              )}
         </tbody>
       </Table>
     </Box>

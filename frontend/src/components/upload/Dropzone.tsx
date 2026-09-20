@@ -260,9 +260,9 @@ const Dropzone = ({
   // can be the entire visible card with nothing padded around it to absorb
   // the extra. See wrapper's own comment in useStyles for the full reasoning.
   tightenWhenEmpty?: boolean;
-  // Only ever set by UploadPage's own direct (non-reverse-share) flow,
-  // already gated there on hasAcceptedTerms/isReverseShare/isAdmin/the
-  // config toggle — undefined here means exactly "don't show it", the same
+  // Only ever set by UploadPage's own flow, already gated there on
+  // hasAcceptedTerms/isAdmin/the config toggle — undefined here means
+  // exactly "don't show it", the same
   // gate this dropzone already applies to the plain folder button via
   // isFolderUploadSupported. Was its own floating panel above the whole
   // card (see git history) - moved to sit right next to "Importer un

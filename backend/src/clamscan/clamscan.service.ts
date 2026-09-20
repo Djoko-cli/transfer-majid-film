@@ -172,7 +172,14 @@ export class ClamScanService {
   // that's decided — see logScan's own comment. null when disabled, or
   // when there was nothing to attach it to in the first place (no share
   // directory, or the log write itself failed).
-  async check(shareId: string): Promise<{
+  //
+  // contributionId narrows the scan to one deposit of a collection's
+  // container. Everything else about the call is unchanged — same log
+  // row, same statuses — only the set of files looked at is smaller.
+  async check(
+    shareId: string,
+    contributionId?: string,
+  ): Promise<{
     infectedFiles: { id: string; name: string }[];
     scanId: string | null;
   }> {
@@ -203,7 +210,7 @@ export class ClamScanService {
 
     if (storageProvider === "S3") {
       const files = await this.prisma.file.findMany({
-        where: { shareId },
+        where: { shareId, ...(contributionId ? { contributionId } : {}) },
         select: { id: true, name: true },
       });
       fileCount = files.length;
@@ -229,15 +236,28 @@ export class ClamScanService {
     } else {
       // Local Storage Provider
       let files: string[] = [];
-      try {
-        files = fs
-          .readdirSync(`${SHARE_DIRECTORY}/${shareId}`)
-          .filter(
-            (file) => file != "archive.zip" && !file.endsWith(".thumb.jpg"),
-          );
-      } catch (e) {
-        void e;
-        return { infectedFiles: [], scanId: null };
+      if (contributionId) {
+        // Scoped to one deposit, so the ids come from the File rows that
+        // carry the contribution — a directory listing knows nothing
+        // about who wrote what, and for a collection's container it lists
+        // everybody's files at once.
+        files = (
+          await this.prisma.file.findMany({
+            where: { shareId, contributionId },
+            select: { id: true },
+          })
+        ).map((file) => file.id);
+      } else {
+        try {
+          files = fs
+            .readdirSync(`${SHARE_DIRECTORY}/${shareId}`)
+            .filter(
+              (file) => file != "archive.zip" && !file.endsWith(".thumb.jpg"),
+            );
+        } catch (e) {
+          void e;
+          return { infectedFiles: [], scanId: null };
+        }
       }
       fileCount = files.length;
 
@@ -282,9 +302,20 @@ export class ClamScanService {
     return { infectedFiles, scanId };
   }
 
-  async checkAndRemove(shareId: string) {
+  // contributionId present: this is one deposit into a collection's
+  // container, not a whole transfer. The scan, the configured action and
+  // the log row are all the same — only the blast radius narrows, and it
+  // has to: the container belongs to every contributor at once, so
+  // wiping it (or stamping removedReason on it, which 404s it for
+  // everyone) because one deposit was infected would punish the album for
+  // one person's file. Everything else the ordinary path does, a
+  // contribution gets too.
+  async checkAndRemove(shareId: string, contributionId?: string) {
     try {
-      const { infectedFiles, scanId } = await this.check(shareId);
+      const { infectedFiles, scanId } = await this.check(
+        shareId,
+        contributionId,
+      );
 
       if (infectedFiles.length > 0) {
         // "delete" if unset, matching this method's own behavior before
@@ -313,27 +344,50 @@ export class ClamScanService {
         }
 
         try {
-          if (action === "quarantine") {
-            await this.fileService.quarantineAllFiles(shareId);
+          if (contributionId) {
+            const fileIds = (
+              await this.prisma.file.findMany({
+                where: { shareId, contributionId },
+                select: { id: true },
+              })
+            ).map((file) => file.id);
+
+            if (action === "quarantine") {
+              await this.fileService.quarantineFiles(shareId, fileIds);
+            } else {
+              await this.fileService.deleteFiles(shareId, fileIds);
+            }
+            await this.prisma.file.deleteMany({
+              where: { id: { in: fileIds } },
+            });
           } else {
-            await this.fileService.deleteAllFiles(shareId);
+            if (action === "quarantine") {
+              await this.fileService.quarantineAllFiles(shareId);
+            } else {
+              await this.fileService.deleteAllFiles(shareId);
+            }
+            await this.prisma.file.deleteMany({ where: { shareId } });
           }
-          await this.prisma.file.deleteMany({ where: { shareId } });
         } catch (err: any) {
           this.logger.error(
-            `Failed to ${action} malicious share ${shareId}: ${err?.message || "unknown error"}`,
+            `Failed to ${action} malicious ${contributionId ? `contribution ${contributionId} of share ${shareId}` : `share ${shareId}`}: ${err?.message || "unknown error"}`,
           );
           return;
         }
 
         const fileNames = infectedFiles.map((file) => file.name).join(", ");
 
-        await this.prisma.share.update({
-          where: { id: shareId },
-          data: {
-            removedReason: `Your share got removed because the file(s) ${fileNames} are malicious.`,
-          },
-        });
+        // Never for a contribution: removedReason is what makes
+        // ShareService.get() answer "not found" to everyone, and the
+        // container is the album every other contributor reads.
+        if (!contributionId) {
+          await this.prisma.share.update({
+            where: { id: shareId },
+            data: {
+              removedReason: `Your share got removed because the file(s) ${fileNames} are malicious.`,
+            },
+          });
+        }
 
         if (scanId) {
           await this.prisma.clamavScan
@@ -346,7 +400,7 @@ export class ClamScanService {
         }
 
         this.logger.warn(
-          `Share ${shareId} ${action === "quarantine" ? "quarantined" : "deleted"} because it contained ${infectedFiles.length} malicious file(s)`,
+          `${contributionId ? `Contribution ${contributionId} of share ${shareId}` : `Share ${shareId}`} ${action === "quarantine" ? "quarantined" : "deleted"} because it contained ${infectedFiles.length} malicious file(s)`,
         );
       }
     } catch (err: any) {

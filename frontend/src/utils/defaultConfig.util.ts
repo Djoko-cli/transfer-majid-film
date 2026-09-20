@@ -39,6 +39,17 @@ export function getDefaultConfig(): Config[] {
       type: "boolean",
     },
     {
+      // Header.tsx reads this unconditionally on every page, signed in or
+      // not — this fallback is what an SSR request hits when /api/configs
+      // times out, and config.service.ts's get() throws on a key that
+      // isn't here at all, which would otherwise take the whole site down
+      // with it rather than just this one nav entry.
+      key: "share.enableReverseShares",
+      value: "true",
+      defaultValue: "true",
+      type: "boolean",
+    },
+    {
       key: "share.enableNasImport",
       value: "false",
       defaultValue: "false",

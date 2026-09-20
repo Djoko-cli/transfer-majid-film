@@ -275,15 +275,24 @@ export default {
   // /account/reverseShares
   "account.reverseShares.title": "Reverse shares",
   "account.reverseShares.description":
-    "A reverse share allows you to generate a unique URL that allows external users to create a transfer.",
+    "A reverse share lets you generate a single URL where several people deposit their files. Everything deposited gathers into one album, at that same address.",
 
+  "account.reverseShares.disabled-notice":
+    "Creating new deposit links is disabled. The collections below keep working as before.",
   "account.reverseShares.title.empty": "It's empty here 👀",
   "account.reverseShares.description.empty":
     "You don't have any reverse shares.",
 
   // showCreateReverseShareModal.tsx
   "account.reverseShares.modal.title": "Create reverse share",
-  "account.reverseShares.modal.expiration.label": "Expiration",
+  "account.reverseShares.modal.collection-ends.label":
+    "Collection open for (days)",
+  "account.reverseShares.modal.collection-ends.preview":
+    "The collection will close on {expiration}.",
+  "account.reverseShares.modal.retention.label":
+    "Album kept after closing (days)",
+  "account.reverseShares.modal.retention.preview":
+    "The album will be deleted on {expiration}.",
   "account.reverseShares.modal.expiration.minute-singular": "Minute",
   "account.reverseShares.modal.expiration.minute-plural": "Minutes",
   "account.reverseShares.modal.expiration.hour-singular": "Hour",
@@ -306,33 +315,33 @@ export default {
   "account.reverseShares.modal.send-email.description":
     "Sends you an email notification when a transfer is created with this reverse share link.",
 
-  "account.reverseShares.modal.public-access": "Public access",
-  "account.reverseShares.modal.public-access.description":
-    "Make the transfers created with this reverse share public. If disabled, only you and the transfer creator will have access to view it.",
-
-  "account.reverseShares.modal.max-use.label": "Max uses",
+  "account.reverseShares.modal.max-use.label": "Number of allowed deposits",
   "account.reverseShares.modal.max-use.description":
-    "The maximum amount of times this URL can be used to create a transfer.",
+    "The maximum number of deposits this link can receive.",
   "account.reverseShares.modal.password.label": "Password protection",
   "account.reverseShares.modal.max-views.label": "Maximum views",
-  "account.reverseShare.never-expires": "This reverse share will never expire.",
-  "account.reverseShare.expires-on":
-    "This reverse share will expire on {expiration}.",
 
-  "account.reverseShares.table.no-shares": "No transfers created yet",
-  "account.reverseShares.table.count.singular": "transfer",
-  "account.reverseShares.table.count.plural": "transfers",
   "account.reverseShares.table.name": "Name",
-  "account.reverseShares.table.shares": "Transfers",
-  "account.reverseShares.table.remaining": "Remaining uses",
-  "account.reverseShares.table.max-size": "Max transfer size",
-  "account.reverseShares.table.expires": "Expires at",
+  "account.reverseShares.table.contributors": "Contributors",
+  "account.reverseShares.table.contributors.none": "No contributions yet",
+  "account.reverseShares.table.contributors.singular": "contributor",
+  "account.reverseShares.table.contributors.plural": "contributors",
+  "account.reverseShares.table.files": "Files",
+  "account.reverseShares.table.files.singular": "file",
+  "account.reverseShares.table.files.plural": "files",
+  "account.reverseShares.table.state": "State",
+  "account.reverseShares.table.state.open": "Open until {date}",
+  "account.reverseShares.table.state.closed": "Closed, album kept until {date}",
+  // A full collection is closed to deposits while its window is still
+  // running, so calling it "closed" would print a future date after it.
+  "account.reverseShares.table.state.full": "Full, album kept until {date}",
+  "account.reverseShares.table.open-album": "Open the album",
 
   "account.reverseShares.modal.reverse-share-link": "Reverse share link",
 
   "account.reverseShares.modal.delete.title": "Delete reverse share",
   "account.reverseShares.modal.delete.description":
-    "Do you really want to delete this reverse share? If you do, the associated transfers will be deleted as well.",
+    "Do you really want to delete this link? Nobody will be able to deposit through it any more. The album and the files already deposited stay available until their expiry date.",
 
   // END /account/reverseShares
 
@@ -620,8 +629,6 @@ export default {
     "We've emailed this transfer to your recipients.",
   "upload.modal.completed.summary.singular": "{count} file · {size}",
   "upload.modal.completed.summary.plural": "{count} files · {size}",
-  "upload.modal.completed.notified-reverse-share-creator":
-    "We have notified the creator of the reverse share. You can also manually share this link with them through other means.",
   "upload.modal.completed.sender-emailed":
     "We also sent this link to your email, just in case.",
 
@@ -674,6 +681,19 @@ export default {
   "share.modal.file-preview.error.not-supported.description":
     "Previews are not supported for this type of files. Please download the file to view it.",
   "share.modal.file-preview.view-original": "View original file",
+
+  // The deposit and the per-contribution grouping of a collection — see
+  // docs/collecte-conteneur-unique.md §5.
+  "share.collection.contributed-by":
+    "{count, plural, =1 {# file} other {# files}} from {name} · {date}",
+  "share.collection.anonymous": "Anonymous",
+  "share.collection.closed-since": "This collection has been closed since {date}.",
+  "share.collection.closed-full":
+    "This collection isn't taking new deposits: it has reached its maximum number of contributions. You can still browse and download the album.",
+  "share.collection.add-files": "Add files to the album",
+  "share.collection.identity.title": "Identify yourself to contribute",
+  "share.collection.identity.name-label": "Your first name",
+  "share.collection.identity.signed-in-as": "You're depositing as {name}.",
 
   // END /share/[id]
 
@@ -915,6 +935,9 @@ export default {
     "Enable sharing with registered users",
   "admin.config.share.enable-user-recipients.description":
     "When enabled, transfers sent to a registered user's email address will automatically appear in their account. Users can also restrict transfer access to named recipients only.",
+  "admin.config.share.enable-reverse-shares": "Reverse shares",
+  "admin.config.share.enable-reverse-shares.description":
+    "Allow creating deposit links. Links already created keep working, including for receiving new contributions.",
   "admin.config.share.enable-nas-import": "Enable NAS import",
   "admin.config.share.enable-nas-import.description":
     "Lets an administrator create a transfer from files already on the NAS, without duplicating their content. Also requires the NAS_IMPORT_ROOT environment variable to be set to a mounted directory.",

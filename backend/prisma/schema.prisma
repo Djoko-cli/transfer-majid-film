@@ -34,6 +34,7 @@ model User {
   shareUserRecipients   ShareUserRecipient[]
   adminNoticeDismissals AdminNoticeDismissal[]
   trustedDevices        TrustedDevice[]
+  contributions         ShareContribution[]
 
   totpEnabled        Boolean             @default(false)
   totpVerified       Boolean             @default(false)
@@ -54,14 +55,14 @@ model User {
   //
   // Not used by the admin path (UserService.update from the console),
   // which is a deliberate administrative act on someone else's row.
-  pendingEmail                 String?
-  pendingEmailToken            String?   @unique
-  pendingEmailTokenExpiresAt   DateTime?
+  pendingEmail               String?
+  pendingEmailToken          String?   @unique
+  pendingEmailTokenExpiresAt DateTime?
   // When the code was last put in the post. Stored rather than tracked in
   // the browser so the resend cooldown survives a reload — which is exactly
   // what someone does when the mail has not arrived, the one situation this
   // whole resend path exists for.
-  pendingEmailLastSentAt       DateTime?
+  pendingEmailLastSentAt     DateTime?
 
   // Granular per-user opt-out for JobsService's sender-side expiry
   // reminder — only meaningful for a registered creator, who's the only
@@ -191,6 +192,17 @@ model Share {
   reverseShareId String?
   reverseShare   ReverseShare? @relation(fields: [reverseShareId], references: [id], onDelete: Cascade)
 
+  // A collection transfer: the single container behind a deposit link. It
+  // stays uploadLocked for its whole life, because that is what makes it
+  // readable — and it accepts files anyway, which no other locked transfer
+  // does. The exception is carried by this column rather than inferred from
+  // the presence of a link, so that it is greppable and a future reader of
+  // local.service.ts's lock check knows exactly what to look for.
+  isCollection Boolean @default(false)
+
+  collectionOf  ReverseShare?       @relation("ReverseShareContainer")
+  contributions ShareContribution[]
+
   security        ShareSecurity?
   recipients      ShareRecipient[]
   userRecipients  ShareUserRecipient[]
@@ -203,12 +215,27 @@ model ReverseShare {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
 
-  token                 String   @unique @default(uuid())
-  shareExpiration       DateTime
+  token                 String  @unique @default(uuid())
   maxShareSize          String
   sendEmailNotification Boolean
   remainingUses         Int
-  publicAccess          Boolean  @default(true)
+  publicAccess          Boolean @default(true)
+
+  // Created with the link and never later, and it takes the link's token
+  // for its id — so there is exactly one public address and the owner
+  // writes it. A link nobody ever uses leaves an empty transfer in their
+  // list: that is intended, the empty transfer is the collection, waiting.
+  containerShareId String @unique
+  containerShare   Share  @relation("ReverseShareContainer", fields: [containerShareId], references: [id], onDelete: Cascade)
+
+  // When depositing stops. Replaces shareExpiration, which used to close
+  // the link and delete the files with a single date.
+  collectionEndsAt DateTime
+
+  // How long the album outlives the end of collection, in seconds. The
+  // container's own expiration is collectionEndsAt + this, computed once,
+  // at closing time.
+  retentionSeconds Int
 
   // All three set once, by the reverse share's own creator, at creation
   // time — never by whoever uploads through it (see ShareService.create()'s
@@ -225,7 +252,47 @@ model ReverseShare {
   creatorId String
   creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
-  shares Share[]
+  // The one-share-per-submission relation for the old upload-via-token
+  // path, which predated the container and has been removed: nothing
+  // writes Share.reverseShareId any more (ShareService.create()'s own
+  // reverseShare branch is gone), so this is permanently empty going
+  // forward. Left as a field rather than migrated away, since dropping a
+  // column was outside that removal's scope. Not the container itself —
+  // that is containerShare above, a distinct one-to-one relation. Renamed
+  // off the old `shares` so the two can never be confused.
+  perSubmissionShares Share[]
+}
+
+model ShareContribution {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  // The first name that was typed. Never verified, and deliberately so:
+  // among friends, a name one could lie about is enough to know who is
+  // still missing.
+  name String?
+
+  // The address, and only ever the one the one-time code proved — never
+  // the one that was typed. Same rule as ShareService.create() applies to
+  // an anonymous sender, and for the same reason: a declared but unproven
+  // address would let someone sign a contribution in another person's name.
+  email String?
+
+  // Set instead of name/email when the contributor is signed in: their
+  // account already carries both, and asking again would be absurd.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Open on creation, closed when the contributor is done. While it is
+  // open, it is what authorises writing into the container.
+  completedAt DateTime?
+
+  shareId String
+  share   Share  @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  files File[]
+
+  @@index([shareId, createdAt])
 }
 
 model ShareRecipient {
@@ -264,6 +331,11 @@ model File {
 
   shareId String
   share   Share  @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  // Which contribution this file came in with. Null for every file that
+  // predates this column and for every ordinary transfer.
+  contributionId String?
+  contribution   ShareContribution? @relation(fields: [contributionId], references: [id], onDelete: SetNull)
 }
 
 model ShareSecurity {

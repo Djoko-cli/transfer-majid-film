@@ -20,6 +20,7 @@ import { FormattedMessage } from "react-intl";
 import { TbDownload, TbEdit, TbFiles, TbLink } from "react-icons/tb";
 import Meta from "../../../components/Meta";
 import showShareLinkModal from "../../../components/account/showShareLinkModal";
+import CollectionDropzone from "../../../components/share/CollectionDropzone";
 import DownloadAllButton from "../../../components/share/DownloadAllButton";
 import FileList from "../../../components/share/FileList";
 import showEnterPasswordModal from "../../../components/share/showEnterPasswordModal";
@@ -160,12 +161,6 @@ const Share = ({ shareId }: { shareId: string }) => {
           error == "share_restricted_to_recipients"
         ) {
           setIsRestricted(true);
-        } else if (e.response.status == 403 && error == "private_share") {
-          showErrorModal(
-            modals,
-            t("share.error.access-denied.title"),
-            t("share.error.access-denied.description"),
-          );
         } else if (error == "share_password_required") {
           showEnterPasswordModal(modals, getShareToken);
         } else if (error == "share_token_required") {
@@ -295,7 +290,15 @@ const Share = ({ shareId }: { shareId: string }) => {
                   <TbLink />
                 </ActionIcon>
               </HoverTip>
-              {isOwner && (
+              {/* Never for a collection — the second door onto the same
+                  edit page "Mes transferts" also used to offer, and the
+                  same reason to close it: that page's save() begins by
+                  unlocking the transfert, which for a container means
+                  making the album invisible and then letting the
+                  unfinished-shares cron delete it. The server refuses it
+                  outright (ShareService.revertComplete); this keeps the
+                  owner from being offered a button that can only fail. */}
+              {isOwner && !share?.isCollection && (
                 <HoverTip label={t("account.shares.button.edit")}>
                   <ActionIcon
                     component={Link}
@@ -378,7 +381,25 @@ const Share = ({ shareId }: { shareId: string }) => {
             share={share!}
             isLoading={!share}
             recipientId={recipientId}
+            contributions={share?.collection?.contributions}
           />
+
+          {
+            // The deposit, appended to the album's own page rather than a
+            // page of its own — see docs/collecte-conteneur-unique.md §5.
+            // Held back until `share` has actually loaded: isOpen/endsAt
+            // would otherwise read as "closed" for the one render before
+            // the real collection state arrives.
+            share?.isCollection && share.collection && (
+              <CollectionDropzone
+                shareId={shareId}
+                isOpen={share.collection.isOpen}
+                endsAt={share.collection.endsAt}
+                maxShareSize={parseInt(config.get("share.maxSize"))}
+                onDeposited={getFiles}
+              />
+            )
+          }
         </MantineProvider>
       </SplitTransferLayout>
     </>

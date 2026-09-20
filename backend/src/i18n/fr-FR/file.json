@@ -1,5 +1,6 @@
 {
   "invalidIdFormat": "Format d'ID invalide",
+  "idInUse": "ID de fichier déjà utilisé",
   "notFound": "Fichier non trouvé",
   "passwordProtected": "Ce transfert est protégé par mot de passe",
   "alreadyCompleted": "Le transfert est déjà terminé",
@@ -7,7 +8,6 @@
   "unexpectedChunk": "Chunk inattendu reçu",
   "maxSizeExceeded": "Taille maximale de transfert dépassée",
   "storageQuotaExceeded": "Your storage quota has been exceeded by {exceededSize}",
-  "reverseShareQuotaExceeded": "The reverse share owner's storage quota has been exceeded by {exceededSize}",
   "zipError": "Erreur lors de la création du fichier ZIP",
   "s3DeleteError": "Impossible de supprimer le fichier de S3",
   "s3UploadInitError": "Échec de l'initialisation de l'upload multipart.",

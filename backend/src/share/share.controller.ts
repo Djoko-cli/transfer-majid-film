@@ -14,7 +14,7 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Throttle } from "@nestjs/throttler";
-import { Share, ShareSecurity, User } from "@prisma/client";
+import { File, ReverseShare, Share, ShareSecurity, User } from "@prisma/client";
 import { Request, Response } from "express";
 import * as moment from "moment";
 import { GetUser } from "src/auth/decorator/getUser.decorator";
@@ -37,12 +37,14 @@ import { ShareSecurityGuard } from "./guard/shareSecurity.guard";
 import { ShareTokenSecurity } from "./guard/shareTokenSecurity.guard";
 import { IdValidation } from "./guard/shareIdValidation.guard";
 import { ShareService } from "./share.service";
+import { ContributionService } from "./contribution.service";
 import { VerificationService } from "src/verification/verification.service";
 import { CompletedShareDTO } from "./dto/shareComplete.dto";
 @Controller("shares")
 export class ShareController {
   constructor(
     private shareService: ShareService,
+    private contributionService: ContributionService,
     private verificationService: VerificationService,
     private jwtService: JwtService,
     private config: ConfigService,
@@ -73,7 +75,103 @@ export class ShareController {
   @Get(":id")
   @UseGuards(IdValidation, ShareSecurityGuard)
   async get(@Param("id") id: string) {
-    return new ShareDTO().from(await this.shareService.get(id));
+    const share = await this.shareService.get(id);
+    // Keyed off isCollection alone, deliberately not off collectionOf: a
+    // container whose link row has been deleted is still a collection,
+    // still full of contributions, and used to fall through to a raw
+    // ShareDTO here — which published every real ShareContribution uuid in
+    // files[].contributionId. Those ids happen to be unusable while
+    // collectionOf is missing (ContributionGuard refuses too), but the
+    // rule is that they are never published, and it must not rest on a
+    // second check elsewhere happening to agree.
+    if (!share.isCollection) {
+      return new ShareDTO().from(share);
+    }
+
+    const { files, collection } = await this.buildCollectionState(id, share);
+    return new ShareDTO().from({ ...share, files, collection });
+  }
+
+  // Assembled here, not in ShareService.get(), which stays about the Share
+  // row alone — this is what turns spec §5.2's "l'album, groupée par
+  // contribution" into ShareDTO.collection. Only ever called once get()
+  // has already confirmed share.isCollection, i.e. this really is a
+  // collection — every ordinary transfer's response never reaches this
+  // method at all, and simply has no `collection` key.
+  //
+  // collectionOf may still be null here, for a container whose link row
+  // was deleted: there is then no window and no use count to report, so
+  // `collection` is left out exactly as for an ordinary transfer (the
+  // frontend already treats it as optional) — but the file projection
+  // below still runs, because the opaque keys are not a nicety of the
+  // open state.
+  //
+  // A contribution's real id is the only thing ContributionGuard checks
+  // before letting a POST write files into it, or close it (see that
+  // guard's own comment) — identity is proven once, at open(), and every
+  // write after that trusts the id alone. Before this method existed, that
+  // id was known only to whoever opened the contribution. Handing it back
+  // here to every album reader — collection.contributions[].id, and each
+  // file's own contributionId — would let anyone past the password gate
+  // POST into another contributor's still-open upload and complete it, and
+  // since name-level impersonation is accepted by this whole design (a
+  // first name nobody verifies) but the proven address is not, that
+  // reattributes real address-backed files to whoever opens fastest. The
+  // window is the in-flight upload, and it is permanent for one that was
+  // abandoned — a failed deposit leaves its contribution open forever (see
+  // ContributionService.open()'s own comment on that accepted tradeoff).
+  //
+  // So neither the response's contributions list nor any file in it ever
+  // carries the real id: keyByContributionId hands out an opaque key —
+  // stable within this one response, meaningless outside it, useless
+  // against ContributionGuard — and every file's contributionId is
+  // rewritten to match before serialization. The real id keeps going to
+  // exactly one place: the response to POST .../contributions, read only
+  // by whoever just proved their own identity to get it.
+  private async buildCollectionState(
+    shareId: string,
+    share: Share & { collectionOf: ReverseShare | null; files: File[] },
+  ) {
+    const contributions = await this.contributionService.getWithFiles(shareId);
+    const reverseShare = share.collectionOf;
+
+    const keyByContributionId = new Map(
+      contributions.map((contribution, index) => [contribution.id, String(index)]),
+    );
+
+    const files = share.files.map((file) => ({
+      ...file,
+      contributionId: file.contributionId
+        ? (keyByContributionId.get(file.contributionId) ?? null)
+        : null,
+    }));
+
+    if (!reverseShare) return { files, collection: undefined };
+
+    return {
+      files,
+      collection: {
+        // Folds in remainingUses, not just the deposit window: a
+        // collection that has spent every use it was given is just as
+        // closed to a new deposit as one whose window has passed, and
+        // the frontend has one boolean to ask, not two.
+        isOpen:
+          reverseShare.collectionEndsAt > new Date() &&
+          reverseShare.remainingUses > 0,
+        endsAt: reverseShare.collectionEndsAt,
+        description: reverseShare.description ?? undefined,
+        contributions: contributions.map((contribution) => ({
+          id: keyByContributionId.get(contribution.id)!,
+          // A signed-in contributor's open() never stores a name — their
+          // account already identifies them (spec §5.3) — so this falls
+          // back to the account's own username rather than reading as
+          // unattributed.
+          name: contribution.name ?? contribution.user?.username ?? undefined,
+          createdAt: contribution.createdAt,
+          fileCount: contribution.files.length,
+        })),
+      },
+    };
   }
 
   @Get(":id/from-owner")
@@ -110,12 +208,10 @@ export class ShareController {
     @Req() request: Request,
     @GetUser() user: User,
   ) {
-    const { reverse_share_token } = request.cookies;
     return new ShareDTO().from(
       await this.shareService.create(
         body,
         user,
-        reverse_share_token,
         // Read here rather than in the service: the cookie is an HTTP
         // detail, and the service should be handed a proven address or
         // nothing at all.
@@ -140,11 +236,8 @@ export class ShareController {
   @Post(":id/complete")
   @HttpCode(202)
   @UseGuards(IdValidation, CreateShareGuard, StrictShareOwnerGuard)
-  async complete(@Param("id") id: string, @Req() request: Request) {
-    const { reverse_share_token } = request.cookies;
-    return new CompletedShareDTO().from(
-      await this.shareService.complete(id, reverse_share_token),
-    );
+  async complete(@Param("id") id: string) {
+    return new CompletedShareDTO().from(await this.shareService.complete(id));
   }
 
   @Delete(":id/complete")

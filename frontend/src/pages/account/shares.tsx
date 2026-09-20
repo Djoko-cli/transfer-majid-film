@@ -331,13 +331,26 @@ const MyShares = () => {
                               </ActionIcon>
                             </Menu.Target>
                             <Menu.Dropdown>
-                              <Menu.Item
-                                component={Link}
-                                href={`/share/${share.id}/edit`}
-                                icon={<TbPlusMinus color="orange" />}
-                              >
-                                {t("account.shares.button.edit")}
-                              </Menu.Item>
+                              {/* Never for a collection's container: the
+                                  edit page's save() starts by calling
+                                  revertComplete(), which unlocks the
+                                  transfer — and an unlocked container is
+                                  invisible, unlistable, impossible to
+                                  re-complete while empty, and deleted by
+                                  the unfinished-shares cron within a day,
+                                  album and contributions included. The
+                                  server refuses it now
+                                  (ShareService.revertComplete); this is
+                                  the half that stops it being offered. */}
+                              {!share.isCollection && (
+                                <Menu.Item
+                                  component={Link}
+                                  href={`/share/${share.id}/edit`}
+                                  icon={<TbPlusMinus color="orange" />}
+                                >
+                                  {t("account.shares.button.edit")}
+                                </Menu.Item>
+                              )}
                               <Menu.Item
                                 icon={<TbInfoCircle color="dodgerblue" />}
                                 onClick={openInfoModal}
@@ -361,20 +374,25 @@ const MyShares = () => {
                           </Menu>
                         ) : (
                           <Group position="right" spacing="xs" noWrap>
-                            <HoverTip
-                              label={t("account.shares.button.edit")}
-                            >
-                              <ActionIcon
-                                component={Link}
-                                href={`/share/${share.id}/edit`}
-                                color="orange"
-                                variant="light"
-                                size={25}
-                                aria-label={t("account.shares.button.edit")}
+                            {/* Hidden for a collection — see the mobile
+                                menu above for what one click on it used
+                                to cost. */}
+                            {!share.isCollection && (
+                              <HoverTip
+                                label={t("account.shares.button.edit")}
                               >
-                                <TbPlusMinus />
-                              </ActionIcon>
-                            </HoverTip>
+                                <ActionIcon
+                                  component={Link}
+                                  href={`/share/${share.id}/edit`}
+                                  color="orange"
+                                  variant="light"
+                                  size={25}
+                                  aria-label={t("account.shares.button.edit")}
+                                >
+                                  <TbPlusMinus />
+                                </ActionIcon>
+                              </HoverTip>
+                            )}
                             <HoverTip label={t("common.button.info")}>
                               <ActionIcon
                                 color="blue"
