@@ -16,5 +16,6 @@
   "restrictedToRecipients": "Ce transfert est limité à certains destinataires. Veuillez vous connecter pour y accéder.",
   "contributionClosed": "Contribution déjà terminée",
   "collectionNotEditable": "Une collecte ne peut pas être rouverte ni terminée : son album reste ouvert aux dépôts pendant toute la durée de la collecte.",
-  "collectionClosed": "Cette collecte n'accepte plus de dépôts"
+  "collectionClosed": "Cette collecte n'accepte plus de dépôts",
+  "paymentRequired": "Ce transfert doit être payé avant d'être téléchargé"
 }

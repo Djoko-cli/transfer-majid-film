@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { Request } from "express";
 import * as moment from "moment";
 import { I18nService } from "nestjs-i18n";
@@ -11,7 +12,10 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { ShareService } from "src/share/share.service";
 import { ConfigService } from "src/config/config.service";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
+import { VerificationService } from "src/verification/verification.service";
 import { User } from "@prisma/client";
+import { REQUIRES_PAYMENT_KEY } from "src/share/decorator/requiresPayment.decorator";
+import { isPaidFor } from "src/share/paidAccess.util";
 
 @Injectable()
 export class ShareSecurityGuard extends JwtGuard {
@@ -20,6 +24,8 @@ export class ShareSecurityGuard extends JwtGuard {
     private prisma: PrismaService,
     private configService: ConfigService,
     private readonly i18n: I18nService,
+    private readonly reflector: Reflector,
+    private readonly verificationService: VerificationService,
   ) {
     super(configService);
   }
@@ -82,6 +88,7 @@ export class ShareSecurityGuard extends JwtGuard {
         security: true,
         userRecipients: { select: { userId: true } },
         recipients: { select: { email: true } },
+        payments: { select: { email: true, revokedAt: true } },
       },
     });
 
@@ -115,6 +122,7 @@ export class ShareSecurityGuard extends JwtGuard {
 
     // If user sharing is enabled, check if the authenticated user is a recipient
     if (await this.isRecipient(share, user)) {
+      this.checkPayment(context, share, request);
       return true;
     }
 
@@ -141,6 +149,47 @@ export class ShareSecurityGuard extends JwtGuard {
         "share_token_required",
       );
 
+    // Posée en dernier, après mot de passe et restriction : payer ne dispense
+    // de rien d'autre. Les deux dérogations plus haut — administrateur et
+    // créateur — gardent leur `return true` inconditionnel, volontairement :
+    // le vendeur doit pouvoir télécharger son propre transfert payant sans
+    // se le payer à lui-même. Le destinataire nommé, lui, n'a pas cette
+    // excuse — être invité sur le transfert n'est pas l'avoir vendu — donc
+    // son issue à `isRecipient` ci-dessus passe par le même contrôle.
+    this.checkPayment(context, share, request);
+
     return true;
+  }
+
+  // Lève si la route est marquée `@RequiresPayment()` et que le transfert est
+  // payant et non payé par l'adresse prouvée de cette requête ; ne fait rien
+  // sinon. Appelée aux deux seules sorties de canActivate qui ne sont pas une
+  // dérogation (administrateur, créateur) : voir les deux appels ci-dessus.
+  private checkPayment(
+    context: ExecutionContext,
+    share: {
+      priceCents: number | null;
+      payments: { email: string; revokedAt: Date | null }[];
+    },
+    request: Request,
+  ): void {
+    const exigePaiement = this.reflector.get<boolean>(
+      REQUIRES_PAYMENT_KEY,
+      context.getHandler(),
+    );
+
+    if (
+      exigePaiement &&
+      !isPaidFor({
+        priceCents: share.priceCents,
+        verifiedEmail: this.verificationService.getVerifiedEmail(request),
+        payments: share.payments,
+      })
+    ) {
+      throw new ForbiddenException(
+        this.i18n.t("share.paymentRequired"),
+        "share_payment_required",
+      );
+    }
   }
 }
