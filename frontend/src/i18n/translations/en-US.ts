@@ -797,6 +797,10 @@ export default {
   "admin.config.file-sync-failed.title": "Failed to sync to file",
   "admin.config.file-sync-failed.description":
     "The changes below are saved and active, but could not be written to the file mounted on disk — on the next restart, that file will win and this change will be lost. Check its permissions, then save again here to force a fresh write. Technical detail: {error}",
+  "admin.config.secret.set": "•••••••• set",
+  "admin.config.secret.unset": "Not set",
+  "admin.config.secret.replace":
+    "Leave empty to keep the current value. Type to replace it, clear it to remove it.",
   "admin.config.title": "Configuration",
   "admin.config.category.general": "General",
   "admin.config.category.share": "Transfer",
