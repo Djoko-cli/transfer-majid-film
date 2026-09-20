@@ -5,9 +5,9 @@ import { AxiosError } from "axios";
 import pLimit from "p-limit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Meta from "../Meta";
-import { getFilesFromEvent } from "./Dropzone";
 import FileList from "./FileList";
 import PageDropOverlay from "./PageDropOverlay";
+import { usePageFileDrop } from "../../hooks/pageFileDrop.hook";
 import SplitTransferLayout from "./SplitTransferLayout";
 import TermsGate from "./TermsGate";
 import TransferCard from "./TransferCard";
@@ -490,51 +490,13 @@ const Upload = ({ maxShareSize }: { maxShareSize?: number }) => {
     setFiles((oldArr) => [...oldArr, ...filtered]);
   };
 
-  // Anywhere-on-the-page drag & drop: a visitor dragging from their file
-  // manager has no reason to aim precisely for the Dropzone placeholder, so
-  // the whole window is a valid drop target, with this overlay as the
-  // feedback that the drop registered. dragenter/dragleave fire in
-  // mismatched pairs as the pointer crosses child element boundaries within
-  // the window (entering a child fires enter on it *and* bubbles, leaving
-  // does the same) — a plain boolean flips back off between those, causing
-  // visible flicker; a nesting counter that only reaches/leaves zero once
-  // is the standard fix.
-  const [isDraggingFileOverPage, setIsDraggingFileOverPage] = useState(false);
-  const dragDepthRef = useRef(0);
-
-  useEffect(() => {
-    const isFileDrag = (e: DragEvent) =>
-      Array.from(e.dataTransfer?.types || []).includes("Files");
-
-    const handleDragEnter = (e: DragEvent) => {
-      if (isUploading || !hasAcceptedTerms || !isFileDrag(e)) return;
-      e.preventDefault();
-      dragDepthRef.current += 1;
-      setIsDraggingFileOverPage(true);
-    };
-
-    const handleDragOver = (e: DragEvent) => {
-      if (isUploading || !isFileDrag(e)) return;
-      // Required for the drop event to fire at all — browsers otherwise
-      // treat an unhandled dragover as "not a valid drop target" and, for
-      // a bare window listener, would navigate to/open the dropped file.
-      e.preventDefault();
-    };
-
-    const handleDragLeave = (e: DragEvent) => {
-      if (!isFileDrag(e)) return;
-      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-      if (dragDepthRef.current === 0) setIsDraggingFileOverPage(false);
-    };
-
-    const handleDrop = async (e: DragEvent) => {
-      if (!isFileDrag(e)) return;
-      e.preventDefault();
-      dragDepthRef.current = 0;
-      setIsDraggingFileOverPage(false);
-      if (isUploading || !hasAcceptedTerms) return;
-
-      const droppedFiles = (await getFilesFromEvent(e)) as FileUpload[];
+  // Anywhere-on-the-page drag & drop, shared with the collection page's own
+  // deposit form — see usePageFileDrop for why the window is the target and
+  // how the enter/leave counting works. Only the size ceiling is this
+  // page's own business.
+  const isDraggingFileOverPage = usePageFileDrop({
+    enabled: !isUploading && hasAcceptedTerms,
+    onDrop: (droppedFiles) => {
       const fileSizeSum = droppedFiles.reduce((n, { size }) => n + size, 0);
 
       if (fileSizeSum + currentFilesSize > maxShareSize) {
@@ -552,21 +514,8 @@ const Upload = ({ maxShareSize }: { maxShareSize?: number }) => {
           return file;
         }),
       );
-    };
-
-    window.addEventListener("dragenter", handleDragEnter);
-    window.addEventListener("dragover", handleDragOver);
-    window.addEventListener("dragleave", handleDragLeave);
-    window.addEventListener("drop", handleDrop);
-
-    return () => {
-      window.removeEventListener("dragenter", handleDragEnter);
-      window.removeEventListener("dragover", handleDragOver);
-      window.removeEventListener("dragleave", handleDragLeave);
-      window.removeEventListener("drop", handleDrop);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUploading, hasAcceptedTerms, currentFilesSize, maxShareSize, files]);
+    },
+  });
 
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {

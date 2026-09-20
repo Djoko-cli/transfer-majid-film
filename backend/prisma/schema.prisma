@@ -232,7 +232,7 @@ model ReverseShare {
   // the link and delete the files with a single date.
   collectionEndsAt DateTime
 
-  // How long the album outlives the end of collection, in seconds. The
+  // How long the transfer outlives the end of collection, in seconds. The
   // container's own expiration is collectionEndsAt + this, computed once,
   // at closing time.
   retentionSeconds Int

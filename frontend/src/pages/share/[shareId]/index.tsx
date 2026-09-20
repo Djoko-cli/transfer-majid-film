@@ -375,17 +375,29 @@ const Share = ({ shareId }: { shareId: string }) => {
             </Box>
           )}
 
-          <FileList
-            files={share?.files}
-            setShare={setShare}
-            share={share!}
-            isLoading={!share}
-            recipientId={recipientId}
-            contributions={share?.collection?.contributions}
-          />
+          {
+            // Skipped entirely when there is nothing to list. Only a
+            // collection can be empty — a direct transfer always has at
+            // least one file — and while it was, this printed its "Nom /
+            // Taille" header with no rows beneath it, directly above the
+            // deposit form: two sets of column headings on one page, the
+            // top one belonging to a table that wasn't there. The
+            // skeleton still shows while `share` is loading, because then
+            // the count isn't known yet.
+            (!share || share.files.length > 0) && (
+              <FileList
+                files={share?.files}
+                setShare={setShare}
+                share={share!}
+                isLoading={!share}
+                recipientId={recipientId}
+                contributions={share?.collection?.contributions}
+              />
+            )
+          }
 
           {
-            // The deposit, appended to the album's own page rather than a
+            // The deposit, appended to the transfer's own page rather than a
             // page of its own — see docs/collecte-conteneur-unique.md §5.
             // Held back until `share` has actually loaded: isOpen/endsAt
             // would otherwise read as "closed" for the one render before

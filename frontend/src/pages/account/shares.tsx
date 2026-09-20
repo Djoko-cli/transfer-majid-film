@@ -338,7 +338,7 @@ const MyShares = () => {
                                   invisible, unlistable, impossible to
                                   re-complete while empty, and deleted by
                                   the unfinished-shares cron within a day,
-                                  album and contributions included. The
+                                  transfer and contributions included. The
                                   server refuses it now
                                   (ShareService.revertComplete); this is
                                   the half that stops it being offered. */}

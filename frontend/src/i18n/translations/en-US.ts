@@ -275,7 +275,7 @@ export default {
   // /account/reverseShares
   "account.reverseShares.title": "Reverse shares",
   "account.reverseShares.description":
-    "A reverse share lets you generate a single URL where several people deposit their files. Everything deposited gathers into one album, at that same address.",
+    "A reverse share lets you generate a single URL where several people deposit their files. Everything deposited gathers into one transfer, at that same address.",
 
   "account.reverseShares.disabled-notice":
     "Creating new deposit links is disabled. The collections below keep working as before.",
@@ -290,9 +290,9 @@ export default {
   "account.reverseShares.modal.collection-ends.preview":
     "The collection will close on {expiration}.",
   "account.reverseShares.modal.retention.label":
-    "Album kept after closing (days)",
+    "Transfer kept after closing (days)",
   "account.reverseShares.modal.retention.preview":
-    "The album will be deleted on {expiration}.",
+    "The transfer will be deleted on {expiration}.",
   "account.reverseShares.modal.expiration.minute-singular": "Minute",
   "account.reverseShares.modal.expiration.minute-plural": "Minutes",
   "account.reverseShares.modal.expiration.hour-singular": "Hour",
@@ -319,7 +319,6 @@ export default {
   "account.reverseShares.modal.max-use.description":
     "The maximum number of deposits this link can receive.",
   "account.reverseShares.modal.password.label": "Password protection",
-  "account.reverseShares.modal.max-views.label": "Maximum views",
 
   "account.reverseShares.table.name": "Name",
   "account.reverseShares.table.contributors": "Contributors",
@@ -331,17 +330,17 @@ export default {
   "account.reverseShares.table.files.plural": "files",
   "account.reverseShares.table.state": "State",
   "account.reverseShares.table.state.open": "Open until {date}",
-  "account.reverseShares.table.state.closed": "Closed, album kept until {date}",
+  "account.reverseShares.table.state.closed": "Closed, transfer kept until {date}",
   // A full collection is closed to deposits while its window is still
   // running, so calling it "closed" would print a future date after it.
-  "account.reverseShares.table.state.full": "Full, album kept until {date}",
-  "account.reverseShares.table.open-album": "Open the album",
+  "account.reverseShares.table.state.full": "Full, transfer kept until {date}",
+  "account.reverseShares.table.open-transfer": "Open the transfer",
 
   "account.reverseShares.modal.reverse-share-link": "Reverse share link",
 
   "account.reverseShares.modal.delete.title": "Delete reverse share",
   "account.reverseShares.modal.delete.description":
-    "Do you really want to delete this link? Nobody will be able to deposit through it any more. The album and the files already deposited stay available until their expiry date.",
+    "Do you really want to delete this link? Nobody will be able to deposit through it any more. The transfer and the files already deposited stay available until their expiry date.",
 
   // END /account/reverseShares
 
@@ -703,10 +702,13 @@ export default {
   "share.collection.anonymous": "Anonymous",
   "share.collection.closed-since": "This collection has been closed since {date}.",
   "share.collection.closed-full":
-    "This collection isn't taking new deposits: it has reached its maximum number of contributions. You can still browse and download the album.",
-  "share.collection.add-files": "Add files to the album",
+    "This transfer isn't taking new deposits: it has reached its maximum number of contributions. You can still browse and download it.",
+  "share.collection.add-files": "Add files to the transfer",
   "share.collection.identity.title": "Identify yourself to contribute",
   "share.collection.identity.name-label": "Your first name",
+  "share.collection.identity.email-label": "Your email address",
+  "share.collection.identity.email-description":
+    "A confirmation code will be sent there before your files are sent.",
   "share.collection.identity.signed-in-as": "You're depositing as {name}.",
 
   // END /share/[id]

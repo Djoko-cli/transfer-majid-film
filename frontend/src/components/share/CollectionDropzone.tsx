@@ -7,9 +7,11 @@ import pLimit from "p-limit";
 import { useEffect, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import Dropzone from "../upload/Dropzone";
+import PageDropOverlay from "../upload/PageDropOverlay";
 import FileList from "../upload/FileList";
 import showEmailVerificationModal from "../upload/modals/showEmailVerificationModal";
 import useConfig from "../../hooks/config.hook";
+import { usePageFileDrop } from "../../hooks/pageFileDrop.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import useUser from "../../hooks/user.hook";
 import shareService from "../../services/share.service";
@@ -19,6 +21,7 @@ import {
   getNormalizedFileName,
   filterDuplicateFiles,
 } from "../../utils/file.util";
+import { byteToHumanSizeString } from "../../utils/fileSize.util";
 
 const promiseLimit = pLimit(3);
 
@@ -31,7 +34,7 @@ const CHUNK_RETRY_DELAY_MS = 2000;
 // The visitor's own drop, appended to the container's page rather than a
 // page of its own — see docs/collecte-conteneur-unique.md §5: a deposit
 // link no longer has a page of its own, there's just the transfer, and
-// this is what turns its page into both the album and the drop. Mirrors
+// this is what turns its page into both the transfer and the drop. Mirrors
 // UploadPage's chunked upload loop (per-chunk retry/backoff, per-file
 // progress) but aimed at the contribution routes (task 3) instead of the
 // plain upload one, and without any of UploadPage's NAS-import or
@@ -49,7 +52,7 @@ const CollectionDropzone = ({
   // the date the "closed since" message reads.
   endsAt?: Date;
   maxShareSize: number;
-  // Reloads the album (the page's own getFiles) once a contribution has
+  // Reloads the transfer (the page's own getFiles) once a contribution has
   // completed, so the visitor sees their own files land among everyone
   // else's without a manual refresh.
   onDeposited: () => void;
@@ -60,6 +63,15 @@ const CollectionDropzone = ({
   const { user } = useUser();
 
   const [name, setName] = useState("");
+  // Asked for here, beside the first name, rather than sprung as a modal
+  // after "Envoyer" — which is where it used to appear, and which meant a
+  // visitor had already queued their files and committed to sending before
+  // learning an address was wanted at all. The verification modal still
+  // opens, but only ever to take the code: it receives this address as its
+  // `knownEmail` and sends the code on mount, exactly as UploadPage's own
+  // anonymous send already does.
+  const [email, setEmail] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [files, setFiles] = useState<FileUpload[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   // Set once the one-time code has proven an address in this page visit —
@@ -256,8 +268,43 @@ const CollectionDropzone = ({
     setFiles((oldArr) => [...oldArr, ...filtered]);
   };
 
+  // Le plein écran existait sur la page d'envoi direct et nulle part
+  // ailleurs : déposer un fichier n'importe où sur la page d'un transfert
+  // inversé ne faisait rien, alors que c'est exactement le geste que ce
+  // mode attend de chaque contributeur. Même hook, même plafond de taille
+  // que le Dropzone juste en dessous.
+  const isDraggingFileOverPage = usePageFileDrop({
+    enabled: !isUploading && isOpen,
+    onDrop: (droppedFiles) => {
+      const fileSizeSum = droppedFiles.reduce((n, { size }) => n + size, 0);
+
+      if (fileSizeSum + currentFilesSize > maxShareSize) {
+        toast.error(
+          t("upload.dropzone.notify.file-too-big", {
+            maxSize: byteToHumanSizeString(maxShareSize),
+          }),
+        );
+        return;
+      }
+
+      handleFilesChanged(
+        droppedFiles.map((file) => {
+          file.uploadingProgress = 0;
+          return file;
+        }),
+      );
+    },
+  });
+
   const trimmedName = name.trim();
-  const canSubmit = files.length > 0 && (!!user || trimmedName.length > 0);
+  const trimmedEmail = email.trim();
+  // Same shape the verification modal validates with — worth repeating
+  // rather than importing, because the two must agree and this one is what
+  // decides whether the button is even clickable.
+  const isEmailValid = /^\S+@\S+\.\S+$/.test(trimmedEmail);
+  const canSubmit =
+    files.length > 0 &&
+    (!!user || (trimmedName.length > 0 && isEmailValid));
 
   const handleSubmit = () => {
     if (!canSubmit || isUploading) return;
@@ -269,10 +316,18 @@ const CollectionDropzone = ({
     const filesToUpload = files;
 
     if (!user && !isIdentityVerified) {
-      showEmailVerificationModal(modals, () => {
-        setIsIdentityVerified(true);
-        depositFiles(trimmedName, filesToUpload);
-      });
+      showEmailVerificationModal(
+        modals,
+        // The address that comes back is not necessarily the one passed
+        // in: the modal offers "changer d'adresse", and what was actually
+        // proven is what this field should show afterwards.
+        (verifiedEmail) => {
+          setEmail(verifiedEmail);
+          setIsIdentityVerified(true);
+          depositFiles(trimmedName, filesToUpload);
+        },
+        trimmedEmail,
+      );
       return;
     }
 
@@ -302,6 +357,9 @@ const CollectionDropzone = ({
 
   return (
     <Stack spacing="sm" mt="lg">
+      {/* `position: fixed` — hors flux, donc sa place dans l'arbre n'a pas
+          d'importance et le Stack ne lui réserve aucun espace. */}
+      <PageDropOverlay visible={isDraggingFileOverPage} />
       {user ? (
         <Text size="sm" color="dimmed">
           <FormattedMessage
@@ -319,6 +377,28 @@ const CollectionDropzone = ({
             value={name}
             onChange={(e) => setName(e.currentTarget.value)}
             disabled={isUploading}
+          />
+          <TextInput
+            type="email"
+            label={t("share.collection.identity.email-label")}
+            description={
+              isIdentityVerified
+                ? undefined
+                : t("share.collection.identity.email-description")
+            }
+            value={email}
+            onChange={(e) => setEmail(e.currentTarget.value)}
+            onBlur={() => setEmailTouched(true)}
+            // Only once they have left the field, and only if they put
+            // something in it: an address is invalid for the whole time it
+            // is being typed, and shouting about it from the first
+            // keystroke is noise, not help.
+            error={
+              emailTouched && trimmedEmail.length > 0 && !isEmailValid
+                ? t("common.error.invalid-email")
+                : undefined
+            }
+            disabled={isUploading || isIdentityVerified}
           />
         </Stack>
       )}

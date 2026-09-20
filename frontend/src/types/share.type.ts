@@ -103,10 +103,10 @@ export type MyReverseShare = {
   totalSize: number;
   // How many more contributions this collection will accept. Read
   // alongside collectionEndsAt to decide whether it is still open — the
-  // server folds the same two conditions into the album's own isOpen.
+  // server folds the same two conditions into the transfer's own isOpen.
   remainingUses: number;
   // null where nobody typed a name — the page falls back to the same
-  // "Anonyme" label the public album uses (share.collection.anonymous).
+  // "Anonyme" label the public page uses (share.collection.anonymous).
   contributorNames: (string | null)[];
 };
 

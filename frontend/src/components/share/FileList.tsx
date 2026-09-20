@@ -117,7 +117,7 @@ const FileList = ({
   share: Share;
   isLoading: boolean;
   recipientId?: string;
-  // Present only for a collection's album — see the page that renders this
+  // Present only for a collection's page — see the page that renders this
   // (share/[shareId]/index.tsx). Grouping is entirely additive: omitted,
   // this renders exactly the same flat list every other transfer gets.
   contributions?: ShareCollectionContribution[];

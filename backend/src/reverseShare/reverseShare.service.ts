@@ -119,15 +119,14 @@ export class ReverseShareService {
             // LocalFileService — a 404 on every download, and an orphaned
             // object on every delete.
             storageProvider: this.config.get("s3.enabled") ? "S3" : "LOCAL",
-            security:
-              hashedPassword || data.maxViews
-                ? {
-                    create: {
-                      password: hashedPassword,
-                      maxViews: data.maxViews || undefined,
-                    },
-                  }
-                : undefined,
+            // A password and nothing else. A view cap here would apply to
+            // the very page every contributor has to open in order to
+            // deposit, and that the owner reloads to watch files arrive —
+            // see the creation form's own comment. The cap that belongs to
+            // this mode counts contributions: remainingUses, below.
+            security: hashedPassword
+              ? { create: { password: hashedPassword } }
+              : undefined,
           },
         });
 
@@ -143,7 +142,6 @@ export class ReverseShareService {
             name: data.name || undefined,
             description: data.description || undefined,
             password: hashedPassword,
-            maxViews: data.maxViews || undefined,
             creatorId,
           },
         });

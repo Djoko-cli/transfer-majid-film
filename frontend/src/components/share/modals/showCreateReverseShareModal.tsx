@@ -106,7 +106,7 @@ const Body = ({
     : { value: 7, unit: "days" };
 
   // No config-driven default for this one — collectionEndsAt has
-  // share.defaultExpiration to fall back on, but how long an album
+  // share.defaultExpiration to fall back on, but how long a transfer
   // survives after deposits close is a new question this form didn't use
   // to ask at all.
   const defaultRetention = { value: 7, unit: "days" };
@@ -124,7 +124,6 @@ const Body = ({
       name: "",
       description: "",
       password: "",
-      maxViews: undefined as number | undefined,
       maxShareSize: userMaxShareSize,
       // 1 killed the scenario at the first friend: a group deposit link
       // whose second contributor got refused. 20 leaves room for an
@@ -162,10 +161,6 @@ const Body = ({
           .transform((value) => value || undefined)
           .min(3, t("common.error.too-short", { length: 3 }))
           .max(30, t("common.error.too-long", { length: 30 })),
-        maxViews: yup
-          .number()
-          .transform((value) => value || undefined)
-          .min(1, t("common.error.number-too-small", { min: 1 })),
         maxUseCount: yup
           .number()
           .typeError(t("common.error.invalid-number"))
@@ -237,7 +232,6 @@ const Body = ({
         values.name || undefined,
         values.description || undefined,
         values.password || undefined,
-        values.maxViews || undefined,
       )
       .then(({ token }) => {
         modals.closeAll();
@@ -250,7 +244,7 @@ const Body = ({
   // Shared by both clocks' unit <Select>s — singular/plural label,
   // otherwise identical data for either field.
   // Live previews, recomputed every render off the form's current values
-  // — chained, not independent: the album's real death is collectionEnds
+  // — chained, not independent: the transfer's real death is collectionEnds
   // + retention, same as ReverseShareService.create()'s own
   // containerExpiration.
   const collectionEndsAtDate = moment().add(
@@ -313,7 +307,7 @@ const Body = ({
           />
           {
             // Two clocks, not one (spec §8): this one closes deposits,
-            // the next one says how long the album survives after that.
+            // the next one says how long the transfer survives after that.
             // Same "number + unit" shape as the single field this
             // replaces, duplicated rather than parameterized into a
             // sub-component — two fields don't earn the indirection.
@@ -376,23 +370,22 @@ const Body = ({
             {...form.getInputProps("maxUseCount")}
           />
           {
-            // Same two fields as a direct share's own "Options de
-            // sécurité" — moved here for the same reason as name/
-            // description above. No "restrict to recipients" option:
-            // that only ever made sense against a recipients list, and a
-            // reverse share's creator has no such list to build here.
+            // A password, and only a password. A direct share's other
+            // security field, "nombre de vues maximum", was offered here
+            // too and should never have been: it writes the CONTAINER's
+            // view cap, and the container's page is the one every
+            // contributor opens to deposit and the owner reloads to watch
+            // files arrive. A cap of 5 locked the sixth visitor — or the
+            // owner's sixth refresh — out of the collection entirely (see
+            // ShareService.getShareToken's own check). The cap that means
+            // something in this mode counts contributions, and that is
+            // "utilisations maximum" above.
           }
           <PasswordInput
             variant="filled"
             label={t("account.reverseShares.modal.password.label")}
             autoComplete="new-password"
             {...form.getInputProps("password")}
-          />
-          <NumberInput
-            min={1}
-            variant="filled"
-            label={t("account.reverseShares.modal.max-views.label")}
-            {...form.getInputProps("maxViews")}
           />
           {showSendEmailNotificationOption && (
             <Switch

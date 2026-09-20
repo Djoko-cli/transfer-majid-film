@@ -267,7 +267,7 @@ const MyShares = () => {
                       <td>
                         <Group position="right" noWrap>
                           <HoverTip
-                            label={t("account.reverseShares.table.open-album")}
+                            label={t("account.reverseShares.table.open-transfer")}
                           >
                             <ActionIcon
                               component="a"

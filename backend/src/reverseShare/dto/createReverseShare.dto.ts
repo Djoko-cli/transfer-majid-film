@@ -1,6 +1,5 @@
 import {
   IsBoolean,
-  IsNumber,
   IsOptional,
   IsString,
   Length,
@@ -61,10 +60,6 @@ export class CreateReverseShareDTO {
   @IsOptional()
   @Length(3, 30)
   password?: string;
-
-  @IsNumber()
-  @IsOptional()
-  maxViews?: number;
 
   // The container's own id, chosen by the creator — never generated for
   // them any more, now that it is the collection's one public address

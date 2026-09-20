@@ -265,7 +265,7 @@ export default {
   // /account/reverseShares
   "account.reverseShares.title": "Transferts inversés",
   "account.reverseShares.description":
-    "Un transfert inversé vous permet de générer une URL unique où plusieurs personnes déposent leurs fichiers. Tout ce qui y est déposé se rassemble dans un seul album, à cette même adresse.",
+    "Un transfert inversé vous permet de générer une URL unique où plusieurs personnes déposent leurs fichiers. Tout ce qui y est déposé se rassemble dans un seul transfert, à cette même adresse.",
   "account.reverseShares.disabled-notice":
     "La création de nouveaux liens de dépôt est désactivée. Les collectes ci-dessous continuent de fonctionner normalement.",
   "account.reverseShares.title.empty": "C’est plutôt vide 👀",
@@ -278,9 +278,9 @@ export default {
   "account.reverseShares.modal.collection-ends.preview":
     "La collecte se fermera le {expiration}.",
   "account.reverseShares.modal.retention.label":
-    "Album conservé après la fermeture (jours)",
+    "Transfert conservé après la fermeture (jours)",
   "account.reverseShares.modal.retention.preview":
-    "L'album sera supprimé le {expiration}.",
+    "Le transfert sera supprimé le {expiration}.",
   "account.reverseShares.modal.expiration.minute-singular": "Minute",
   "account.reverseShares.modal.expiration.minute-plural": "Minutes",
   "account.reverseShares.modal.expiration.hour-singular": "Heure",
@@ -304,7 +304,6 @@ export default {
   "account.reverseShares.modal.max-use.description":
     "Le nombre maximal de dépôts que ce lien peut recevoir.",
   "account.reverseShares.modal.password.label": "Protection par mot de passe",
-  "account.reverseShares.modal.max-views.label": "Nombre de vues maximum",
   "account.reverseShares.table.name": "Nom",
   "account.reverseShares.table.contributors": "Contributeurs",
   "account.reverseShares.table.contributors.none": "Aucune contribution pour le moment",
@@ -316,17 +315,17 @@ export default {
   "account.reverseShares.table.state": "État",
   "account.reverseShares.table.state.open": "Collecte ouverte jusqu'au {date}",
   "account.reverseShares.table.state.closed":
-    "Fermée, album gardé jusqu'au {date}",
+    "Fermé, transfert gardé jusqu'au {date}",
   // Une collecte pleine est fermée aux dépôts alors que sa fenêtre court
   // encore : la dire « fermée » sans plus la ferait suivre d'une date
   // future.
   "account.reverseShares.table.state.full":
-    "Complète, album gardé jusqu'au {date}",
-  "account.reverseShares.table.open-album": "Ouvrir l'album",
+    "Complet, transfert gardé jusqu'au {date}",
+  "account.reverseShares.table.open-transfer": "Ouvrir le transfert",
   "account.reverseShares.modal.reverse-share-link": "Lien du transfert inversé",
   "account.reverseShares.modal.delete.title": "Supprimer le transfert inversé",
   "account.reverseShares.modal.delete.description":
-    "Voulez-vous vraiment supprimer ce lien ? Plus personne ne pourra y déposer. L’album et les fichiers déjà déposés, eux, restent accessibles jusqu’à leur date d’expiration.",
+    "Voulez-vous vraiment supprimer ce lien ? Plus personne ne pourra y déposer. Le transfert et les fichiers déjà déposés, eux, restent accessibles jusqu’à leur date d’expiration.",
   // END /account/reverseShares
 
   // /admin
@@ -687,10 +686,13 @@ export default {
   "share.collection.anonymous": "Anonyme",
   "share.collection.closed-since": "Cette collecte est fermée depuis le {date}.",
   "share.collection.closed-full":
-    "Cette collecte n'accepte plus de nouveaux dépôts : elle a atteint son nombre maximal de participations. Vous pouvez toujours consulter et télécharger l'album.",
-  "share.collection.add-files": "Ajouter des fichiers à l'album",
+    "Ce transfert n'accepte plus de nouveaux dépôts : il a atteint son nombre maximal de participations. Vous pouvez toujours le consulter et le télécharger.",
+  "share.collection.add-files": "Ajouter des fichiers au transfert",
   "share.collection.identity.title": "Identifiez-vous pour déposer",
   "share.collection.identity.name-label": "Votre prénom",
+  "share.collection.identity.email-label": "Votre adresse e-mail",
+  "share.collection.identity.email-description":
+    "Un code de confirmation y sera envoyé avant l’envoi de vos fichiers.",
   "share.collection.identity.signed-in-as": "Vous déposez en tant que {name}.",
   // END /share/[id]
 
