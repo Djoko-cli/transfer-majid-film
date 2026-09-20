@@ -198,12 +198,16 @@ un compte et n'a rien à faire dans un cache partagé.
    gagne `picture?: string`.
 2. `GenericOidcProvider.getUserInfo` le recopie dans le DTO qu'il renvoie ;
    `OAuthSignInDto` gagne `pictureUrl?: string`.
-3. `OAuthService.signIn` ([`oauth.service.ts:58`](../backend/src/oauth/oauth.service.ts)) :
-   dans la branche « compte déjà lié », juste après que `updatedUser` soit relu
-   (:67). Dans `signUp` (:144), juste après la création, où `result.user.id` est
-   disponible (:186).
+3. **Un seul point d'accroche**, dans `signUp`
+   ([`oauth.service.ts`](../backend/src/oauth/oauth.service.ts)), juste après la
+   création, où `result.user.id` est disponible. Cette section prescrivait
+   d'abord un second point dans `signIn`, branche « compte déjà lié » : c'est ce
+   qui défaisait un retrait délibéré à la connexion suivante (voir l'encadré
+   ci-dessous), et il a été retiré.
 4. L'appel est **sans `await`** : une photo n'a pas le droit de ralentir une
-   connexion, encore moins de la faire échouer.
+   inscription, encore moins de la faire échouer. Conséquence assumée : au
+   premier chargement qui suit l'inscription, `avatarUpdatedAt` est encore nulle
+   et la navbar montre le rond gris ; la photo apparaît au chargement suivant.
 
 `AvatarService.ingestFromOidc(user, pictureUrl)` **rend la main immédiatement**
 si l'URL est absente ou si `user.avatarUpdatedAt` n'est pas nulle. C'est là que
