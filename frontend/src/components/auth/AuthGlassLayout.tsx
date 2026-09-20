@@ -28,7 +28,7 @@ const CARD_MOBILE_AT_REST_HEIGHT = 400;
 // footer, and whatever floats above it. Written once, used as both the
 // band's min-height and the input to the gap that shrinks with it, so the
 // two always describe the same space.
-const MOBILE_BAND = `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px) - var(--brand-caption-clearance, 0px))`;
+const MOBILE_BAND = `calc(100dvh - ${HEADER_HEIGHT}px - ${MOBILE_MENU_SPACER_HEIGHT}px - var(--footer-height, 40px) - var(--cookie-notice-clearance, 0px) - var(--brand-caption-clearance, 0px) - var(--brand-caption-flow, 0px))`;
 
 // How the band settles when the cookie notice appears or leaves — same
 // duration and easing as SplitTransferLayout's own (see there): without

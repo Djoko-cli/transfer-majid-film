@@ -29,7 +29,9 @@ import configService from "../services/config.service";
 import userService from "../services/user.service";
 import GlobalStyle from "../styles/global.style";
 import RunwayStyle from "../styles/runway.style";
-import FullBleedShell from "../components/core/FullBleedShell";
+import FullBleedShell, {
+  PageEndSlot,
+} from "../components/core/FullBleedShell";
 import {
   BAND_SETTLE_EASING,
   BAND_SETTLE_MS,
@@ -358,6 +360,17 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                               <Container>
                                 <Component {...pageProps} />
                               </Container>
+                              {
+                                // The photo credit lands here: last thing in
+                                // the page's content box, above the strip
+                                // this div's own padding reserves for the
+                                // floating footer. In the flow, so it scrolls
+                                // away with everything else instead of being
+                                // pinned to the screen and hidden whenever it
+                                // would cover something. Renders nothing at
+                                // all off the runway.
+                              }
+                              <PageEndSlot />
                             </div>
                             <Footer />
                           </Stack>

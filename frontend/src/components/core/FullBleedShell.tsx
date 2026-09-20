@@ -37,6 +37,30 @@ export const useBottomBarSlot = () => useContext(BottomBarSlotContext);
 const RunwayScrollerContext = createContext<HTMLElement | null>(null);
 export const useRunwayScroller = () => useContext(RunwayScrollerContext);
 
+// The end of the SCROLLING content, as opposed to every slot above, which is
+// anchored and stays put. A decoration portaled here travels with the page
+// the way an ordinary last element would — which is the whole difference
+// between the two, and the reason both exist: the footer must not move, and
+// the photo credit must.
+const PageEndSlotContext = createContext<HTMLElement | null>(null);
+export const usePageEndSlot = () => useContext(PageEndSlotContext);
+
+// The other half of the slot: who gets to say WHERE it is. The shell cannot
+// place it itself — the app's own wrapper claims a full viewport of
+// min-height and reserves a strip at its end for the floating footer, so a
+// div appended after that wrapper starts below the fold and lands behind the
+// bar. The one correct position is inside that wrapper, as its last child,
+// which only the wrapper's own file can express.
+const PageEndRegisterContext = createContext<
+  ((element: HTMLElement | null) => void) | null
+>(null);
+
+/** Placed once, by the layout that owns the page's content box. */
+export const PageEndSlot = () => {
+  const register = useContext(PageEndRegisterContext);
+  return <div ref={register ?? undefined} className="runway-page-end" />;
+};
+
 // Where the document is parked, in CSS px. Must match --runway-park in
 // runway.style.tsx — the stylesheet lays the slots out around this number,
 // the effect below only holds the scroll position on it.
@@ -157,6 +181,7 @@ const FullBleedShell = ({
   const [backdropSlot, setBackdropSlot] = useState<HTMLElement | null>(null);
   const [topSlot, setTopSlot] = useState<HTMLElement | null>(null);
   const [bottomSlot, setBottomSlot] = useState<HTMLElement | null>(null);
+  const [pageEndSlot, setPageEndSlot] = useState<HTMLElement | null>(null);
   const appRef = useRef<HTMLDivElement | null>(null);
   // Mirrored into state as well as the ref: the effects below want it without
   // re-rendering, the context above has to re-render its consumers when it
@@ -365,7 +390,13 @@ const FullBleedShell = ({
                 <RunwayScrollerContext.Provider
                   value={active ? scroller : null}
                 >
-                  {children}
+                  <PageEndRegisterContext.Provider value={setPageEndSlot}>
+                    <PageEndSlotContext.Provider
+                      value={active ? pageEndSlot : null}
+                    >
+                      {children}
+                    </PageEndSlotContext.Provider>
+                  </PageEndRegisterContext.Provider>
                 </RunwayScrollerContext.Provider>
               </BottomBarSlotContext.Provider>
             </TopBarSlotContext.Provider>

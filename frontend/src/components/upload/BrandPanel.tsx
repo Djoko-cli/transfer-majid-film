@@ -20,11 +20,7 @@ import { TbPlayerPause, TbPlayerPlay } from "react-icons/tb";
 import { PROJECTS } from "../../data/brandProjects";
 import useTranslate from "../../hooks/useTranslate.hook";
 import { createPortal } from "react-dom";
-import {
-  useBackdropSlot,
-  useBottomBarSlot,
-  useRunwayScroller,
-} from "../core/FullBleedShell";
+import { useBackdropSlot, usePageEndSlot } from "../core/FullBleedShell";
 import brandSlideService from "../../services/brandSlide.service";
 import {
   BrandCatalogProject,
@@ -46,14 +42,6 @@ const DISABLED_FETCH_TIMEOUT_MS = 400;
 // reads as reaching (and then holding, see .living below) its target right
 // as that slide's turn ends, not visibly rushing or idling.
 const LIVING_DURATION_MS = SLIDE_DURATION_MS - TRANSITION_MS;
-
-// How much unspent scroll still counts as "the bottom" for the photo credit
-// on the runway. Not zero: .runway-page is deliberately one pixel taller than
-// its scroller so that overscroll-behavior always has a scroller to apply to,
-// so a page that fits exactly still reports 1px of slack. 8 clears that pixel
-// and a fractional device-pixel rounding on either side of it without ever
-// approaching the hundreds of pixels a real card adds.
-const CAPTION_TUCK_SLACK = 8;
 
 // Standard breakpoint set derived (and downloaded, both avif+webp) from
 // majid.film's own responsive derivatives for each still — see
@@ -521,33 +509,21 @@ const useStyles = createStyles(
       },
     },
 
-    // The same credit, laid out instead of positioned. Inside the footer's
-    // slot it needs no anchor of its own — the slot already sits where the
-    // bottom of the screen really is — so every offset drops away and only
-    // the look is left. order: -1 rather than relying on which portal mounts
-    // first, so the credit is above the bar whatever order React lands them
-    // in.
-    captionInFootSlot: {
-      order: -1,
+    // The same credit, laid out instead of positioned — the last element of
+    // the page, inside the scroller. No anchor, no offset and nothing to
+    // hide from: an element in the flow covers nobody, so it can simply
+    // stay visible and leave with the page.
+    //
+    // `pointerEvents: none` on the box with it restored on the two controls
+    // inside (see .captionLink and .pauseButton): the strip runs the full
+    // width of the page and would otherwise swallow taps aimed at whatever
+    // is beside the text.
+    captionInFlow: {
       padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
       textAlign: "right",
       pointerEvents: "none",
       textShadow:
         "0 1px 2px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.8), 0 1px 12px rgba(0, 0, 0, 0.5)",
-      transition: "opacity 180ms ease",
-
-      // Hidden by VISIBILITY, never by display: the height published as
-      // --brand-caption-clearance is read off this box, and a box with no
-      // display has none. Collapsing it would shrink the band, re-centre the
-      // card and move the whole page mid-scroll — the credit would be paying
-      // for its own absence. This way the strip above the footer stays
-      // reserved whatever the credit is doing in it, which is also what
-      // guarantees the 77px of daylight measured between the card's end and
-      // the credit at the bottom of the travel.
-      "&[data-tucked]": {
-        opacity: 0,
-        visibility: "hidden",
-      },
 
       // The same floor as `.caption`'s, and it has to be spelled here too:
       // the two classes are alternatives, so a rule on one says nothing about
@@ -719,22 +695,23 @@ const BrandPanel = ({
   // can never do.
   const backdropSlot = useBackdropSlot();
 
-  // On the runway the credit is portaled into the footer's own slot instead
-  // of being positioned. That slot is anchored by its bottom and is a flex
-  // column, so a child added beside the footer grows it UPWARD: the bar does
-  // not move and the credit lands directly above it, with no offset of its
-  // own to compute.
+  // On the runway the credit is portaled to the END OF THE PAGE — inside the
+  // scroller, as its last element — rather than being positioned anywhere.
   //
-  // Which matters because there is nothing correct to compute. Measured on
-  // the Simulator with the shipped build: the box this credit was positioned
-  // inside runs -96 to 874 while the visible viewport ends at 714, so
-  // anchoring to that box's bottom put the credit at 874-938 — off the
-  // screen entirely, which is why it did not appear on a phone at all.
-  // The slot is the only thing here that knows where the bottom really is.
-  const bottomBarSlot = useBottomBarSlot();
-  const withFootSlot = (node: ReactNode) =>
-    bottomBarSlot ? createPortal(node, bottomBarSlot) : node;
-  const runwayScroller = useRunwayScroller();
+  // It used to go into the footer's anchored slot, which put it at the bottom
+  // of the SCREEN and therefore permanently over whatever was scrolling
+  // underneath. That needed a rule to hide it for the whole of a tall page's
+  // travel so it would not sit across the message field, and the result, seen
+  // on a real phone, was a credit that blinked out the moment you started
+  // scrolling and only came back at the very bottom. Reported exactly that
+  // way, with a recording.
+  //
+  // In the flow it has no one to cover, so there is nothing to hide from and
+  // no offset to compute: it is simply the last thing on the page, and it
+  // leaves with the rest of it.
+  const pageEndSlot = usePageEndSlot();
+  const withPageEnd = (node: ReactNode) =>
+    pageEndSlot ? createPortal(node, pageEndSlot) : node;
   const theme = useMantineTheme();
   const t = useTranslate();
 
@@ -785,11 +762,31 @@ const BrandPanel = ({
     // scroll at 1200x800 with no file, measured.
     const isMobileArrangement = () =>
       window.matchMedia("(max-width: 48em)").matches;
-    const publish = () =>
-      document.documentElement.style.setProperty(
+
+    // Two variables, because the credit now asks two different things of two
+    // different readers, and one number could only ever answer one of them.
+    //
+    // --brand-caption-clearance means "something FLOATS above the footer,
+    // keep a strip of screen clear for it". Both the centring band and the
+    // page's own bottom padding read it, and they cancel: the band gives up
+    // exactly what the padding adds.
+    //
+    // --brand-caption-flow means "the credit is IN the page and occupies its
+    // own box". Only the band reads that one. The padding must not, and
+    // getting this wrong is what the first attempt got wrong: publishing
+    // zero left the band at full height, which pushed the credit 64px lower
+    // — directly under the footer bar, measured on the Simulator at 661-725
+    // against a bar at 667-724. Visible in the DOM, invisible on the screen.
+    const publish = () => {
+      const height = `${captionNode?.offsetHeight ?? 0}px`;
+      const inFlow = !!pageEndSlot;
+      const root = document.documentElement.style;
+      root.setProperty(
         "--brand-caption-clearance",
-        isMobileArrangement() ? `${captionNode?.offsetHeight ?? 0}px` : "0px",
+        isMobileArrangement() && !inFlow ? height : "0px",
       );
+      root.setProperty("--brand-caption-flow", inFlow ? height : "0px");
+    };
     publish();
 
     // A ResizeObserver alone is not enough: it never fires for an element with
@@ -810,54 +807,9 @@ const BrandPanel = ({
         "--brand-caption-clearance",
         "0px",
       );
+      document.documentElement.style.setProperty("--brand-caption-flow", "0px");
     };
-  }, [captionNode, showCaption]);
-  // The price of anchoring the credit to the screen instead of to the card:
-  // once the card is taller than the band it scrolls UNDER the credit, and
-  // for the length of that travel an orange film title sits across the
-  // message field. Measured on the Simulator with a file attached — credit
-  // 597->661 inside a card running 137->1009.
-  //
-  // So the credit shows itself only where it has something to caption. It
-  // captions the PHOTOGRAPH, and the photograph is only visible at the bottom
-  // of the screen once the card has finished passing: at the end of the
-  // travel the card stops at 520, leaving 77px of daylight before the credit
-  // and the footer directly under it — which is the arrangement that was
-  // asked for. Everywhere else in the travel there is no photograph down
-  // there to name, so there is nothing to show.
-  //
-  // A page that fits has no travel and never tucks: its slack is the 1px
-  // .runway-page deliberately keeps (see runway.style.tsx, where that pixel
-  // is what keeps the scroller a scroller), which is why this compares
-  // against a threshold and not against zero.
-  const [captionTucked, setCaptionTucked] = useState(false);
-  useEffect(() => {
-    if (!runwayScroller || !showCaption) return;
-    const sync = () => {
-      const slack =
-        runwayScroller.scrollHeight -
-        runwayScroller.clientHeight -
-        runwayScroller.scrollTop;
-      setCaptionTucked(slack > CAPTION_TUCK_SLACK);
-    };
-    sync();
-    // The scroll event covers the finger. It does NOT cover the card growing
-    // under it — attaching a file, opening the accordion — which changes the
-    // slack without any scrolling at all, so the page's own box is watched
-    // too. Reading a boolean out of it, not driving a height with it.
-    const page = runwayScroller.firstElementChild;
-    const observer = page ? new ResizeObserver(sync) : undefined;
-    observer?.observe(page!);
-    runwayScroller.addEventListener("scroll", sync, { passive: true });
-    window.addEventListener("resize", sync);
-    window.addEventListener("orientationchange", sync);
-    return () => {
-      observer?.disconnect();
-      runwayScroller.removeEventListener("scroll", sync);
-      window.removeEventListener("resize", sync);
-      window.removeEventListener("orientationchange", sync);
-    };
-  }, [runwayScroller, showCaption]);
+  }, [captionNode, showCaption, pageEndSlot]);
 
   // Declared after isPaused (this hook needs it) rather than at the very
   // top like every other component in this file - order among hooks
@@ -1078,13 +1030,10 @@ const BrandPanel = ({
       {isReady &&
         activeSlide &&
         showCaption &&
-        withFootSlot(
+        withPageEnd(
           <Box
             ref={setCaptionNode}
-            className={
-              bottomBarSlot ? classes.captionInFootSlot : classes.caption
-            }
-            data-tucked={bottomBarSlot && captionTucked ? "" : undefined}
+            className={pageEndSlot ? classes.captionInFlow : classes.caption}
           >
             <Group position="right" spacing="xs" noWrap align="center">
               {order.length > 1 && (
