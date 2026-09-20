@@ -2,7 +2,7 @@
 
 ## Qui est responsable de vos données ?
 
-Majid Rivière, éditeur de transfer.majid.film (voir les [mentions légales](/imprint)), 102 Chemin Bellecombe, 97425 Les Avirons, La Réunion. Pour toute question ou pour exercer vos droits, contactez [transfer@majid.film](mailto:transfer@majid.film).
+Majid Rivière, éditeur de transfer.majid.film (voir les [mentions légales](/imprint)), adresse postale de l'éditeur — à renseigner depuis la console d'administration. Pour toute question ou pour exercer vos droits, contactez [transfer@majid.film](mailto:transfer@majid.film).
 
 ## Quelles données sont collectées ?
 

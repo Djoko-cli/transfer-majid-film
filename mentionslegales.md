@@ -3,7 +3,7 @@
 Le site transfer.majid.film est édité par :
 
 **Majid Rivière**<br>
-102 Chemin Bellecombe, 97425 Les Avirons, La Réunion, France<br>
+adresse postale de l'éditeur — à renseigner depuis la console d'administration<br>
 Contact : [transfer@majid.film](mailto:transfer@majid.film)
 
 Le site est édité à titre personnel, sans structure commerciale.
