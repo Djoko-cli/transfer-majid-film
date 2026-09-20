@@ -164,6 +164,15 @@ const flattenCatalog = (catalog: BrandCatalogProject[]): BrandSlide[] =>
 // ever needs to weigh candidates against the viewport width itself.
 const SIZES = "100vw";
 
+// A 1x1 transparent GIF. Pointing an <img> at this is what actually releases
+// the bitmap it was holding: removing the element from the document does not,
+// because the decoded frame belongs to WebKit's own image cache and survives
+// its last DOM client. Measured: a slideshow walking 106 distinct photographs
+// grew by one decoded image per slide, for ever, and that is what killed the
+// tab on a phone. See the release effect in Slide.
+const BLANK_PIXEL =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
 // The one place the two catalogs' different URL schemes meet: the static
 // fallback's images ship in the Next.js build (public/img/brand/derived/),
 // the synced catalog's are streamed by the backend from wherever
@@ -596,8 +605,46 @@ const Slide = ({
     if (isActive) setActivation((a) => a + 1);
   }, [isActive]);
 
+  // Hands the decoded photograph back when this slide leaves the mounting
+  // window.
+  //
+  // Unmounting alone does not do it. The decoded frame belongs to WebKit's
+  // own image cache, keyed by URL, and detaching the last element that
+  // referenced it leaves the entry in place. A carousel walking 106 distinct
+  // photographs therefore grew by one decoded image per slide, for ever.
+  //
+  // Measured on the Simulator against a rig that reproduces production's own
+  // image delivery: 104 -> 197 MB over eight minutes without this, 99 -> 100
+  // with it. The dips in the untreated run are WebKit evicting frames under
+  // pressure, which is the same thing that made the photograph go black on a
+  // real phone shortly before the tab was killed.
+  //
+  // The <source> elements are cleared too: <picture> resolves the image from
+  // them, so an <img> pointed at a blank pixel while its sources still name
+  // an avif would simply be resolved straight back to it.
+  //
+  // The node is captured in the effect body rather than read from the ref in
+  // the cleanup: React nulls a ref before destroy functions run on unmount,
+  // so reading it there would find nothing.
+  const releaseRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const box = releaseRef.current;
+    return () => {
+      if (!box) return;
+      box
+        .querySelectorAll("source")
+        .forEach((source) => source.removeAttribute("srcset"));
+      const image = box.querySelector("img");
+      if (!image) return;
+      image.removeAttribute("srcset");
+      image.removeAttribute("sizes");
+      image.src = BLANK_PIXEL;
+    };
+  }, []);
+
   return (
     <Box
+      ref={releaseRef}
       className={classes.slide}
       style={{
         transform: `translateX(${delta * 100}%)`,
