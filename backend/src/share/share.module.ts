@@ -3,9 +3,10 @@ import { JwtModule } from "@nestjs/jwt";
 import { ClamScanModule } from "src/clamscan/clamscan.module";
 import { EmailModule } from "src/email/email.module";
 import { FileModule } from "src/file/file.module";
-import { ReverseShareModule } from "src/reverseShare/reverseShare.module";
 import { SystemModule } from "src/system/system.module";
 import { VerificationModule } from "src/verification/verification.module";
+import { ContributionController } from "./contribution.controller";
+import { ContributionService } from "./contribution.service";
 import { ShareController } from "./share.controller";
 import { ShareService } from "./share.service";
 
@@ -14,13 +15,12 @@ import { ShareService } from "./share.service";
     JwtModule.register({}),
     EmailModule,
     forwardRef(() => ClamScanModule),
-    ReverseShareModule,
     forwardRef(() => FileModule),
     SystemModule,
     VerificationModule,
   ],
-  controllers: [ShareController],
-  providers: [ShareService],
+  controllers: [ShareController, ContributionController],
+  providers: [ShareService, ContributionService],
   exports: [ShareService],
 })
 export class ShareModule {}

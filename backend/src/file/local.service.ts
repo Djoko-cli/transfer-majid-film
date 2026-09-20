@@ -36,7 +36,15 @@ export class LocalFileService {
     chunk: { index: number; total: number },
     file: { id?: string; name: string },
     shareId: string,
+    // Only ever set by ContributionController, for a write into a
+    // collection — see the size check below for why it matters.
+    contributionId?: string,
   ) {
+    // The id-collision check (an existing id is illegitimate for a *new*
+    // file) lives in FileService.create(), the provider-agnostic facade
+    // both this method and S3FileService.create() are called through —
+    // not here, so it covers both storage backends with the one check
+    // rather than one that only holds for LOCAL.
     if (!file.id) {
       file.id = crypto.randomUUID();
     } else if (!isValidUUID(file.id)) {
@@ -47,12 +55,17 @@ export class LocalFileService {
       where: { id: shareId },
       include: {
         files: true,
-        reverseShare: { include: { creator: true } },
         creator: true,
+        collectionOf: true,
       },
     });
 
-    if (share.uploadLocked)
+    // A collection is the one transfer that is locked and still writable:
+    // locked is what makes it readable, and it has to be readable while it
+    // fills. What actually authorises this write is the open contribution
+    // the controller checked before getting here — this flag only says the
+    // transfer is not frozen.
+    if (share.uploadLocked && !share.isCollection)
       throw new BadRequestException(this.i18n.t("file.alreadyCompleted"));
 
     let diskFileSize: number;
@@ -86,8 +99,21 @@ export class LocalFileService {
       );
     }
 
-    // Check if share size limit is exceeded
-    const fileSizeSum = share.files.reduce(
+    // Check if share size limit is exceeded. A collection's own
+    // maxShareSize (set once by the link's creator — see
+    // ReverseShareService.create()) is a per-contribution ceiling, not a
+    // whole-album one (spec §11) — so when this write belongs to a
+    // contribution, both halves of the check are scoped to it: the
+    // running total counts only that contribution's own files, never the
+    // whole collection's, and the limit is the collection's own, never the
+    // owner's whole-account shareSizeLimit (which the separate storage
+    // quota check further down still enforces regardless — that one is
+    // about the owner's total disk usage, not this per-deposit ceiling).
+    const filesInScope = contributionId
+      ? share.files.filter((f) => f.contributionId === contributionId)
+      : share.files;
+
+    const fileSizeSum = filesInScope.reduce(
       (n, { size }) => n + parseInt(size),
       0,
     );
@@ -95,8 +121,15 @@ export class LocalFileService {
     const shareSizeSum = fileSizeSum + diskFileSize + buffer.byteLength;
 
     let limit = parseInt(this.config.get("share.maxSize"));
-    if (share.reverseShare?.maxShareSize) {
-      limit = parseInt(share.reverseShare.maxShareSize);
+    if (contributionId && share.collectionOf?.maxShareSize) {
+      // Gated on contributionId, not just isCollection: this ceiling is a
+      // property of a *deposit*, not of the album. With no contribution
+      // in hand, this write is the owner's own — reaching the container
+      // through the classic route (StrictShareOwnerGuard) rather than
+      // through a contribution — and the pre-existing account-level rule
+      // below is the correct one for them, exactly as it was before
+      // isCollection existed at all.
+      limit = parseInt(share.collectionOf.maxShareSize);
     } else if (share.creator?.shareSizeLimit) {
       limit = parseInt(share.creator.shareSizeLimit);
     }
@@ -108,18 +141,11 @@ export class LocalFileService {
       );
     }
 
-    const quotaOwner = share.reverseShare
-      ? share.reverseShare.creator
-      : share.creator;
-    const quotaOwnerId = share.reverseShare
-      ? share.reverseShare.creatorId
-      : share.creatorId;
-
-    if (quotaOwnerId && quotaOwner?.storageQuotaLimit) {
-      const quotaLimit = parseInt(quotaOwner.storageQuotaLimit);
+    if (share.creatorId && share.creator?.storageQuotaLimit) {
+      const quotaLimit = parseInt(share.creator.storageQuotaLimit);
       const activeStorageUsage = await getUserActiveStorageUsage(
         this.prisma,
-        quotaOwnerId,
+        share.creatorId,
       );
       const projectedUsage =
         activeStorageUsage + diskFileSize + buffer.byteLength;
@@ -128,13 +154,9 @@ export class LocalFileService {
         const exceededBytes = projectedUsage - quotaLimit;
         const exceededSize = byteToHumanSizeString(exceededBytes);
         throw new HttpException(
-          share.reverseShare
-            ? this.i18n.t("file.reverseShareQuotaExceeded", {
-                args: { exceededSize },
-              })
-            : this.i18n.t("file.storageQuotaExceeded", {
-                args: { exceededSize },
-              }),
+          this.i18n.t("file.storageQuotaExceeded", {
+            args: { exceededSize },
+          }),
           HttpStatus.PAYLOAD_TOO_LARGE,
         );
       }
@@ -276,6 +298,23 @@ export class LocalFileService {
     });
   }
 
+  // The scoped counterpart of deleteAllFiles, for a collection's
+  // container: it belongs to every contributor at once, so an infected
+  // deposit may take its own bytes and nothing else. Files only — the
+  // File rows are the caller's business, exactly as with deleteAllFiles.
+  async deleteFiles(shareId: string, fileIds: string[]) {
+    for (const fileId of fileIds) {
+      await fs.rm(`${SHARE_DIRECTORY}/${shareId}/${fileId}`, { force: true });
+      // Best-effort, same as remove() above: most files never had a
+      // thumbnail generated at all.
+      await fs
+        .rm(`${SHARE_DIRECTORY}/${shareId}/${fileId}.thumb.jpg`, {
+          force: true,
+        })
+        .catch(() => {});
+    }
+  }
+
   // Moves rather than deletes — used instead of deleteAllFiles when
   // clamav.infectedFileAction is "quarantine", so an admin can inspect a
   // flagged share (a false positive, or confirm a real one) before it's
@@ -301,6 +340,35 @@ export class LocalFileService {
         verbatimSymlinks: true,
       });
       await fs.rm(source, { recursive: true, force: true });
+    }
+  }
+
+  // Scoped quarantine, for the same reason deleteFiles exists: moving a
+  // collection's whole directory would take every other contributor's
+  // files with it. Lands in the same QUARANTINE_DIRECTORY/<shareId>
+  // folder an admin already knows to look in, one file at a time, with
+  // the same rename-then-copy fallback across filesystems.
+  async quarantineFiles(shareId: string, fileIds: string[]) {
+    const destination = `${QUARANTINE_DIRECTORY}/${shareId}`;
+    await fs.mkdir(destination, { recursive: true });
+
+    for (const fileId of fileIds) {
+      const source = `${SHARE_DIRECTORY}/${shareId}/${fileId}`;
+      try {
+        await fs.rename(source, `${destination}/${fileId}`);
+      } catch (err: any) {
+        if (err?.code === "ENOENT") continue;
+        if (err?.code !== "EXDEV") throw err;
+        await fs.cp(source, `${destination}/${fileId}`, {
+          verbatimSymlinks: true,
+        });
+        await fs.rm(source, { force: true });
+      }
+      await fs
+        .rm(`${SHARE_DIRECTORY}/${shareId}/${fileId}.thumb.jpg`, {
+          force: true,
+        })
+        .catch(() => {});
     }
   }
 

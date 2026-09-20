@@ -1,4 +1,3 @@
-import { deleteCookie, setCookie } from "cookies-next";
 import mime from "mime-types";
 import axios from "axios";
 import { translateOutsideContext } from "../hooks/useTranslate.hook";
@@ -22,18 +21,13 @@ const list = async (): Promise<MyShare[]> => {
   return (await api.get(`shares/all`)).data;
 };
 
-const create = async (share: CreateShare, isReverseShare = false) => {
-  if (!isReverseShare) {
-    deleteCookie("reverse_share_token");
-  }
+const create = async (share: CreateShare) => {
   return (await api.post("shares", share)).data;
 };
 
 const completeShare = async (id: string) => {
   if (!isValidId(id)) throw new Error("Invalid ID");
-  const response = (await api.post(`shares/${id}/complete`)).data;
-  deleteCookie("reverse_share_token");
-  return response;
+  return (await api.post(`shares/${id}/complete`)).data;
 };
 
 const revertComplete = async (id: string) => {
@@ -363,6 +357,67 @@ const uploadFile = async (
   );
 };
 
+// Opens a contribution against a collection — POST /shares/:id/contributions
+// (task 3). Identity is never sent here: the guard behind this route reads
+// it off the session (a signed-in account) or off the verification cookie
+// a prior verify-code call already set, exactly like ShareService.create()
+// for an anonymous sender. `name` is the only thing this call actually
+// carries.
+const openContribution = async (
+  shareId: string,
+  name?: string,
+): Promise<{ id: string }> => {
+  if (!isValidId(shareId)) throw new Error("Invalid ID");
+  return (await api.post(`shares/${shareId}/contributions`, { name })).data;
+};
+
+// The chunked-upload counterpart of uploadFile above, aimed at a
+// contribution instead of a plain share. Deliberately not folded into
+// uploadFile itself: the contribution route (task 3) has no S3-direct-
+// upload variant, so this only ever needs uploadFileProxied's shape, not
+// the fallback/session bookkeeping uploadFile carries for the plain path.
+const uploadContributionFile = async (
+  shareId: string,
+  contributionId: string,
+  chunk: Blob,
+  file: { id?: string; name: string },
+  chunkIndex: number,
+  totalChunks: number,
+  onUploadProgress?: (progressEvent: any) => void,
+): Promise<FileUploadResponse> => {
+  if (!isValidId(shareId) || !isValidId(contributionId))
+    throw new Error("Invalid ID");
+  return (
+    await api.post(
+      `shares/${shareId}/contributions/${contributionId}/files`,
+      chunk,
+      {
+        headers: { "Content-Type": "application/octet-stream" },
+        params: {
+          id: file.id,
+          name: file.name,
+          chunkIndex,
+          totalChunks,
+        },
+        onUploadProgress,
+      },
+    )
+  ).data;
+};
+
+const completeContribution = async (
+  shareId: string,
+  contributionId: string,
+) => {
+  if (!isValidId(shareId) || !isValidId(contributionId))
+    throw new Error("Invalid ID");
+  return (
+    await api.post(
+      `shares/${shareId}/contributions/${contributionId}/complete`,
+    )
+  ).data;
+};
+
 const isReverseShareTokenAvailable = async (
   token: string,
 ): Promise<boolean> => {
@@ -375,11 +430,14 @@ const isReverseShareTokenAvailable = async (
 };
 
 const createReverseShare = async (
-  shareExpiration: string,
+  // Two clocks, not one — collectionEndsAt closes deposits, retention
+  // says how long the album survives after that. Same relative-duration
+  // string shape as a direct share's own expiration ("3-days").
+  collectionEndsAt: string,
+  retention: string,
   maxShareSize: number,
   maxUseCount: number,
   sendEmailNotification: boolean,
-  publicAccess: boolean,
   token?: string,
   name?: string,
   description?: string,
@@ -388,11 +446,11 @@ const createReverseShare = async (
 ) => {
   return (
     await api.post("reverseShares", {
-      shareExpiration,
+      collectionEndsAt,
+      retention,
       maxShareSize: maxShareSize.toString(),
       maxUseCount,
       sendEmailNotification,
-      publicAccess,
       token,
       name,
       description,
@@ -404,16 +462,6 @@ const createReverseShare = async (
 
 const getMyReverseShares = async (): Promise<MyReverseShare[]> => {
   return (await api.get("reverseShares")).data;
-};
-
-const setReverseShare = async (reverseShareToken: string) => {
-  if (!isValidId(reverseShareToken))
-    throw new Error(
-      translateOutsideContext()("upload.modal.link.error.invalid"),
-    );
-  const { data } = await api.get(`/reverseShares/${reverseShareToken}`);
-  setCookie("reverse_share_token", reverseShareToken);
-  return data;
 };
 
 const removeReverseShare = async (id: string) => {
@@ -445,7 +493,9 @@ export default {
   getThumbnailUrl,
   removeFile,
   uploadFile,
-  setReverseShare,
+  openContribution,
+  uploadContributionFile,
+  completeContribution,
   createReverseShare,
   getMyReverseShares,
   removeReverseShare,

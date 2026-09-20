@@ -56,6 +56,11 @@ export class S3FileService {
     chunk: { index: number; total: number },
     file: { id?: string; name: string },
     shareId: string,
+    // Accepted only so this stays call-compatible with
+    // LocalFileService.create() — not read here. The S3 path has no
+    // uploadLocked check at all yet (see docs/chantiers.md §6), so a
+    // per-contribution size ceiling would be moot without that first.
+    _contributionId?: string,
   ) {
     if (!file.id) {
       file.id = crypto.randomUUID();
@@ -71,7 +76,6 @@ export class S3FileService {
       where: { id: shareId },
       include: {
         creator: true,
-        reverseShare: { include: { creator: true } },
       },
     });
 
@@ -106,18 +110,11 @@ export class S3FileService {
         );
       }
 
-      const quotaOwner = share?.reverseShare
-        ? share.reverseShare.creator
-        : share?.creator;
-      const quotaOwnerId = share?.reverseShare
-        ? share.reverseShare.creatorId
-        : share?.creatorId;
-
-      if (quotaOwnerId && quotaOwner?.storageQuotaLimit) {
-        const quotaLimit = parseInt(quotaOwner.storageQuotaLimit);
+      if (share?.creatorId && share.creator?.storageQuotaLimit) {
+        const quotaLimit = parseInt(share.creator.storageQuotaLimit);
         const activeStorageUsage = await getUserActiveStorageUsage(
           this.prisma,
-          quotaOwnerId,
+          share.creatorId,
         );
         const projectedUsage =
           activeStorageUsage +
@@ -128,13 +125,9 @@ export class S3FileService {
           const exceededBytes = projectedUsage - quotaLimit;
           const exceededSize = byteToHumanSizeString(exceededBytes);
           throw new BadRequestException(
-            share?.reverseShare
-              ? this.i18n.t("file.reverseShareQuotaExceeded", {
-                  args: { exceededSize },
-                })
-              : this.i18n.t("file.storageQuotaExceeded", {
-                  args: { exceededSize },
-                }),
+            this.i18n.t("file.storageQuotaExceeded", {
+              args: { exceededSize },
+            }),
           );
         }
       }
@@ -339,6 +332,40 @@ export class S3FileService {
   // for an S3 share instead of silently doing nothing or throwing.
   async quarantineAllFiles(shareId: string) {
     await this.deleteAllFiles(shareId);
+  }
+
+  // The scoped counterpart of deleteAllFiles — see LocalFileService's own
+  // for why a collection's container can only ever lose one contribution's
+  // files. Keyed by file *name*, like every other object this service
+  // writes, so the ids are resolved to names first.
+  async deleteFiles(shareId: string, fileIds: string[]) {
+    if (fileIds.length === 0) return;
+
+    const files = await this.prisma.file.findMany({
+      where: { id: { in: fileIds } },
+      select: { name: true },
+    });
+    const s3Instance = this.getS3Instance();
+    const bucketName = this.config.get("s3.bucketName");
+
+    for (const file of files) {
+      try {
+        await s3Instance.send(
+          new DeleteObjectCommand({
+            Bucket: bucketName,
+            Key: `${this.getS3Path()}${shareId}/${file.name}`,
+          }),
+        );
+      } catch {
+        // ignore per-object failure, same as deleteAllFiles' fallback
+      }
+    }
+  }
+
+  // Falls back to an outright delete for exactly the reason
+  // quarantineAllFiles does — S3 has no quarantine location yet.
+  async quarantineFiles(shareId: string, fileIds: string[]) {
+    await this.deleteFiles(shareId, fileIds);
   }
 
   async getFileSize(shareId: string, fileName: string): Promise<number> {

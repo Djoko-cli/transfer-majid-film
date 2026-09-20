@@ -27,13 +27,15 @@ const NavbarShareMneu = () => {
         <Menu.Item component={Link} href="/account/shares" icon={<TbLink />}>
           <FormattedMessage id="navbar.links.shares" />
         </Menu.Item>
-        <Menu.Item
-          component={Link}
-          href="/account/reverseShares"
-          icon={<TbArrowLoopLeft />}
-        >
-          <FormattedMessage id="navbar.links.reverse" />
-        </Menu.Item>
+        {config.get("share.enableReverseShares") && (
+          <Menu.Item
+            component={Link}
+            href="/account/reverseShares"
+            icon={<TbArrowLoopLeft />}
+          >
+            <FormattedMessage id="navbar.links.reverse" />
+          </Menu.Item>
+        )}
         {config.get("share.enableUserRecipients") && (
           <Menu.Item
             component={Link}

@@ -1,7 +1,5 @@
 import {
-  Accordion,
   ActionIcon,
-  Anchor,
   Button,
   Center,
   Group,
@@ -16,11 +14,16 @@ import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
 import moment from "moment";
 import { useEffect, useState } from "react";
-import { TbInfoCircle, TbLink, TbPlus, TbTrash } from "react-icons/tb";
+import {
+  TbExternalLink,
+  TbInfoCircle,
+  TbLink,
+  TbPlus,
+  TbTrash,
+} from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import Meta from "../../components/Meta";
 import showReverseShareLinkModal from "../../components/account/showReverseShareLinkModal";
-import showShareLinkModal from "../../components/account/showShareLinkModal";
 import { HoverTip } from "../../components/core/HoverTip";
 import CenterLoader from "../../components/core/CenterLoader";
 import GlassPageBackdrop from "../../components/core/GlassPageBackdrop";
@@ -62,6 +65,22 @@ const MyShares = () => {
   }, []);
 
   if (!reverseShares) return <CenterLoader />;
+
+  // window.location.origin only ever read here, after the loading guard
+  // above — this component still renders server-side while reverseShares
+  // is undefined, and `window` doesn't exist there.
+  const linkOrigin =
+    appUrl !== defaultAppUrl ? appUrl : window.location.origin;
+
+  const copyLink = (token: string) => {
+    if (window.isSecureContext) {
+      clipboard.copy(`${linkOrigin}/s/${token}`);
+      toast.success(t("common.notify.copied-link"));
+    } else {
+      showReverseShareLinkModal(modals, token, appUrl, defaultAppUrl);
+    }
+  };
+
   return (
     <>
       <Meta title={t("account.reverseShares.title")} />
@@ -77,26 +96,37 @@ const MyShares = () => {
             </ActionIcon>
           </HoverTip>
         </Group>
-        <Button
-          onClick={() =>
-            showCreateReverseShareModal(
-              modals,
-              config.get("smtp.enabled"),
-              user?.isAdmin || user?.canCreatePermanentShares
-                ? { value: 0, unit: "days" }
-                : config.get("share.maxExpiration"),
-              config.get("share.defaultExpiration"),
-              appUrl,
-              defaultAppUrl,
-              userMaxShareSize,
-              getReverseShares,
-              config.get("share.shareIdLength"),
-            )
-          }
-          leftIcon={<TbPlus size={20} />}
-        >
-          <FormattedMessage id="common.button.create" />
-        </Button>
+        {config.get("share.enableReverseShares") ? (
+          <Button
+            onClick={() =>
+              showCreateReverseShareModal(
+                modals,
+                config.get("smtp.enabled"),
+                user?.isAdmin || user?.canCreatePermanentShares
+                  ? { value: 0, unit: "days" }
+                  : config.get("share.maxExpiration"),
+                config.get("share.defaultExpiration"),
+                appUrl,
+                defaultAppUrl,
+                userMaxShareSize,
+                getReverseShares,
+                config.get("share.shareIdLength"),
+              )
+            }
+            leftIcon={<TbPlus size={20} />}
+          >
+            <FormattedMessage id="common.button.create" />
+          </Button>
+        ) : (
+          <Text
+            color="dimmed"
+            size="sm"
+            sx={{ display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <TbInfoCircle />
+            <FormattedMessage id="account.reverseShares.disabled-notice" />
+          </Text>
+        )}
       </Group>
       {reverseShares.length == 0 ? (
         <Center style={{ height: "70vh" }}>
@@ -119,182 +149,192 @@ const MyShares = () => {
                     <FormattedMessage id="account.reverseShares.table.name" />
                   </th>
                   <th>
-                    <FormattedMessage id="account.reverseShares.table.shares" />
+                    <FormattedMessage id="account.reverseShares.table.contributors" />
                   </th>
                   <th>
-                    <FormattedMessage id="account.reverseShares.table.remaining" />
+                    <FormattedMessage id="account.reverseShares.table.files" />
                   </th>
                   <th>
-                    <FormattedMessage id="account.reverseShares.table.max-size" />
-                  </th>
-                  <th>
-                    <FormattedMessage id="account.reverseShares.table.expires" />
+                    <FormattedMessage id="account.reverseShares.table.state" />
                   </th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {reverseShares.map((reverseShare) => (
-                  <tr key={reverseShare.id}>
-                    <td>
-                      <Text
-                        maw={160}
-                        truncate
-                        color={reverseShare.name ? undefined : "dimmed"}
-                      >
-                        {reverseShare.name || "—"}
-                      </Text>
-                    </td>
-                    <td style={{ width: 220 }}>
-                      {reverseShare.shares.length == 0 ? (
-                        <Text color="dimmed" size="sm">
-                          <FormattedMessage id="account.reverseShares.table.no-shares" />
+                {reverseShares.map((reverseShare) => {
+                  const link = `${linkOrigin}/s/${reverseShare.token}`;
+                  // The same two conditions the server folds into
+                  // ShareDTO.collection.isOpen (ShareController.
+                  // buildCollectionState): a collection that has spent
+                  // every use it was given is as closed to a new deposit
+                  // as one whose window has passed. Reading the window
+                  // alone made this page say "ouverte jusqu'au X" about a
+                  // collection every visitor was already being told was
+                  // closed.
+                  const hasWindowLeft = moment(
+                    reverseShare.collectionEndsAt,
+                  ).isAfter(moment());
+                  const isFull = reverseShare.remainingUses <= 0;
+                  const isOpen = hasWindowLeft && !isFull;
+                  const contributorNames = reverseShare.contributorNames.map(
+                    (name) => name || t("share.collection.anonymous"),
+                  );
+
+                  return (
+                    <tr key={reverseShare.id}>
+                      <td style={{ maxWidth: 200 }}>
+                        <Group spacing={4} noWrap>
+                          <Text
+                            maw={160}
+                            truncate
+                            color={reverseShare.name ? undefined : "dimmed"}
+                          >
+                            {reverseShare.name || "—"}
+                          </Text>
+                          {reverseShare.description && (
+                            <HoverTip label={reverseShare.description}>
+                              <ActionIcon size={18}>
+                                <TbInfoCircle size={14} />
+                              </ActionIcon>
+                            </HoverTip>
+                          )}
+                        </Group>
+                        <Text size="xs" color="dimmed" maw={200} truncate>
+                          {link}
                         </Text>
-                      ) : (
-                        <Accordion>
-                          <Accordion.Item
-                            value="customization"
-                            sx={{ borderBottom: "none" }}
+                      </td>
+                      <td style={{ maxWidth: 220 }}>
+                        {reverseShare.contributionsCount == 0 ? (
+                          <Text color="dimmed" size="sm">
+                            <FormattedMessage id="account.reverseShares.table.contributors.none" />
+                          </Text>
+                        ) : (
+                          <>
+                            <Text size="sm">
+                              {reverseShare.contributionsCount == 1
+                                ? `1 ${t(
+                                    "account.reverseShares.table.contributors.singular",
+                                  )}`
+                                : `${reverseShare.contributionsCount} ${t(
+                                    "account.reverseShares.table.contributors.plural",
+                                  )}`}
+                            </Text>
+                            <Text size="xs" color="dimmed" maw={200} truncate>
+                              {contributorNames.join(", ")}
+                            </Text>
+                          </>
+                        )}
+                      </td>
+                      <td>
+                        <Text size="sm">
+                          {reverseShare.filesCount == 1
+                            ? `1 ${t(
+                                "account.reverseShares.table.files.singular",
+                              )}`
+                            : `${reverseShare.filesCount} ${t(
+                                "account.reverseShares.table.files.plural",
+                              )}`}
+                        </Text>
+                        <Text size="xs" color="dimmed">
+                          {byteToHumanSizeString(reverseShare.totalSize)}
+                        </Text>
+                      </td>
+                      <td>
+                        <Text size="sm">
+                          {isOpen
+                            ? t("account.reverseShares.table.state.open", {
+                                date: moment(
+                                  reverseShare.collectionEndsAt,
+                                ).format("LLL"),
+                              })
+                            : // A full collection and an elapsed one are
+                              // both closed, but only the second one is
+                              // closed *since* a date — saying "fermée"
+                              // about a window that has not run out yet
+                              // needs its own sentence.
+                              t(
+                                hasWindowLeft
+                                  ? "account.reverseShares.table.state.full"
+                                  : "account.reverseShares.table.state.closed",
+                                {
+                                  date: moment(
+                                    reverseShare.containerExpiresAt,
+                                  ).format("LLL"),
+                                },
+                              )}
+                        </Text>
+                      </td>
+                      <td>
+                        <Group position="right" noWrap>
+                          <HoverTip
+                            label={t("account.reverseShares.table.open-album")}
                           >
-                            <Accordion.Control p={0}>
-                              <Text size="sm">
-                                {reverseShare.shares.length == 1
-                                  ? `1 ${t(
-                                      "account.reverseShares.table.count.singular",
-                                    )}`
-                                  : `${reverseShare.shares.length} ${t(
-                                      "account.reverseShares.table.count.plural",
-                                    )}`}
-                              </Text>
-                            </Accordion.Control>
-                            <Accordion.Panel>
-                              {reverseShare.shares.map((share) => (
-                                <Group key={share.id} mb={4}>
-                                  <Anchor
-                                    href={`${appUrl !== defaultAppUrl ? appUrl : window.location.origin}/share/${share.id}`}
-                                    target="_blank"
-                                  >
-                                    <Text maw={120} truncate>
-                                      {share.id}
+                            <ActionIcon
+                              component="a"
+                              href={link}
+                              target="_blank"
+                              variant="light"
+                              size={25}
+                            >
+                              <TbExternalLink />
+                            </ActionIcon>
+                          </HoverTip>
+                          <HoverTip label={t("common.button.copy-link")}>
+                            <ActionIcon
+                              variant="light"
+                              size={25}
+                              onClick={() => copyLink(reverseShare.token)}
+                            >
+                              <TbLink />
+                            </ActionIcon>
+                          </HoverTip>
+                          <HoverTip label={t("common.button.delete")}>
+                            <ActionIcon
+                              color="red"
+                              variant="light"
+                              size={25}
+                              onClick={() => {
+                                modals.openConfirmModal({
+                                  title: t(
+                                    "account.reverseShares.modal.delete.title",
+                                  ),
+                                  styles: glassModalStyles,
+                                  children: (
+                                    <Text size="sm">
+                                      <FormattedMessage id="account.reverseShares.modal.delete.description" />
                                     </Text>
-                                  </Anchor>
-                                  <HoverTip
-                                    label={t("common.button.copy-link")}
-                                  >
-                                    <ActionIcon
-                                      variant="light"
-                                      size={25}
-                                      onClick={() => {
-                                        if (window.isSecureContext) {
-                                          clipboard.copy(
-                                            `${appUrl !== defaultAppUrl ? appUrl : window.location.origin}/s/${share.id}`,
-                                          );
-                                          toast.success(
-                                            t("common.notify.copied-link"),
-                                          );
-                                        } else {
-                                          showShareLinkModal(
-                                            modals,
-                                            share.id,
-                                            appUrl,
-                                            defaultAppUrl,
-                                          );
-                                        }
-                                      }}
-                                    >
-                                      <TbLink />
-                                    </ActionIcon>
-                                  </HoverTip>
-                                </Group>
-                              ))}
-                            </Accordion.Panel>
-                          </Accordion.Item>
-                        </Accordion>
-                      )}
-                    </td>
-                    <td>{reverseShare.remainingUses}</td>
-                    <td>
-                      {byteToHumanSizeString(
-                        parseInt(reverseShare.maxShareSize),
-                      )}
-                    </td>
-                    <td>
-                      {moment(reverseShare.shareExpiration).unix() === 0
-                        ? "Never"
-                        : moment(reverseShare.shareExpiration).format("LLL")}
-                    </td>
-                    <td>
-                      <Group position="right">
-                        <HoverTip label={t("common.button.copy-link")}>
-                          <ActionIcon
-                            variant="light"
-                            size={25}
-                            onClick={() => {
-                              if (window.isSecureContext) {
-                                clipboard.copy(
-                                  `${appUrl !== defaultAppUrl ? appUrl : window.location.origin}/upload/${
-                                    reverseShare.token
-                                  }`,
-                                );
-                                toast.success(t("common.notify.copied-link"));
-                              } else {
-                                showReverseShareLinkModal(
-                                  modals,
-                                  reverseShare.token,
-                                  appUrl,
-                                  defaultAppUrl,
-                                );
-                              }
-                            }}
-                          >
-                            <TbLink />
-                          </ActionIcon>
-                        </HoverTip>
-                        <HoverTip label={t("common.button.delete")}>
-                          <ActionIcon
-                            color="red"
-                            variant="light"
-                            size={25}
-                            onClick={() => {
-                              modals.openConfirmModal({
-                                title: t(
-                                  "account.reverseShares.modal.delete.title",
-                                ),
-                                styles: glassModalStyles,
-                                children: (
-                                  <Text size="sm">
-                                    <FormattedMessage id="account.reverseShares.modal.delete.description" />
-                                  </Text>
-                                ),
-                                confirmProps: {
-                                  color: "red",
-                                },
-                                labels: {
-                                  confirm: t("common.button.delete"),
-                                  cancel: t("common.button.cancel"),
-                                },
-                                onConfirm: () => {
-                                  shareService
-                                    .removeReverseShare(reverseShare.id)
-                                    .then(() =>
-                                      setReverseShares(
-                                        reverseShares.filter(
-                                          (item) => item.id !== reverseShare.id,
+                                  ),
+                                  confirmProps: {
+                                    color: "red",
+                                  },
+                                  labels: {
+                                    confirm: t("common.button.delete"),
+                                    cancel: t("common.button.cancel"),
+                                  },
+                                  onConfirm: () => {
+                                    shareService
+                                      .removeReverseShare(reverseShare.id)
+                                      .then(() =>
+                                        setReverseShares(
+                                          reverseShares.filter(
+                                            (item) =>
+                                              item.id !== reverseShare.id,
+                                          ),
                                         ),
-                                      ),
-                                    )
-                                    .catch(toast.axiosError);
-                                },
-                              });
-                            }}
-                          >
-                            <TbTrash />
-                          </ActionIcon>
-                        </HoverTip>
-                      </Group>
-                    </td>
-                  </tr>
-                ))}
+                                      )
+                                      .catch(toast.axiosError);
+                                  },
+                                });
+                              }}
+                            >
+                              <TbTrash />
+                            </ActionIcon>
+                          </HoverTip>
+                        </Group>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </Table>
           </Paper>

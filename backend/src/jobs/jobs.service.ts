@@ -6,7 +6,6 @@ import { BrandSyncService } from "src/brandSlides/brandSync.service";
 import { EmailService } from "src/email/email.service";
 import { FileService } from "src/file/file.service";
 import { PrismaService } from "src/prisma/prisma.service";
-import { ReverseShareService } from "src/reverseShare/reverseShare.service";
 import { ConfigService } from "src/config/config.service";
 import { SHARE_DIRECTORY } from "../constants";
 
@@ -16,7 +15,6 @@ export class JobsService {
 
   constructor(
     private prisma: PrismaService,
-    private reverseShareService: ReverseShareService,
     private fileService: FileService,
     private configServer: ConfigService,
     private emailService: EmailService,
@@ -59,22 +57,49 @@ export class JobsService {
     }
   }
 
+  // The first of the two clocks running out. Depositing stops on its own,
+  // because every write checks collectionEndsAt — what this does is start
+  // the second clock, by giving the container the expiration it will
+  // actually die of. Computed once, here, rather than derived on every
+  // read: an album whose death date moves is one nobody can answer "until
+  // when?" about.
   @Cron("0 * * * *")
-  async deleteExpiredReverseShares() {
-    const expiredReverseShares = await this.prisma.reverseShare.findMany({
+  async closeEndedCollections() {
+    const candidates = await this.prisma.reverseShare.findMany({
       where: {
-        shareExpiration: { lt: new Date() },
+        collectionEndsAt: { lt: new Date() },
       },
+      include: { containerShare: true },
     });
 
-    for (const expiredReverseShare of expiredReverseShares) {
-      await this.reverseShareService.remove(expiredReverseShare.id);
+    // Exact rather than heuristic ("expiration is far in the future"): a
+    // multi-year retention makes "far in the future" true forever, which
+    // would reselect — and re-log — an already-closed collection every hour
+    // for the rest of its life. Comparing to the real, computed death date
+    // is idempotent regardless of how long the retention is.
+    const ended = candidates.filter((collection) => {
+      const realExpiration = moment(collection.collectionEndsAt)
+        .add(collection.retentionSeconds, "seconds")
+        .toDate();
+      return (
+        collection.containerShare.expiration.getTime() !==
+        realExpiration.getTime()
+      );
+    });
+
+    for (const collection of ended) {
+      await this.prisma.share.update({
+        where: { id: collection.containerShareId },
+        data: {
+          expiration: moment(collection.collectionEndsAt)
+            .add(collection.retentionSeconds, "seconds")
+            .toDate(),
+        },
+      });
     }
 
-    if (expiredReverseShares.length > 0) {
-      this.logger.log(
-        `Deleted ${expiredReverseShares.length} expired reverse shares`,
-      );
+    if (ended.length > 0) {
+      this.logger.log(`Closed ${ended.length} collections`);
     }
   }
 

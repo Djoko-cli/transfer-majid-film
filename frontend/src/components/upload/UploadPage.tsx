@@ -1,18 +1,16 @@
-import { Button, Collapse, Stack } from "@mantine/core";
+import { Collapse } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { cleanNotifications } from "@mantine/notifications";
 import { AxiosError } from "axios";
 import pLimit from "p-limit";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FormattedMessage } from "react-intl";
-import AuthGlassLayout from "../auth/AuthGlassLayout";
 import Meta from "../Meta";
-import Dropzone, { getFilesFromEvent } from "./Dropzone";
+import { getFilesFromEvent } from "./Dropzone";
 import FileList from "./FileList";
 import PageDropOverlay from "./PageDropOverlay";
 import SplitTransferLayout from "./SplitTransferLayout";
 import TermsGate from "./TermsGate";
-import TransferCard, { useSubmitButtonStyles } from "./TransferCard";
+import TransferCard from "./TransferCard";
 import showCompletedUploadModal from "./modals/showCompletedUploadModal";
 import showEmailVerificationModal from "./modals/showEmailVerificationModal";
 import showNasImportModal from "./modals/showNasImportModal";
@@ -31,22 +29,13 @@ import toast from "../../utils/toast.util";
 import {
   getNormalizedFileName,
   filterDuplicateFiles,
-  getDefaultShareName,
 } from "../../utils/file.util";
-import { generateAvailableShareId } from "../../utils/share.util";
 
 const promiseLimit = pLimit(3);
 
-const Upload = ({
-  maxShareSize,
-  isReverseShare = false,
-}: {
-  maxShareSize?: number;
-  isReverseShare: boolean;
-}) => {
+const Upload = ({ maxShareSize }: { maxShareSize?: number }) => {
   const modals = useModals();
   const t = useTranslate();
-  const { classes: submitButtonClasses } = useSubmitButtonStyles();
 
   const { user } = useUser();
   const config = useConfig();
@@ -86,9 +75,7 @@ const Upload = ({
   const { hasAcceptedTerms, acceptTerms } = useTermsAcceptance();
 
   const requiresEmailVerification =
-    !user &&
-    !isReverseShare &&
-    config.get("share.requireEmailVerificationForAnonymousShares");
+    !user && config.get("share.requireEmailVerificationForAnonymousShares");
 
   useConfirmLeave({
     message: t("upload.notify.confirm-leave"),
@@ -248,10 +235,10 @@ const Upload = ({
 
     try {
       const totalSize = files.reduce((acc, file) => acc + file.size, 0);
-      createdShareRef.current = await shareService.create(
-        { ...share, size: totalSize },
-        isReverseShare,
-      );
+      createdShareRef.current = await shareService.create({
+        ...share,
+        size: totalSize,
+      });
     } catch (e) {
       toast.axiosError(e);
       setisUploading(false);
@@ -336,25 +323,6 @@ const Upload = ({
     );
   };
 
-  // The reverse share's own creator already set name/description/security
-  // at creation time (showCreateReverseShareModal.tsx) — ShareService
-  // .create()'s own override applies those, ignoring whatever this sends
-  // for them, so there's no modal left to show here: clicking "Partager"
-  // submits directly. name still carries a files-based fallback, the same
-  // default a direct share falls back to, for when the creator also left
-  // the reverse share's own name blank.
-  const submitReverseShare = async () => {
-    startUpload({
-      id: await generateAvailableShareId(config.get("share.shareIdLength")),
-      name: getDefaultShareName(files, t),
-      recipients: [],
-      // Ignored — ShareService.create() always substitutes the reverse
-      // share's own shareExpiration when a reverseShareToken is present.
-      expiration: "never",
-      security: {},
-    });
-  };
-
   // Drives a NAS-import submission, alone or combined with dropped files
   // sharing the same share (droppedFiles, possibly []). Mirrors
   // uploadFiles above (create → wait → complete → show the same
@@ -392,7 +360,6 @@ const Upload = ({
               size: droppedFiles.reduce((acc, file) => acc + file.size, 0),
             }
           : share,
-        isReverseShare,
       );
     } catch (e) {
       toast.axiosError(e);
@@ -487,7 +454,7 @@ const Upload = ({
         config.get("general.appUrl"),
         config.get("general.appUrl", true),
         undefined,
-        !isReverseShare,
+        true,
         mode,
         config.get("smtp.enabled") &&
           config.get("email.enableShareDownloadNotifications"),
@@ -731,15 +698,12 @@ const Upload = ({
   // Passed to TransferCard (which forwards it straight to Dropzone - see
   // its own prop comment for the full history of where this used to live
   // and why). Gated here exactly as before: hidden until hasAcceptedTerms,
-  // never on the reverse-share flow, admin-only, behind the config toggle.
-  // Only the button's onClick now - once a selection exists, TransferCard
-  // hides the dropzone (and this button along with it) entirely, so
-  // there's nothing left here that ever needs to reflect import progress.
+  // admin-only, behind the config toggle. Only the button's onClick now -
+  // once a selection exists, TransferCard hides the dropzone (and this
+  // button along with it) entirely, so there's nothing left here that
+  // ever needs to reflect import progress.
   const nasImport =
-    hasAcceptedTerms &&
-    !isReverseShare &&
-    user?.isAdmin &&
-    config.get("share.enableNasImport")
+    hasAcceptedTerms && user?.isAdmin && config.get("share.enableNasImport")
       ? { onClick: openNasImportModal }
       : undefined;
 
@@ -751,73 +715,7 @@ const Upload = ({
   // SplitTransferLayout/AuthGlassLayout) with nothing animating the cut
   // between them at all. Reported by the user from their own viewing:
   // it read as a hard jump.
-  const realContent = isReverseShare ? (
-    <Stack align="stretch" spacing={0}>
-      <Dropzone
-        title={files.length > 0 ? t("share.edit.append-upload") : undefined}
-        maxShareSize={maxShareSize}
-        currentFilesSize={currentFilesSize}
-        onFilesChanged={handleDropzoneFilesChanged}
-        isUploading={isUploading}
-        waiting={files.length === 0}
-        compact={files.length > 0}
-        tightenWhenEmpty
-        glass
-      />
-      {
-        // The share button used to sit in a top-right corner above the
-        // dropzone, always visible but disabled until files existed —
-        // read fine on the old full-width bare page, but cramped and
-        // inconsistent with every other glass card in this app
-        // (TransferCard's own submit, every modal's) once this became a
-        // narrow centered card. Moved below the file list, full width,
-        // and — same reasoning as TransferCard's own progressive
-        // disclosure — collapsed until there's something to share, rather
-        // than shown-but-inert: nothing to decide about, nothing to
-        // click, before a file exists.
-        //
-        // A Mantine Collapse, mirroring TransferCard's own progressive
-        // disclosure exactly (see the comment there for the full
-        // reasoning): it animates the content's own height, so the card
-        // around it (height: auto) follows in the same layout pass with
-        // nothing to synchronize — unlike the ResizeObserver-driven
-        // AnimatedHeight this replaces, which animated its *own* box
-        // height to catch up with content that had already re-laid-out,
-        // and re-targeted that transition on every tick whenever anything
-        // inside it changed size. Same trade-off as TransferCard's: a
-        // row added to an already-open list reflows instantly rather
-        // than animating. Children stay mounted while closed (Collapse
-        // needs them there to animate from) and settle at display:none.
-        // pt on the Stack is the gap between the dropzone above and this
-        // region, inside the Collapse so it collapses away with it (the
-        // Stack above sets its own spacing to 0 for exactly this reason).
-      }
-      <Collapse in={files.length > 0}>
-        <Stack align="stretch" pt={16}>
-          <FileList<FileUpload>
-            files={files}
-            setFiles={setFiles}
-            isUploading={isUploading}
-            onCancel={cancelUpload}
-            onRetry={retryFile}
-            animateRows
-          />
-          <Button
-            fullWidth
-            loading={isUploading}
-            onClick={submitReverseShare}
-            className={
-              !isUploading && files.length > 0
-                ? submitButtonClasses.ready
-                : undefined
-            }
-          >
-            <FormattedMessage id="common.button.share" />
-          </Button>
-        </Stack>
-      </Collapse>
-    </Stack>
-  ) : (
+  const realContent = (
     <TransferCard
       files={files}
       isUploading={isUploading}
@@ -897,20 +795,7 @@ const Upload = ({
     <>
       <Meta title={t("upload.title")} ogTitle={t("upload.ogTitle")} />
       <PageDropOverlay visible={isDraggingFileOverPage} />
-      {isReverseShare ? (
-        // AuthGlassLayout, not SplitTransferLayout: this is a single
-        // bounded task (pick files, hand them over) centered on the
-        // brand backdrop, the same shape as signing in, not
-        // SplitTransferLayout's asymmetric split (built specifically for
-        // TransferCard's own two-column layout) or GlassPageBackdrop's
-        // ambient scrim (for a page-length document like account
-        // settings, which this isn't — the file list is real content but
-        // stays within one card, scrolling internally past a height cap
-        // exactly like TransferCard's own).
-        <AuthGlassLayout>{gatedContent}</AuthGlassLayout>
-      ) : (
-        <SplitTransferLayout>{gatedContent}</SplitTransferLayout>
-      )}
+      <SplitTransferLayout>{gatedContent}</SplitTransferLayout>
     </>
   );
 };

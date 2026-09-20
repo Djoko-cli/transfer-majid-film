@@ -137,6 +137,15 @@ export const configVariables = {
       defaultValue: "false",
       secret: false,
     },
+    // Gates ReverseShareService.create() only — existing links (and their
+    // albums, contributions, archive and expiry) keep working regardless.
+    // True by default: the feature already exists and runs, so shipping it
+    // off would surprise anyone already using it.
+    enableReverseShares: {
+      type: "boolean",
+      defaultValue: "true",
+      secret: false,
+    },
     // Lets an admin create a share from files already on the NAS
     // (NasImportService) instead of uploading a duplicate copy — see
     // NAS_IMPORT_ROOT in constants.ts, which must also be set (a mounted

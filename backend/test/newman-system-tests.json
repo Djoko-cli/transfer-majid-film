@@ -432,7 +432,7 @@
 											"    const responseBody = pm.response.json();",
 											"    pm.expect(responseBody).to.have.property(\"id\")",
 											"    pm.expect(responseBody).to.have.property(\"expiration\")",
-											"    pm.expect(Object.keys(responseBody).length).be.equal(4)",
+											"    pm.expect(Object.keys(responseBody).length).be.equal(5)",
 											"});",
 											""
 										],
@@ -626,7 +626,7 @@
 											"    const responseBody = pm.response.json();",
 											"    pm.expect(responseBody).to.have.property(\"id\")",
 											"    pm.expect(responseBody).to.have.property(\"expiration\")",
-											"    pm.expect(Object.keys(responseBody).length).be.equal(6)",
+											"    pm.expect(Object.keys(responseBody).length).be.equal(7)",
 											"});",
 											""
 										],
@@ -1542,222 +1542,6 @@
 							}
 						}
 					]
-				},
-				{
-					"name": "Create a private reverse share",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"shareExpiration\": \"1-day\",\n    \"maxUseCount\": 1,\n    \"publicAccess\": false\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{API_URL}}/reverseShares",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"reverseShares"
-							]
-						}
-					},
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test('Status code is 201', () => {",
-									"    pm.response.to.have.status(201);",
-									"});",
-									"const token = pm.response.json().token;",
-									"pm.collectionVariables.set('REVERSE_TOKEN', token);",
-									"pm.collectionVariables.set('COOKIES', `${pm.collectionVariables.get('COOKIES')};reverse_share_token=${token}`);"
-								]
-							}
-						}
-					]
-				},
-				{
-					"name": "Create share through the private reverse share",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"id\": \"reverse-private\",\n    \"expiration\": \"1-day\",\n    \"recipients\": []\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{API_URL}}/shares",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"shares"
-							]
-						}
-					},
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test('Status code is 201', () => {",
-									"    pm.response.to.have.status(201);",
-									"});"
-								]
-							}
-						}
-					]
-				},
-				{
-					"name": "Upload file to the reverse share",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/octet-stream",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "data:application/octet-stream;base64,VGhpcyBpcyBhIHRlc3QgZmlsZWQgdXNlZCBmb3IgdXBsb2FkaW5nIGluIHRoZSBzeXN0ZW0gdGVzdC4="
-						},
-						"url": {
-							"raw": "{{API_URL}}/shares/reverse-private/files?name=reverse-file.txt&chunkIndex=0&totalChunks=1",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"shares",
-								"reverse-private",
-								"files"
-							],
-							"query": [
-								{
-									"key": "name",
-									"value": "reverse-file.txt"
-								},
-								{
-									"key": "chunkIndex",
-									"value": "0"
-								},
-								{
-									"key": "totalChunks",
-									"value": "1"
-								}
-							]
-						}
-					},
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test('Status code is 201', () => {",
-									"    pm.response.to.have.status(201);",
-									"});",
-									"pm.collectionVariables.set('REVERSE_FILE_ID', pm.response.json().id);"
-								]
-							}
-						}
-					]
-				},
-				{
-					"name": "Complete the reverse share",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{API_URL}}/shares/reverse-private/complete",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"shares",
-								"reverse-private",
-								"complete"
-							]
-						}
-					},
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test('Status code is 202', () => {",
-									"    pm.response.to.have.status(202);",
-									"});"
-								]
-							}
-						}
-					]
-				},
-				{
-					"name": "Private reverse share file is not served without a token",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{API_URL_ANON}}/shares/reverse-private/files/{{REVERSE_FILE_ID}}",
-							"host": [
-								"{{API_URL_ANON}}"
-							],
-							"path": [
-								"shares",
-								"reverse-private",
-								"files",
-								"{{REVERSE_FILE_ID}}"
-							]
-						}
-					},
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
-								]
-							}
-						},
-						{
-							"listen": "test",
-							"script": {
-								"type": "text/javascript",
-								"exec": [
-									"pm.test('Status code is 403', () => {",
-									"    pm.response.to.have.status(403);",
-									"});"
-								]
-							}
-						}
-					]
 				}
 			]
 		},
@@ -2014,6 +1798,1798 @@
 									"});",
 									"pm.test('Still refused for the restriction after a plain rename', () => {",
 									"    pm.expect(pm.response.json().error).to.be.equal('share_restricted_to_recipients');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Collection container",
+			"item": [
+				{
+					"name": "Create a collection link",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"vacances-test\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "The container exists at the token's own address",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('It is a collection, open, and empty', () => {",
+									"    const b = pm.response.json();",
+									"    pm.expect(b.isCollection).to.be.true;",
+									"    pm.expect(b.files.length).to.be.equal(0);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "A collection cannot take an id a transfer already owns",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"test-share\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 400', () => {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "A junk collectionEndsAt is rejected, not just ignored",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"junk-collection-test\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"never\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 400', () => {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Read the album before depositing, as any visitor would",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/vacances-test/token",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"token"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.collectionVariables.set('VACANCES_TEST_TOKEN', pm.response.json().token)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open a contribution without an identity is refused",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/vacances-test/contributions",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'share_vacances-test_token=' + pm.collectionVariables.get('VACANCES_TEST_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open a contribution as a signed-in user",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Alex\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('CONTRIB_ID', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Upload into the contribution",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,VGVzdCBmaWxl"
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions/{{CONTRIB_ID}}/files?name=photo.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions",
+								"{{CONTRIB_ID}}",
+								"files"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "photo.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('FILE_ID', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Close the contribution",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions/{{CONTRIB_ID}}/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions",
+								"{{CONTRIB_ID}}",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "The container now holds the file",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('The container holds one file', () => {",
+									"    const b = pm.response.json();",
+									"    pm.expect(b.files.length).to.be.equal(1);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open a second contribution",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Sam\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('CONTRIB_ID_2', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "A second contributor cannot claim an existing file's id",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,SGlqYWNrZWQ="
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions/{{CONTRIB_ID_2}}/files?id={{FILE_ID}}&name=hijack.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions",
+								"{{CONTRIB_ID_2}}",
+								"files"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{FILE_ID}}"
+								},
+								{
+									"key": "name",
+									"value": "hijack.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 400', () => {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "The targeted file is unchanged and still unclaimed by the second contributor",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"The first contributor's file kept its own name and is still the only file\", () => {",
+									"    const b = pm.response.json();",
+									"    pm.expect(b.files.length).to.be.equal(1);",
+									"    const target = b.files.find((f) => f.id === pm.collectionVariables.get('FILE_ID'));",
+									"    pm.expect(target).to.not.be.undefined;",
+									"    pm.expect(target.name).to.be.equal('photo.txt');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Upload a second file into the collection",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,VGVzdCBmaWxl"
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions/{{CONTRIB_ID_2}}/files?name=photo2.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions",
+								"{{CONTRIB_ID_2}}",
+								"files"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "photo2.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Close the second contribution",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions/{{CONTRIB_ID_2}}/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions",
+								"{{CONTRIB_ID_2}}",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "A second contribution lands in the same container",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Both contributions are in the one container, at its one address', () => {",
+									"    const b = pm.response.json();",
+									"    pm.expect(b.files.length).to.be.equal(2);",
+									"    pm.expect(b.id).to.be.equal('vacances-test');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Check remaining uses before an abandoned contribution",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"const collection = pm.response.json().find((r) => r.token === 'vacances-test');",
+									"pm.collectionVariables.set('REMAINING_USES_BEFORE', String(collection.remainingUses))"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open a third contribution and abandon it",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Ghost\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Abandoning a contribution spends a use, deliberately",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('remainingUses dropped by exactly one for the abandoned contribution', () => {",
+									"    const collection = pm.response.json().find((r) => r.token === 'vacances-test');",
+									"    const before = Number(pm.collectionVariables.get('REMAINING_USES_BEFORE'));",
+									"    pm.expect(collection.remainingUses).to.be.equal(before - 1);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create a password-protected collection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"vacances-privee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20,\n    \"password\": \"s3cretpw\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Depositing into a password-protected collection is refused",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/vacances-privee/contributions",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"vacances-privee",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Refused for the password, not for a missing identity', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('share_password_required');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create a collection with only three uses",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"vacances-limitee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 3\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open contribution A against the three-use collection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"A\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('LIMIT_CONTRIB_A', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open contribution B against the three-use collection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"B\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('LIMIT_CONTRIB_B', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Open contribution C against the three-use collection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"C\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('LIMIT_CONTRIB_C', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Opening a fourth contribution beyond maxUseCount is refused at open",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"D\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Refused as full, not as a name/identity problem', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('collection_full');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "remainingUses never goes below zero",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('remainingUses sits at exactly zero, not negative', () => {",
+									"    const collection = pm.response.json().find((r) => r.token === 'vacances-limitee');",
+									"    pm.expect(collection.remainingUses).to.be.equal(0);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Complete contribution A",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions/{{LIMIT_CONTRIB_A}}/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions",
+								"{{LIMIT_CONTRIB_A}}",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Completing contribution A a second time is refused",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-limitee/contributions/{{LIMIT_CONTRIB_A}}/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-limitee",
+								"contributions",
+								"{{LIMIT_CONTRIB_A}}",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Refused as already closed, not as a fresh deposit', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('contribution_closed');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create a collection whose window is already over",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"vacances-finie\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"0-minutes\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Spec SS12 property 3: after a collection's window closes, the",
+									"// album still reads and a deposit is refused. Every other",
+									"// collection here is created with a 3-day window, so this one is",
+									"// born with a window of zero minutes: CreateReverseShareDTO only",
+									"// accepts a relative duration (no absolute date, no 'never'), and",
+									"// parseRelativeDateToAbsolute turns '0-minutes' into now - which",
+									"// every later request in this run is already past.",
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "A closed collection's album still reads",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-finie",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-finie"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('The album is readable and reports itself closed', () => {",
+									"    const b = pm.response.json();",
+									"    pm.expect(b.id).to.be.equal('vacances-finie');",
+									"    pm.expect(b.isCollection).to.be.equal(true);",
+									"    pm.expect(b.collection.isOpen).to.be.equal(false);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Depositing into a closed collection is refused",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Tardif\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-finie/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-finie",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test('Refused for the window, not for anything else', () => {",
+									"    pm.expect(pm.response.json().error).to.be.equal('collection_closed');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Sign in as admin to reach the config switch",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"system@test.org\",\n    \"password\": \"J2y8unpJUcJDRv\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/signIn",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"signIn"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.collectionVariables.set('ADMIN_ACCESS_TOKEN', pm.response.json().accessToken);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Turn the reverse-share switch off",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"key\": \"share.enableReverseShares\",\n        \"value\": false\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/configs/admin",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"configs",
+								"admin"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// This folder runs before 'Anonymous share leaks' captures its own",
+									"// admin token, and the ambiently logged-in user at this point is",
+									"// system2@test.org from Auth > Positive > Sign In, not an admin.",
+									"// Setting our own Cookie from ADMIN_ACCESS_TOKEN (captured by",
+									"// 'Sign in as admin' above), the same way 'Anonymous share leaks'",
+									"// does it, avoids relying on Newman's cookie jar for the",
+									"// access_token cookie at all.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Creating a collection link is refused while the switch is off",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"vacances-refusee\",\n    \"sendEmailNotification\": false,\n    \"maxShareSize\": \"1073741824\",\n    \"collectionEndsAt\": \"3-days\",\n    \"retention\": \"7-days\",\n    \"maxUseCount\": 20\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/reverseShares",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"reverseShares"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// This folder runs before 'Anonymous share leaks' captures its own",
+									"// admin token, and the ambiently logged-in user at this point is",
+									"// system2@test.org from Auth > Positive > Sign In, not an admin.",
+									"// Setting our own Cookie from ADMIN_ACCESS_TOKEN (captured by",
+									"// 'Sign in as admin' above), the same way 'Anonymous share leaks'",
+									"// does it, avoids relying on Newman's cookie jar for the",
+									"// access_token cookie at all.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 403', () => {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "A visitor holding the link asks for its share token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/token",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"token"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// The three requests after this one deposit into an existing",
+									"// collection while the admin switch is off. They ride the ambient",
+									"// session, which at this point is the admin signed in above - not",
+									"// the collection's creator, so ShareSecurityGuard wants the share",
+									"// token any link-holder gets, exactly as a friend with the link",
+									"// would. Newman keeps it in its own cookie jar for the three",
+									"// requests that follow.",
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Opening a contribution still works with the switch off",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Interrupteur\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// The heart of what the switch promises (spec SS10): it stops new",
+									"// deposit LINKS, it does not freeze the collections already out",
+									"// there. The request just above proved the first half; this one and",
+									"// the two after it prove the second, across the whole write path",
+									"// rather than just the read.",
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.collectionVariables.set('SWITCH_CONTRIB', pm.response.json().id)"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Depositing a file still works with the switch off",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "data:application/octet-stream;base64,VGVzdCBmaWxl"
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions/{{SWITCH_CONTRIB}}/files?name=switch.txt&chunkIndex=0&totalChunks=1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions",
+								"{{SWITCH_CONTRIB}}",
+								"files"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "switch.txt"
+								},
+								{
+									"key": "chunkIndex",
+									"value": "0"
+								},
+								{
+									"key": "totalChunks",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Closing the deposit still works with the switch off",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/shares/vacances-test/contributions/{{SWITCH_CONTRIB}}/complete",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test",
+								"contributions",
+								"{{SWITCH_CONTRIB}}",
+								"complete"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "An existing collection's album still answers with the switch off",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL_ANON}}/shares/vacances-test",
+							"host": [
+								"{{API_URL_ANON}}"
+							],
+							"path": [
+								"shares",
+								"vacances-test"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// The two config-toggle requests just above authenticated as admin,",
+									"// and Newman's cookie jar is keyed per host, so an admin cookie set",
+									"// on {{API_URL}} (localhost) would otherwise still ride along here —",
+									"// see 'Read the album before depositing, as any visitor would' above",
+									"// for the same API_URL_ANON (127.0.0.1) + strip pairing, and the",
+									"// comment on 'Anonymous share leaks / Sign in as admin' for why a",
+									"// stray cookie reads as a bad token and gets refused rather than",
+									"// falling through anonymous. This read has to prove itself for 'any",
+									"// visitor', not for whoever last signed in.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Turn the reverse-share switch back on",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"key\": \"share.enableReverseShares\",\n        \"value\": true\n    }\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/configs/admin",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"configs",
+								"admin"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// This folder runs before 'Anonymous share leaks' captures its own",
+									"// admin token, and the ambiently logged-in user at this point is",
+									"// system2@test.org from Auth > Positive > Sign In, not an admin.",
+									"// Setting our own Cookie from ADMIN_ACCESS_TOKEN (captured by",
+									"// 'Sign in as admin' above), the same way 'Anonymous share leaks'",
+									"// does it, avoids relying on Newman's cookie jar for the",
+									"// access_token cookie at all.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
 									"});"
 								]
 							}

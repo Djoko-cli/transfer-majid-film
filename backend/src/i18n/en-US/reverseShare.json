@@ -1,5 +1,5 @@
 {
-  "notFound": "Reverse share token not found",
   "maxShareSizeExceeded": "Max share size can't be greater than {maxSize} bytes.",
-  "tokenInUse": "Reverse share token already in use"
+  "tokenInUse": "Reverse share token already in use",
+  "disabled": "Creating deposit links is disabled."
 }

@@ -28,6 +28,22 @@ export const glassModalStyles = (theme: any) => {
       boxShadow: dark
         ? "0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)"
         : "0 24px 60px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+      // Mantine scrolls this box, which is what put the form underneath the
+      // heading in the first place. A column that does not scroll, with the
+      // body scrolling inside it, is the same modal with the overlap simply
+      // absent — see the header's own note for why no amount of styling on
+      // the bar itself could have fixed it.
+      //
+      // The column below is what does that work. `overflow` here does not:
+      // measured, it computes to `hidden auto`, because Mantine's own
+      // `overflow-y: auto` on this element outlives anything we put in
+      // `styles.content` — including an explicit `overflowY: "hidden"`,
+      // which was tried and changed nothing. So this line buys the x axis
+      // and the rounded corners, and nothing on the y axis. What actually
+      // keeps this box from scrolling is arithmetic, stated just below.
+      overflow: "hidden" as const,
+      display: "flex" as const,
+      flexDirection: "column" as const,
     },
     // Mantine makes this header `position: sticky; top: 0` and gives it an
     // opaque background for exactly one reason: so the body scrolling under
@@ -67,22 +83,94 @@ export const glassModalStyles = (theme: any) => {
     // even 0.82 left a thumbnail and its caption plainly legible under the
     // title — so the choice was only ever between looking wrong and looking
     // right.
+    // A third attempt went for a light frost here — a small backdrop-filter,
+    // meant to turn the text passing underneath into texture. It renders,
+    // computes, and does exactly nothing, which is worth writing down so
+    // nobody tries it a fourth time. `backdrop-filter` samples the backdrop
+    // of its *backdrop root*, and `content` above declares one by having a
+    // backdrop-filter of its own; everything painted inside that root, the
+    // scrolling body included, is therefore not in this bar's backdrop at
+    // all. Measured directly: with the parent's filter removed the frost
+    // appeared instantly, and the modal lost its glass.
+    //
+    // Which made the real answer obvious. The bar never needed to hide the
+    // body — the body never needed to pass under the bar. `content` no
+    // longer scrolls (above), so the header is simply a row above a
+    // scrolling one, and the wash below is back to being what it always
+    // wanted to be: a shade, not a lid.
     header: {
       backgroundColor: dark ? "rgba(0, 0, 0, 0.28)" : "rgba(0, 0, 0, 0.07)",
       borderBottom: `1px solid ${dark ? "rgba(255, 255, 255, 0.14)" : "rgba(255, 255, 255, 0.5)"}`,
+      // Half of the split that makes this layout independent of how tall a
+      // header happens to be: the header takes its natural height and is
+      // never squeezed, the body takes what is left (`flex: 1; min-height:
+      // 0`, below). Their two heights therefore sum to exactly this box's,
+      // which is what keeps it from scrolling — no number here or anywhere
+      // else encodes how tall a header is. A flex item already refuses to
+      // shrink past its content through `min-height: auto`, so this is
+      // stating the rule rather than changing today's behaviour; the point
+      // is that it stays stated if someone ever gives the header a
+      // min-height. Measured at 55, 87, 177 and 393px of header: the seam
+      // sits at 0 and the box never scrolls at any of them.
+      flexShrink: 0,
     },
     // The hairline above needs air on BOTH sides of it, and the header's own
-    // paddingBottom only buys the half above. Mantine forces the body's
-    // padding-top to 0 whenever a header is present (a built-in
-    // `:not(:only-child)` rule), so the gap below the line has to be a margin
-    // — that rule does not touch margins. Measured before adding it: the
+    // paddingBottom only buys the half above. Measured before adding it: the
     // first element of the body started at exactly the header's bottom edge,
     // 0px under the line, so a thumbnail sat flush against it.
+    //
+    // It has to be padding, and it was a margin until the body became the
+    // scrolling box just above. A margin sits OUTSIDE that box, so it pushed
+    // the clipping edge 20px down the modal: text scrolled out of sight a
+    // visible gap short of the hairline instead of disappearing under it.
+    // Padding is inside the box — the same air at rest, but it travels with
+    // the content, which then reaches the line exactly. Measured both ways,
+    // header bottom against body top: margin 97 vs 117, padding 97 vs 97.
+    //
+    // Which is why the padding is declared on `&:not(:only-child)` and not
+    // plainly. Mantine really does force this body's padding-top to 0 as soon
+    // as a header is present — `.mantine-<hash>:not(:only-child)
+    // { padding-top: 0 }`, one class more specific than the base rule our
+    // `styles` prop is merged into, so a plain `paddingTop: 20` there is
+    // silently overruled (measured: computes 0). Matching that selector puts
+    // us at equal specificity, where order decides — and order is not luck
+    // here. Mantine collapses the library's styles, the provider's and this
+    // prop's into ONE emotion class, passing this prop last (@mantine/styles
+    // tss/create-styles, the final argument to `cx`), so our declarations
+    // are always serialized after theirs. Two sibling rules, same selector,
+    // ours second. Nothing here applies to a modal with no header, which
+    // keeps the symmetric padding it always had.
     body: {
-      marginTop: 20,
+      "&:not(:only-child)": {
+        paddingTop: 20,
+      },
+      // The scroll lives here now. `minHeight: 0` is what lets a flex child
+      // actually shrink below its content's height — without it the body
+      // refuses to be smaller than its form and the whole modal grows past
+      // the viewport instead of scrolling.
+      overflowY: "auto" as const,
+      flex: 1,
+      minHeight: 0,
     },
+    // Several modals title themselves with a filename a user chose — the
+    // file preview and the text editor both put one straight in — and a
+    // filename with no spaces in it has no break opportunity at all.
+    // Measured at 375px before this: a 78-character name rendered 832px
+    // wide inside a 337px modal, ran off the right edge unreadable, and
+    // pushed the close button 512px out of the box, where `overflow:
+    // hidden` on `content` clipped it away entirely. On the preview modal
+    // that button is the way out.
+    //
+    // `anywhere` rather than `break-word` on purpose: only `anywhere`
+    // counts toward min-content, which is what a flex item in this header
+    // is sized by — `break-word` would wrap the text and still reserve the
+    // unbroken width, leaving the close button exactly where it was. The
+    // cost is that the header grows a line or two, which costs nothing:
+    // the header takes its natural height and the body takes the rest, at
+    // any height (see the two notes above).
     title: {
       color: dark ? theme.white : theme.black,
+      overflowWrap: "anywhere" as const,
     },
     close: {
       color: dark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)",

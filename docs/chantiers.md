@@ -147,3 +147,33 @@ Deux autres, trouvés pendant l'exécution :
   qu'à mi-parcours l'identité ambiante des tests n'est plus celle qu'on croit.
   Contourné dans le dossier `Anonymous share leaks` par une reconnexion
   explicite, pas corrigé à la racine.
+
+---
+
+## 6. Le verrou d'upload d'une collecte n'a pas d'équivalent côté S3
+
+Relevé en implémentant la tâche 3 de « collecte comme conteneur unique »
+(2026-09-18). `LocalFileService.create()` refuse désormais l'écriture sur un
+transfert verrouillé **sauf** s'il s'agit d'une collecte
+(`local.service.ts:55`, colonne `Share.isCollection`). Le chemin S3
+équivalent, `createPreSignedUploadUrls` (`file.service.ts:79`), ne consulte
+`uploadLocked` **nulle part** — ce qui veut dire qu'il n'a jamais refusé
+d'écriture sur aucun transfert verrouillé, collecte ou pas. Sans objet tant
+que l'instance tourne en stockage local (configuration actuelle) ; à combler
+avant d'activer S3 pour une collecte, sous peine de laisser un chemin
+d'écriture qui ne passe par aucune contribution.
+
+### Et la clé d'objet S3 écrase les homonymes d'une collecte
+
+Relevé en corrigeant le `storageProvider` manquant du conteneur
+(2026-09-19). Sur S3, la clé d'un fichier est `<shareId>/<fileName>`
+(`s3.service.ts`, `getS3Path()` + le nom du fichier), c'est-à-dire qu'elle
+ne contient ni l'identifiant du fichier ni celui de la contribution. Or la
+spec autorise explicitement deux contributeurs à déposer `IMG_4821.jpg`
+dans le même album (§11, « la déduplication entre contributions » est hors
+périmètre) : en stockage local les deux coexistent, chacune sous son propre
+uuid, mais sur S3 la seconde **écrase silencieusement** la première — deux
+lignes `File` en base, un seul objet, et deux entrées identiques dans
+l'archive. Sans objet tant que l'instance tourne en stockage local ; à
+régler en même temps que le point ci-dessus, en faisant entrer l'identifiant
+du fichier dans la clé (ce qui est une migration de stockage, pas une ligne).
