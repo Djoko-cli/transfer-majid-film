@@ -307,6 +307,12 @@ export default {
   "account.reverseShares.modal.expiration.year-plural": "Years",
 
   "account.reverseShares.modal.name.label": "Name",
+  "account.reverseShares.modal.invite.label":
+    "Invite by email (optional)",
+  "account.reverseShares.modal.invite.placeholder":
+    "name@example.com",
+  "account.reverseShares.modal.invite.description":
+    "Each address receives the deposit link as soon as it is created.",
   "account.reverseShares.modal.description.label": "Description",
 
   "account.reverseShares.modal.max-size.label": "Max transfer size",

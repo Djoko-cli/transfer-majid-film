@@ -71,5 +71,10 @@
   "emailChangeCodeSubject": "Confirmez votre nouvelle adresse",
   "emailChangeCodeMessage": "Vous avez demandé à utiliser cette adresse pour votre compte.\n\nSaisissez le code {code} pour la confirmer. Tant que ce n'est pas fait, votre compte garde son adresse actuelle.\n\nCe code expire dans {expires}. Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
   "emailChangeNoticeSubject": "Changement d'adresse demandé sur votre compte",
-  "emailChangeNoticeMessage": "Une demande de changement d'adresse vient d'être faite sur votre compte, vers {newEmail}.\n\nVotre adresse actuelle reste en vigueur tant que la nouvelle n'a pas été confirmée. Si vous n'êtes pas à l'origine de cette demande, changez votre mot de passe : quelqu'un a accès à votre compte."
+  "emailChangeNoticeMessage": "Une demande de changement d'adresse vient d'être faite sur votre compte, vers {newEmail}.\n\nVotre adresse actuelle reste en vigueur tant que la nouvelle n'a pas été confirmée. Si vous n'êtes pas à l'origine de cette demande, changez votre mot de passe : quelqu'un a accès à votre compte.",
+  "reverseShareInviteSubject": "{creator} vous invite à déposer des fichiers",
+  "reverseShareInviteSubjectNamed": "{creator} vous invite à déposer des fichiers : {name}",
+  "reverseShareInviteMessage": "{creator} a ouvert un espace de dépôt et vous invite à y ajouter vos fichiers.\\n\\nIl vous suffit d'ouvrir ce lien, aucun compte n'est nécessaire : {shareUrl}",
+  "reverseShareInviteMessageDescribed": "{creator} a ouvert un espace de dépôt et vous invite à y ajouter vos fichiers.\\n\\n« {description} »\\n\\nIl vous suffit d'ouvrir ce lien, aucun compte n'est nécessaire : {shareUrl}",
+  "reverseShareInviteCta": "Déposer mes fichiers"
 }

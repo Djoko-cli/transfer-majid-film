@@ -27,6 +27,7 @@ import { TbChevronDown, TbChevronUp, TbTrash } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
 import useConfig from "../../hooks/config.hook";
+import EmailRecipientsInput from "../core/EmailRecipientsInput";
 import useTranslate from "../../hooks/useTranslate.hook";
 import { FileUpload } from "../../types/File.type";
 import { NasImportPreview } from "../../types/nasImport.type";
@@ -319,7 +320,6 @@ const TransferCard = ({
   const { classes: submitButtonClasses } = useSubmitButtonStyles();
 
   const [mode, setMode] = useState<Mode>("link");
-  const [emailSearch, setEmailSearch] = useState("");
 
   const validationSchema = yup.object().shape({
     name: yup
@@ -694,92 +694,22 @@ const TransferCard = ({
               >
                 <Stack align="stretch">
                   {enableEmailRecepients && (
-                    <MultiSelect
+                    <EmailRecipientsInput
+                      values={form.values.recipients}
+                      onChange={(next) =>
+                        form.setFieldValue("recipients", next)
+                      }
+                      error={form.errors.recipients}
+                      onError={(message) =>
+                        form.setFieldError("recipients", message)
+                      }
+                      id="recipient-emails"
                       withAsterisk={mode === "email"}
+                      tabIndex={mode === "email" ? undefined : -1}
                       label={t("upload.transfer.recipient.email.label")}
-                      data={form.values.recipients}
                       placeholder={t(
                         "upload.transfer.recipient.email.placeholder",
                       )}
-                      searchable
-                      creatable
-                      variant="filled"
-                      id="recipient-emails"
-                      inputMode="email"
-                      tabIndex={mode === "email" ? undefined : -1}
-                      searchValue={emailSearch}
-                      onSearchChange={setEmailSearch}
-                      getCreateLabel={(query) => `+ ${query}`}
-                      onCreate={(query) => {
-                        if (!query.match(/^\S+@\S+\.\S+$/)) {
-                          form.setFieldError(
-                            "recipients",
-                            t("upload.modal.accordion.email.invalid-email"),
-                          );
-                          return undefined;
-                        }
-                        form.setFieldError("recipients", null);
-                        const newRecipients = form.values.recipients.includes(
-                          query,
-                        )
-                          ? form.values.recipients
-                          : [...form.values.recipients, query];
-                        form.setFieldValue("recipients", newRecipients);
-                        return query;
-                      }}
-                      {...form.getInputProps("recipients")}
-                      onChange={(value: string[]) => {
-                        form.setFieldValue("recipients", value);
-                      }}
-                      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                        // Enter, comma, semicolon and space all mean "that is
-                        // one address, take it" — a space because an address
-                        // cannot contain one, so the keystroke has no other
-                        // possible meaning here.
-                        if (
-                          e.key !== "Enter" &&
-                          e.key !== "," &&
-                          e.key !== ";" &&
-                          e.key !== " "
-                        )
-                          return;
-                        e.preventDefault();
-
-                        const inputValue = emailSearch.trim();
-                        if (!inputValue) return;
-
-                        // The field used to be emptied on every one of these
-                        // keys, whether or not the address was accepted. A
-                        // half-typed one — "majid.riviere@gmail", no TLD yet —
-                        // failed the pattern, was not added, and was wiped
-                        // anyway: the typing vanished with nothing said. What
-                        // came next then landed in an empty field, which is why
-                        // this surfaced as "the address erases itself and keeps
-                        // only the .com". On an AZERTY Mac the period is
-                        // Shift+semicolon, so a Shift that does not register
-                        // sends ";" and triggers exactly this, which is what
-                        // makes it intermittent rather than constant.
-                        //
-                        // Refusing an address now leaves it in the field to be
-                        // corrected, and says why — the same error onCreate
-                        // already raises for the same pattern.
-                        if (!inputValue.match(/^\S+@\S+\.\S+$/)) {
-                          form.setFieldError(
-                            "recipients",
-                            t("upload.modal.accordion.email.invalid-email"),
-                          );
-                          return;
-                        }
-
-                        form.setFieldError("recipients", null);
-                        if (!form.values.recipients.includes(inputValue)) {
-                          form.setFieldValue("recipients", [
-                            ...form.values.recipients,
-                            inputValue,
-                          ]);
-                        }
-                        setEmailSearch("");
-                      }}
                     />
                   )}
                 </Stack>

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
 } from "@nestjs/common";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import * as argon from "argon2";
@@ -13,15 +14,19 @@ import { ConfigService } from "src/config/config.service";
 import { FileService } from "src/file/file.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { parseRelativeDateToAbsolute } from "src/utils/date.util";
+import { EmailService } from "src/email/email.service";
 import { CreateReverseShareDTO } from "./dto/createReverseShare.dto";
 
 @Injectable()
 export class ReverseShareService {
+  private readonly logger = new Logger(ReverseShareService.name);
+
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
     private fileService: FileService,
     private readonly i18n: I18nService,
+    private emailService: EmailService,
   ) {}
 
   async create(data: CreateReverseShareDTO, creatorId: string) {
@@ -146,6 +151,35 @@ export class ReverseShareService {
           },
         });
       });
+
+      // After the link exists, and deliberately not inside the transaction
+      // above: a mail server that is slow, or down, must not roll back a
+      // link that was created correctly. Each address is awaited on its own
+      // and its failure swallowed, so one bad address does not cost the
+      // other invitations — the creator gets the link back either way, and
+      // the failure is in the log.
+      if (data.recipients?.length) {
+        const creator = await this.prisma.user.findUnique({
+          where: { id: creatorId },
+        });
+
+        for (const recipient of data.recipients) {
+          try {
+            await this.emailService.sendReverseShareInvite(
+              recipient,
+              reverseShare.token,
+              creator,
+              data.name || undefined,
+              data.description || undefined,
+            );
+          } catch (e) {
+            this.logger.error(
+              `Could not invite ${recipient} to reverse share ${reverseShare.token}`,
+              e,
+            );
+          }
+        }
+      }
 
       return reverseShare.token;
     } catch (e) {

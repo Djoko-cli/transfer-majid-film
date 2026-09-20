@@ -294,6 +294,12 @@ export default {
   "account.reverseShares.modal.expiration.year-singular": "An",
   "account.reverseShares.modal.expiration.year-plural": "Ans",
   "account.reverseShares.modal.name.label": "Nom",
+  "account.reverseShares.modal.invite.label":
+    "Inviter par courriel (facultatif)",
+  "account.reverseShares.modal.invite.placeholder":
+    "nom@exemple.com",
+  "account.reverseShares.modal.invite.description":
+    "Chaque adresse recevra le lien de dépôt dès la création.",
   "account.reverseShares.modal.description.label": "Description",
   "account.reverseShares.modal.max-size.label": "Taille maximale du transfert",
   "account.reverseShares.modal.send-email":

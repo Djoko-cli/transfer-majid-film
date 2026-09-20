@@ -1,5 +1,8 @@
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
+  IsEmail,
   IsOptional,
   IsString,
   Length,
@@ -60,6 +63,17 @@ export class CreateReverseShareDTO {
   @IsOptional()
   @Length(3, 30)
   password?: string;
+
+  // Addresses to send the link to as soon as it exists. Optional, and an
+  // empty list is the normal case: a link copied by hand still works
+  // exactly as before. Capped because this is a fan-out an authenticated
+  // user triggers with one request, and an uncapped one is a way to make
+  // the instance send mail on someone else's behalf.
+  @IsArray()
+  @IsOptional()
+  @ArrayMaxSize(50)
+  @IsEmail({}, { each: true })
+  recipients?: string[];
 
   // The container's own id, chosen by the creator — never generated for
   // them any more, now that it is the collection's one public address

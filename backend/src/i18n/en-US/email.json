@@ -71,5 +71,10 @@
   "emailChangeCodeSubject": "Confirm your new address",
   "emailChangeCodeMessage": "You asked to use this address for your account.\n\nEnter the code {code} to confirm it. Until you do, your account keeps its current address.\n\nThis code expires in {expires}. If you did not ask for this, ignore this message.",
   "emailChangeNoticeSubject": "An address change was requested on your account",
-  "emailChangeNoticeMessage": "Someone just asked to change the address on your account, to {newEmail}.\n\nYour current address stays in force until the new one is confirmed. If this was not you, change your password: someone has access to your account."
+  "emailChangeNoticeMessage": "Someone just asked to change the address on your account, to {newEmail}.\n\nYour current address stays in force until the new one is confirmed. If this was not you, change your password: someone has access to your account.",
+  "reverseShareInviteSubject": "{creator} invites you to deposit files",
+  "reverseShareInviteSubjectNamed": "{creator} invites you to deposit files: {name}",
+  "reverseShareInviteMessage": "{creator} has opened a place to deposit files and invites you to add yours.\\n\\nJust open this link, no account needed: {shareUrl}",
+  "reverseShareInviteMessageDescribed": "{creator} has opened a place to deposit files and invites you to add yours.\\n\\n“{description}”\\n\\nJust open this link, no account needed: {shareUrl}",
+  "reverseShareInviteCta": "Deposit my files"
 }

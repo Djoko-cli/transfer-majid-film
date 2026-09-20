@@ -30,6 +30,7 @@ import toast from "../../../utils/toast.util";
 import FileSizeInput from "../../core/FileSizeInput";
 import glassFormTheme from "../../upload/glassFormTheme";
 import { glassModalStyles } from "../../upload/glassModalTheme";
+import EmailRecipientsInput from "../../core/EmailRecipientsInput";
 import CustomUrlInput from "../CustomUrlInput";
 import showCompletedReverseShareModal from "./showCompletedReverseShareModal";
 
@@ -129,6 +130,7 @@ const Body = ({
       // whose second contributor got refused. 20 leaves room for an
       // actual group while still being a deliberate cap, not "unlimited".
       maxUseCount: 20,
+      recipients: [] as string[],
       sendEmailNotification: false,
       // Days, and only days. A collection lasts a few days or a few
       // weeks; offering hours and years cost a second control that said
@@ -232,6 +234,7 @@ const Body = ({
         values.name || undefined,
         values.description || undefined,
         values.password || undefined,
+        values.recipients,
       )
       .then(({ token }) => {
         modals.closeAll();
@@ -305,6 +308,33 @@ const Body = ({
             appUrl={appUrl}
             defaultAppUrl={defaultAppUrl}
           />
+          {
+            // Sous le lien, parce que c'est du lien qu'il s'agit : jusqu'ici
+            // le formulaire s'arrêtait à le fabriquer et laissait son
+            // créateur le coller lui-même dans une autre application. Le
+            // même champ que les destinataires d'un transfert direct, au
+            // mot près — c'est le même geste. Masqué quand SMTP est éteint,
+            // comme la notification plus bas : offrir d'inviter sans
+            // pouvoir envoyer ne serait qu'un piège.
+            showSendEmailNotificationOption && (
+              <EmailRecipientsInput
+                values={form.values.recipients}
+                onChange={(next) => form.setFieldValue("recipients", next)}
+                error={form.errors.recipients}
+                onError={(message) =>
+                  form.setFieldError("recipients", message)
+                }
+                id="reverse-share-invites"
+                label={t("account.reverseShares.modal.invite.label")}
+                placeholder={t(
+                  "account.reverseShares.modal.invite.placeholder",
+                )}
+                description={t(
+                  "account.reverseShares.modal.invite.description",
+                )}
+              />
+            )
+          }
           {
             // Two clocks, not one (spec §8): this one closes deposits,
             // the next one says how long the transfer survives after that.

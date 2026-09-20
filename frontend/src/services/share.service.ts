@@ -442,6 +442,7 @@ const createReverseShare = async (
   name?: string,
   description?: string,
   password?: string,
+  recipients?: string[],
 ) => {
   return (
     await api.post("reverseShares", {
@@ -454,6 +455,10 @@ const createReverseShare = async (
       name,
       description,
       password,
+      // Omis plutôt qu'envoyé vide : le DTO le marque @IsOptional, et une
+      // liste vide ferait quand même une propriété de plus à valider pour
+      // le cas courant, qui est un lien qu'on copie à la main.
+      recipients: recipients?.length ? recipients : undefined,
     })
   ).data;
 };

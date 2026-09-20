@@ -346,6 +346,58 @@ export class EmailService {
     );
   }
 
+  /**
+   * Hands someone a deposit link they did not ask for and would otherwise
+   * have to be sent by hand.
+   *
+   * A deposit link was only ever a URL its creator then had to copy into
+   * some other application — which is how everyone used it, and which the
+   * creation form was silent about. The address list it now offers turns
+   * that into part of creating the link.
+   *
+   * Reply-To carries the creator, not the instance: someone invited to
+   * deposit files will reply to ask what exactly is wanted, and that
+   * question belongs to whoever asked, not to whoever runs the server.
+   */
+  async sendReverseShareInvite(
+    recipientEmail: string,
+    token: string,
+    creator: User,
+    name?: string,
+    description?: string,
+  ) {
+    const shareUrl = `${this.config.get("general.appUrl")}/s/${token}`;
+    const lang = this.config.get("general.defaultLanguage");
+
+    const subject = name
+      ? this.i18n.t("email.reverseShareInviteSubjectNamed", {
+          lang,
+          args: { creator: creator.username, name },
+        })
+      : this.i18n.t("email.reverseShareInviteSubject", {
+          lang,
+          args: { creator: creator.username },
+        });
+
+    const body = this.i18n
+      .t(
+        description
+          ? "email.reverseShareInviteMessageDescribed"
+          : "email.reverseShareInviteMessage",
+        { lang, args: { creator: creator.username, description } },
+      )
+      .replaceAll("\\n", "\n")
+      .replaceAll("{shareUrl}", shareUrl);
+
+    await this.sendMail(recipientEmail, subject, body, {
+      ctaUrl: shareUrl,
+      ctaLabel: this.i18n.t("email.reverseShareInviteCta", { lang }),
+      replyTo: creator.email
+        ? `"${creator.username}" <${creator.email}>`
+        : undefined,
+    });
+  }
+
   async sendMailToReverseShareCreator(recipientEmail: string, shareId: string) {
     const shareUrl = `${this.config.get("general.appUrl")}/s/${shareId}`;
     const lang = this.config.get("general.defaultLanguage");
