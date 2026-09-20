@@ -17,6 +17,7 @@ test("accepte les adresses publiques", () => {
     "198.20.0.1", // juste au-dessus de 198.18.0.0/15
     "2606:2800:220:1:248:1893:25c8:1946",
     "64:ff9b::808:808", // NAT64 de 8.8.8.8 : l'adresse embarquee est publique
+    "2001:4860:4860::8888", // Google public DNS : dans 2001::/16 mais hors 2001:0000::/32 (Teredo)
   ];
   for (const ip of acceptees) assert.equal(isPublicAddress(ip), true, ip);
 });
@@ -52,7 +53,7 @@ test("refuse toute adresse non publique", () => {
     "2001:db8::1", // documentation
     "100::1", // trou noir RFC 6666
     "2002:0a00:0001::1", // 6to4 (2002::/16) : encapsule 10.0.0.1, mais bloque en bloc, sans decodage
-    "2002:c633:6401::1", // 6to4 encapsulant une adresse publique (198.51.100.1) : bloque quand meme
+    "2002:0808:0808::1", // 6to4 encapsulant 8.8.8.8 (publique, acceptee par ailleurs) : bloque quand meme
     "2001::1", // Teredo (2001:0000::/32)
     "2001:0:4136:e378:8000:63bf:3fff:fdd2", // Teredo, forme non compressee
   ];
