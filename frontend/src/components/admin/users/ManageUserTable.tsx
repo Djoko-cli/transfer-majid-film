@@ -1,4 +1,12 @@
-import { ActionIcon, Badge, Box, Group, Skeleton, Table } from "@mantine/core";
+import {
+  ActionIcon,
+  Avatar,
+  Badge,
+  Box,
+  Group,
+  Skeleton,
+  Table,
+} from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { TbCheck, TbEdit, TbTrash } from "react-icons/tb";
 import User from "../../../types/user.type";
@@ -30,6 +38,7 @@ const ManageUserTable = ({
       <Table verticalSpacing="sm">
         <thead>
           <tr>
+            <th></th>
             <th>
               <FormattedMessage id="admin.users.table.username" />
             </th>
@@ -57,6 +66,26 @@ const ManageUserTable = ({
             ? getSkeletonRows(showStorageQuota, showMaxShareSize)
             : users.map((user) => (
                 <tr key={user.id}>
+                  <td>
+                    {
+                      // Rendue seulement quand le compte a une photo : c'est
+                      // `avatarUpdatedAt` qui le dit, déjà présent dans
+                      // `UserDTO`, donc aucune requête de plus pour les
+                      // comptes sans photo. `?v=` n'est pas décoratif : la
+                      // route répond avec un cache d'un an `immutable`
+                      // (voir avatar.controller.ts), donc sans lui la
+                      // console afficherait une photo périmée indéfiniment.
+                      user.avatarUpdatedAt && (
+                        <Avatar
+                          size={26}
+                          radius={13}
+                          src={`/api/users/${user.id}/avatar?v=${new Date(
+                            user.avatarUpdatedAt,
+                          ).getTime()}`}
+                        />
+                      )
+                    }
+                  </td>
                   <td>
                     {user.username}{" "}
                     {user.isLdap ? (
@@ -125,6 +154,9 @@ const getSkeletonRows = (
 ) =>
   [...Array(10)].map((v, i) => (
     <tr key={i}>
+      <td>
+        <Skeleton key={i} height={26} circle />
+      </td>
       <td>
         <Skeleton key={i} height={20} />
       </td>

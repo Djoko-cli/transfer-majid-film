@@ -712,6 +712,272 @@
 			]
 		},
 		{
+			"name": "Avatar admin",
+			"item": [
+				{
+					"name": "Upload avatar for the account an admin will inspect",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 201\", () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"// Cible des deux tests admin plus bas : on capture son id",
+									"// depuis le UserDTO que la route renvoie, pas besoin de",
+									"// decoder un jeton pour ca.",
+									"pm.collectionVariables.set(\"AVATAR_ADMIN_TARGET_ID\", pm.response.json().id);",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "image/png",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "test/fixtures/avatar.png"
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/users/me/avatar",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users",
+								"me",
+								"avatar"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Non-admin reading another account's avatar is refused",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test(\"AdministratorGuard itself refused it\", () => {",
+									"    pm.expect(pm.response.json().message).to.equal(\"Forbidden resource\");",
+									"});",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/users/:id/avatar",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users",
+								":id",
+								"avatar"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{USER_ID}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Sign in as admin for the avatar admin tests",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"system@test.org\",\n    \"password\": \"J2y8unpJUcJDRv\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/signIn",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"signIn"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.collectionVariables.set('ADMIN_ACCESS_TOKEN', pm.response.json().accessToken);"
+								]
+							}
+						}
+					],
+					"response": []
+				},
+				{
+					"name": "Admin reads another account's avatar",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Meme geste que \"Collection container\" et \"Anonymous share leaks\" :",
+									"// system2@test.org (Auth > Positive > Sign In, pas admin) tient le pot",
+									"// a cookies de Newman pour cet hote, et un sign-in ulterieur ne l'y",
+									"// remplace pas -- mesure la-bas, pas suppose ici. On ne s'appuie donc",
+									"// pas sur le pot a cookies pour le cookie access_token : on le pose",
+									"// nous-memes depuis ADMIN_ACCESS_TOKEN (capture par 'Sign in as admin",
+									"// for the avatar admin tests' ci-dessus), quel que soit l'hote.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Content-Type header is image/webp\", () => {",
+									"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.equal(\"image/webp\");",
+									"});",
+									"",
+									"pm.test(\"Cache-Control is private, long-lived, and immutable\", () => {",
+									"    pm.expect(pm.response.headers.get(\"Cache-Control\")).to.equal(\"private, max-age=31536000, immutable\");",
+									"});",
+									"",
+									"pm.test(\"Response bytes are a real WebP image, not just a Content-Type claim\", () => {",
+									"    const bytes = pm.response.stream;",
+									"    pm.expect(bytes.slice(0, 4).toString(\"latin1\")).to.equal(\"RIFF\");",
+									"    pm.expect(bytes.slice(8, 12).toString(\"latin1\")).to.equal(\"WEBP\");",
+									"    pm.expect(bytes.length).to.be.above(200);",
+									"});",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/users/:id/avatar",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users",
+								":id",
+								"avatar"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{AVATAR_ADMIN_TARGET_ID}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Admin removes another account's avatar",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Meme geste que \"Collection container\" et \"Anonymous share leaks\" :",
+									"// system2@test.org (Auth > Positive > Sign In, pas admin) tient le pot",
+									"// a cookies de Newman pour cet hote, et un sign-in ulterieur ne l'y",
+									"// remplace pas -- mesure la-bas, pas suppose ici. On ne s'appuie donc",
+									"// pas sur le pot a cookies pour le cookie access_token : on le pose",
+									"// nous-memes depuis ADMIN_ACCESS_TOKEN (capture par 'Sign in as admin",
+									"// for the avatar admin tests' ci-dessus), quel que soit l'hote.",
+									"pm.request.headers.remove((h) => h.key.toLowerCase() === 'cookie');",
+									"pm.request.headers.add({key: 'Cookie', value: 'access_token=' + pm.collectionVariables.get('ADMIN_ACCESS_TOKEN')});"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 204\", () => {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									""
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/users/:id/avatar",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users",
+								":id",
+								"avatar"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{AVATAR_ADMIN_TARGET_ID}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "Create Share",
 			"item": [
 				{

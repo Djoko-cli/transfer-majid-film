@@ -83,11 +83,16 @@ export class OAuthController {
     const id = await this.authService.getIdOfCurrentUser(request);
 
     if (id) {
+      // `user.pictureUrl` est déjà là, deux lignes plus haut : c'est le
+      // chemin qu'on emprunte quand on veut délibérément déclencher la
+      // récupération (se dissocier puis se réassocier), donc `link()` doit
+      // le recevoir comme `signUp` reçoit le sien.
       await this.oauthService.link(
         id,
         provider,
         user.providerId,
         user.providerUsername,
+        user.pictureUrl,
       );
       response.redirect(this.config.get("general.appUrl") + "/account");
     } else {

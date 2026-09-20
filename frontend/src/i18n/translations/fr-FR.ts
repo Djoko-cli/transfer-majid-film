@@ -371,6 +371,8 @@ export default {
   "admin.users.edit.update.change-password.button":
     "Enregistrer le nouveau mot de passe",
   "admin.users.edit.update.trusted-devices.title": "Appareils de confiance",
+  "admin.users.edit.update.avatar.remove": "Retirer la photo",
+  "admin.users.edit.update.avatar.removed": "Photo de profil retirée.",
   "admin.users.edit.update.notify.password.success":
     "Le mot de passe a été modifié",
   "admin.users.edit.delete.title": "Supprimer l'utilisateur : {username} ?",

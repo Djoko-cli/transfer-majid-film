@@ -386,6 +386,8 @@ export default {
   "admin.users.edit.update.change-password.field": "New password",
   "admin.users.edit.update.change-password.button": "Save new password",
   "admin.users.edit.update.trusted-devices.title": "Trusted devices",
+  "admin.users.edit.update.avatar.remove": "Remove picture",
+  "admin.users.edit.update.avatar.removed": "Profile picture removed.",
   "admin.users.edit.update.notify.password.success":
     "Password changed successfully",
 

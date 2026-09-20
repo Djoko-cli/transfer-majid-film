@@ -21,17 +21,19 @@ export function shouldIngest(
   user: { avatarUpdatedAt: Date | null } | null,
   pictureUrl?: string,
 ): boolean {
-  // `user` reste typé `| null`, mais plus aucun appelant réel n'en donne un
-  // aujourd'hui : `ingestFromOidc` n'est plus appelée que par
-  // `OAuthService.signUp` (voir son commentaire), qui passe toujours un
-  // littéral `{ id, avatarUpdatedAt: null }`, jamais un utilisateur relu en
-  // base. Le contrôle reste ici en défense en profondeur — pour ne pas
-  // dépendre silencieusement de cette garantie si un futur appelant relit
-  // l'utilisateur via Prisma (`findFirst`/`findUnique` rendent `User | null`),
-  // dans un dépôt qui compile en `strictNullChecks: false` où rien ne le
-  // signalerait à la compilation. Le vérifier ici, plutôt que dans
-  // `AvatarService`, le rend exécutable tel quel par `node --test` : c'est le
-  // seul endroit d'où ce cas peut être couvert par un vrai test de
+  // `user` reste typé `| null` : `ingestFromOidc` a deux appelants réels,
+  // `OAuthService.signUp` et `OAuthService.link`. Le premier passe toujours
+  // un littéral `{ id, avatarUpdatedAt: null }` (le compte vient d'être
+  // créé) ; le second relit désormais l'utilisateur via
+  // `this.prisma.user.findUnique` — qui rend `User | null` — parce qu'à ce
+  // point-là le compte existe déjà et peut très bien avoir une photo. Le
+  // contrôle `user.avatarUpdatedAt === null` ci-dessous n'est donc plus une
+  // défense en profondeur pour un appelant hypothétique : c'est lui qui fait
+  // tenir « un envoi manuel gagne toujours » pour `link()`, dans un dépôt qui
+  // compile en `strictNullChecks: false`, où rien ne signalerait à la
+  // compilation un appel avec un `user` absent. Le vérifier ici, plutôt que
+  // dans `AvatarService`, le rend exécutable tel quel par `node --test` :
+  // c'est le seul endroit d'où ce cas peut être couvert par un vrai test de
   // régression, et non par un script à usage unique.
   //
   // Un IdP hostile peut aussi poser un claim `picture` qui n'est pas une

@@ -82,10 +82,13 @@ export class AvatarService {
     });
   }
 
-  // Appelée sans `await`, uniquement depuis `OAuthService.signUp` — plus
-  // depuis `signIn` : une photo n'a pas le droit de ralentir une inscription,
-  // encore moins de la faire échouer. Elle ne rejette donc jamais — tout
-  // échec est journalisé et la personne enverra sa photo à la main.
+  // Appelée sans `await`, depuis deux points d'accroche seulement —
+  // `OAuthService.signUp` (inscription) et `OAuthService.link` (association
+  // à un compte déjà connecté, notamment une réassociation après un
+  // retrait) — jamais depuis `signIn` : une photo n'a pas le droit de
+  // ralentir ni une inscription ni une association, encore moins de les
+  // faire échouer. Elle ne rejette donc jamais — tout échec est journalisé
+  // et la personne enverra sa photo à la main.
   //
   // N'est plus rejouée à la connexion. `remove()` remet `avatarUpdatedAt` à
   // `null` — la même colonne que « jamais encore récupérée » — donc rejouer
@@ -93,7 +96,8 @@ export class AvatarService {
   // retirer délibérément : un retrait est une décision manuelle au même titre
   // qu'un envoi, et la spec dit qu'un envoi manuel gagne toujours sur
   // l'annuaire. Le prix : un échec réseau à l'inscription n'est plus
-  // rattrapé plus tard, la personne enverra sa photo à la main.
+  // rattrapé plus tard — mais une réassociation volontaire (`link()`) reste
+  // un déclencheur explicite, distinct d'une connexion ordinaire.
   async ingestFromOidc(
     user: { id: string; avatarUpdatedAt: Date | null } | null,
     pictureUrl?: string,
@@ -101,13 +105,13 @@ export class AvatarService {
     try {
       // La garde vit à l'intérieur du `try`, pas avant : `shouldIngest`
       // accepte `user: null` et y répond `false` plutôt que de déréférencer
-      // `user.avatarUpdatedAt`. Le seul appelant restant (`OAuthService.signUp`)
-      // ne passe jamais `null` — il construit un littéral
-      // `{ id, avatarUpdatedAt: null }` — mais le type le permet toujours, en
-      // défense en profondeur pour un futur appelant qui relirait l'utilisateur
-      // via Prisma (`findFirst`/`findUnique` rendent `User | null`, dans un
-      // dépôt qui compile en `strictNullChecks: false`, donc rien ne le
-      // signale à la compilation). Un rejet ici doit de toute façon être
+      // `user.avatarUpdatedAt`. Des deux appelants, `OAuthService.signUp` ne
+      // passe jamais `null` — il construit un littéral
+      // `{ id, avatarUpdatedAt: null }` — mais `OAuthService.link` relit
+      // l'utilisateur via `prisma.user.findUnique`, qui rend `User | null`
+      // (le compte a pu être supprimé entre l'association et cette lecture),
+      // dans un dépôt qui compile en `strictNullChecks: false`, donc rien ne
+      // le signale à la compilation. Un rejet ici doit de toute façon être
       // attrapé comme n'importe quel autre échec — pas fuiter en promesse
       // non gérée depuis l'appel en `void` d'OAuthService.
       if (!shouldIngest(user, pictureUrl)) return;
