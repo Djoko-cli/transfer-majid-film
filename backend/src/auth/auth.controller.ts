@@ -66,7 +66,15 @@ export class AuthController {
     @Req() { ip }: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    if (!this.config.get("share.allowRegistration"))
+    // The closed door does not apply to an empty instance. `signUp` makes
+    // the first account an administrator (see AuthService.signUp's
+    // `isFirstUser`), so refusing here on an instance with no users at all
+    // is refusing the only way it can ever get one — the setup screen and
+    // the recovery from an emptied database are the same request.
+    if (
+      !this.config.get("share.allowRegistration") &&
+      !(await this.authService.isFirstUser())
+    )
       throw new ForbiddenException(this.i18n.t("auth.registrationNotAllowed"));
 
     const result = await this.authService.signUp(dto, ip);
@@ -370,6 +378,21 @@ export class AuthController {
       response,
       request,
     );
+  }
+
+  // `totp/reset/:userId`, not `totp/disable/:userId`: it is a different act
+  // from an account switching its own second factor off, and it answers to a
+  // different guard. Deeper path than the three routes above, so nothing
+  // here shadows anything.
+  @Post("totp/reset/:userId")
+  @HttpCode(200)
+  @UseGuards(JwtGuard, AdministratorGuard)
+  async resetTotpForUser(
+    @GetUser() user: User,
+    @Param("userId") userId: string,
+    @Body() body: EnableTotpDTO,
+  ) {
+    return this.authTotpService.resetTotpForUser(user, body.password, userId);
   }
 
   @Post("totp/disable")

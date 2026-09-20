@@ -17,6 +17,7 @@ import * as yup from "yup";
 import useTranslate, {
   translateOutsideContext,
 } from "../../../hooks/useTranslate.hook";
+import authService from "../../../services/auth.service";
 import userService from "../../../services/user.service";
 import User from "../../../types/user.type";
 import toast from "../../../utils/toast.util";
@@ -126,6 +127,16 @@ const Body = ({
       }),
     ),
   });
+
+  // Le mot de passe saisi ici est celui de l'administrateur connecté, pas
+  // celui du compte affiché — d'où un formulaire distinct de `passwordForm`,
+  // qui lui écrit bien le mot de passe de la cible.
+  const totpForm = useForm({
+    initialValues: {
+      password: "",
+    },
+  });
+  const [totpReset, setTotpReset] = useState(false);
 
   const passwordForm = useForm({
     initialValues: {
@@ -316,6 +327,51 @@ const Body = ({
               </form>
             </Accordion.Panel>
           </Accordion.Item>
+          {
+            // Visible seulement quand le compte a réellement un second
+            // facteur : proposer de « réinitialiser » ce qui n'existe pas
+            // serait une fausse piste, et le serveur refuse ce cas de toute
+            // façon (`auth.totpNotEnabled`). Un authentificateur perdu était
+            // jusqu'ici sans recours d'aucune sorte — pas de codes de
+            // secours, aucune route qui touchait le champ.
+            user.totpVerified && !totpReset && (
+              <Accordion.Item value="resetTotp">
+                <Accordion.Control px={0}>
+                  <FormattedMessage id="admin.users.edit.update.totp.title" />
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <form
+                    onSubmit={totpForm.onSubmit(async (values) => {
+                      authService
+                        .resetUserTOTP(user.id, values.password)
+                        .then(() => {
+                          setTotpReset(true);
+                          totpForm.reset();
+                          getUsers();
+                          toast.success(
+                            t("admin.users.edit.update.totp.reset.success"),
+                          );
+                        })
+                        .catch(toast.axiosError);
+                    })}
+                  >
+                    <Stack>
+                      <PasswordInput
+                        label={t("admin.users.edit.update.totp.your-password")}
+                        description={t(
+                          "admin.users.edit.update.totp.description",
+                        )}
+                        {...totpForm.getInputProps("password")}
+                      />
+                      <Button color="red" variant="light" type="submit">
+                        <FormattedMessage id="admin.users.edit.update.totp.reset.button" />
+                      </Button>
+                    </Stack>
+                  </form>
+                </Accordion.Panel>
+              </Accordion.Item>
+            )
+          }
           {
             // A password change already revokes these as a side effect
             // (see AuthService.resetPassword/updatePassword and

@@ -199,6 +199,14 @@ export class JobsService {
       where: {
         isActivated: false,
         createdAt: { lt: cutoff },
+        // Never an administrator. This loop calls `prisma.user.delete`
+        // straight, not `UserSevice.delete`, so the "you cannot remove the
+        // last administrator" refusal that guards every other deletion path
+        // is not on this one — an account left unactivated would have been
+        // swept an hour later, shares and all, with nothing refusing and
+        // nothing to undo. An administrator whose account should go gets
+        // deleted deliberately, through the route that checks.
+        isAdmin: false,
       },
       include: { shares: true },
     });

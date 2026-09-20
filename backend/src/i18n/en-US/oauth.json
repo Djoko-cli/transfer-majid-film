@@ -1,6 +1,7 @@
 {
   "already_linked": "This account is already linked to another user",
   "not_linked": "This account is not linked to any user",
+  "cannotUnlinkLastSignInMethod": "You can't unlink this account: it is your last way to sign in. Set a password first, or link another provider.",
   "no_user": "No user found for this account",
   "no_email": "No email address found for this account",
   "unverified_account": "Your account is not verified",

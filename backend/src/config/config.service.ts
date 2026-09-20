@@ -16,6 +16,7 @@ import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 import { I18nContext } from "nestjs-i18n";
 import { YamlConfig } from "../../prisma/seed/config.seed";
 import { CONFIG_FILE, SECRETS_FILE } from "src/constants";
+import { hasAnySignInMethod } from "../utils/signInMethod.util";
 
 /**
  * ConfigService extends EventEmitter to allow listening for config updates,
@@ -569,6 +570,14 @@ export class ConfigService extends EventEmitter {
   }
 
   async updateMany(data: { key: string; value: string | number | boolean }[]) {
+    // Judged on the batch, before any of it is written, because the batch is
+    // the only place the final state is visible. The admin page sends every
+    // changed setting at once, so "turn the password form off and switch the
+    // OIDC provider on" arrives as one request; checking key by key inside
+    // the loop below would refuse it on the first half of a change that is
+    // perfectly safe as a whole.
+    await this.assertAdminsKeepASignInMethod(data);
+
     const response: Config[] = [];
 
     for (const variable of data) {
@@ -576,6 +585,85 @@ export class ConfigService extends EventEmitter {
     }
 
     return response;
+  }
+
+  /**
+   * Refuses a settings change that would leave no administrator able to sign
+   * in.
+   *
+   * Two switches on the OAuth page can do it, and neither looks dangerous.
+   * `oauth.disablePassword` closes the password form for everyone at once —
+   * including LDAP, which goes through the same form. `oauth.<name>-enabled`
+   * turned off closes that provider's route, and a link to a switched-off
+   * provider is not a way in: ProviderGuard refuses it while the account
+   * page still displays the account as linked.
+   *
+   * Only a change that CLOSES something is examined. Opening a door can
+   * never lock anyone out, and paying for a user query on every unrelated
+   * settings save would be a tax on the common case.
+   */
+  private async assertAdminsKeepASignInMethod(
+    data: { key: string; value: string | number | boolean }[],
+  ) {
+    const proposed = new Map(data.map((variable) => [variable.key, variable.value]));
+
+    const touchesSignIn = [...proposed.keys()].some(
+      (key) =>
+        key === "oauth.disablePassword" || /^oauth\..+-enabled$/.test(key),
+    );
+    if (!touchesSignIn) return;
+
+    // A proposed value wins over the stored one; anything the batch does not
+    // mention keeps what it has. Values arrive as real booleans from the
+    // admin API and as strings from the YAML mirror, so both are accepted.
+    const resolveBoolean = (key: string) => {
+      if (!proposed.has(key))
+        return !!this.get(key as `${string}.${string}`);
+
+      const value = proposed.get(key);
+      return value === true || value === "true";
+    };
+
+    const passwordDisabled = resolveBoolean("oauth.disablePassword");
+    const enabledProviders = this.configVariables
+      .filter(
+        (variable) =>
+          variable.category === "oauth" && variable.name.endsWith("-enabled"),
+      )
+      .map((variable) => variable.name.slice(0, -"-enabled".length))
+      .filter((provider) => resolveBoolean(`oauth.${provider}-enabled`));
+
+    const admins = await this.prisma.user.findMany({
+      where: { isAdmin: true },
+      select: {
+        password: true,
+        ldapDN: true,
+        oAuthUsers: { select: { provider: true } },
+      },
+    });
+
+    // Nothing to strand. An instance in this state is already broken, and
+    // refusing a settings change would only take away a tool for repairing
+    // it.
+    if (admins.length === 0) return;
+
+    const someoneGetsIn = admins.some((admin) =>
+      hasAnySignInMethod({
+        hasPassword: !!admin.password,
+        isLdap: !!admin.ldapDN,
+        linkedProviders: admin.oAuthUsers.map((link) => link.provider),
+        passwordDisabled,
+        enabledProviders,
+      }),
+    );
+
+    if (!someoneGetsIn)
+      throw new BadRequestException(
+        this.t(
+          "config.wouldLockOutAdmins",
+          "This change would leave no administrator able to sign in. Link a provider to an admin account, or keep password sign-in enabled.",
+        ),
+      );
   }
 
   async update(key: string, value: string | number | boolean) {

@@ -385,12 +385,18 @@ export class UserSevice {
     });
     if (!user) throw new BadRequestException(this.i18n.t("auth.userNotFound"));
 
+    // Checked twice, on purpose, and the two are not redundant.
+    //
+    // This one is the fail-fast: it runs before a single file is removed,
+    // so a refusal costs the account nothing. Its weakness is that it
+    // cannot bind — the shares below are deleted outside any transaction,
+    // and by the time the row itself goes, the count it read may be stale.
     if (user.isAdmin) {
-      const userCount = await this.prisma.user.count({
-        where: { isAdmin: true },
+      const remainingAdmins = await this.prisma.user.count({
+        where: { isAdmin: true, id: { not: id } },
       });
 
-      if (userCount === 1) {
+      if (remainingAdmins === 0) {
         throw new BadRequestException(
           this.i18n.t("auth.cannotDeleteLastAdmin"),
         );
@@ -406,7 +412,28 @@ export class UserSevice {
     // plus. `remove` est idempotente, donc pas de test préalable à écrire.
     await this.avatar.remove(id);
 
-    return await this.prisma.user.delete({ where: { id } });
+    // And this one is the one that holds. Two administrators deleting each
+    // other at the same moment would each have passed the check above —
+    // both reading "one other remains" — and both would have gone through,
+    // leaving none. Inside the transaction the second reads the state the
+    // first committed and is refused. It fires late enough that the files
+    // are already gone when it does, which is why the cheaper check above
+    // stays: this is the correctness net, that one is the courtesy.
+    return await this.prisma.$transaction(async (tx) => {
+      if (user.isAdmin) {
+        const remainingAdmins = await tx.user.count({
+          where: { isAdmin: true, id: { not: id } },
+        });
+
+        if (remainingAdmins === 0) {
+          throw new BadRequestException(
+            this.i18n.t("auth.cannotDeleteLastAdmin"),
+          );
+        }
+      }
+
+      return tx.user.delete({ where: { id } });
+    });
   }
 
   async findOrCreateFromLDAP(

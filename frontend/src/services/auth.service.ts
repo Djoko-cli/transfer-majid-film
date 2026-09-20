@@ -193,6 +193,13 @@ const disableTOTP = async (totpCode: string, password: string) => {
   });
 };
 
+// Le mot de passe demandé ici est celui de l'ADMINISTRATEUR qui agit, pas
+// celui du compte réinitialisé — un cookie de session volé ne doit pas
+// suffire à retirer le second facteur de quelqu'un d'autre.
+const resetUserTOTP = async (userId: string, password: string) => {
+  await api.post(`/auth/totp/reset/${userId}`, { password });
+};
+
 const needsSetup = async (): Promise<boolean> => {
   return (await api.get("/auth/needsSetup")).data.needsSetup === true;
 };
@@ -228,6 +235,7 @@ export default {
   enableTOTP,
   verifyTOTP,
   disableTOTP,
+  resetUserTOTP,
   getAvailableOAuth,
   getOAuthStatus,
   needsSetup,

@@ -7,5 +7,6 @@
   "variableNotFound": "Variable de configuration non trouvée",
   "invalidType": "La variable de configuration doit être de type {type}",
   "shareIdLengthValidation": "La longueur de l'ID de transfert doit être comprise entre 2 et 50",
-  "zipCompressionLevelValidation": "Le niveau de compression Zip doit être compris entre 0 et 9"
+  "zipCompressionLevelValidation": "Le niveau de compression Zip doit être compris entre 0 et 9",
+  "wouldLockOutAdmins": "Ce changement ne laisserait aucun administrateur capable de se connecter. Associez un fournisseur à un compte administrateur, ou gardez la connexion par mot de passe active."
 }

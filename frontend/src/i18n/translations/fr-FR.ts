@@ -373,6 +373,16 @@ export default {
   "admin.users.edit.update.change-password.button":
     "Enregistrer le nouveau mot de passe",
   "admin.users.edit.update.trusted-devices.title": "Appareils de confiance",
+  "admin.users.edit.update.totp.title":
+    "Authentification à deux facteurs",
+  "admin.users.edit.update.totp.description":
+    "Saisissez votre propre mot de passe d’administrateur pour confirmer. Le compte pourra se reconnecter sans code, et pourra réactiver la double authentification ensuite.",
+  "admin.users.edit.update.totp.your-password":
+    "Votre mot de passe",
+  "admin.users.edit.update.totp.reset.button":
+    "Réinitialiser la double authentification",
+  "admin.users.edit.update.totp.reset.success":
+    "Double authentification réinitialisée.",
   "admin.users.edit.update.avatar.remove": "Retirer la photo",
   "admin.users.edit.update.avatar.removed": "Photo de profil retirée.",
   "admin.users.edit.update.notify.password.success":

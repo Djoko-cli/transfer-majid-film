@@ -7,5 +7,6 @@
   "variableNotFound": "Config variable not found",
   "invalidType": "Config variable must be of type {type}",
   "shareIdLengthValidation": "Share ID length must be between 2 and 50",
-  "zipCompressionLevelValidation": "Zip compression level must be between 0 and 9"
+  "zipCompressionLevelValidation": "Zip compression level must be between 0 and 9",
+  "wouldLockOutAdmins": "This change would leave no administrator able to sign in. Link a provider to an admin account, or keep password sign-in enabled."
 }

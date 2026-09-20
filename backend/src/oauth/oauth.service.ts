@@ -1,6 +1,14 @@
-import { forwardRef, Inject, Injectable, Logger } from "@nestjs/common";
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  Logger,
+} from "@nestjs/common";
 import { User } from "@prisma/client";
+import { I18nService } from "nestjs-i18n";
 import { nanoid } from "nanoid";
+import { hasAnySignInMethod } from "../utils/signInMethod.util";
 import { AuthService } from "../auth/auth.service";
 import { AvatarService } from "../avatar/avatar.service";
 import { ConfigService } from "../config/config.service";
@@ -19,6 +27,7 @@ export class OAuthService {
     @Inject("OAUTH_PLATFORMS") private platforms: string[],
     @Inject("OAUTH_PROVIDERS")
     private oAuthProviders: Record<string, OAuthProvider<unknown>>,
+    private readonly i18n: I18nService,
   ) {}
   private readonly logger = new Logger(OAuthService.name);
 
@@ -136,15 +145,43 @@ export class OAuthService {
         provider,
       },
     });
-    if (oauthUser) {
-      await this.prisma.oAuthUser.delete({
-        where: {
-          id: oauthUser.id,
-        },
-      });
-    } else {
+    if (!oauthUser) {
       throw new ErrorPageException("not_linked", "/account", [provider]);
     }
+
+    // Unlinking is the one action on the account page that can remove the
+    // last way back into the account, and it looked exactly like the
+    // reversible ones. An account with no password — every account created
+    // through OAuth has `password: null` — that unlinks its only provider
+    // has nothing left to sign in with, and no route to link a new one,
+    // because linking starts from a session it can no longer obtain.
+    //
+    // The remaining links are read rather than inferred from the list the
+    // page happens to show: a provider switched off instance-wide still
+    // appears as linked there, and is not a way in.
+    const remainingLinks = await this.prisma.oAuthUser.findMany({
+      where: { userId: user.id, provider: { not: provider } },
+      select: { provider: true },
+    });
+
+    const stillReachable = hasAnySignInMethod({
+      hasPassword: !!user.password,
+      isLdap: !!user.ldapDN,
+      linkedProviders: remainingLinks.map((link) => link.provider),
+      passwordDisabled: this.config.get("oauth.disablePassword"),
+      enabledProviders: this.available(),
+    });
+
+    if (!stillReachable)
+      throw new BadRequestException(
+        this.i18n.t("oauth.cannotUnlinkLastSignInMethod"),
+      );
+
+    await this.prisma.oAuthUser.delete({
+      where: {
+        id: oauthUser.id,
+      },
+    });
   }
 
   private async getAvailableUsername(preferredUsername: string) {

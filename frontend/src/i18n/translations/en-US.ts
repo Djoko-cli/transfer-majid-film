@@ -388,6 +388,16 @@ export default {
   "admin.users.edit.update.change-password.field": "New password",
   "admin.users.edit.update.change-password.button": "Save new password",
   "admin.users.edit.update.trusted-devices.title": "Trusted devices",
+  "admin.users.edit.update.totp.title":
+    "Two-factor authentication",
+  "admin.users.edit.update.totp.description":
+    "Enter your own admin password to confirm. The account will be able to sign in without a code, and can turn two-factor authentication back on afterwards.",
+  "admin.users.edit.update.totp.your-password":
+    "Your password",
+  "admin.users.edit.update.totp.reset.button":
+    "Reset two-factor authentication",
+  "admin.users.edit.update.totp.reset.success":
+    "Two-factor authentication reset.",
   "admin.users.edit.update.avatar.remove": "Remove picture",
   "admin.users.edit.update.avatar.removed": "Profile picture removed.",
   "admin.users.edit.update.notify.password.success":

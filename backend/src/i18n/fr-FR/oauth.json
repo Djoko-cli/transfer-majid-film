@@ -1,6 +1,7 @@
 {
   "already_linked": "Ce compte est déjà lié à un autre utilisateur",
   "not_linked": "Ce compte n'est lié à aucun utilisateur",
+  "cannotUnlinkLastSignInMethod": "Vous ne pouvez pas dissocier ce compte : c'est votre dernier moyen de connexion. Définissez d'abord un mot de passe, ou associez un autre fournisseur.",
   "no_user": "Aucun utilisateur trouvé pour ce compte",
   "no_email": "Aucune adresse email trouvée pour ce compte",
   "unverified_account": "Votre compte n'est pas vérifié",

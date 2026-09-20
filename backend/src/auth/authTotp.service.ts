@@ -255,4 +255,59 @@ export class AuthTotpService {
 
     return true;
   }
+
+  /**
+   * Clears another account's second factor, on an administrator's authority.
+   *
+   * Until this existed, a lost authenticator was the end of an account:
+   * `disableTotp` needs a code from the very device that was lost, there is
+   * no recovery code to fall back on, and no other route touched the field.
+   * The only remaining answer was editing the database by hand.
+   *
+   * The acting administrator's own password is required. A session cookie
+   * alone must not be enough to strip a colleague's second factor — that
+   * would make every stolen admin session a way through everyone else's
+   * 2FA, which is a larger hole than the one being closed. Administrators
+   * are already made to have a password before using the console (see
+   * AdminPasswordGate), so this asks for something they have.
+   *
+   * It does NOT solve the last administrator losing their own authenticator:
+   * there is nobody above them to ask. That case needs recovery codes,
+   * which is a feature, not a guard.
+   */
+  async resetTotpForUser(
+    admin: User,
+    password: string,
+    targetUserId: string,
+  ) {
+    if (!(await this.authService.verifyPassword(admin, password)))
+      throw new ForbiddenException(this.i18n.t("auth.invalidPassword"));
+
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, totpSecret: true },
+    });
+
+    if (!target)
+      throw new BadRequestException(this.i18n.t("auth.userNotFound"));
+
+    if (!target.totpSecret)
+      throw new BadRequestException(this.i18n.t("auth.totpNotEnabled"));
+
+    await this.prisma.user.update({
+      where: { id: target.id },
+      data: {
+        totpVerified: false,
+        totpEnabled: false,
+        totpSecret: null,
+      },
+    });
+
+    // Any sign-in of theirs that was parked waiting for a code now refers to
+    // a factor that no longer exists. Left alone these would sit until they
+    // expired; dropping them means the next attempt starts clean.
+    await this.prisma.loginToken.deleteMany({ where: { userId: target.id } });
+
+    return true;
+  }
 }
