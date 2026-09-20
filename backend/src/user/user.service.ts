@@ -105,9 +105,41 @@ export class UserSevice {
         : undefined;
 
       const applyUpdate = () =>
-        this.prisma.user.update({
-          where: { id },
-          data: { ...user, password: hash },
+        this.prisma.$transaction(async (tx) => {
+          // The instance must never be left without an administrator. The
+          // count and the write share one transaction on purpose: two
+          // admins demoting each other at the same moment would otherwise
+          // each read "one other admin remains" and both succeed, landing
+          // on zero — the very state this refuses. (delete()'s own guard
+          // below still has that race; it predates this one and is left
+          // alone here rather than widened into an unrelated change.)
+          //
+          // `id: { not: id }` — "someone other than the account being
+          // written" — is exact rather than approximate, because
+          // AdministratorGuard has already established that the caller is
+          // an admin: the count can only reach zero when the target IS the
+          // caller and the caller is the last one. A demotion of somebody
+          // else therefore never trips this, and neither does an ordinary
+          // update that leaves `isAdmin` alone.
+          //
+          // The test is `=== false`, not falsiness: `isAdmin` is absent
+          // from most updates (a quota change, a rename), and `undefined`
+          // must not read as "remove the privilege".
+          if (user.isAdmin === false) {
+            const remainingAdmins = await tx.user.count({
+              where: { isAdmin: true, id: { not: id } },
+            });
+
+            if (remainingAdmins === 0)
+              throw new BadRequestException(
+                this.i18n.t("auth.cannotDemoteLastAdmin"),
+              );
+          }
+
+          return tx.user.update({
+            where: { id },
+            data: { ...user, password: hash },
+          });
         });
 
       // An admin setting a new password here is the same "the account may
@@ -160,6 +192,12 @@ export class UserSevice {
           );
         }
       }
+
+      // Anything else has to keep going up. Without this the catch ends
+      // having handled nothing, `update()` returns undefined, and the
+      // controller answers 200 with an empty body — which is how a refusal
+      // raised above would have been reported as a success.
+      throw e;
     }
   }
 

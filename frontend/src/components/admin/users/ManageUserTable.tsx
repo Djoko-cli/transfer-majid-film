@@ -30,6 +30,13 @@ const ManageUserTable = ({
   const modals = useModals();
   const t = useTranslate();
 
+  // Le tableau a déjà la liste complète : personne n'a besoin d'une requête
+  // de plus pour savoir s'il ne reste qu'un administrateur. Ce n'est qu'un
+  // garde-fou d'interface — le refus qui fait foi est côté serveur, dans
+  // `UserSevice.update`, parce que la route reste atteignable sans passer
+  // par cette page.
+  const isLastAdmin = users.filter((user) => user.isAdmin).length === 1;
+
   const showStorageQuota = users.some((user) => !!user.storageQuotaLimit);
   const showMaxShareSize = users.some((user) => !!user.shareSizeLimit);
 
@@ -121,7 +128,12 @@ const ManageUserTable = ({
                             color="blue"
                             size={25}
                             onClick={() =>
-                              showUpdateUserModal(modals, user, getUsers)
+                              showUpdateUserModal(
+                                modals,
+                                user,
+                                getUsers,
+                                user.isAdmin && isLastAdmin,
+                              )
                             }
                           >
                             <TbEdit />

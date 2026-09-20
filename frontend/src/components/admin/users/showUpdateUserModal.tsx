@@ -29,12 +29,20 @@ const showUpdateUserModal = (
   modals: ModalsContextProps,
   user: User,
   getUsers: () => void,
+  isLastAdmin: boolean,
 ) => {
   const t = translateOutsideContext();
   return modals.openModal({
     title: t("admin.users.edit.update.title", { username: user.username }),
     styles: glassModalStyles,
-    children: <Body user={user} modals={modals} getUsers={getUsers} />,
+    children: (
+      <Body
+        user={user}
+        modals={modals}
+        getUsers={getUsers}
+        isLastAdmin={isLastAdmin}
+      />
+    ),
   });
 };
 
@@ -42,10 +50,12 @@ const Body = ({
   user,
   modals,
   getUsers,
+  isLastAdmin,
 }: {
   modals: ModalsContextProps;
   user: User;
   getUsers: () => void;
+  isLastAdmin: boolean;
 }) => {
   const t = useTranslate();
 
@@ -189,6 +199,16 @@ const Body = ({
               labelPosition="left"
               label={t("admin.users.edit.update.admin-privileges")}
               {...accountForm.getInputProps("isAdmin", { type: "checkbox" })}
+              // Verrouillé plutôt que masqué : un interrupteur qui disparaît
+              // ressemble à un bug, un interrupteur grisé qui dit pourquoi
+              // est une réponse. Le serveur refuse de toute façon — ceci
+              // évite juste d'aller chercher le refus.
+              disabled={isLastAdmin}
+              description={
+                isLastAdmin
+                  ? t("admin.users.edit.update.admin-privileges.last-admin")
+                  : undefined
+              }
             />
             <Switch
               mt="xs"

@@ -355,6 +355,8 @@ export default {
   "admin.users.table.maxShareSize": "Max share size",
   "admin.users.edit.update.title": "Modifier l'utilisateur : {username}",
   "admin.users.edit.update.admin-privileges": "Privilèges d’admin",
+  "admin.users.edit.update.admin-privileges.last-admin":
+    "Vous êtes le dernier administrateur. Retirer ce privilège fermerait la console à tout le monde, définitivement.",
   "admin.users.edit.update.email-verified": "Email vérifié",
   "admin.users.edit.update.permanent-shares": "Transferts permanents",
   "admin.users.edit.update.permanent-shares.description":

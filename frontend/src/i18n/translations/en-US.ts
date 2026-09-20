@@ -372,6 +372,8 @@ export default {
 
   "admin.users.edit.update.title": "Edit user: {username}",
   "admin.users.edit.update.admin-privileges": "Admin privileges",
+  "admin.users.edit.update.admin-privileges.last-admin":
+    "You are the last administrator. Removing this privilege would close the console to everyone, permanently.",
   "admin.users.edit.update.email-verified": "Email verified",
   "admin.users.edit.update.permanent-shares": "Permanent transfers",
   "admin.users.edit.update.permanent-shares.description":
