@@ -1,5 +1,6 @@
 import {
   Accordion,
+  Avatar,
   Button,
   Group,
   MantineProvider,
@@ -10,6 +11,7 @@ import {
 } from "@mantine/core";
 import { useForm, yupResolver } from "@mantine/form";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
+import { useState } from "react";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
 import useTranslate, {
@@ -46,6 +48,38 @@ const Body = ({
   getUsers: () => void;
 }) => {
   const t = useTranslate();
+
+  // La modale reçoit un instantané de `user` au moment où elle s'ouvre — il
+  // ne se met pas à jour tout seul quand le retrait réussit. Ce drapeau local
+  // est ce qui fait disparaître la photo ici, tout de suite, sans attendre
+  // une fermeture/réouverture de la modale ; `getUsers()` ci-dessous est ce
+  // qui la fait disparaître dans le tableau, derrière elle.
+  const [avatarRemoved, setAvatarRemoved] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  // La condition porte directement sur `user.avatarUpdatedAt` (et pas sur un
+  // booléen dérivé) pour que TypeScript le rétrécisse en non-`undefined`
+  // dans la branche `?:` — `strict: true` ici, contrairement au backend.
+  const avatarSrc =
+    user.avatarUpdatedAt && !avatarRemoved
+      ? `/api/users/${user.id}/avatar?v=${new Date(
+          user.avatarUpdatedAt,
+        ).getTime()}`
+      : undefined;
+  const hasAvatar = !!avatarSrc;
+
+  const removeAvatar = async () => {
+    setAvatarBusy(true);
+    try {
+      await userService.removeUserAvatar(user.id);
+      setAvatarRemoved(true);
+      getUsers();
+      toast.success(t("admin.users.edit.update.avatar.removed"));
+    } catch (e) {
+      toast.axiosError(e);
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
 
   const accountForm = useForm({
     initialValues: {
@@ -99,6 +133,24 @@ const Body = ({
   return (
     <MantineProvider inherit theme={glassFormTheme}>
       <Stack>
+        {
+          // Affiché seulement s'il y a une photo — un administrateur peut la
+          // voir et la retirer, jamais en poser une : voir §1 et §5 bis de
+          // docs/photos-de-profil.md.
+          hasAvatar && (
+            <Group position="apart">
+              <Avatar size={80} radius={40} src={avatarSrc} />
+              <Button
+                color="red"
+                variant="subtle"
+                loading={avatarBusy}
+                onClick={removeAvatar}
+              >
+                <FormattedMessage id="admin.users.edit.update.avatar.remove" />
+              </Button>
+            </Group>
+          )
+        }
         <form
           id="accountForm"
           onSubmit={accountForm.onSubmit(async (values) => {

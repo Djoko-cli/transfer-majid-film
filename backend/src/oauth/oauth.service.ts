@@ -83,6 +83,7 @@ export class OAuthService {
     provider: string,
     providerUserId: string,
     providerUsername: string,
+    pictureUrl?: string,
   ) {
     const oauthUser = await this.prisma.oAuthUser.findFirst({
       where: {
@@ -104,6 +105,28 @@ export class OAuthService {
         providerUserId,
       },
     });
+
+    // Deuxième — et jusqu'ici seul — point d'accroche réel de la
+    // récupération d'avatar, à côté de celui de `signUp` ci-dessous :
+    // dissocier un annuaire puis s'y réassocier passe par ici, pas par
+    // `signUp` ni par `signIn`. C'est même le chemin qu'on emprunte quand on
+    // veut délibérément déclencher la récupération — l'oublier revient à ne
+    // couvrir que l'inscription et pas la reprise volontaire. `shouldIngest`
+    // continue de garder la règle : un envoi manuel gagne toujours, donc une
+    // photo déjà présente n'est jamais remplacée par une réassociation.
+    //
+    // Relu en base plutôt que passé en paramètre : contrairement à `signUp`,
+    // où le compte vient d'être créé et n'a par construction pas encore de
+    // photo, ici le compte existe déjà et peut très bien en avoir une — la
+    // seule façon de le savoir est de relire `avatarUpdatedAt`.
+    //
+    // Sans `await`, comme `signUp` : une photo n'a pas le droit de ralentir
+    // une association, encore moins de la faire échouer.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, avatarUpdatedAt: true },
+    });
+    void this.avatar.ingestFromOidc(user, pictureUrl);
   }
 
   async unlink(user: User, provider: string) {
@@ -189,17 +212,20 @@ export class OAuthService {
       },
     });
 
-    // Seul point d'appel restant : un retrait délibéré (`AvatarService.remove`)
-    // remet `avatarUpdatedAt` à `null`, exactement comme un compte qui n'a
-    // jamais eu de photo — rejouer cette récupération à chaque connexion
-    // aurait fait revenir une photo qu'on vient de retirer. Ici,
-    // `avatarUpdatedAt` vaut `null` par construction (le compte vient d'être
-    // créé), donc le déclencheur reste correct sans avoir besoin de relire
-    // l'utilisateur. Le coût : si la récupération échoue à l'inscription
-    // (réseau, IdP hors service), elle n'est plus rejouée à une connexion
-    // suivante — la personne enverra sa photo à la main. En échange, la
-    // requête sortante par connexion que la spec assumait « à contrecœur »
-    // disparaît complètement, et un retrait tient enfin.
+    // Un des deux points d'appel réels, avec `OAuthService.link` ci-dessus :
+    // un retrait délibéré (`AvatarService.remove`) remet `avatarUpdatedAt` à
+    // `null`, exactement comme un compte qui n'a jamais eu de photo —
+    // rejouer cette récupération à chaque connexion aurait fait revenir une
+    // photo qu'on vient de retirer. Ici, `avatarUpdatedAt` vaut `null` par
+    // construction (le compte vient d'être créé), donc le déclencheur reste
+    // correct sans avoir besoin de relire l'utilisateur — au contraire de
+    // `link()`, où le compte existe déjà et doit être relu. Le coût : si la
+    // récupération échoue à l'inscription (réseau, IdP hors service), elle
+    // n'est plus rejouée à une connexion suivante — la personne enverra sa
+    // photo à la main, ou se dissociera et se réassociera, ce qui repasse
+    // par `link()`. En échange, la requête sortante par connexion que la
+    // spec assumait « à contrecœur » disparaît complètement, et un retrait
+    // tient enfin.
     // Sans `await` : l'inscription ne doit dépendre en rien de cette requête.
     void this.avatar.ingestFromOidc(
       { id: result.user.id, avatarUpdatedAt: null },

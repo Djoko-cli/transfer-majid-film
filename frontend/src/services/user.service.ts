@@ -52,6 +52,14 @@ const deleteAvatar = async () => {
   await api.delete("/users/me/avatar");
 };
 
+// Réservé à un administrateur : retire la photo d'un AUTRE compte
+// (`users/:id/avatar`, `adminAvatar.controller.ts`, sous `AdministratorGuard`).
+// Il n'existe pas d'équivalent pour en poser une — un administrateur peut
+// modérer une photo inappropriée, pas en choisir une à la place du compte.
+const removeUserAvatar = async (id: string) => {
+  await api.delete(`/users/${id}/avatar`);
+};
+
 const removeCurrentUser = async () => {
   await api.delete("/users/me");
 };
@@ -77,5 +85,6 @@ export default {
   cancelEmailChange,
   uploadAvatar,
   deleteAvatar,
+  removeUserAvatar,
   removeCurrentUser,
 };

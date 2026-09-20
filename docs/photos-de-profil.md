@@ -28,7 +28,7 @@ son seul propriétaire.
 | La photo OpenID | **Récupérée une fois côté serveur et stockée chez nous**, si et seulement si le compte n'a pas encore de photo | Pointer directement l'URL de l'IdP : signale l'utilisateur à Google/Microsoft à chaque chargement de page, casse quand l'URL expire ou exige une authentification, et oblige à ouvrir la CSP à des domaines tiers |
 | Le cadrage | **Recadrage carré automatique**, à la volée (§4) | Un recadreur dans la page : porte laissée ouverte (§8), le serveur n'aura pas à bouger |
 | La préséance | **Un envoi manuel gagne toujours** sur l'annuaire | |
-| La visibilité | **Son propriétaire seul** | Montrer l'avatar sur les listes de contributeurs : c'est une décision d'exposition publique, elle mérite sa propre conversation |
+| La visibilité | **Son propriétaire et les administrateurs** | Montrer l'avatar sur les listes de contributeurs : c'est une décision d'exposition publique, elle mérite sa propre conversation. Les administrateurs, eux, doivent pouvoir modérer une image inappropriée sur une instance ouverte à d'autres comptes — d'où les routes `users/:id/avatar` du §5 bis, admin uniquement, qui ne posent jamais de photo, seulement la lire et la retirer |
 | La taille acceptée | **5 Mio** (5 × 1024 × 1024 octets), comme Review.majid.film | |
 | La taille stockée | **10 à 25 Ko** — WebP carré **512 px**, toujours ré-encodé | Stocker l'original : voir §4. 256 px : trop petit pour un écran Rétina sur la page « mon compte » |
 
@@ -143,9 +143,11 @@ une 500 : « ce fichier n'est pas une image que nous savons lire ».
 
 ## 5. Les trois routes
 
-Toutes sous `@UseGuards(JwtGuard)`, toutes sur soi-même. Il n'existe **aucune**
-route qui serve l'avatar d'un autre compte : le `userId` n'est jamais un
-paramètre, il vient du jeton.
+Toutes sous `@UseGuards(JwtGuard)`, toutes sur soi-même : le `userId` n'est
+jamais un paramètre, il vient du jeton. **C'était vrai de toutes les routes
+d'avatar tant qu'il n'y en avait qu'un jeu ; le §5 bis en ajoute un second,
+réservé aux administrateurs, où le `userId` est cette fois un paramètre de
+chemin.**
 
 | Route | Corps | Réponse |
 |---|---|---|
@@ -190,6 +192,46 @@ un compte et n'a rien à faire dans un cache partagé.
 
 ---
 
+## 5 bis. Les routes d'administration
+
+Deux routes de plus, dans un contrôleur séparé
+([`adminAvatar.controller.ts`](../backend/src/avatar/adminAvatar.controller.ts)),
+sous `@Controller("users/:id/avatar")` et `@UseGuards(JwtGuard,
+AdministratorGuard)`. Elles réutilisent `AvatarService.read`/`.remove` telles
+quelles — le service prenait déjà un `userId` en paramètre, rien à y changer.
+
+| Route | Réponse |
+|---|---|
+| `GET /api/users/:id/avatar` | `200` WebP (mêmes en-têtes que la route `me`), `404` si le compte visé n'a pas de photo |
+| `DELETE /api/users/:id/avatar` | `204`, idempotent |
+
+**Un administrateur peut voir et retirer la photo d'un autre compte. Il ne
+peut pas en poser une** : de quoi modérer une image inappropriée, pas de quoi
+choisir le visage de quelqu'un d'autre à sa place.
+
+**Pourquoi un fichier séparé de `avatar.controller.ts` :** ce dernier est
+`@Controller("users/me/avatar")` et son invariant se lit à l'œil — aucune de
+ses méthodes ne lit de paramètre de route, l'identifiant vient toujours du
+jeton. Y ajouter des routes `:id` ferait disparaître cette propriété de la
+lecture.
+
+**Le piège de l'ordre d'enregistrement :** `users/:id/avatar` capture aussi
+`users/me/avatar` — `me` est une valeur de `:id` comme une autre pour le
+routeur. Dans [`avatar.module.ts`](../backend/src/avatar/avatar.module.ts),
+`AvatarController` (la route `me`) doit donc rester déclaré **avant**
+`AdminAvatarController` dans le tableau `controllers`, sans quoi une requête
+sur `me` serait interceptée par le contrôleur `:id`.
+
+**Le garde qui échoue ouvert n'est pas un problème ici :** `JwtGuard` laisse
+passer une requête sans utilisateur quand `share.allowUnauthenticatedShares`
+est activé — ce qu'il a fallu border explicitement sur les routes `me`
+(`AvatarController.requireUser`). `AdministratorGuard` rend `false` dès que
+`request.user` est absent ([`isAdmin.guard.ts`](../backend/src/auth/guard/isAdmin.guard.ts)),
+donc ce cas est déjà couvert : un utilisateur absent ne peut jamais être
+admin.
+
+---
+
 ## 6. Le chemin OpenID, et son garde-fou
 
 ### La plomberie
@@ -198,20 +240,43 @@ un compte et n'a rien à faire dans un cache partagé.
    gagne `picture?: string`.
 2. `GenericOidcProvider.getUserInfo` le recopie dans le DTO qu'il renvoie ;
    `OAuthSignInDto` gagne `pictureUrl?: string`.
-3. **Un seul point d'accroche**, dans `signUp`
-   ([`oauth.service.ts`](../backend/src/oauth/oauth.service.ts)), juste après la
-   création, où `result.user.id` est disponible. Cette section prescrivait
-   d'abord un second point dans `signIn`, branche « compte déjà lié » : c'est ce
-   qui défaisait un retrait délibéré à la connexion suivante (voir l'encadré
-   ci-dessous), et il a été retiré.
-4. L'appel est **sans `await`** : une photo n'a pas le droit de ralentir une
-   inscription, encore moins de la faire échouer. Conséquence assumée : au
-   premier chargement qui suit l'inscription, `avatarUpdatedAt` est encore nulle
-   et la navbar montre le rond gris ; la photo apparaît au chargement suivant.
+3. **Deux points d'accroche**, tous les deux dans
+   [`oauth.service.ts`](../backend/src/oauth/oauth.service.ts) :
+   - `signUp`, juste après la création, où `result.user.id` est disponible ;
+   - `link`, la branche « un utilisateur est déjà connecté » du contrôleur
+     ([`oauth.controller.ts`](../backend/src/oauth/oauth.controller.ts)),
+     appelée aussi bien pour une première association que pour une
+     réassociation après un retrait délibéré (« mon compte » → dissocier →
+     se réassocier). C'est même *le* chemin qu'on emprunte quand on veut
+     déclencher la récupération délibérément — l'oublier revient à ne couvrir
+     que l'inscription, jamais la reprise volontaire. `link()` reçoit
+     `pictureUrl` du contrôleur (disponible deux lignes plus haut, dans
+     `user.pictureUrl`) et relit l'utilisateur en base pour connaître son
+     `avatarUpdatedAt` avant d'appeler `ingestFromOidc` — `signUp`, lui, n'a
+     pas besoin de cette relecture : le compte vient d'être créé, sa colonne
+     est nulle par construction.
+   Cette section prescrivait d'abord un point dans `signIn`, branche « compte
+   déjà lié » : c'est ce qui défaisait un retrait délibéré à la connexion
+   suivante (voir l'encadré ci-dessous), et il a été retiré — `link()` n'est
+   pas ce point-là, c'est l'association explicite, pas une connexion
+   ordinaire.
+4. Les deux appels sont **sans `await`** : une photo n'a pas le droit de
+   ralentir une inscription ou une association, encore moins de les faire
+   échouer. Conséquence assumée : au premier chargement qui suit
+   l'inscription ou l'association, `avatarUpdatedAt` est encore nulle et la
+   navbar montre le rond gris ; la photo apparaît au chargement suivant.
 
 `AvatarService.ingestFromOidc(user, pictureUrl)` **rend la main immédiatement**
 si l'URL est absente ou si `user.avatarUpdatedAt` n'est pas nulle. C'est là que
-vit la règle « une fois, et l'envoi manuel gagne ».
+vit la règle « une fois, et l'envoi manuel gagne » — pour les deux appelants :
+une photo déjà présente n'est donc jamais remplacée par une réassociation.
+
+**Non testé, et ça ne peut pas l'être avec ce harnais.** Le câblage de
+`link()` n'a aucune couverture automatisée : la suite Newman ne peut pas
+simuler un annuaire OpenID (il faudrait un IdP factice), et ce dépôt n'a pas
+de test d'intégration NestJS capable de monter `OAuthController` avec un
+utilisateur déjà connecté. Seule la lecture du code — et une vérification
+manuelle en navigateur, si l'occasion se présente — en répond.
 
 ### Le garde-fou SSRF
 
@@ -315,9 +380,6 @@ deux boutons, le toast de succès, le toast « fichier trop lourd », le toast
   [`discord.provider.ts:8`](../backend/src/oauth/provider/discord.provider.ts)).
   Ajoutables plus tard, un appel chacun, sans rien défaire.
 - **La photo LDAP** (`jpegPhoto` / `thumbnailPhoto`).
-- **L'avatar dans la console d'administration**, et toute notion de modération —
-  il n'y a rien à modérer tant qu'une image n'est visible que de son
-  propriétaire.
 - **L'avatar sur les listes de contributeurs ou de destinataires.** C'est un
   changement d'exposition, pas une extension d'affichage.
 - **Un interrupteur d'administration** pour désactiver la fonction.
@@ -339,6 +401,12 @@ envoi d'un PNG valide → `200` ; relecture → `200` et `Content-Type: image/we
 envoi d'un fichier qui n'est pas une image → `400` ; envoi de 6 Mo → `413` ;
 suppression → `204` ; relecture après suppression → `404` ; lecture sans jeton →
 `401`.
+
+Dossier `[Avatar admin]` séparé, pour le §5 bis : un compte non-admin qui lit
+la photo d'un autre compte → `403` (le test qui garde la règle) ; un
+administrateur qui lit la photo d'un autre compte → `200`, octets vérifiés
+(`RIFF`/`WEBP`, comme la route `me`) ; un administrateur qui la retire →
+`204`.
 
 **En navigateur** : le cercle de la navbar avant/après envoi, à 375 px et en
 desktop, et la disparition de l'image au retrait sans rechargement de page.
