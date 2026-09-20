@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
+import * as zlib from "node:zlib";
 import { encodeAvatar, UndecodableAvatarError } from "./avatarImage.ts";
 
 async function sourceJpeg(width: number, height: number): Promise<Buffer> {
@@ -93,14 +94,37 @@ test("applique l'orientation EXIF avant le recadrage", async () => {
   );
 });
 
+const SVG_SOURCE = Buffer.from(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64"/></svg>',
+  "utf8",
+);
+
 test("refuse un SVG", async () => {
   // sharp sait lire le SVG, et c'est precisement le probleme : un SVG est un
   // document a parseur, pas une image. Voir le commentaire dans avatarImage.ts.
-  const svg = Buffer.from(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64"/></svg>',
-    "utf8",
+  await assert.rejects(() => encodeAvatar(SVG_SOURCE), UndecodableAvatarError);
+});
+
+test("refuse un SVG precede d'un BOM UTF-8", async () => {
+  // EF BB BF est un prefixe valide en tete d'un document XML. Sans le sauter,
+  // looksLikeMarkup verrait un octet 0xEF, ne le reconnaitrait pas comme '<',
+  // et laisserait le SVG glisser jusqu'a sharp -- exactement le trajet que
+  // l'ajout du reniflage voulait fermer.
+  const bom = Buffer.from([0xef, 0xbb, 0xbf]);
+  await assert.rejects(
+    () => encodeAvatar(Buffer.concat([bom, SVG_SOURCE])),
+    UndecodableAvatarError,
   );
-  await assert.rejects(() => encodeAvatar(svg), UndecodableAvatarError);
+});
+
+test("refuse un SVG compresse (SVGZ)", async () => {
+  // Meme magie gzip qu'un .gz quelconque (1F 8B) ; sharp le decompresse et le
+  // decode comme un SVG normal derriere le meme svgload. Sans la signature
+  // gzip dans looksLikeMarkup, ce fichier traversait le reniflage textuel
+  // (il ne commence pas par '<') et n'etait refuse qu'apres coup, une fois
+  // librsvg deja passe.
+  const svgz = zlib.gzipSync(SVG_SOURCE);
+  await assert.rejects(() => encodeAvatar(svgz), UndecodableAvatarError);
 });
 
 test("refuse ce qui n'est pas une image", async () => {
@@ -109,6 +133,40 @@ test("refuse ce qui n'est pas une image", async () => {
     UndecodableAvatarError,
   );
   await assert.rejects(() => encodeAvatar(Buffer.alloc(0)), UndecodableAvatarError);
+  // Un buffer entierement blanc ne contient jamais de '<' : looksLikeMarkup
+  // doit parcourir tout le buffer sans en trouver un, rendre `false`, et
+  // laisser la main a sharp -- qui refuse alors normalement, mais avec la
+  // meme UndecodableAvatarError, pas une autre.
+  await assert.rejects(
+    () => encodeAvatar(Buffer.from("   \n\t\r\f   ", "utf8")),
+    UndecodableAvatarError,
+  );
+});
+
+test("les formats legitimes traversent toujours looksLikeMarkup", async () => {
+  // Aucun des formats qu'on accepte ne commence par un octet blanc suivi de
+  // '<', ni par la signature gzip 1F 8B -- ce test le prouve par execution
+  // plutot que par lecture des magic bytes, pour les six formats que sharp
+  // sait encoder en entree ici.
+  const base = () =>
+    sharp({
+      create: { width: 32, height: 32, channels: 3, background: { r: 10, g: 20, b: 30 } },
+    });
+  const sources: Array<[string, () => Promise<Buffer>]> = [
+    ["png", () => base().png().toBuffer()],
+    ["jpeg", () => base().jpeg().toBuffer()],
+    ["webp", () => base().webp().toBuffer()],
+    ["gif", () => base().gif().toBuffer()],
+    ["tiff", () => base().tiff().toBuffer()],
+    ["avif", () => base().avif().toBuffer()],
+  ];
+  for (const [name, make] of sources) {
+    const out = await encodeAvatar(await make());
+    const meta = await sharp(out).metadata();
+    assert.equal(meta.format, "webp", name);
+    assert.equal(meta.width, 512, name);
+    assert.equal(meta.height, 512, name);
+  }
 });
 
 test("refuse une bombe a decompression", async () => {

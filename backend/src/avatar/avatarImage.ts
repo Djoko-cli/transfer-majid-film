@@ -44,19 +44,44 @@ const MAX_INPUT_PIXELS = 50_000_000;
 // voulait éviter. Pour un SVG, libvips choisit l'opération `svgload`, dont la
 // fonction d'en-tête appelle `rsvg_handle_new_from_data` — le document XML est
 // intégralement parsé par librsvg avant même que `format` soit connu, donc
-// avant que ce Set ne soit atteint. La vraie barrière est `looksLikeMarkup`
-// ci-dessous, qui refuse avant de construire l'instance sharp.
+// avant que ce Set ne soit atteint. La barrière voulue est `looksLikeMarkup`
+// ci-dessous, qui refuse par signature d'octets avant de construire
+// l'instance sharp — un filtre binaire, pas un parseur, et donc pas une
+// garantie d'exhaustivité : il connaît la signature gzip et le BOM UTF-8
+// parce qu'un premier passage les avait manqués (un SVG précédé d'un BOM, ou
+// compressé en SVGZ, traversait tel quel et ne se faisait refuser qu'ici,
+// après que librsvg avait déjà tourné), pas parce que la liste est
+// désormais complète. Toute autre façon d'habiller un SVG pour ce reniflage
+// retombe sur ce Set — après coup.
 const REFUSED_FORMATS = new Set(["svg"]);
 
-// Renifle le premier octet non blanc du buffer, avant même de construire
-// l'instance sharp — donc avant que libvips ne choisisse un décodeur et,
-// pour un SVG, avant que librsvg ne parse quoi que ce soit. Un document XML
-// commence par `<`, que ce soit `<svg`, `<?xml` ou `<!DOCTYPE` : aucun format
-// qu'on accepte par ailleurs (PNG, JPEG, WebP, GIF, AVIF) ne commence ainsi.
+// Signature gzip (RFC 1952) : un SVG peut arriver compressé (SVGZ), même
+// magie que n'importe quel `.gz`. sharp le décompresse et le décode comme un
+// SVG normal derrière le même `svgload` — donc le même contournement que le
+// reniflage textuel ci-dessous doit fermer, avant même de regarder le
+// contenu décompressé. Aucun des formats qu'on accepte par ailleurs (PNG,
+// JPEG, WebP, GIF, TIFF, AVIF) n'est jamais gzippé en entrée : un refus ici
+// est donc sans faux positif sur eux.
+const GZIP_MAGIC_0 = 0x1f;
+const GZIP_MAGIC_1 = 0x8b;
+
+// Renifle le début du buffer, avant même de construire l'instance sharp —
+// donc avant que libvips ne choisisse un décodeur et, pour un SVG (compressé
+// ou non), avant que librsvg ne parse quoi que ce soit.
+//  - Un flux gzip (SVGZ compris) commence par les deux octets `1F 8B` : voir
+//    GZIP_MAGIC_0/1 ci-dessus.
+//  - Un document XML commence par `<` — `<svg`, `<?xml`, `<!DOCTYPE` — une
+//    fois sauté un éventuel BOM UTF-8 (`EF BB BF`, valide en tête d'un
+//    document XML) puis les espaces ASCII usuels en tête d'un document texte.
 function looksLikeMarkup(bytes: Buffer): boolean {
-  for (const byte of bytes) {
-    // Espaces ASCII usuels en tête d'un document texte : espace, tabulation,
-    // saut de ligne, retour chariot, saut de page.
+  if (bytes.length >= 2 && bytes[0] === GZIP_MAGIC_0 && bytes[1] === GZIP_MAGIC_1)
+    return true;
+
+  let i = 0;
+  if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) i = 3;
+
+  for (; i < bytes.length; i++) {
+    const byte = bytes[i];
     if (byte === 0x20 || byte === 0x09 || byte === 0x0a || byte === 0x0d || byte === 0x0c)
       continue;
     return byte === 0x3c; // '<'
@@ -66,8 +91,9 @@ function looksLikeMarkup(bytes: Buffer): boolean {
 
 export async function encodeAvatar(bytes: Buffer): Promise<Buffer> {
   // Doit précéder tout appel à sharp : c'est le seul contrôle qui s'exécute
-  // avant que le document soit donné à un parseur, SVG en tête. Voir
-  // `looksLikeMarkup` et le commentaire de `REFUSED_FORMATS` ci-dessus.
+  // avant que le document soit donné à un parseur, SVG (compressé ou non) en
+  // tête. Voir `looksLikeMarkup` et le commentaire de `REFUSED_FORMATS`
+  // ci-dessus.
   if (looksLikeMarkup(bytes))
     throw new UndecodableAvatarError("format refusé : document XML/markup");
 
