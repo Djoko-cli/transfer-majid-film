@@ -513,7 +513,35 @@ export class ShareService {
     return share;
   }
 
-  async remove(shareId: string, isDeleterAdmin = false) {
+  // Un transfert payé ne s'efface pas sous les pieds de celui qui a payé.
+  // Partagée par remove() ET expire() : côté accès, les deux se valent —
+  // expirer ramène l'expiration à maintenant, et le garde de téléchargement
+  // (isPaidFor via paidAccess.util.ts) répond au même 404 "transfert non
+  // trouvé/expiré" qu'une suppression. Sans ce même contrôle sur les deux
+  // portes, un vendeur annulerait d'un clic la fenêtre qu'il vient de
+  // vendre, sans rien rembourser. `force` est la confirmation explicite que
+  // la console demandera plus tard, en affichant combien de personnes ont
+  // payé et jusqu'à quand — aucun appelant ne le passe encore en v1.
+  private async assertNoActivePaidAccess(shareId: string, force: boolean) {
+    if (force) return;
+
+    const enCours = await this.prisma.sharePayment.count({
+      where: {
+        shareId,
+        revokedAt: null,
+        accessUntil: { gt: new Date() },
+      },
+    });
+
+    if (enCours > 0)
+      throw new BadRequestException(
+        this.i18n.t("share.paidAccessStillRunning", {
+          args: { count: enCours },
+        }),
+      );
+  }
+
+  async remove(shareId: string, isDeleterAdmin = false, force = false) {
     const share = await this.prisma.share.findUnique({
       where: { id: shareId },
     });
@@ -523,11 +551,13 @@ export class ShareService {
     if (!share.creatorId && !isDeleterAdmin)
       throw new ForbiddenException(this.i18n.t("share.anonymousNoDelete"));
 
+    await this.assertNoActivePaidAccess(shareId, force);
+
     await this.fileService.deleteAllFiles(shareId);
     await this.prisma.share.delete({ where: { id: shareId } });
   }
 
-  async expire(shareId: string) {
+  async expire(shareId: string, force = false) {
     const share = await this.prisma.share.findUnique({
       where: { id: shareId },
     });
@@ -537,6 +567,8 @@ export class ShareService {
     if (!share.creatorId) {
       throw new ForbiddenException(this.i18n.t("share.anonymousNoExpire"));
     }
+
+    await this.assertNoActivePaidAccess(shareId, force);
 
     await this.prisma.share.update({
       where: { id: shareId },

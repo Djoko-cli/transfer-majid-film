@@ -17,5 +17,6 @@
   "contributionClosed": "Contribution already completed",
   "collectionNotEditable": "A collection can't be reopened or completed: its album stays open to deposits for as long as the collection lasts.",
   "collectionClosed": "This collection is no longer accepting deposits",
-  "paymentRequired": "This transfer has to be paid for before it can be downloaded"
+  "paymentRequired": "This transfer has to be paid for before it can be downloaded",
+  "paidAccessStillRunning": "{count} person(s) paid for this transfer and still have access. Delete it explicitly if that is what you want."
 }

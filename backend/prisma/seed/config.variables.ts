@@ -119,6 +119,11 @@ export const configVariables = {
       defaultValue: "30 days",
       secret: false,
     },
+    paidAccessWindow: {
+      type: "timespan",
+      defaultValue: "30 days",
+      secret: false,
+    },
     defaultExpiration: {
       type: "timespan",
       defaultValue: "3 days",
