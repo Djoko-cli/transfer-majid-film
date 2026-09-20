@@ -14,9 +14,27 @@ jobs:
   system-tests:
     timeout-minutes: 15
     runs-on: ubuntu-latest
-    container: node:24
+    # Alpine, and not the Debian `node:24`, because this job is the only place
+    # that exercises the backend's native dependencies before a release — and on
+    # Debian it exercises the wrong ones. npm resolves optional binaries by libc:
+    # glibc gets `@img/sharp-linux-x64` and Prisma's `linux-openssl-*` engine,
+    # neither of which ever reaches the NAS. The shipped image is
+    # `node:24-alpine` (see Dockerfile), so musl is what has to be green here.
+    #
+    # This is not theoretical. A `sharp` import bug shipped green through this
+    # very job once: tsc passed, the unit tests passed, and the compiled server
+    # failed on every upload — the error even disguised itself as "that file is
+    # not an image we can read". A chain that validates something other than
+    # what is shipped proves nothing about what is shipped.
+    container: node:24-alpine
     steps:
       - uses: actions/checkout@v7
+      # Mirrors the Dockerfile's own backend stages: openssl for Prisma's query
+      # engine, python3 for node-gyp when a dependency has no musl prebuild.
+      # Both are absent from node:24-alpine and present in node:24, which is the
+      # other half of why this job could not simply change its image.
+      - name: Install Alpine build dependencies
+        run: apk add --no-cache openssl python3
       - name: Install Dependencies
         working-directory: ./backend
         run: npm install
