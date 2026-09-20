@@ -73,6 +73,12 @@ export class UserDTO {
   @Expose()
   totpVerified: boolean;
 
+  // `@Expose()` n'est pas décoratif : `from()` sérialise avec
+  // `excludeExtraneousValues: true`, donc un champ sans lui disparaît de toutes
+  // les réponses sans la moindre erreur.
+  @Expose()
+  avatarUpdatedAt?: Date;
+
   @Expose()
   @IsOptional()
   @IsBoolean()

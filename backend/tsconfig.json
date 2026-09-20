@@ -19,6 +19,15 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
-  }
+    "noFallthroughCasesInSwitch": false,
+    // Permet à avatar.fetch.ts d'importer ses voisins (avatarUrl.guard.ts,
+    // constants.ts) avec l'extension `.ts` littérale : c'est ce qui le rend
+    // exécutable tel quel par `node --experimental-strip-types --test`
+    // (qui exige une extension réelle en résolution ESM), tout en restant
+    // compilable normalement — l'extension est réécrite en `.js` dans le
+    // JS émis. N'affecte que les imports qui écrivent déjà `.ts` ; aucun
+    // autre fichier du dépôt ne le fait.
+    "rewriteRelativeImportExtensions": true
+  },
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
 }

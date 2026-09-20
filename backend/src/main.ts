@@ -10,6 +10,7 @@ import { I18nValidationExceptionFilter, I18nValidationPipe } from "nestjs-i18n";
 import { AppModule } from "./app.module";
 import { ConfigService } from "./config/config.service";
 import {
+  AVATAR_MAX_BYTES,
   DATA_DIRECTORY,
   LOG_LEVEL_AVAILABLE,
   LOG_LEVEL_DEFAULT,
@@ -51,6 +52,19 @@ async function bootstrap() {
       limit: `${chunkSize}B`,
     })(req, res, next);
   });
+
+  // Le parseur ci-dessus ne traite que `application/octet-stream` et se cale sur
+  // `share.chunkSize`. S'en servir pour les avatars coupleraient deux limites
+  // sans rapport : un admin qui baisse la taille de chunk casserait l'envoi de
+  // photos sans jamais faire le lien. Celui-ci est borné au seul chemin
+  // concerné, et porte sa propre limite.
+  //
+  // Le chemin contient `/api` parce que `setGlobalPrefix("api")` est appelé
+  // plus bas : Express filtre sur l'URL réellement reçue, pas sur la route Nest.
+  app.use(
+    "/api/users/me/avatar",
+    bodyParser.raw({ type: "image/*", limit: AVATAR_MAX_BYTES }),
+  );
 
   // Signed so oauth.guard.ts's CSRF check actually proves the request came
   // back from the browser this flow started in, not merely that the caller

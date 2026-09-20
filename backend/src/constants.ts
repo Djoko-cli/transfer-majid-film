@@ -1,4 +1,13 @@
-import { LogLevel } from "@nestjs/common";
+// Ce fichier est chargé tel quel par `node --test`, via l'import avec
+// extension (`../constants.ts`) que fait `src/avatar/avatar.fetch.ts` — pas
+// seulement compilé par `tsc` comme le reste du back. Il doit donc rester
+// exécutable par le runner de tests de Node sans transpilation : aucun
+// import de valeur (un import de `@nestjs/common` autre qu'`import type`
+// romprait ce fichier sous `node --test`), et aucune syntaxe TypeScript non
+// effaçable — `enum`, `namespace`, décorateur, paramètre de constructeur à
+// modificateur d'accès. `import type` reste permis : il disparaît
+// entièrement à la compilation, `node --test` ne le voit jamais.
+import type { LogLevel } from "@nestjs/common";
 
 // Used to be admin-configurable (general.appName) — now a fixed constant,
 // like the accent color and radius in the frontend's mantine.style.ts.
@@ -60,6 +69,14 @@ export const SHARE_DIRECTORY = `${DATA_DIRECTORY}/uploads/shares`;
 // into SHARE_DIRECTORY: the real bytes stay on the read-only NAS mount,
 // this directory only ever holds links into it.
 export const BRAND_IMAGE_DIRECTORY = `${DATA_DIRECTORY}/brand-images`;
+// Un fichier par compte, nommé par son identifiant : AVATAR_DIRECTORY/<id>.webp.
+// Même volume que SHARE_DIRECTORY, donc rien de plus à monter en production.
+export const AVATAR_DIRECTORY = `${DATA_DIRECTORY}/avatars`;
+// Ce qu'on accepte en entrée, avant ré-encodage. En dur et pas dans la table de
+// configuration : ce n'est pas un réglage d'exploitation, personne ne le
+// tournera, et un réglage que personne ne tourne est une case de plus à lire
+// dans la console d'administration pour rien.
+export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 // Where a share's files land when clamav.infectedFileAction is
 // "quarantine" instead of "delete" — moved here rather than removed, so
 // an admin can inspect a false positive (or confirm a real one) before

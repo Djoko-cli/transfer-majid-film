@@ -10,6 +10,7 @@ import { EmailService } from "src/email/email.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { withUserCredentialsLock } from "src/utils/asyncLock.util";
 import { inspect } from "util";
+import { AvatarService } from "../avatar/avatar.service";
 import { ConfigService } from "../config/config.service";
 import { FileService } from "../file/file.service";
 import { CreateUserDTO } from "./dto/createUser.dto";
@@ -33,6 +34,7 @@ export class UserSevice {
     private fileService: FileService,
     private configService: ConfigService,
     private readonly i18n: I18nService,
+    private avatar: AvatarService,
   ) {}
 
   async list() {
@@ -360,6 +362,11 @@ export class UserSevice {
     await Promise.all(
       user.shares.map((share) => this.fileService.deleteAllFiles(share.id)),
     );
+
+    // Prisma n'a pas de hook pour ça, et un avatar orphelin ne se retrouve
+    // jamais tout seul : son nom est l'identifiant d'un compte qui n'existe
+    // plus. `remove` est idempotente, donc pas de test préalable à écrire.
+    await this.avatar.remove(id);
 
     return await this.prisma.user.delete({ where: { id } });
   }

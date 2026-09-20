@@ -177,3 +177,40 @@ lignes `File` en base, un seul objet, et deux entrées identiques dans
 l'archive. Sans objet tant que l'instance tourne en stockage local ; à
 régler en même temps que le point ci-dessus, en faisant entrer l'identifiant
 du fichier dans la clé (ce qui est une migration de stockage, pas une ligne).
+
+---
+
+## 7. `test:system` attend indéfiniment un serveur qui ne démarre pas
+
+Relevé le 2026-09-20, en éprouvant la bascule de la CI sur Alpine. Le script
+(`backend/package.json`) est :
+
+```
+prisma migrate reset -f && nest start & wait-on http://localhost:8080/api/configs && npx newman run ./test/newman-system-tests.json
+```
+
+**Le fait :** `wait-on` est appelé **sans délai d'expiration**, et son défaut est
+l'attente infinie. Si `nest start` échoue — dépendance absente, migration
+refusée, fichier de configuration introuvable —, il meurt dans la branche mise
+en arrière-plan par le `&`, personne ne lit son code de sortie, et `wait-on`
+attend un port qui ne s'ouvrira jamais.
+
+**Ce que ça coûte :** en CI, c'est le `timeout-minutes: 15` du job qui finit par
+trancher. Tu récupères donc « annulé après 15 minutes » au lieu de « le serveur
+n'a pas démarré, voici sa sortie » — quinze minutes de runner brûlées, et le
+diagnostic à refaire à la main. En local, il n'y a aucun garde-fou : observé une
+heure et demie d'attente sur un environnement de test incomplet, sans un octet
+de sortie.
+
+**Ce qui le rend silencieux :** le `&` détache le serveur, donc son échec ne
+remonte jamais. C'est le même motif que le `catch` qui déguisait l'erreur
+d'import de `sharp` en « ce fichier n'est pas une image » : la panne réelle est
+visible quelque part, mais pas là où on regarde.
+
+**Correctif :** donner un délai à `wait-on` (`-t 60000`) pour qu'il échoue vite,
+et rediriger la sortie de `nest start` vers un fichier que l'étape suivante
+affiche en cas d'échec. Deux options sur une ligne de script.
+
+**Urgence :** faible tant que la CI passe. Devient pénible dès la première fois
+où elle ne passe plus — c'est-à-dire exactement le moment où on a besoin que le
+diagnostic soit immédiat.

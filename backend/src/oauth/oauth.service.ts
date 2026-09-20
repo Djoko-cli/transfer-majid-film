@@ -2,6 +2,7 @@ import { forwardRef, Inject, Injectable, Logger } from "@nestjs/common";
 import { User } from "@prisma/client";
 import { nanoid } from "nanoid";
 import { AuthService } from "../auth/auth.service";
+import { AvatarService } from "../avatar/avatar.service";
 import { ConfigService } from "../config/config.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { OAuthSignInDto } from "./dto/oauthSignIn.dto";
@@ -14,6 +15,7 @@ export class OAuthService {
     private prisma: PrismaService,
     private config: ConfigService,
     @Inject(forwardRef(() => AuthService)) private auth: AuthService,
+    private avatar: AvatarService,
     @Inject("OAUTH_PLATFORMS") private platforms: string[],
     @Inject("OAUTH_PROVIDERS")
     private oAuthProviders: Record<string, OAuthProvider<unknown>>,
@@ -186,6 +188,23 @@ export class OAuthService {
         userId: result.user.id,
       },
     });
+
+    // Seul point d'appel restant : un retrait délibéré (`AvatarService.remove`)
+    // remet `avatarUpdatedAt` à `null`, exactement comme un compte qui n'a
+    // jamais eu de photo — rejouer cette récupération à chaque connexion
+    // aurait fait revenir une photo qu'on vient de retirer. Ici,
+    // `avatarUpdatedAt` vaut `null` par construction (le compte vient d'être
+    // créé), donc le déclencheur reste correct sans avoir besoin de relire
+    // l'utilisateur. Le coût : si la récupération échoue à l'inscription
+    // (réseau, IdP hors service), elle n'est plus rejouée à une connexion
+    // suivante — la personne enverra sa photo à la main. En échange, la
+    // requête sortante par connexion que la spec assumait « à contrecœur »
+    // disparaît complètement, et un retrait tient enfin.
+    // Sans `await` : l'inscription ne doit dépendre en rien de cette requête.
+    void this.avatar.ingestFromOidc(
+      { id: result.user.id, avatarUpdatedAt: null },
+      user.pictureUrl,
+    );
 
     return result;
   }

@@ -22,6 +22,7 @@ import { TbAuth2Fa, TbDevices, TbMailFast } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import * as yup from "yup";
 import Meta from "../../components/Meta";
+import AvatarCard from "../../components/account/AvatarCard";
 import LanguagePicker from "../../components/account/LanguagePicker";
 import showEnableTotpModal from "../../components/account/showEnableTotpModal";
 import TrustedDevicesPanel from "../../components/auth/TrustedDevicesPanel";
@@ -186,7 +187,8 @@ const Account = () => {
           <Title order={3} mt="xl" mb="xs">
             <FormattedMessage id="account.title" />
           </Title>
-          <Paper p="xl">
+          <AvatarCard />
+          <Paper p="xl" mt="lg">
             <Title order={5} mb="xs">
               <FormattedMessage id="account.card.info.title" />
               {user?.isLdap ? (
