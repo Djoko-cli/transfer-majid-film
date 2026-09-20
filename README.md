@@ -14,7 +14,7 @@
 
 Transfer est un service de transfert de fichiers auto-hébergé : on dépose des fichiers, on obtient un lien, on définit une expiration, et c'est fait. Les expéditeurs anonymes sont vérifiés par un code à usage unique envoyé par e-mail avant tout envoi, ce qui permet de laisser la zone de dépôt grande ouverte sur la page d'accueil sans qu'elle ne devienne un relais à spam.
 
-Ce projet est né comme un fork de [Pingvin Share](https://github.com/stonith404/pingvin-share) — le système d'authentification, le panneau d'administration et le backend NestJS/Prisma descendent tous de ce projet, et il reste sous la licence originale BSD-2-Clause de Pingvin Share (voir [`LICENSE`](LICENSE)). Depuis ce fork, le frontend a été entièrement reconstruit autour d'une page d'accueil/upload unique (pas de site vitrine séparé), d'un design visuel « liquid glass » appliqué à toute l'application (authentification, compte, admin), et de quelques fonctionnalités backend (vérification par e-mail des envois anonymes, une permission « partages permanents » par utilisateur, le français comme langue par défaut) absentes du projet d'origine. Il est maintenu comme une instance personnelle auto-hébergée plutôt que comme un projet public généraliste — le README, la documentation et le processus de contribution reflètent ce choix.
+Ce projet est né comme un fork de [pingvin-share-x](https://github.com/smp46/pingvin-share-x), lui-même un fork de [Pingvin Share](https://github.com/stonith404/pingvin-share) — le système d'authentification, le panneau d'administration et le backend NestJS/Prisma descendent tous de ce projet, et il reste sous la licence originale BSD-2-Clause de Pingvin Share (voir [`LICENSE`](LICENSE)). Depuis ce fork, le frontend a été entièrement reconstruit autour d'une page d'accueil/upload unique (pas de site vitrine séparé), d'un design visuel « liquid glass » appliqué à toute l'application (authentification, compte, admin), et de quelques fonctionnalités backend (vérification par e-mail des envois anonymes, une permission « partages permanents » par utilisateur, le français comme langue par défaut) absentes du projet d'origine. Il est maintenu comme une instance personnelle auto-hébergée plutôt que comme un projet public généraliste — le README, la documentation et le processus de contribution reflètent ce choix.
 
 ## Fonctionnalités
 
@@ -79,4 +79,6 @@ npm run dev
 
 ## Licence
 
-BSD 2-Clause, héritée du projet [Pingvin Share](https://github.com/stonith404/pingvin-share) d'origine. Voir [`LICENSE`](LICENSE).
+BSD 2-Clause, héritée de [Pingvin Share](https://github.com/stonith404/pingvin-share), dont le fichier [`LICENSE`](LICENSE) est conservé tel quel — copyright Elias Schneider, 2022.
+
+La filiation est à deux étages et mérite d'être dite en entier : ce dépôt part de [pingvin-share-x](https://github.com/smp46/pingvin-share-x) (209 commits de smp46), qui part lui-même de [Pingvin Share](https://github.com/stonith404/pingvin-share) (762 commits d'Elias Schneider, plus ceux de ses contributeurs). La divergence avec pingvin-share-x date du 15 août 2026.

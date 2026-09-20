@@ -14,7 +14,7 @@
 
 Transfer is a self-hosted file transfer service: drop files, get a link, set an expiration, done. Anonymous senders are verified with a one-time e-mail code before anything uploads, so the drop zone can stay wide open on the landing page without turning into a spam relay.
 
-It started as a fork of [Pingvin Share](https://github.com/stonith404/pingvin-share) — the auth system, admin panel, and NestJS/Prisma backend are all descended from that project, and it remains under Pingvin Share's original BSD-2-Clause license (see [`LICENSE`](LICENSE)). Since forking, the frontend has been rebuilt around a full landing/upload page (no separate marketing site), a "liquid glass" visual design carried through the entire app (auth, account, admin), and a handful of backend features (anonymous-upload email verification, a per-user "permanent shares" permission, French as the default locale) that don't exist upstream. It's maintained as a personal, self-hosted instance rather than a general-purpose public project — expect the README, docs, and contribution process to reflect that.
+It started as a fork of [pingvin-share-x](https://github.com/smp46/pingvin-share-x), itself a fork of [Pingvin Share](https://github.com/stonith404/pingvin-share) — the auth system, admin panel, and NestJS/Prisma backend are all descended from that project, and it remains under Pingvin Share's original BSD-2-Clause license (see [`LICENSE`](LICENSE)). Since forking, the frontend has been rebuilt around a full landing/upload page (no separate marketing site), a "liquid glass" visual design carried through the entire app (auth, account, admin), and a handful of backend features (anonymous-upload email verification, a per-user "permanent shares" permission, French as the default locale) that don't exist upstream. It's maintained as a personal, self-hosted instance rather than a general-purpose public project — expect the README, docs, and contribution process to reflect that.
 
 ## Features
 
@@ -79,4 +79,6 @@ npm run dev
 
 ## License
 
-BSD 2-Clause, inherited from the upstream [Pingvin Share](https://github.com/stonith404/pingvin-share) project. See [`LICENSE`](LICENSE).
+BSD 2-Clause, inherited from [Pingvin Share](https://github.com/stonith404/pingvin-share), whose [`LICENSE`](LICENSE) file is kept as it stands — copyright Elias Schneider, 2022.
+
+The lineage has two steps and is worth stating in full: this repository forked from [pingvin-share-x](https://github.com/smp46/pingvin-share-x) (209 commits by smp46), which in turn forked from [Pingvin Share](https://github.com/stonith404/pingvin-share) (762 commits by Elias Schneider, plus those of its contributors). It diverged from pingvin-share-x on 15 August 2026.
