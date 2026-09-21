@@ -494,6 +494,11 @@ const Share = ({ shareId }: { shareId: string }) => {
               size="md"
               mb="lg"
               leftIcon={<TbDownload />}
+              // Le même scintillement que « Télécharger tout », et sans
+              // condition : un fichier seul se télécharge directement, sans
+              // attendre qu'une archive se construise — il n'y a donc jamais
+              // de moment où ce bouton est là sans pouvoir servir.
+              className={shimmer.ready}
               onClick={() =>
                 shareService.downloadFile(
                   shareId,

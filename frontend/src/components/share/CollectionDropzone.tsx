@@ -14,6 +14,7 @@ import useConfig from "../../hooks/config.hook";
 import { usePageFileDrop } from "../../hooks/pageFileDrop.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import useUser from "../../hooks/user.hook";
+import { useSubmitButtonStyles } from "../core/submitButtonStyles";
 import shareService from "../../services/share.service";
 import { FileUpload } from "../../types/File.type";
 import toast from "../../utils/toast.util";
@@ -61,6 +62,7 @@ const CollectionDropzone = ({
   const t = useTranslate();
   const config = useConfig();
   const { user } = useUser();
+  const { classes: shimmer } = useSubmitButtonStyles();
 
   const [name, setName] = useState("");
   // Asked for here, beside the first name, rather than sprung as a modal
@@ -303,8 +305,7 @@ const CollectionDropzone = ({
   // decides whether the button is even clickable.
   const isEmailValid = /^\S+@\S+\.\S+$/.test(trimmedEmail);
   const canSubmit =
-    files.length > 0 &&
-    (!!user || (trimmedName.length > 0 && isEmailValid));
+    files.length > 0 && (!!user || (trimmedName.length > 0 && isEmailValid));
 
   const handleSubmit = () => {
     if (!canSubmit || isUploading) return;
@@ -427,6 +428,11 @@ const CollectionDropzone = ({
               onClick={handleSubmit}
               loading={isUploading}
               disabled={!canSubmit}
+              // Même scintillement et même condition que le bouton d'envoi
+              // d'un transfert : c'est le geste que le contributeur est venu
+              // faire, et il ne s'allume qu'une fois qu'il a de quoi
+              // l'accomplir.
+              className={canSubmit && !isUploading ? shimmer.ready : undefined}
             >
               <FormattedMessage id="common.button.submit" />
             </Button>
