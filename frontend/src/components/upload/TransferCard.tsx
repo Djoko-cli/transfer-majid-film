@@ -318,6 +318,13 @@ const TransferCard = ({
           borderColor: t2.colors[t2.primaryColor][dark ? 4 : 6],
         },
       },
+      // Mantine donne aux descriptions un gris pensé pour un fond opaque.
+      // Posé sur le verre sombre de cette carte, il devient illisible. Les
+      // mêmes valeurs que les boutons de pas juste au-dessus, pour que tout
+      // le texte secondaire de la carte ait le même poids.
+      description: {
+        color: dark ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)",
+      },
     };
   };
 
@@ -863,81 +870,6 @@ const TransferCard = ({
                   )}
               </Text>
 
-              {
-                // Admin-only: the seller is wired to the admin account
-                // (backend's ShareService.create() rejects a price from
-                // anyone else), so an ordinary or anonymous sender never
-                // sees a field they couldn't actually use.
-              }
-              {user?.isAdmin && (
-                <NumberInput
-                  hideControls
-                  min={0}
-                  precision={2}
-                  // Sans ça, Mantine déduit le clavier mobile du `step`, qui
-                  // vaut 1 par défaut, et affiche donc `numeric` — un pavé
-                  // sans virgule. C'est sans conséquence pour le champ
-                  // « nombre de vues » dont ce champ copie la forme, mais un
-                  // prix a structurellement besoin de décimales : au
-                  // téléphone, le vendeur ne pourrait pas saisir 3,30 €.
-                  inputMode="decimal"
-                  // Le clavier décimal d'un iPhone en français n'offre qu'une
-                  // VIRGULE, et le séparateur par défaut de Mantine est le
-                  // point : `parseFloat("3,30")` rend 3. Le vendeur aurait
-                  // tapé 3,30 € et enregistré 3 € sans rien voir. Le parseur
-                  // accepte donc les deux, et l'affichage garde le point.
-                  parser={(valeur) => valeur?.replace(/,/g, ".")}
-                  // No type="number" here (unlike maxViews below): that
-                  // forces a native number input, whose default step="1"
-                  // rejects a decimal like "3.30" as invalid before this
-                  // ever reaches yup — Mantine's own default (a plain text
-                  // input with its own precision handling) is what actually
-                  // supports cents.
-                  variant="filled"
-                  label={t("upload.transfer.price.label")}
-                  description={t("upload.transfer.price.description")}
-                  {...form.getInputProps("priceEuros")}
-                  // Same custom-stepper pattern as the max-views field
-                  // below, and the same reason: see its own comment for why
-                  // Mantine's native +/- controls are replaced here.
-                  styles={stepperFieldStyles}
-                  rightSection={
-                    <Stack spacing={0} sx={{ alignSelf: "stretch" }}>
-                      <UnstyledButton
-                        sx={stepperButtonSx}
-                        onPointerDown={(
-                          e: React.PointerEvent<HTMLButtonElement>,
-                        ) => {
-                          e.currentTarget.focus();
-                          priceHold.start(1);
-                        }}
-                        onPointerUp={priceHold.stop}
-                        onPointerLeave={priceHold.stop}
-                        onPointerCancel={priceHold.stop}
-                        aria-label={t("upload.transfer.price.increase")}
-                      >
-                        <TbChevronUp size={12} />
-                      </UnstyledButton>
-                      <UnstyledButton
-                        sx={stepperButtonSx}
-                        onPointerDown={(
-                          e: React.PointerEvent<HTMLButtonElement>,
-                        ) => {
-                          e.currentTarget.focus();
-                          priceHold.start(-1);
-                        }}
-                        onPointerUp={priceHold.stop}
-                        onPointerLeave={priceHold.stop}
-                        onPointerCancel={priceHold.stop}
-                        aria-label={t("upload.transfer.price.decrease")}
-                      >
-                        <TbChevronDown size={12} />
-                      </UnstyledButton>
-                    </Stack>
-                  }
-                />
-              )}
-
               <Accordion>
                 <Accordion.Item value="options" sx={{ borderBottom: "none" }}>
                   <Accordion.Control>
@@ -945,6 +877,80 @@ const TransferCard = ({
                   </Accordion.Control>
                   <Accordion.Panel>
                     <Stack align="stretch">
+                      {
+                        // Admin-only: the seller is wired to the admin account
+                        // (backend's ShareService.create() rejects a price from
+                        // anyone else), so an ordinary or anonymous sender never
+                        // sees a field they couldn't actually use.
+                      }
+                      {user?.isAdmin && (
+                        <NumberInput
+                          hideControls
+                          min={0}
+                          precision={2}
+                          // Sans ça, Mantine déduit le clavier mobile du `step`, qui
+                          // vaut 1 par défaut, et affiche donc `numeric` — un pavé
+                          // sans virgule. C'est sans conséquence pour le champ
+                          // « nombre de vues » dont ce champ copie la forme, mais un
+                          // prix a structurellement besoin de décimales : au
+                          // téléphone, le vendeur ne pourrait pas saisir 3,30 €.
+                          inputMode="decimal"
+                          // Le clavier décimal d'un iPhone en français n'offre qu'une
+                          // VIRGULE, et le séparateur par défaut de Mantine est le
+                          // point : `parseFloat("3,30")` rend 3. Le vendeur aurait
+                          // tapé 3,30 € et enregistré 3 € sans rien voir. Le parseur
+                          // accepte donc les deux, et l'affichage garde le point.
+                          parser={(valeur) => valeur?.replace(/,/g, ".")}
+                          // No type="number" here (unlike maxViews below): that
+                          // forces a native number input, whose default step="1"
+                          // rejects a decimal like "3.30" as invalid before this
+                          // ever reaches yup — Mantine's own default (a plain text
+                          // input with its own precision handling) is what actually
+                          // supports cents.
+                          variant="filled"
+                          label={t("upload.transfer.price.label")}
+                          description={t("upload.transfer.price.description")}
+                          {...form.getInputProps("priceEuros")}
+                          // Same custom-stepper pattern as the max-views field
+                          // below, and the same reason: see its own comment for why
+                          // Mantine's native +/- controls are replaced here.
+                          styles={stepperFieldStyles}
+                          rightSection={
+                            <Stack spacing={0} sx={{ alignSelf: "stretch" }}>
+                              <UnstyledButton
+                                sx={stepperButtonSx}
+                                onPointerDown={(
+                                  e: React.PointerEvent<HTMLButtonElement>,
+                                ) => {
+                                  e.currentTarget.focus();
+                                  priceHold.start(1);
+                                }}
+                                onPointerUp={priceHold.stop}
+                                onPointerLeave={priceHold.stop}
+                                onPointerCancel={priceHold.stop}
+                                aria-label={t("upload.transfer.price.increase")}
+                              >
+                                <TbChevronUp size={12} />
+                              </UnstyledButton>
+                              <UnstyledButton
+                                sx={stepperButtonSx}
+                                onPointerDown={(
+                                  e: React.PointerEvent<HTMLButtonElement>,
+                                ) => {
+                                  e.currentTarget.focus();
+                                  priceHold.start(-1);
+                                }}
+                                onPointerUp={priceHold.stop}
+                                onPointerLeave={priceHold.stop}
+                                onPointerCancel={priceHold.stop}
+                                aria-label={t("upload.transfer.price.decrease")}
+                              >
+                                <TbChevronDown size={12} />
+                              </UnstyledButton>
+                            </Stack>
+                          }
+                        />
+                      )}
                       {!form.values.restrictToRecipients && (
                         <PasswordInput
                           variant="filled"
