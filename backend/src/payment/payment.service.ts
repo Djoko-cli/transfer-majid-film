@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import * as moment from "moment";
+import { Response } from "express";
 import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
 import { EmailService } from "src/email/email.service";
@@ -13,6 +14,7 @@ import { PrismaService } from "src/prisma/prisma.service";
 import { isPaidFor } from "src/share/paidAccess.util";
 import { computeAccessUntil, nextExpiration } from "src/share/paidWindow.util";
 import { PaymentOutcome, interpretStripeEvent } from "./stripeEvent.util";
+import { VerificationService } from "src/verification/verification.service";
 import { StripeService } from "./stripe.service";
 
 @Injectable()
@@ -25,6 +27,7 @@ export class PaymentService {
     private stripe: StripeService,
     private readonly i18n: I18nService,
     private emailService: EmailService,
+    private verification: VerificationService,
   ) {}
 
   async createSession(shareId: string, verifiedEmail: string | null) {
@@ -371,10 +374,27 @@ export class PaymentService {
     return true;
   }
 
+  // Un identifiant que Stripe ne connaît pas ressortait tel quel — « No such
+  // checkout.session: cs_… », avec le code HTTP de Stripe. Deux torts : ça
+  // raconte à un inconnu qu'on est allé interroger Stripe, et surtout ça
+  // donnait à la page de retour un code qu'elle ne savait pas distinguer d'un
+  // vrai incident, si bien qu'un `?payment=` fabriqué de toutes pièces lui
+  // faisait afficher « votre paiement est bien parti » à quelqu'un qui n'avait
+  // rien payé. Session inconnue, session d'un autre compte, session d'un autre
+  // transfert : une seule et même réponse, impossible à distinguer.
+  private async retrieveSession(sessionId: string) {
+    try {
+      return await this.stripe.client().checkout.sessions.retrieve(sessionId);
+    } catch (e) {
+      this.logger.warn(`Rejected a payment confirmation: ${e.message}`);
+      throw new BadRequestException(this.i18n.t("payment.sessionMismatch"));
+    }
+  }
+
   // Le même travail que le webhook, depuis l'autre bout. Sans lui, un client
   // qui revient avant que Stripe ait appelé regarde un écran verrouillé alors
   // que son argent est parti. L'upsert fait que le second arrivé ne casse rien.
-  async confirmSession(shareId: string, sessionId: string) {
+  async confirmSession(shareId: string, sessionId: string, response: Response) {
     // Deux refus qui ne coûtent rien, AVANT de toucher au réseau. Cette route
     // n'a pas de garde de transfert — c'est voulu, voir le contrôleur — donc
     // elle accepte un identifiant de session de n'importe qui : sans ces deux
@@ -390,9 +410,7 @@ export class PaymentService {
     });
     if (!transfert) throw new NotFoundException(this.i18n.t("share.notFound"));
 
-    const session = await this.stripe
-      .client()
-      .checkout.sessions.retrieve(sessionId);
+    const session = await this.retrieveSession(sessionId);
 
     // On ne fait PAS confiance au shareId de l'URL : c'est celui que Stripe a
     // enregistré à la création qui fait foi.
@@ -404,11 +422,35 @@ export class PaymentService {
     // as annulé » et devrait le deviner en re-sondant le transfert. Une
     // session abandonnée, expirée ou à zéro euro ressort ici en `false` :
     // interpretStripeEvent refuse tout `payment_status` autre que "paid".
-    return {
-      paid: await this.applyEvent({
-        type: "checkout.session.completed",
-        data: { object: session as unknown as object },
-      }),
-    };
+    const paid = await this.applyEvent({
+      type: "checkout.session.completed",
+      data: { object: session as unknown as object },
+    });
+
+    // Le pont qui manquait, et sans lequel tout le reste ne sert à rien.
+    //
+    // Le droit payé est attaché à une ADRESSE, et la porte ne reconnaît une
+    // adresse que par le cookie du flux de code à usage unique. Or payer ne
+    // pose aucun cookie : le webhook parle de serveur à serveur, et Stripe ne
+    // connaît pas le navigateur. Sans cette ligne, l'acheteur revient de
+    // Stripe, son argent est parti, son droit existe en base — et il relit
+    // « Débloquer pour 300 € », sans que rien ne lui dise qu'il doit encore
+    // prouver son adresse.
+    //
+    // Ce qui l'autorise : l'identifiant de session, que Stripe ne met que
+    // dans l'URL de retour de celui qui vient de payer, et que la
+    // vérification de `metadata.shareId` ci-dessus rattache à CE transfert.
+    // C'est une preuve de possession, du même ordre que le code reçu par
+    // courriel — et l'adresse posée dans le jeton est celle que STRIPE
+    // rapporte, jamais une que l'appelant aurait choisie.
+    const email = session.customer_details?.email;
+
+    if (paid && email)
+      this.verification.setVerificationCookie(
+        response,
+        this.verification.issueTokenFor(email.trim().toLowerCase()),
+      );
+
+    return { paid };
   }
 }

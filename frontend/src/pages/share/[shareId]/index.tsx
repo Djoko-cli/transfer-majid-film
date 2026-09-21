@@ -138,11 +138,15 @@ const Share = ({ shareId }: { shareId: string }) => {
       });
   };
 
+  // Rend le transfert rechargé, et non plus rien : deux appelants ont besoin
+  // de savoir ce que le serveur a répondu — le retour de Stripe et « J'ai
+  // déjà payé ». Sans ça, ils ne peuvent que recharger et espérer.
   const getFiles = async () => {
-    shareService
+    return shareService
       .get(shareId)
       .then((share) => {
         setShare(share);
+        return share;
       })
       .catch((e) => {
         const { error } = e.response.data;
@@ -204,16 +208,33 @@ const Share = ({ shareId }: { shareId: string }) => {
       shallow: true,
     });
 
+    const enAttente = () =>
+      // Volontairement persistant : un bandeau vert de quatre secondes sur
+      // une page dont l'argent vient de partir, et qui affiche encore le mur,
+      // se rate. Celui-ci reste jusqu'à ce qu'on le ferme.
+      toast.success(t("share.payment.pending"), {
+        autoClose: false,
+        title: t("share.payment.pending.title"),
+      });
+
     shareService
       .confirmPayment(shareId, sessionId)
       .then(({ paid }) => {
         if (paid) getFiles();
-        // Not a hard error: the money already left, and "not confirmed
-        // yet" (the webhook hasn't landed) isn't a failure on a page
-        // where someone just paid.
-        else toast.success(t("share.payment.pending"));
+        // Pas une erreur sèche : l'argent est parti, et « pas encore
+        // confirmé » (le webhook n'a pas atterri) n'est pas un échec sur une
+        // page où quelqu'un vient de payer.
+        else enAttente();
       })
-      .catch(() => toast.success(t("share.payment.pending")));
+      .catch((e) => {
+        // Un 400 veut dire que ce paramètre ne désigne rien qui nous
+        // concerne — session inconnue, ou appartenant à un autre transfert.
+        // On se tait : rassurer sur un paiement à quelqu'un qui n'a rien payé
+        // serait pire que ne rien dire, et n'importe qui peut fabriquer un
+        // `?payment=` et l'envoyer à n'importe qui.
+        if (e?.response?.status === 400) return;
+        enAttente();
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.query.payment]);
 
@@ -237,7 +258,25 @@ const Share = ({ shareId }: { shareId: string }) => {
   // re-fetching the share is what actually finds the payment, since
   // GET /shares/:id now carries the freshly-proven email as a cookie.
   const handleAlreadyPaid = () => {
-    showEmailVerificationModal(modals, () => getFiles());
+    showEmailVerificationModal(
+      modals,
+      async () => {
+        const rafraichi = await getFiles();
+
+        // Prouver une adresse qui n'a pas payé rechargeait la même page
+        // verrouillée, sans un mot : le visiteur en concluait que le site est
+        // cassé, alors qu'il s'est simplement trompé d'adresse.
+        if (rafraichi?.priceCents && !rafraichi.isPaidForViewer)
+          // Persistant, comme le message d'attente : il demande au visiteur
+          // de vérifier quelque chose, et un bandeau de quatre secondes sur
+          // une page qui n'a visiblement pas changé se rate.
+          toast.error(t("share.payment.no-payment-for-address"), {
+            autoClose: false,
+          });
+      },
+      undefined,
+      "share.payment.verify.description",
+    );
   };
 
   if (isRestricted) {
@@ -415,10 +454,10 @@ const Share = ({ shareId }: { shareId: string }) => {
                 <FormattedMessage
                   id="share.payment.unlock"
                   values={{
-                    price: intl.formatNumber(
-                      (share?.priceCents ?? 0) / 100,
-                      { style: "currency", currency: "EUR" },
-                    ),
+                    price: intl.formatNumber((share?.priceCents ?? 0) / 100, {
+                      style: "currency",
+                      currency: "EUR",
+                    }),
                   }}
                 />
               </Button>

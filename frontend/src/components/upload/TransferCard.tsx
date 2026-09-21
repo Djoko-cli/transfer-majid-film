@@ -881,6 +881,12 @@ const TransferCard = ({
                   // prix a structurellement besoin de décimales : au
                   // téléphone, le vendeur ne pourrait pas saisir 3,30 €.
                   inputMode="decimal"
+                  // Le clavier décimal d'un iPhone en français n'offre qu'une
+                  // VIRGULE, et le séparateur par défaut de Mantine est le
+                  // point : `parseFloat("3,30")` rend 3. Le vendeur aurait
+                  // tapé 3,30 € et enregistré 3 € sans rien voir. Le parseur
+                  // accepte donc les deux, et l'affichage garde le point.
+                  parser={(valeur) => valeur?.replace(/,/g, ".")}
                   // No type="number" here (unlike maxViews below): that
                   // forces a native number input, whose default step="1"
                   // rejects a decimal like "3.30" as invalid before this

@@ -710,8 +710,13 @@ export default {
   // voit à la place des boutons de téléchargement tant qu'il n'a pas payé.
   "share.payment.unlock": "Débloquer pour {price}",
   "share.payment.already-paid": "J'ai déjà payé",
+  "share.payment.verify.description":
+    "Saisissez l'adresse avec laquelle vous avez payé. Vous recevrez un code à usage unique, et le transfert se déverrouillera.",
+  "share.payment.pending.title": "Paiement en cours de confirmation",
   "share.payment.pending":
     "Votre paiement est bien parti. L'accès s'ouvrira dans un instant — rechargez cette page si rien ne change.",
+  "share.payment.no-payment-for-address":
+    "Aucun paiement n'est enregistré pour cette adresse. Vérifiez qu'il s'agit bien de celle que vous avez utilisée pour payer.",
   // END /share/[id]
 
   // /share/[id]/edit

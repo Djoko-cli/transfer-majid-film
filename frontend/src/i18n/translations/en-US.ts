@@ -726,8 +726,13 @@ export default {
   // of the download buttons until they've paid.
   "share.payment.unlock": "Unlock for {price}",
   "share.payment.already-paid": "I've already paid",
+  "share.payment.verify.description":
+    "Enter the address you paid with. You will get a one-time code, and the transfer will unlock.",
+  "share.payment.pending.title": "Confirming your payment",
   "share.payment.pending":
     "Your payment went through. Access will open in a moment — reload this page if nothing changes.",
+  "share.payment.no-payment-for-address":
+    "No payment is recorded for this address. Check that it is the one you paid with.",
 
   // END /share/[id]
 

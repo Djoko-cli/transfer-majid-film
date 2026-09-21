@@ -1,5 +1,13 @@
-import { Body, Controller, Param, Post, Req, UseGuards } from "@nestjs/common";
-import { Request } from "express";
+import {
+  Body,
+  Controller,
+  Param,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from "@nestjs/common";
+import { Request, Response } from "express";
 import { IdValidation } from "src/share/guard/shareIdValidation.guard";
 import { ShareSecurityGuard } from "src/share/guard/shareSecurity.guard";
 import { VerificationService } from "src/verification/verification.service";
@@ -52,7 +60,10 @@ export class PaymentController {
   async confirm(
     @Param("shareId") shareId: string,
     @Body() { sessionId }: ConfirmSessionDTO,
+    // `passthrough` parce qu'on pose un cookie tout en laissant Nest
+    // sérialiser la valeur rendue, comme le fait verification.controller.ts.
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.paymentService.confirmSession(shareId, sessionId);
+    return this.paymentService.confirmSession(shareId, sessionId, response);
   }
 }

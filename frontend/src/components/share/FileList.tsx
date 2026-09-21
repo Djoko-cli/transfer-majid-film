@@ -31,13 +31,16 @@ const ACTION_ICON_GAP = 16; // <Group>'s default "md" spacing
 const CELL_PADDING = 10; // Mantine's Table cell padding, per side
 
 // How many action buttons a given file's row will render — mirrors the
-// conditionals in the actions cell exactly (download is unconditional
-// unless the share is a locked paywall, the clipboard and preview ones
-// depend on the file type).
+// conditionals in the actions cell exactly. A locked paywall renders none
+// of them: every one of the three reaches the byte route the payment guard
+// closes. Unlocked, download is unconditional and the clipboard and preview
+// ones depend on the file type.
 const countActionIcons = (file: FileMetaData, isLocked: boolean) =>
-  (isLocked ? 0 : 1) +
-  (shareService.isShareTextFile(file.name) ? 1 : 0) +
-  (shareService.doesFileSupportPreview(file.name) ? 1 : 0);
+  isLocked
+    ? 0
+    : 1 +
+      (shareService.isShareTextFile(file.name) ? 1 : 0) +
+      (shareService.doesFileSupportPreview(file.name) ? 1 : 0);
 
 const actionsColumnWidth = (iconCount: number) =>
   iconCount * ACTION_ICON_SIZE +
@@ -123,7 +126,10 @@ const FileList = ({
 }: {
   files?: FileMetaData[];
   setShare: Dispatch<SetStateAction<Share | undefined>>;
-  share: Share;
+  // Facultatif, et il l'était déjà dans les faits : la page appelante rend
+  // cette liste avant que le transfert soit chargé et masquait le trou d'un
+  // `share!`. Un accès de premier niveau y plantait la page entière.
+  share?: Share;
   isLoading: boolean;
   recipientId?: string;
   // Present only for a collection's page — see the page that renders this
@@ -154,10 +160,10 @@ const FileList = ({
         }
       });
 
-      setShare({
-        ...share,
-        files: sortedFiles,
-      });
+      // `share` est forcément là : sortFiles ne s'exécute que quand `files`
+      // existe, et `files` vient de `share`. Le garde est pour le typage, qui
+      // ne peut pas le savoir.
+      if (share) setShare({ ...share, files: sortedFiles });
     }
   };
 
@@ -233,6 +239,11 @@ const FileList = ({
           </tr>
         </thead>
         <tbody>
+          {/* Tout ce qui suit la branche `isLoading` ne se rend qu'une fois
+              le transfert chargé — c'est pourquoi les `share!` de ces lignes
+              tiennent. Ils sont locaux et visibles, là où le `share: Share`
+              du typage d'avant cachait le même pari dans la signature et
+              laissait n'importe quel nouvel accès planter la page. */}
           {isLoading
             ? skeletonRows
             : buildGroups(
@@ -266,7 +277,7 @@ const FileList = ({
                           <Group spacing="xs" noWrap>
                             <img
                               src={shareService.getThumbnailUrl(
-                                share.id,
+                                share!.id,
                                 file.id,
                                 recipientId,
                               )}
@@ -318,7 +329,7 @@ const FileList = ({
                                   onClick={() => {
                                     api
                                       .get(
-                                        `/shares/${share.id}/files/${file.id}?download=false`,
+                                        `/shares/${share!.id}/files/${file.id}?download=false`,
                                       )
                                       .then((res) => {
                                         if (window.isSecureContext) {
@@ -340,21 +351,38 @@ const FileList = ({
                                 </ActionIcon>
                               </HoverTip>
                             )}
-                          {shareService.doesFileSupportPreview(file.name) && (
-                            <HoverTip label={t("common.button.preview")}>
-                              <ActionIcon
-                                color="green"
-                                variant="light"
-                                size={ACTION_ICON_SIZE}
-                                aria-label={t("common.button.preview")}
-                                onClick={() =>
-                                  showFilePreviewModal(share.id, file, modals)
-                                }
-                              >
-                                <TbEye />
-                              </ActionIcon>
-                            </HoverTip>
-                          )}
+                          {/* Masqué avec les autres actions, malgré
+                              l'intention « on voit ce qu'on achète » : cette
+                              modale ne lit PAS la miniature, elle lit
+                              `/files/:id?download=false` — la route même que
+                              le garde ferme derrière le paiement. Laissée
+                              visible, elle ouvrirait une fenêtre vide, un
+                              « type non pris en charge », et un bouton
+                              « Voir l'original » menant à un 403 en JSON.
+                              Ce qu'on montre avant de payer, ce sont les
+                              vraies miniatures de la colonne du nom, qui
+                              passent par `/thumbnail` et ne sont pas
+                              gardées. */}
+                          {!isLocked &&
+                            shareService.doesFileSupportPreview(file.name) && (
+                              <HoverTip label={t("common.button.preview")}>
+                                <ActionIcon
+                                  color="green"
+                                  variant="light"
+                                  size={ACTION_ICON_SIZE}
+                                  aria-label={t("common.button.preview")}
+                                  onClick={() =>
+                                    showFilePreviewModal(
+                                      share!.id,
+                                      file,
+                                      modals,
+                                    )
+                                  }
+                                >
+                                  <TbEye />
+                                </ActionIcon>
+                              </HoverTip>
+                            )}
                           {!isLocked && (
                             <HoverTip label={t("common.button.download")}>
                               <ActionIcon
@@ -364,7 +392,7 @@ const FileList = ({
                                 aria-label={t("common.button.download")}
                                 onClick={async () => {
                                   await shareService.downloadFile(
-                                    share.id,
+                                    share!.id,
                                     file.id,
                                     recipientId,
                                   );
