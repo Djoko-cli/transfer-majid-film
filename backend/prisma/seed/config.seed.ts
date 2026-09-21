@@ -1,16 +1,17 @@
 import { PrismaClient } from "@prisma/client";
 
 // Extensionless, unlike every other cross-file .ts import in this repo, and
-// deliberately so: this one file is loaded by three different runtimes, and
-// only the bare specifier satisfies all three. `rewriteRelativeImportExtensions`
-// turns a literal `.ts` into `.js` at transpile time, which ts-node then fails
-// to require (its hook registers `.ts`, and no `.js` exists next to the
-// source) — that breaks `prisma db seed`, and with it `prisma migrate reset`,
-// and with it the system-test job. The Dockerfile compiles this file with a
-// bare `tsc <file>`, which reads no tsconfig at all, so `.ts` there is a hard
-// TS5097 error and the image stops building. A bare specifier resolves in all
-// of them. config.seed.spec.ts keeps its `.ts` because node's ESM
-// stripper does demand a real extension.
+// deliberately so: this file is loaded by two toolchains that disagree about
+// the literal `.ts`, and only the bare specifier satisfies both.
+// `rewriteRelativeImportExtensions` turns a literal `.ts` into `.js` at
+// transpile time, which ts-node then fails to require (its hook registers
+// `.ts`, and no `.js` exists next to the source) — that breaks
+// `prisma db seed`, and with it `prisma migrate reset`, and with it the
+// system-test job. The Dockerfile compiles this file with a bare
+// `tsc <file>`, which reads no tsconfig at all, so `.ts` there is a hard
+// TS5097 error and the image stops building. Node's own type stripper loads
+// neither of them — it never reads this file, only config.variables.ts, whose
+// own importers keep the `.ts` the ESM resolver demands.
 import { configVariables } from "./config.variables";
 
 export type YamlConfig = {

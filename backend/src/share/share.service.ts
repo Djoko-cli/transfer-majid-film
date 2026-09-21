@@ -151,9 +151,7 @@ export class ShareService {
         // which is the gate that makes storing it safe at all.
         senderEmail: user
           ? null
-          : (this.config.get(
-              "share.requireEmailVerificationForAnonymousShares",
-            )
+          : (this.config.get("share.requireEmailVerificationForAnonymousShares")
               ? verifiedSenderEmail?.toLowerCase().trim()
               : share.senderEmail?.toLowerCase().trim()) || null,
         expiration: expirationDate,
@@ -515,13 +513,13 @@ export class ShareService {
 
   // Un transfert payé ne s'efface pas sous les pieds de celui qui a payé.
   // Partagée par remove() ET expire() : côté accès, les deux se valent —
-  // expirer ramène l'expiration à maintenant, et le garde de téléchargement
-  // (isPaidFor via paidAccess.util.ts) répond au même 404 "transfert non
-  // trouvé/expiré" qu'une suppression. Sans ce même contrôle sur les deux
-  // portes, un vendeur annulerait d'un clic la fenêtre qu'il vient de
-  // vendre, sans rien rembourser. `force` est la confirmation explicite que
-  // la console demandera plus tard, en affichant combien de personnes ont
-  // payé et jusqu'à quand — aucun appelant ne le passe encore en v1.
+  // expirer ramène l'expiration à maintenant, et le contrôle d'expiration de
+  // shareSecurity.guard.ts répond alors 404 "transfert non trouvé", bien en
+  // amont du contrôle de paiement qu'il porte plus bas. Sans ce même contrôle
+  // sur les deux portes, un vendeur annulerait d'un clic la fenêtre qu'il
+  // vient de vendre, sans rien rembourser. `force` est la confirmation
+  // explicite que la console demandera plus tard, en affichant combien de
+  // personnes ont payé et jusqu'à quand — aucun appelant ne le passe en v1.
   private async assertNoActivePaidAccess(shareId: string, force: boolean) {
     if (force) return;
 
