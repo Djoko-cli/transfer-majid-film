@@ -46,6 +46,10 @@ export type CreateShare = {
   expiration: string;
   security: ShareSecurity;
   size?: number;
+  // Admin-only (backend/src/share/share.service.ts rejects it otherwise) —
+  // set from TransferCard's priceEuros field, already rounded to whole
+  // cents before it gets here.
+  priceCents?: number;
 };
 
 // How the sender chose to deliver the transfer: a plain shareable link, or

@@ -18,5 +18,6 @@
   "collectionNotEditable": "Une collecte ne peut pas être rouverte ni terminée : son album reste ouvert aux dépôts pendant toute la durée de la collecte.",
   "collectionClosed": "Cette collecte n'accepte plus de dépôts",
   "paymentRequired": "Ce transfert doit être payé avant d'être téléchargé",
-  "paidAccessStillRunning": "{count} personne(s) ont payé ce transfert et y ont encore accès. Supprimez-le explicitement si c'est bien ce que vous voulez."
+  "paidAccessStillRunning": "{count} personne(s) ont payé ce transfert et y ont encore accès. Supprimez-le explicitement si c'est bien ce que vous voulez.",
+  "pricingNotAllowed": "Vous n'êtes pas autorisé à fixer un prix sur ce transfert."
 }

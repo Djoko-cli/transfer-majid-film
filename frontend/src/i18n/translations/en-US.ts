@@ -523,6 +523,11 @@ export default {
   "upload.transfer.expires.label": "Expiration (days)",
   "upload.transfer.expires.increase": "Increase expiration",
   "upload.transfer.expires.decrease": "Decrease expiration",
+  "upload.transfer.price.label": "Price (€)",
+  "upload.transfer.price.description":
+    "Leave empty for a free transfer. The recipient will see what it contains, but will have to pay to download it.",
+  "upload.transfer.price.increase": "Increase price",
+  "upload.transfer.price.decrease": "Decrease price",
 
   // BrandPanel.tsx
   "upload.brand.caption": "{title}, {year}",

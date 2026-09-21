@@ -1,12 +1,15 @@
 import { Type } from "class-transformer";
 import {
   IsEmail,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
   Length,
   Matches,
+  Max,
   MaxLength,
+  Min,
   ValidateNested,
 } from "class-validator";
 import { i18nValidationMessage } from "nestjs-i18n";
@@ -47,4 +50,14 @@ export class CreateShareDTO {
   @IsNumber()
   @IsOptional()
   size: number;
+
+  // The cap isn't decorative: it bounds what a forged request can ask
+  // Stripe to charge (see ShareService.create's admin-only guard, which is
+  // the other half of that protection — this DTO alone only rejects a
+  // non-integer, negative, or absurd amount, not a non-admin sender).
+  @IsInt()
+  @Min(0)
+  @Max(100_000_00)
+  @IsOptional()
+  priceCents?: number;
 }
