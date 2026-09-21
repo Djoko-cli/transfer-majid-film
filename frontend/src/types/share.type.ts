@@ -31,6 +31,16 @@ export type Share = {
   hasPassword: boolean;
   isCollection?: boolean;
   collection?: ShareCollection;
+  // Null/undefined = gratuit. Set on Share.priceCents (backend/prisma) and
+  // carried here by ShareDTO only since it got its own @Expose() — see
+  // that file's own comment for why it needed one at all.
+  priceCents?: number | null;
+  // Computed server-side by ShareController.get() from isPaidFor() plus
+  // the creator/admin exceptions shareSecurity.guard.ts also grants — never
+  // computed here. It only ever decides what this page SHOWS (the paywall
+  // vs. the download buttons); the guard is what actually decides whether
+  // a file byte leaves the server.
+  isPaidForViewer?: boolean;
 };
 
 export type CompletedShare = Share;
@@ -46,6 +56,10 @@ export type CreateShare = {
   expiration: string;
   security: ShareSecurity;
   size?: number;
+  // Admin-only (backend/src/share/share.service.ts rejects it otherwise) —
+  // set from TransferCard's priceEuros field, already rounded to whole
+  // cents before it gets here.
+  priceCents?: number;
 };
 
 // How the sender chose to deliver the transfer: a plain shareable link, or

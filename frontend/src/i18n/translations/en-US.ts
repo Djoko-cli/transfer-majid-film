@@ -523,6 +523,11 @@ export default {
   "upload.transfer.expires.label": "Expiration (days)",
   "upload.transfer.expires.increase": "Increase expiration",
   "upload.transfer.expires.decrease": "Decrease expiration",
+  "upload.transfer.price.label": "Price (€)",
+  "upload.transfer.price.description":
+    "Leave empty for a free transfer. The recipient will see what it contains, but will have to pay to download it.",
+  "upload.transfer.price.increase": "Increase price",
+  "upload.transfer.price.decrease": "Decrease price",
 
   // BrandPanel.tsx
   "upload.brand.caption": "{title}, {year}",
@@ -717,6 +722,18 @@ export default {
     "A confirmation code will be sent there before your files are sent.",
   "share.collection.identity.signed-in-as": "You're depositing as {name}.",
 
+  // The paywall (task 11): what a paid transfer's recipient sees instead
+  // of the download buttons until they've paid.
+  "share.payment.unlock": "Unlock for {price}",
+  "share.payment.already-paid": "I've already paid",
+  "share.payment.verify.description":
+    "Enter the address you paid with. You will get a one-time code, and the transfer will unlock.",
+  "share.payment.pending.title": "Confirming your payment",
+  "share.payment.pending":
+    "Your payment went through. Access will open in a moment — reload this page if nothing changes.",
+  "share.payment.no-payment-for-address":
+    "No payment is recorded for this address. Check that it is the one you paid with.",
+
   // END /share/[id]
 
   // /share/[id]/edit
@@ -811,6 +828,7 @@ export default {
   "admin.config.category.email": "Email",
   "admin.config.category.smtp": "SMTP",
   "admin.config.category.oauth": "Social Login",
+  "admin.config.category.stripe": "Stripe",
   "admin.config.general.default-language": "Default Language",
   "admin.config.general.default-language.description":
     "This applies to all users, each user can still personalise their language in their profile.",
@@ -1004,6 +1022,15 @@ export default {
     "Trust unauthorized SMTP server certificates",
   "admin.config.smtp.allow-unauthorized-certificates.description":
     "Only set this to true if you need to trust self signed certificates.",
+  "admin.config.stripe.enabled": "Enable",
+  "admin.config.stripe.enabled.description":
+    "Whether Stripe payments are enabled. Only set this to true once the secret key below has been entered.",
+  "admin.config.stripe.secret-key": "Secret key",
+  "admin.config.stripe.secret-key.description":
+    "Stripe API secret key, used to create payments server-side. Found in the Stripe dashboard, under Developers > API keys.",
+  "admin.config.stripe.webhook-signing-secret": "Webhook signing secret",
+  "admin.config.stripe.webhook-signing-secret.description":
+    "Used to verify that received events genuinely come from Stripe. Found in the Stripe dashboard, under Developers > Webhooks, once the endpoint has been created.",
   "admin.config.oauth.allow-registration": "Allow registration",
   "admin.config.oauth.allow-registration.description":
     "Allow users to register via social login",

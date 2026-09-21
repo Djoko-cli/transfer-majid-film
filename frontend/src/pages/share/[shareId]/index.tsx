@@ -16,7 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import moment from "moment";
 import { useEffect, useState } from "react";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { TbDownload, TbEdit, TbFiles, TbLink } from "react-icons/tb";
 import Meta from "../../../components/Meta";
 import showShareLinkModal from "../../../components/account/showShareLinkModal";
@@ -28,6 +28,7 @@ import showErrorModal from "../../../components/share/showErrorModal";
 import showShareInformationsModal from "../../../components/share/showShareInformationsModal";
 import glassFormTheme from "../../../components/upload/glassFormTheme";
 import SplitTransferLayout from "../../../components/upload/SplitTransferLayout";
+import showEmailVerificationModal from "../../../components/upload/modals/showEmailVerificationModal";
 import useConfig from "../../../hooks/config.hook";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import useUser from "../../../hooks/user.hook";
@@ -53,14 +54,19 @@ const Share = ({ shareId }: { shareId: string }) => {
   const clipboard = useClipboard();
   const modals = useModals();
   const router = useRouter();
+  const intl = useIntl();
   const [share, setShare] = useState<ShareType>();
   const [isRestricted, setIsRestricted] = useState(false);
+  const [isStartingCheckout, setIsStartingCheckout] = useState(false);
   const { user } = useUser();
   const config = useConfig();
   const t = useTranslate();
 
   const isOwner = !!user && !!share && share.creator?.id === user.id;
   const recipientId = getQueryString(router.query.recipient);
+  // Step 2 of task 11: the true gate is shareSecurity.guard.ts, this is only
+  // what decides which buttons this page shows.
+  const isLocked = !!share?.priceCents && !share?.isPaidForViewer;
 
   const handleEditClick = async () => {
     try {
@@ -132,11 +138,15 @@ const Share = ({ shareId }: { shareId: string }) => {
       });
   };
 
+  // Rend le transfert rechargé, et non plus rien : deux appelants ont besoin
+  // de savoir ce que le serveur a répondu — le retour de Stripe et « J'ai
+  // déjà payé ». Sans ça, ils ne peuvent que recharger et espérer.
   const getFiles = async () => {
-    shareService
+    return shareService
       .get(shareId)
       .then((share) => {
         setShare(share);
+        return share;
       })
       .catch((e) => {
         const { error } = e.response.data;
@@ -179,6 +189,95 @@ const Share = ({ shareId }: { shareId: string }) => {
   useEffect(() => {
     getFiles();
   }, []);
+
+  // Step 4: the return trip from Stripe Checkout. success_url carries
+  // ?payment=<session id> (payment.service.ts's createSession) — task 8's
+  // /confirm route turns that into a verdict without needing a share
+  // token, which is exactly what makes step 5 (a return from a different
+  // browser, with no token at all) work too.
+  useEffect(() => {
+    const sessionId = getQueryString(router.query.payment);
+    if (!sessionId) return;
+
+    // Stripped right away, before the response comes back: a reload while
+    // confirmation is in flight must not resubmit the same session id, and
+    // Stripe won't hand it back a second time once we've left this URL.
+    const query = { ...router.query };
+    delete query.payment;
+    router.replace({ pathname: router.pathname, query }, undefined, {
+      shallow: true,
+    });
+
+    const enAttente = () =>
+      // Volontairement persistant : un bandeau vert de quatre secondes sur
+      // une page dont l'argent vient de partir, et qui affiche encore le mur,
+      // se rate. Celui-ci reste jusqu'à ce qu'on le ferme.
+      toast.success(t("share.payment.pending"), {
+        autoClose: false,
+        title: t("share.payment.pending.title"),
+      });
+
+    shareService
+      .confirmPayment(shareId, sessionId)
+      .then(({ paid }) => {
+        if (paid) getFiles();
+        // Pas une erreur sèche : l'argent est parti, et « pas encore
+        // confirmé » (le webhook n'a pas atterri) n'est pas un échec sur une
+        // page où quelqu'un vient de payer.
+        else enAttente();
+      })
+      .catch((e) => {
+        // Un 400 veut dire que ce paramètre ne désigne rien qui nous
+        // concerne — session inconnue, ou appartenant à un autre transfert.
+        // On se tait : rassurer sur un paiement à quelqu'un qui n'a rien payé
+        // serait pire que ne rien dire, et n'importe qui peut fabriquer un
+        // `?payment=` et l'envoyer à n'importe qui.
+        if (e?.response?.status === 400) return;
+        enAttente();
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.query.payment]);
+
+  const handleUnlock = async () => {
+    setIsStartingCheckout(true);
+    try {
+      const { url } = await shareService.createPaymentSession(shareId);
+      // No new tab: Stripe's own redirect back has to land in this same
+      // page (the ?payment= handling above), not a tab the visitor may
+      // have already closed.
+      window.location.href = url;
+    } catch (e) {
+      setIsStartingCheckout(false);
+      toast.axiosError(e);
+    }
+  };
+
+  // Step 5: paid, but from a browser with no proven address yet (a
+  // different device, or this one after the cookie was cleared).
+  // showEmailVerificationModal does the OTP round trip; once it resolves,
+  // re-fetching the share is what actually finds the payment, since
+  // GET /shares/:id now carries the freshly-proven email as a cookie.
+  const handleAlreadyPaid = () => {
+    showEmailVerificationModal(
+      modals,
+      async () => {
+        const rafraichi = await getFiles();
+
+        // Prouver une adresse qui n'a pas payé rechargeait la même page
+        // verrouillée, sans un mot : le visiteur en concluait que le site est
+        // cassé, alors qu'il s'est simplement trompé d'adresse.
+        if (rafraichi?.priceCents && !rafraichi.isPaidForViewer)
+          // Persistant, comme le message d'attente : il demande au visiteur
+          // de vérifier quelque chose, et un bandeau de quatre secondes sur
+          // une page qui n'a visiblement pas changé se rate.
+          toast.error(t("share.payment.no-payment-for-address"), {
+            autoClose: false,
+          });
+      },
+      undefined,
+      "share.payment.verify.description",
+    );
+  };
 
   if (isRestricted) {
     return (
@@ -339,6 +438,41 @@ const Share = ({ shareId }: { shareId: string }) => {
           </Group>
 
           {
+            // Step 2 of task 11: sells the way in instead of offering the
+            // download buttons at all. share.priceCents/isPaidForViewer
+            // come from the server (ShareController.get()) — never
+            // computed here, see isLocked's own comment above.
+          }
+          {isLocked && (
+            <Stack spacing="xs" mb="lg">
+              <Button
+                fullWidth
+                size="md"
+                loading={isStartingCheckout}
+                onClick={handleUnlock}
+              >
+                <FormattedMessage
+                  id="share.payment.unlock"
+                  values={{
+                    price: intl.formatNumber((share?.priceCents ?? 0) / 100, {
+                      style: "currency",
+                      currency: "EUR",
+                    }),
+                  }}
+                />
+              </Button>
+              <Button
+                fullWidth
+                variant="subtle"
+                size="sm"
+                onClick={handleAlreadyPaid}
+              >
+                <FormattedMessage id="share.payment.already-paid" />
+              </Button>
+            </Stack>
+          )}
+
+          {
             // A primary, unconditional download action — previously this
             // only appeared (as DownloadAllButton) for shares with more
             // than one file, so the common single-file case left the
@@ -346,7 +480,7 @@ const Share = ({ shareId }: { shareId: string }) => {
             // file downloads directly rather than through the zip
             // pipeline, so it doesn't wait on isZipReady either.
           }
-          {share?.files?.length === 1 && (
+          {!isLocked && share?.files?.length === 1 && (
             <Button
               fullWidth
               size="md"
@@ -363,7 +497,7 @@ const Share = ({ shareId }: { shareId: string }) => {
               <FormattedMessage id="common.button.download" />
             </Button>
           )}
-          {share?.files?.length > 1 && (
+          {!isLocked && share?.files?.length > 1 && (
             <Box mb="lg">
               <DownloadAllButton
                 shareId={shareId}

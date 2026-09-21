@@ -507,6 +507,11 @@ export default {
   "upload.transfer.expires.label": "Expiration (jours)",
   "upload.transfer.expires.increase": "Augmenter l'expiration",
   "upload.transfer.expires.decrease": "Diminuer l'expiration",
+  "upload.transfer.price.label": "Prix (€)",
+  "upload.transfer.price.description":
+    "Laissez vide pour un transfert gratuit. Le destinataire verra ce qu'il contient, mais devra payer pour le télécharger.",
+  "upload.transfer.price.increase": "Augmenter le prix",
+  "upload.transfer.price.decrease": "Diminuer le prix",
 
   // BrandPanel.tsx
   "upload.brand.caption": "{title}, {year}",
@@ -700,6 +705,18 @@ export default {
   "share.collection.identity.email-description":
     "Un code de confirmation y sera envoyé avant l’envoi de vos fichiers.",
   "share.collection.identity.signed-in-as": "Vous déposez en tant que {name}.",
+
+  // Le paywall (tâche 11) : ce que le destinataire d'un transfert payant
+  // voit à la place des boutons de téléchargement tant qu'il n'a pas payé.
+  "share.payment.unlock": "Débloquer pour {price}",
+  "share.payment.already-paid": "J'ai déjà payé",
+  "share.payment.verify.description":
+    "Saisissez l'adresse avec laquelle vous avez payé. Vous recevrez un code à usage unique, et le transfert se déverrouillera.",
+  "share.payment.pending.title": "Paiement en cours de confirmation",
+  "share.payment.pending":
+    "Votre paiement est bien parti. L'accès s'ouvrira dans un instant — rechargez cette page si rien ne change.",
+  "share.payment.no-payment-for-address":
+    "Aucun paiement n'est enregistré pour cette adresse. Vérifiez qu'il s'agit bien de celle que vous avez utilisée pour payer.",
   // END /share/[id]
 
   // /share/[id]/edit
@@ -806,6 +823,7 @@ export default {
   "admin.config.category.email": "Courriel",
   "admin.config.category.smtp": "SMTP",
   "admin.config.category.oauth": "Identifiant social",
+  "admin.config.category.stripe": "Stripe",
   "admin.config.general.default-language": "Langue par défaut",
   "admin.config.general.default-language.description":
     "Ceci s'applique à tous les utilisateurs, chaque utilisateur peut toujours personnaliser sa langue dans son profil.",
@@ -1006,6 +1024,15 @@ export default {
     "Faire confiance aux certificats de serveurs SMTP non autorisés",
   "admin.config.smtp.allow-unauthorized-certificates.description":
     "Ne permettez ceci que si vous avez besoin de faire confiance aux certificats autosignés.",
+  "admin.config.stripe.enabled": "Activer",
+  "admin.config.stripe.enabled.description":
+    "Active les paiements Stripe. N'activez ceci qu'une fois la clé secrète ci-dessous renseignée.",
+  "admin.config.stripe.secret-key": "Clé secrète",
+  "admin.config.stripe.secret-key.description":
+    "Clé secrète de l'API Stripe, utilisée pour créer les paiements côté serveur. Disponible dans le tableau de bord Stripe, sous Développeurs > Clés API.",
+  "admin.config.stripe.webhook-signing-secret": "Secret de signature du webhook",
+  "admin.config.stripe.webhook-signing-secret.description":
+    "Secret utilisé pour vérifier que les événements reçus proviennent bien de Stripe. Disponible dans le tableau de bord Stripe, sous Développeurs > Webhooks, une fois le point de terminaison créé.",
   "admin.config.oauth.allow-registration": "Autoriser l’inscription",
   "admin.config.oauth.allow-registration.description":
     "Permettre aux utilisateurs de s’inscrire via leur identifiant social",

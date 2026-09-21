@@ -26,6 +26,12 @@ const showEmailVerificationModal = (
   modals: ModalsContextProps,
   onVerified: (email: string) => void,
   knownEmail?: string,
+  // La même modale sert deux contextes qui n'ont rien à voir : prouver son
+  // adresse AVANT d'envoyer un transfert, et prouver celle avec laquelle on
+  // vient de PAYER pour déverrouiller un transfert. Le texte par défaut parle
+  // d'envoi ; l'acheteur qui déverrouille son achat lisait une consigne
+  // d'expéditeur.
+  descriptionId = "upload.verification.email.description",
 ) => {
   const t = translateOutsideContext();
 
@@ -38,6 +44,7 @@ const showEmailVerificationModal = (
       <MantineProvider inherit theme={glassFormTheme}>
         <Body
           knownEmail={knownEmail}
+          descriptionId={descriptionId}
           onVerified={(email) => {
             modals.closeAll();
             onVerified(email);
@@ -51,9 +58,11 @@ const showEmailVerificationModal = (
 const Body = ({
   onVerified,
   knownEmail,
+  descriptionId,
 }: {
   onVerified: (email: string) => void;
   knownEmail?: string;
+  descriptionId: string;
 }) => {
   const t = useTranslate();
   const [step, setStep] = useState<"email" | "code">(
@@ -127,7 +136,7 @@ const Body = ({
       >
         <Stack>
           <Text size="sm" color="dimmed">
-            <FormattedMessage id="upload.verification.email.description" />
+            <FormattedMessage id={descriptionId} />
           </Text>
           <TextInput
             label={t("upload.verification.email.label")}

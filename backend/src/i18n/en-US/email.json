@@ -76,5 +76,9 @@
   "reverseShareInviteSubjectNamed": "{creator} invites you to deposit files: {name}",
   "reverseShareInviteMessage": "{creator} has opened a place to deposit files and invites you to add yours.\\n\\nJust open this link, no account needed: {shareUrl}",
   "reverseShareInviteMessageDescribed": "{creator} has opened a place to deposit files and invites you to add yours.\\n\\n“{description}”\\n\\nJust open this link, no account needed: {shareUrl}",
-  "reverseShareInviteCta": "Deposit my files"
+  "reverseShareInviteCta": "Deposit my files",
+  "paymentReceiptSubject": "Your payment for “{name}”",
+  "paymentReceiptMessage": "Your payment of {amount} was received on {date}.\\n\\nYou can download your files here: {shareUrl}\\n\\nReference: {reference}\\n\\nThis message is a receipt, not an invoice.",
+  "paymentSellerSubject": "{amount} received for “{name}”",
+  "paymentSellerMessage": "{email} paid {amount} for “{name}”.\\n\\n{shareUrl}"
 }

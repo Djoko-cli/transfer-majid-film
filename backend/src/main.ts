@@ -37,6 +37,16 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: logLevels,
+    // Rend `request.rawBody` disponible pour la vérification de signature du
+    // webhook Stripe, qui recalcule un HMAC sur les octets reçus — un corps
+    // JSON analysé puis re-sérialisé ne donne pas le même condensé, et toute
+    // signature valide serait rejetée. Nest ne garde cette copie brute que
+    // pour les corps qu'il parse LUI-MÊME (JSON, urlencoded) ; le
+    // téléversement par morceaux, en `application/octet-stream`, passe par
+    // le middleware maison juste en dessous et n'est donc pas dupliqué par
+    // cette option. Le coût : chaque corps JSON/urlencodé est gardé deux
+    // fois en mémoire pour la durée de la requête.
+    rawBody: true,
   });
 
   app.useGlobalPipes(new I18nValidationPipe({ whitelist: true }));

@@ -76,6 +76,19 @@ export class VerificationService {
       data: { consumed: true },
     });
 
+    return this.issueTokenFor(email);
+  }
+
+  /**
+   * Frappe le jeton d'adresse prouvée SANS passer par un code.
+   *
+   * À n'appeler que depuis un chemin qui a déjà prouvé l'adresse autrement.
+   * Il n'en existe qu'un : le retour de Stripe, où c'est Stripe qui rapporte
+   * l'adresse ayant payé, et où l'identifiant de session — que seul l'acheteur
+   * reçoit, dans son URL de retour — tient lieu de preuve de possession.
+   * Ailleurs, passer par verifyCode().
+   */
+  issueTokenFor(email: string): string {
     return this.jwtService.sign(
       { email, purpose: ANON_SHARE_TOKEN_PURPOSE },
       { secret: this.config.get("internal.jwtSecret"), expiresIn: "4h" },

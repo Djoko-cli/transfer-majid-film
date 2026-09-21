@@ -2,7 +2,14 @@ import { ActionIcon, Box, Group, Skeleton, Table, Text } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
 import moment from "moment";
-import { Dispatch, Fragment, ReactNode, SetStateAction, useEffect, useState } from "react";
+import {
+  Dispatch,
+  Fragment,
+  ReactNode,
+  SetStateAction,
+  useEffect,
+  useState,
+} from "react";
 import { TbDownload, TbEye, TbClipboard } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -24,12 +31,16 @@ const ACTION_ICON_GAP = 16; // <Group>'s default "md" spacing
 const CELL_PADDING = 10; // Mantine's Table cell padding, per side
 
 // How many action buttons a given file's row will render — mirrors the
-// conditionals in the actions cell exactly (download is unconditional,
-// the clipboard and preview ones depend on the file type).
-const countActionIcons = (file: FileMetaData) =>
-  1 +
-  (shareService.isShareTextFile(file.name) ? 1 : 0) +
-  (shareService.doesFileSupportPreview(file.name) ? 1 : 0);
+// conditionals in the actions cell exactly. A locked paywall renders none
+// of them: every one of the three reaches the byte route the payment guard
+// closes. Unlocked, download is unconditional and the clipboard and preview
+// ones depend on the file type.
+const countActionIcons = (file: FileMetaData, isLocked: boolean) =>
+  isLocked
+    ? 0
+    : 1 +
+      (shareService.isShareTextFile(file.name) ? 1 : 0) +
+      (shareService.doesFileSupportPreview(file.name) ? 1 : 0);
 
 const actionsColumnWidth = (iconCount: number) =>
   iconCount * ACTION_ICON_SIZE +
@@ -77,8 +88,9 @@ const buildGroups = (
         <FormattedMessage
           id="share.collection.contributed-by"
           values={{
-            count: files.filter((file) => file.contributionId === contribution.id)
-              .length,
+            count: files.filter(
+              (file) => file.contributionId === contribution.id,
+            ).length,
             name: contribution.name || anonymousLabel,
             date: moment(contribution.createdAt).format("LL"),
           }}
@@ -114,7 +126,10 @@ const FileList = ({
 }: {
   files?: FileMetaData[];
   setShare: Dispatch<SetStateAction<Share | undefined>>;
-  share: Share;
+  // Facultatif, et il l'était déjà dans les faits : la page appelante rend
+  // cette liste avant que le transfert soit chargé et masquait le trou d'un
+  // `share!`. Un accès de premier niveau y plantait la page entière.
+  share?: Share;
   isLoading: boolean;
   recipientId?: string;
   // Present only for a collection's page — see the page that renders this
@@ -145,10 +160,10 @@ const FileList = ({
         }
       });
 
-      setShare({
-        ...share,
-        files: sortedFiles,
-      });
+      // `share` est forcément là : sortFiles ne s'exécute que quand `files`
+      // existe, et `files` vient de `share`. Le garde est pour le typage, qui
+      // ne peut pas le savoir.
+      if (share) setShare({ ...share, files: sortedFiles });
     }
   };
 
@@ -163,9 +178,21 @@ const FileList = ({
   // text also qualifies for) reserves room for 3 — no dead space either
   // way, and whatever isn't reserved goes to the name column, since that's
   // the one with `width: auto` under table-layout: fixed.
+  // The per-file download icon follows the same condition as index.tsx's
+  // own download buttons — priced and not yet paid for. Preview stays: the
+  // thumbnail it's built on isn't behind the paywall either (no
+  // @RequiresPayment() on GET .../thumbnail), and seeing what's on offer is
+  // the point.
+  //
+  // `share?.` rather than `share.`: the page passes `share!` while it's
+  // still loading (isLoading true, share genuinely undefined — that `!` is
+  // only a compile-time promise, not a runtime one), and this line runs on
+  // every render regardless of isLoading.
+  const isLocked = !!share?.priceCents && !share?.isPaidForViewer;
+
   const maxActionIcons =
     files && files.length > 0
-      ? Math.max(...files.map((file) => countActionIcons(file)))
+      ? Math.max(...files.map((file) => countActionIcons(file, isLocked)))
       : 3;
 
   return (
@@ -212,69 +239,87 @@ const FileList = ({
           </tr>
         </thead>
         <tbody>
+          {/* Tout ce qui suit la branche `isLoading` ne se rend qu'une fois
+              le transfert chargé — c'est pourquoi les `share!` de ces lignes
+              tiennent. Ils sont locaux et visibles, là où le `share: Share`
+              du typage d'avant cachait le même pari dans la signature et
+              laissait n'importe quel nouvel accès planter la page. */}
           {isLoading
             ? skeletonRows
-            : buildGroups(files!, contributions, t("share.collection.anonymous")).map(
-                (group) => (
-                  <Fragment key={group.key}>
-                    {group.header && (
-                      <tr>
-                        <td
-                          colSpan={3}
-                          style={{ paddingTop: 16, paddingBottom: 4 }}
-                        >
-                          <Text size="sm" weight={600} color="dimmed">
-                            {group.header}
-                          </Text>
-                        </td>
-                      </tr>
-                    )}
-                    {group.files.map((file) => (
-                      <tr key={file.id}>
-                        <td
-                          style={{
-                            whiteSpace: "normal",
-                            overflowWrap: "break-word",
-                            verticalAlign: "top",
-                          }}
-                        >
-                          {file.thumbnailStatus === "ready" ? (
-                            <Group spacing="xs" noWrap>
-                              <img
-                                src={shareService.getThumbnailUrl(
-                                  share.id,
-                                  file.id,
-                                  recipientId,
-                                )}
-                                alt=""
-                                loading="lazy"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
-                                }}
-                                style={{
-                                  width: 48,
-                                  height: 32,
-                                  objectFit: "cover",
-                                  borderRadius: 6,
-                                  flexShrink: 0,
-                                }}
-                              />
-                              {renderFileName(file.name)}
-                            </Group>
-                          ) : (
-                            renderFileName(file.name)
-                          )}
-                        </td>
-                        <td
-                          style={{ whiteSpace: "nowrap", verticalAlign: "top" }}
-                        >
-                          {byteToHumanSizeString(parseInt(file.size))}
-                        </td>
-                        <td
-                          style={{ whiteSpace: "nowrap", verticalAlign: "top" }}
-                        >
-                          <Group position="right" noWrap>
-                            {shareService.isShareTextFile(file.name) && (
+            : buildGroups(
+                files!,
+                contributions,
+                t("share.collection.anonymous"),
+              ).map((group) => (
+                <Fragment key={group.key}>
+                  {group.header && (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        style={{ paddingTop: 16, paddingBottom: 4 }}
+                      >
+                        <Text size="sm" weight={600} color="dimmed">
+                          {group.header}
+                        </Text>
+                      </td>
+                    </tr>
+                  )}
+                  {group.files.map((file) => (
+                    <tr key={file.id}>
+                      <td
+                        style={{
+                          whiteSpace: "normal",
+                          overflowWrap: "break-word",
+                          verticalAlign: "top",
+                        }}
+                      >
+                        {file.thumbnailStatus === "ready" ? (
+                          <Group spacing="xs" noWrap>
+                            <img
+                              src={shareService.getThumbnailUrl(
+                                share!.id,
+                                file.id,
+                                recipientId,
+                              )}
+                              alt=""
+                              loading="lazy"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                              style={{
+                                width: 48,
+                                height: 32,
+                                objectFit: "cover",
+                                borderRadius: 6,
+                                flexShrink: 0,
+                              }}
+                            />
+                            {renderFileName(file.name)}
+                          </Group>
+                        ) : (
+                          renderFileName(file.name)
+                        )}
+                      </td>
+                      <td
+                        style={{ whiteSpace: "nowrap", verticalAlign: "top" }}
+                      >
+                        {byteToHumanSizeString(parseInt(file.size))}
+                      </td>
+                      <td
+                        style={{ whiteSpace: "nowrap", verticalAlign: "top" }}
+                      >
+                        <Group position="right" noWrap>
+                          {/* Masqué avec les téléchargements, et non avec
+                                les prévisualisations : ce bouton lit la route
+                                d'octets, celle que le garde ferme derrière le
+                                paiement. Laissé visible, il rendrait 403 sans
+                                rien dire — le `.then` plus bas n'a pas de
+                                `.catch` — et pour un fichier texte, il
+                                livrerait le contenu entier s'il marchait.
+                                On voit ce qu'on achète, on ne l'emporte
+                                pas. */}
+                          {!isLocked &&
+                            shareService.isShareTextFile(file.name) && (
                               <HoverTip label={t("share.copy-text-contents")}>
                                 <ActionIcon
                                   color="blue"
@@ -284,7 +329,7 @@ const FileList = ({
                                   onClick={() => {
                                     api
                                       .get(
-                                        `/shares/${share.id}/files/${file.id}?download=false`,
+                                        `/shares/${share!.id}/files/${file.id}?download=false`,
                                       )
                                       .then((res) => {
                                         if (window.isSecureContext) {
@@ -306,7 +351,20 @@ const FileList = ({
                                 </ActionIcon>
                               </HoverTip>
                             )}
-                            {shareService.doesFileSupportPreview(file.name) && (
+                          {/* Masqué avec les autres actions, malgré
+                              l'intention « on voit ce qu'on achète » : cette
+                              modale ne lit PAS la miniature, elle lit
+                              `/files/:id?download=false` — la route même que
+                              le garde ferme derrière le paiement. Laissée
+                              visible, elle ouvrirait une fenêtre vide, un
+                              « type non pris en charge », et un bouton
+                              « Voir l'original » menant à un 403 en JSON.
+                              Ce qu'on montre avant de payer, ce sont les
+                              vraies miniatures de la colonne du nom, qui
+                              passent par `/thumbnail` et ne sont pas
+                              gardées. */}
+                          {!isLocked &&
+                            shareService.doesFileSupportPreview(file.name) && (
                               <HoverTip label={t("common.button.preview")}>
                                 <ActionIcon
                                   color="green"
@@ -314,13 +372,18 @@ const FileList = ({
                                   size={ACTION_ICON_SIZE}
                                   aria-label={t("common.button.preview")}
                                   onClick={() =>
-                                    showFilePreviewModal(share.id, file, modals)
+                                    showFilePreviewModal(
+                                      share!.id,
+                                      file,
+                                      modals,
+                                    )
                                   }
                                 >
                                   <TbEye />
                                 </ActionIcon>
                               </HoverTip>
                             )}
+                          {!isLocked && (
                             <HoverTip label={t("common.button.download")}>
                               <ActionIcon
                                 color="cyan"
@@ -329,7 +392,7 @@ const FileList = ({
                                 aria-label={t("common.button.download")}
                                 onClick={async () => {
                                   await shareService.downloadFile(
-                                    share.id,
+                                    share!.id,
                                     file.id,
                                     recipientId,
                                   );
@@ -338,13 +401,13 @@ const FileList = ({
                                 <TbDownload />
                               </ActionIcon>
                             </HoverTip>
-                          </Group>
-                        </td>
-                      </tr>
-                    ))}
-                  </Fragment>
-                ),
-              )}
+                          )}
+                        </Group>
+                      </td>
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
         </tbody>
       </Table>
     </Box>

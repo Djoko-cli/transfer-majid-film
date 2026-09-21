@@ -80,6 +80,14 @@ export class ShareService {
     if (!(await this.isShareIdAvailable(share.id)).isAvailable)
       throw new BadRequestException(this.i18n.t("share.idInUse"));
 
+    // The seller is wired to the admin (spec §3). An anonymous sender or an
+    // ordinary account isn't selling on their own behalf — and priceCents
+    // reaches prisma.share.create unchanged via the ...shareData spread
+    // below, so this check is the only thing standing between a forged
+    // request body and an arbitrary price.
+    if (share.priceCents && !user?.isAdmin)
+      throw new ForbiddenException(this.i18n.t("share.pricingNotAllowed"));
+
     if (!share.security || Object.keys(share.security).length == 0)
       share.security = undefined;
 
@@ -480,6 +488,10 @@ export class ShareService {
         // `collection`, not this method, which stays about the Share row
         // itself.
         collectionOf: true,
+        // Read by ShareController.get() to resolve isPaidForViewer via the
+        // same isPaidFor() the guard uses — nothing here decides access,
+        // it only needs the same rows the guard already trusts.
+        payments: { select: { email: true, revokedAt: true } },
       },
     });
 

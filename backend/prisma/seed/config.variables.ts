@@ -649,6 +649,28 @@ export const configVariables = {
       secret: false,
     },
   },
+  stripe: {
+    enabled: {
+      type: "boolean",
+      defaultValue: "false",
+      secret: false,
+    },
+    secretKey: {
+      type: "string",
+      defaultValue: "",
+      // Les DEUX drapeaux : `obscured` masque la valeur au panneau (tâche 1),
+      // `secret` l'exclut de GET /api/configs, qui n'a aucun garde. L'un sans
+      // l'autre laisserait la clé partir à des visiteurs anonymes.
+      obscured: true,
+      secret: true,
+    },
+    webhookSigningSecret: {
+      type: "string",
+      defaultValue: "",
+      obscured: true,
+      secret: true,
+    },
+  },
 } satisfies ConfigVariables;
 
 type ConfigVariables = {
