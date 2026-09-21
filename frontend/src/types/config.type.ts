@@ -21,6 +21,9 @@ export type AdminConfig = Config & {
   secret: boolean;
   description: string;
   obscured: boolean;
+  // Renvoyé à la place de la valeur pour un réglage obscured : le panneau ne
+  // reçoit plus le secret, seulement le fait qu'il y en ait un.
+  isSet?: boolean;
   allowEdit: boolean;
   mirroredToFile: boolean;
   mirroredToSecretsFile: boolean;

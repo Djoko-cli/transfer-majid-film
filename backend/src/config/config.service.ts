@@ -17,6 +17,7 @@ import { I18nContext } from "nestjs-i18n";
 import { YamlConfig } from "../../prisma/seed/config.seed";
 import { CONFIG_FILE, SECRETS_FILE } from "src/constants";
 import { hasAnySignInMethod } from "../utils/signInMethod.util";
+import { redactObscured } from "./obscuredValue.util";
 
 /**
  * ConfigService extends EventEmitter to allow listening for config updates,
@@ -526,9 +527,8 @@ export class ConfigService extends EventEmitter {
 
     return configVariables.map((variable) => {
       return {
-        ...variable,
+        ...redactObscured(variable),
         key: `${variable.category}.${variable.name}`,
-        value: variable.value ?? variable.defaultValue,
         // Every field mirrors the DB in both directions now, config.yaml
         // and secrets.env alike (see writeYamlConfig/applyYamlToConfig and
         // writeSecretsFile/applySecretsToConfig) — nothing left that's
@@ -717,7 +717,11 @@ export class ConfigService extends EventEmitter {
     await this.writeYamlConfig();
     await this.writeSecretsFile();
 
-    return updatedVariable;
+    // Same leak as getByCategory, through PATCH /api/configs/admin this
+    // time: the row Prisma just wrote back carries the secret in plain
+    // text. updateMany() accumulates these straight into its response, so
+    // redacting here closes it for both callers at once.
+    return redactObscured(updatedVariable);
   }
 
   validateConfigVariable(key: string, value: string | number | boolean) {

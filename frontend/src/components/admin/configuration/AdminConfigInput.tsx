@@ -80,6 +80,19 @@ const AdminConfigInput = ({
             style={{
               width: "100%",
             }}
+            // Le champ est vide par construction : le serveur ne renvoie plus
+            // la valeur d'un secret. Sans ces deux lignes, « vide » se lit
+            // « non posé » et l'administrateur ressaisit ce qui est déjà là.
+            placeholder={
+              configVariable.isSet
+                ? t("admin.config.secret.set")
+                : t("admin.config.secret.unset")
+            }
+            description={
+              configVariable.isSet
+                ? t("admin.config.secret.replace")
+                : undefined
+            }
             disabled={!configVariable.allowEdit}
             {...form.getInputProps("stringValue")}
             onChange={(e) => onValueChange(configVariable, e.target.value)}

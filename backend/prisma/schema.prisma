@@ -35,6 +35,7 @@ model User {
   adminNoticeDismissals AdminNoticeDismissal[]
   trustedDevices        TrustedDevice[]
   contributions         ShareContribution[]
+  sharePaymentsSold     SharePayment[]         @relation("SharePaymentSeller")
 
   totpEnabled        Boolean             @default(false)
   totpVerified       Boolean             @default(false)
@@ -165,6 +166,12 @@ model Share {
   description   String?
   removedReason String?
 
+  // Null = gratuit, ce qui laisse tous les transferts existants intacts sans
+  // migration de données. En centimes entiers : aucun flottant ne touche de
+  // l'argent. Pas de colonne de devise ici — en v1 elle ne varie pas, et
+  // c'est sur le paiement qu'elle a une valeur comptable.
+  priceCents Int?
+
   creatorId String?
   creator   User?   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
@@ -208,6 +215,7 @@ model Share {
   userRecipients  ShareUserRecipient[]
   files           File[]
   downloads       ShareDownload[]
+  payments        SharePayment[]       @relation("SharePayments")
   storageProvider String               @default("LOCAL")
 }
 
@@ -511,4 +519,48 @@ model BrandStill {
   project BrandProject @relation(fields: [slug], references: [slug], onDelete: Cascade)
 
   @@id([slug, still])
+}
+
+model SharePayment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  // Nullable et SetNull : un transfert supprimé ne doit pas effacer la trace
+  // de l'argent, sinon la facture numérotée du chantier futur n'aura plus rien
+  // à facturer. `shareName` est dénormalisé pour que la ligne reste lisible
+  // une fois la relation coupée.
+  shareId   String?
+  share     Share?  @relation("SharePayments", fields: [shareId], references: [id], onDelete: SetNull)
+  shareName String?
+
+  // L'adresse qui a payé : c'est elle, la portée EMAIL.
+  email String
+
+  // "EMAIL" en v1. "TRANSFER" et "SESSION" restent des valeurs admises par la
+  // phase 0 pour la vente publique. Une String et non une enum : SQLite ne
+  // laisse pas Prisma en déclarer — même convention que Share.storageProvider.
+  scope String @default("EMAIL")
+
+  // Le vendeur explicite voulu par la phase 0. Toujours l'administrateur en
+  // v1, mais le modèle ne le suppose pas.
+  sellerId String?
+  seller   User?   @relation("SharePaymentSeller", fields: [sellerId], references: [id], onDelete: SetNull)
+
+  // Ce qui a été réellement débité, pas ce qui était affiché.
+  amountCents Int
+  currency    String
+
+  // La clé d'idempotence : Stripe réessaie ses webhooks et la page de retour
+  // fait le même travail. L'unicité est ce qui fait que deux livraisons du
+  // même événement ne créent qu'un droit.
+  stripeCheckoutSessionId String  @unique
+  stripePaymentIntentId   String?
+
+  paidAt      DateTime
+  accessUntil DateTime
+
+  // Posé par le webhook charge.refunded. Un droit révoqué n'ouvre plus rien.
+  revokedAt DateTime?
+
+  @@index([shareId, email])
 }

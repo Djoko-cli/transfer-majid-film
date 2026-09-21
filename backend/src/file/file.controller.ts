@@ -18,6 +18,7 @@ import { CreateShareGuard } from "src/share/guard/createShare.guard";
 import { StrictShareOwnerGuard } from "src/share/guard/strictShareOwner.guard";
 import { IdValidation } from "src/share/guard/shareIdValidation.guard";
 import { ShareSecurityGuard } from "src/share/guard/shareSecurity.guard";
+import { RequiresPayment } from "src/share/decorator/requiresPayment.decorator";
 import { FileService } from "./file.service";
 import * as mime from "mime-types";
 
@@ -118,6 +119,7 @@ export class FileController {
 
   @Get("zip")
   @UseGuards(IdValidation, ShareSecurityGuard)
+  @RequiresPayment()
   async getZip(
     @Res({ passthrough: true }) res: Response,
     @Req() request: Request,
@@ -148,6 +150,7 @@ export class FileController {
 
   @Get(":fileId")
   @UseGuards(IdValidation, ShareSecurityGuard)
+  @RequiresPayment()
   async getFile(
     @Res({ passthrough: true }) res: Response,
     @Req() request: Request,

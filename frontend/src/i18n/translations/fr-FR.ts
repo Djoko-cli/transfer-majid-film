@@ -792,6 +792,10 @@ export default {
     "Échec de synchronisation vers le fichier",
   "admin.config.file-sync-failed.description":
     "Les modifications ci-dessous sont bien enregistrées et actives, mais n'ont pas pu être écrites dans le fichier monté sur le disque — au prochain redémarrage, ce fichier reprendra le dessus et effacera ce changement. Vérifiez ses permissions, puis enregistrez à nouveau ici pour forcer une nouvelle écriture. Détail technique : {error}",
+  "admin.config.secret.set": "•••••••• défini",
+  "admin.config.secret.unset": "Non défini",
+  "admin.config.secret.replace":
+    "Laissez vide pour conserver la valeur actuelle. Saisissez pour la remplacer, effacez pour la supprimer.",
   "admin.config.title": "Paramètres",
   "admin.config.category.general": "Général",
   "admin.config.category.share": "Transfert",
