@@ -384,7 +384,17 @@ export class EmailService {
         description
           ? "email.reverseShareInviteMessageDescribed"
           : "email.reverseShareInviteMessage",
-        { lang, args: { creator: creator.username, description } },
+        // `shareUrl` DOIT être dans `args`, même si le `.replaceAll` juste
+        // en dessous le remplace aussi : le formateur de nestjs-i18n efface
+        // tout marqueur `{…}` absent d'`args` AVANT que ce remplacement ne
+        // s'exécute. L'invitation partait donc en production avec « ouvrir
+        // ce lien : » suivi de rien — la seule chose que le destinataire
+        // devait recevoir. Le `.replaceAll` reste comme filet, il ne coûte
+        // rien et couvre une traduction qu'on écrirait sans l'ajouter ici.
+        {
+          lang,
+          args: { creator: creator.username, description, shareUrl },
+        },
       )
       .replaceAll("\\n", "\n")
       .replaceAll("{shareUrl}", shareUrl);
