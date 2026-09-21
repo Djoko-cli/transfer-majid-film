@@ -91,9 +91,9 @@ export class PaymentService {
     return { url: session.url };
   }
 
-  // Un upsert sur stripeCheckoutSessionId : le webhook et la page de retour
-  // font le même travail, et Stripe réessaie. Celui qui arrive second ne doit
-  // rien créer et rien casser.
+  // Le webhook et la page de retour font le même travail, et Stripe réessaie.
+  // Celui qui arrive second ne doit rien créer, rien casser, et rien renvoyer
+  // à personne : c'est le drapeau `cree` qui décide des courriels plus bas.
   async recordPayment(outcome: PaymentOutcome) {
     // `Timespan` vaut { value, unit } (date.util.ts:19-25). Le dépôt le
     // consomme partout en `moment().add(value, unit)` — voir
@@ -106,64 +106,101 @@ export class PaymentService {
       moment.duration(fenetre.value, fenetre.unit).asSeconds(),
     );
 
-    // Capturé depuis l'intérieur de la transaction : c'est là qu'on a le
-    // transfert sous la main, et l'adresse du vendeur ne sert qu'après
-    // coup, pour la notification envoyée une fois le paiement acquis.
-    let creator: { email: string; username: string } | null = null;
-
-    const paiement = await this.prisma.$transaction(async (tx) => {
-      const share = await tx.share.findUnique({
-        where: { id: outcome.shareId },
-        select: {
-          id: true,
-          name: true,
-          expiration: true,
-          creatorId: true,
-          creator: { select: { email: true, username: true } },
-        },
-      });
-      if (!share) return null;
-      creator = share.creator;
-
-      const paiement = await tx.sharePayment.upsert({
-        where: { stripeCheckoutSessionId: outcome.checkoutSessionId },
-        update: {},
-        create: {
-          shareId: share.id,
-          shareName: share.name,
-          email: outcome.email,
-          scope: "EMAIL",
-          sellerId: share.creatorId,
-          amountCents: outcome.amountCents,
-          currency: outcome.currency,
-          stripeCheckoutSessionId: outcome.checkoutSessionId,
-          stripePaymentIntentId: outcome.paymentIntentId,
-          paidAt,
-          accessUntil,
-        },
-      });
-
-      // `paiement.accessUntil` est la valeur EN BASE, pas la variable locale
-      // calculée ci-dessus : sur un upsert qui rejoue, `update: {}` ne change
-      // rien à la ligne existante, donc `paiement` reste celui du PREMIER
-      // appel. Reculer l'expiration à partir de la variable locale aurait
-      // recalculé un `paidAt` plus tardif à chaque rejeu et repoussé le
-      // transfert au-delà de ce que la ligne de paiement promet réellement.
-      // En partant de la valeur en base, rejouer l'événement devient
-      // exactement une opération nulle — dans la MÊME transaction : un
-      // redémarrage entre les deux laisserait un droit payé sur un transfert
-      // qui expire demain.
-      const nouvelle = nextExpiration(share.expiration, paiement.accessUntil);
-      if (nouvelle)
-        await tx.share.update({
-          where: { id: share.id },
-          data: { expiration: nouvelle },
+    const { paiement, cree, creator, transfertInconnu } =
+      await this.prisma.$transaction(async (tx) => {
+        const share = await tx.share.findUnique({
+          where: { id: outcome.shareId },
+          select: {
+            id: true,
+            name: true,
+            expiration: true,
+            creatorId: true,
+            creator: { select: { email: true, username: true } },
+          },
         });
 
-      return paiement;
-    });
+        // Prisma compile un upsert en un SELECT suivi d'un INSERT — ce n'est
+        // pas une instruction atomique. Ce qui rend P2002 impossible entre
+        // deux webhooks concurrents, c'est le BEGIN IMMEDIATE que $transaction
+        // émet, qui prend le verrou d'écriture d'entrée. Sortir ces deux
+        // requêtes de la transaction rouvrirait la course sans que rien ne le
+        // montre : les deux lignes ci-dessous ne vivent que grâce à elle.
+        const existant = await tx.sharePayment.findUnique({
+          where: { stripeCheckoutSessionId: outcome.checkoutSessionId },
+        });
 
-    if (!paiement) return paiement;
+        const paiement = existant
+          ? existant.stripePaymentIntentId || !outcome.paymentIntentId
+            ? existant
+            : // Complète ce qui manquait, sans jamais rien effacer : une ligne
+              // écrite par la page de retour avant que Stripe ait attribué son
+              // payment_intent resterait sinon sans identifiant à vie, donc
+              // hors d'atteinte de tout charge.refunded — un remboursement
+              // qu'on ne pourrait plus honorer.
+              await tx.sharePayment.update({
+                where: { id: existant.id },
+                data: { stripePaymentIntentId: outcome.paymentIntentId },
+              })
+          : await tx.sharePayment.create({
+              data: {
+                // Nul quand le transfert n'existe plus. La colonne est
+                // facultative exprès (schema.prisma) : la trace de l'argent
+                // doit survivre à la disparition du transfert. Ne rien écrire
+                // du tout et répondre 200, comme on le faisait, laissait un
+                // encaissement sans la moindre trace — et Stripe, ayant reçu
+                // son 200, ne réessayait jamais.
+                shareId: share?.id ?? null,
+                shareName: share?.name ?? null,
+                email: outcome.email,
+                scope: "EMAIL",
+                sellerId: share?.creatorId ?? null,
+                amountCents: outcome.amountCents,
+                currency: outcome.currency,
+                stripeCheckoutSessionId: outcome.checkoutSessionId,
+                stripePaymentIntentId: outcome.paymentIntentId,
+                paidAt,
+                accessUntil,
+              },
+            });
+
+        // `paiement.accessUntil` est la valeur EN BASE, pas la variable locale
+        // calculée ci-dessus : au rejeu, `paiement` est la ligne du PREMIER
+        // appel. Reculer l'expiration depuis la variable locale recalculerait
+        // un `paidAt` plus tardif à chaque rejeu et repousserait le transfert
+        // au-delà de ce que la ligne de paiement promet. En partant de la
+        // base, rejouer devient exactement une opération nulle — et dans la
+        // MÊME transaction : un redémarrage entre les deux laisserait un droit
+        // payé sur un transfert qui expire demain.
+        if (share) {
+          const nouvelle = nextExpiration(
+            share.expiration,
+            paiement.accessUntil,
+          );
+          if (nouvelle)
+            await tx.share.update({
+              where: { id: share.id },
+              data: { expiration: nouvelle },
+            });
+        }
+
+        return {
+          paiement,
+          cree: !existant,
+          creator: share?.creator ?? null,
+          transfertInconnu: !share,
+        };
+      });
+
+    if (transfertInconnu)
+      this.logger.error(
+        `Recorded payment ${paiement.id} with no transfer attached: share ${outcome.shareId} no longer exists. ` +
+          `${paiement.email} paid ${paiement.amountCents} ${paiement.currency} for something that cannot be delivered.`,
+      );
+
+    // Un rejeu ne renvoie pas un second reçu : un acheteur qui en reçoit deux
+    // se demande s'il a payé deux fois, et c'est nous qui aurions à le
+    // rassurer.
+    if (!cree) return paiement;
 
     // Après la transaction, jamais dedans : un serveur de messagerie lent
     // ou en panne ne doit pas annuler un paiement correctement enregistré.
@@ -213,11 +250,39 @@ export class PaymentService {
     return paiement;
   }
 
+  // Stripe ne garantit pas l'ordre de livraison de ses événements. Un
+  // remboursement peut donc arriver AVANT le paiement qu'il annule : point de
+  // terminaison indisponible au moment du paiement, Stripe qui réessaie
+  // pendant trois jours, et un remboursement émis entre-temps. Ne rien
+  // trouver ne veut alors pas dire « rien à faire » mais « pas encore » — et
+  // répondre 200 perdrait le remboursement pour de bon, laissant l'accès
+  // ouvert à quelqu'un qu'on vient de rembourser. On lève : Stripe rapporte
+  // l'événement jusqu'à ce qu'il trouve son paiement. Le prix de ce choix est
+  // qu'un remboursement SANS rapport avec cette application, sur le même
+  // compte Stripe, est réessayé puis marqué en échec dans le tableau de bord ;
+  // c'est du bruit visible, là où l'inverse était une perte silencieuse.
   async revokePayment(paymentIntentId: string) {
-    await this.prisma.sharePayment.updateMany({
+    const { count } = await this.prisma.sharePayment.updateMany({
       where: { stripePaymentIntentId: paymentIntentId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+
+    if (count > 0) return;
+
+    // Déjà révoqué : là, c'est vraiment une opération nulle, et rejouer
+    // l'événement ne doit rien déclencher.
+    const connu = await this.prisma.sharePayment.findFirst({
+      where: { stripePaymentIntentId: paymentIntentId },
+      select: { id: true },
+    });
+    if (connu) return;
+
+    this.logger.warn(
+      `Refund for ${paymentIntentId} matched no payment yet; asking Stripe to deliver it again.`,
+    );
+    throw new InternalServerErrorException(
+      "no payment to revoke for this refund yet",
+    );
   }
 
   // Laisse remonter l'erreur de Stripe telle quelle : une signature invalide
@@ -226,29 +291,47 @@ export class PaymentService {
   verifyWebhook(rawBody: Buffer | undefined, signature: string | string[]) {
     if (!rawBody) throw new BadRequestException("missing raw body for webhook");
 
+    // Construits HORS du try, et c'est le sujet : `client()` lève quand la
+    // clé secrète manque. Attrapée ici, cette panne de configuration serveur
+    // ressortirait en 400 — une faute imputée à l'appelant — en lui tendant au
+    // passage le nom d'un réglage interne. Seule la vérification de signature
+    // appartient à ce try.
+    const client = this.stripe.client();
+    const secret = this.config.get("stripe.webhookSigningSecret");
+
     try {
-      return this.stripe
-        .client()
-        .webhooks.constructEvent(
-          rawBody,
-          Array.isArray(signature) ? signature[0] : signature,
-          this.config.get("stripe.webhookSigningSecret"),
-        );
+      return client.webhooks.constructEvent(
+        rawBody,
+        Array.isArray(signature) ? signature[0] : signature,
+        secret,
+      );
     } catch (e) {
-      // Traduit en 400 plutôt que laissé remonter en 500. Stripe réessaie dans
-      // les deux cas, donc rien ne change pour lui — mais un secret de
-      // signature mal recopié produirait sinon une avalanche d'erreurs serveur
-      // indistinguables d'une vraie panne. Le message de Stripe ne contient
-      // ni la charge utile ni le secret, seulement la raison du rejet.
-      throw new BadRequestException(e.message);
+      // 400 plutôt que 500. Stripe réessaie dans les deux cas, donc rien ne
+      // change pour lui — ce qui change, c'est la vue de l'exploitant : un
+      // secret mal recopié produirait sinon un flot d'erreurs serveur
+      // indistinguable d'une vraie panne. La raison exacte va au journal et
+      // non à l'appelant : Stripe la formule parfois en décrivant notre
+      // configuration (« It should start with whsec_ »), ce qu'un inconnu
+      // n'a pas à apprendre d'un point de terminaison ouvert.
+      this.logger.warn(`Rejected a webhook delivery: ${e.message}`);
+      throw new BadRequestException("invalid webhook signature");
     }
   }
 
-  async applyEvent(event: { type: string; data: { object: object } }) {
+  // Rend `true` quand l'événement a été retenu, `false` quand il ne nous
+  // concernait pas — une session abandonnée, un type d'événement étranger.
+  // C'est ce verdict que la page de retour affiche.
+  async applyEvent(event: {
+    type: string;
+    data: { object: object };
+  }): Promise<boolean> {
     const outcome = interpretStripeEvent(event as never);
-    if (!outcome) return;
+    if (!outcome) return false;
+
     if (outcome.kind === "paid") await this.recordPayment(outcome);
     else await this.revokePayment(outcome.paymentIntentId);
+
+    return true;
   }
 
   // Le même travail que le webhook, depuis l'autre bout. Sans lui, un client
@@ -264,9 +347,16 @@ export class PaymentService {
     if ((session.metadata as Record<string, string>)?.shareId !== shareId)
       throw new BadRequestException(this.i18n.t("payment.sessionMismatch"));
 
-    await this.applyEvent({
-      type: "checkout.session.completed",
-      data: { object: session as unknown as object },
-    });
+    // Rend un verdict plutôt qu'un 201 au corps vide. Sans lui, la page de
+    // retour ne pourrait pas distinguer « payé, c'est déverrouillé » de « tu
+    // as annulé » et devrait le deviner en re-sondant le transfert. Une
+    // session abandonnée, expirée ou à zéro euro ressort ici en `false` :
+    // interpretStripeEvent refuse tout `payment_status` autre que "paid".
+    return {
+      paid: await this.applyEvent({
+        type: "checkout.session.completed",
+        data: { object: session as unknown as object },
+      }),
+    };
   }
 }

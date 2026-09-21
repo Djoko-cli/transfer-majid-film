@@ -33,11 +33,22 @@ export class PaymentController {
   }
 
   @Post("confirm")
-  // Mêmes gardes que /session, pour la même raison : cette route mène au
-  // paiement, elle ne le protège pas encore. ShareSecurityGuard vérifie que
-  // le transfert reste livrable (expiration, restriction, mot de passe,
-  // jeton) avant qu'on y enregistre un droit d'accès.
-  @UseGuards(IdValidation, ShareSecurityGuard)
+  // Volontairement SANS ShareSecurityGuard, à l'inverse de /session — et pour
+  // la raison exactement inverse. /session mène au paiement : refuser un
+  // transfert qu'on ne pourra pas livrer y évite d'encaisser pour rien. Ici
+  // l'argent est DÉJÀ parti, et le garde refuserait précisément les deux cas
+  // où cette route sert le plus : un transfert expiré pendant le passage en
+  // caisse — le cas même pour lequel la fenêtre garantie existe — et un retour
+  // depuis un autre navigateur, sans jeton de transfert. Le client verrait un
+  // 404 ou un 403 après avoir payé.
+  //
+  // Elle n'est pas abusable pour autant : l'adresse enregistrée vient de
+  // `session.customer_details.email` tel que Stripe le rapporte, jamais de
+  // l'appelant, et `metadata.shareId` doit désigner ce transfert. Poster
+  // l'identifiant de session d'un autre acheteur n'ouvre donc rien à
+  // l'appelant — cela enregistre le paiement de cet autre acheteur, ce que le
+  // webhook ferait de toute façon.
+  @UseGuards(IdValidation)
   async confirm(
     @Param("shareId") shareId: string,
     @Body() { sessionId }: ConfirmSessionDTO,

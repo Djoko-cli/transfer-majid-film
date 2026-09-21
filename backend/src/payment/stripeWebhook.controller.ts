@@ -1,4 +1,5 @@
 import { Controller, HttpCode, Post, Req } from "@nestjs/common";
+import { SkipThrottle } from "@nestjs/throttler";
 import { Request } from "express";
 import { PaymentService } from "./payment.service";
 
@@ -14,6 +15,11 @@ export class StripeWebhookController {
 
   @Post("webhook")
   @HttpCode(200)
+  // Le limiteur global compte par IP, et Stripe livre depuis un petit groupe
+  // d'adresses : une rafale d'événements se ferait limiter. Rien ne serait
+  // perdu — Stripe réessaie — mais le point d'entrée est déjà protégé par
+  // quelque chose de plus solide qu'un compteur : une signature.
+  @SkipThrottle()
   async webhook(@Req() request: Request & { rawBody?: Buffer }) {
     const event = this.paymentService.verifyWebhook(
       request.rawBody,
