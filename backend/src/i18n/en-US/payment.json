@@ -1,5 +1,6 @@
 {
   "notConfigured": "Payment is not configured on this instance",
   "notForSale": "This transfer has no price",
-  "alreadyPaid": "This transfer is already paid for with this address"
+  "alreadyPaid": "This transfer is already paid for with this address",
+  "sessionMismatch": "This payment session does not match this transfer"
 }

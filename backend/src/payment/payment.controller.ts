@@ -1,8 +1,9 @@
-import { Controller, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { Request } from "express";
 import { IdValidation } from "src/share/guard/shareIdValidation.guard";
 import { ShareSecurityGuard } from "src/share/guard/shareSecurity.guard";
 import { VerificationService } from "src/verification/verification.service";
+import { ConfirmSessionDTO } from "./dto/confirmSession.dto";
 import { PaymentService } from "./payment.service";
 
 @Controller("shares/:shareId/payment")
@@ -29,5 +30,18 @@ export class PaymentController {
       shareId,
       this.verification.getVerifiedEmail(request),
     );
+  }
+
+  @Post("confirm")
+  // Mêmes gardes que /session, pour la même raison : cette route mène au
+  // paiement, elle ne le protège pas encore. ShareSecurityGuard vérifie que
+  // le transfert reste livrable (expiration, restriction, mot de passe,
+  // jeton) avant qu'on y enregistre un droit d'accès.
+  @UseGuards(IdValidation, ShareSecurityGuard)
+  async confirm(
+    @Param("shareId") shareId: string,
+    @Body() { sessionId }: ConfirmSessionDTO,
+  ) {
+    return this.paymentService.confirmSession(shareId, sessionId);
   }
 }
