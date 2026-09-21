@@ -2,11 +2,13 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import * as moment from "moment";
 import { I18nService } from "nestjs-i18n";
 import { ConfigService } from "src/config/config.service";
+import { EmailService } from "src/email/email.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { isPaidFor } from "src/share/paidAccess.util";
 import { computeAccessUntil, nextExpiration } from "src/share/paidWindow.util";
@@ -15,11 +17,14 @@ import { StripeService } from "./stripe.service";
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
+
   constructor(
     private prisma: PrismaService,
     private config: ConfigService,
     private stripe: StripeService,
     private readonly i18n: I18nService,
+    private emailService: EmailService,
   ) {}
 
   async createSession(shareId: string, verifiedEmail: string | null) {
@@ -101,12 +106,24 @@ export class PaymentService {
       moment.duration(fenetre.value, fenetre.unit).asSeconds(),
     );
 
-    return this.prisma.$transaction(async (tx) => {
+    // Capturé depuis l'intérieur de la transaction : c'est là qu'on a le
+    // transfert sous la main, et l'adresse du vendeur ne sert qu'après
+    // coup, pour la notification envoyée une fois le paiement acquis.
+    let creator: { email: string; username: string } | null = null;
+
+    const paiement = await this.prisma.$transaction(async (tx) => {
       const share = await tx.share.findUnique({
         where: { id: outcome.shareId },
-        select: { id: true, name: true, expiration: true, creatorId: true },
+        select: {
+          id: true,
+          name: true,
+          expiration: true,
+          creatorId: true,
+          creator: { select: { email: true, username: true } },
+        },
       });
       if (!share) return null;
+      creator = share.creator;
 
       const paiement = await tx.sharePayment.upsert({
         where: { stripeCheckoutSessionId: outcome.checkoutSessionId },
@@ -145,6 +162,55 @@ export class PaymentService {
 
       return paiement;
     });
+
+    if (!paiement) return paiement;
+
+    // Après la transaction, jamais dedans : un serveur de messagerie lent
+    // ou en panne ne doit pas annuler un paiement correctement enregistré.
+    // Les deux envois sont indépendants — chacun dans son propre try/catch,
+    // chacun journalisé s'il échoue — comme le fait ReverseShareService.create
+    // pour ses invitations.
+    try {
+      await this.emailService.sendPaymentReceipt(
+        paiement.email,
+        outcome.shareId,
+        paiement.shareName ?? undefined,
+        paiement.amountCents,
+        paiement.currency,
+        // La référence, c'est la ligne SharePayment elle-même — retrouvable
+        // en base si le client la cite. Aucun identifiant Stripe ne part
+        // dans un courriel.
+        paiement.id,
+        paiement.paidAt,
+      );
+    } catch (e) {
+      this.logger.error(
+        `Could not send a payment receipt to ${paiement.email} for share ${outcome.shareId}`,
+        e,
+      );
+    }
+
+    // Sauté quand le transfert n'a pas de créateur (transfert anonyme) ou
+    // que celui-ci n'a pas d'adresse : rien à notifier.
+    if (creator?.email) {
+      try {
+        await this.emailService.sendPaymentNotificationToSeller(
+          creator.email,
+          outcome.shareId,
+          paiement.shareName ?? undefined,
+          paiement.amountCents,
+          paiement.currency,
+          paiement.email,
+        );
+      } catch (e) {
+        this.logger.error(
+          `Could not notify seller ${creator.email} of a payment for share ${outcome.shareId}`,
+          e,
+        );
+      }
+    }
+
+    return paiement;
   }
 
   async revokePayment(paymentIntentId: string) {

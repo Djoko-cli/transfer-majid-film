@@ -900,6 +900,113 @@ export class EmailService {
     );
   }
 
+  /**
+   * Un reçu, et il le dit. La facture numérotée est un chantier futur
+   * (spec §9) : promettre ici un document qui n'en est pas un mettrait le
+   * client en défaut devant sa propre comptabilité.
+   */
+  async sendPaymentReceipt(
+    recipientEmail: string,
+    shareId: string,
+    shareName: string | undefined,
+    amountCents: number,
+    currency: string,
+    reference: string,
+    // La date du PAIEMENT, pas celle de l'envoi de ce courriel : un reçu
+    // daté du jour où le serveur de messagerie s'est réveillé serait faux
+    // devant la comptabilité du client. `recordPayment` la connaît déjà
+    // (sa variable locale `paidAt`) ; on la reçoit ici plutôt que d'appeler
+    // `moment()` nous-mêmes.
+    paidAt: Date,
+  ) {
+    const appUrl = this.config.get("general.appUrl");
+    const shareUrl = `${appUrl}/s/${shareId}`;
+    const lang = this.config.get("general.defaultLanguage");
+    const locale = this.i18n.translate("email.locale", { lang });
+
+    // La conversion centimes → unité affichée n'a lieu qu'ici, à la
+    // frontière d'affichage — jamais sur un montant stocké ou transmis
+    // ailleurs (`amountCents` reste l'entier de bout en bout partout
+    // ailleurs dans ce chantier). `Intl.NumberFormat` est le seul moyen
+    // d'être juste pour une devise que Stripe pourrait renvoyer avec 0 ou 3
+    // décimales mineures (JPY, KWD) plutôt que 2 : il arrondit lui-même aux
+    // unités mineures de la devise donnée, ce qu'une division par 100 fixe
+    // ne fait pas.
+    const amount = new Intl.NumberFormat(locale as string, {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format(amountCents / 100);
+
+    // `shareUrl` a sa place ici, pas seulement dans un `.replaceAll` après
+    // coup : le formateur par défaut de nestjs-i18n (le paquet
+    // `string-format`) remplace TOUT `{jeton}` du gabarit par une chaîne
+    // vide dès qu'`args` est fourni et que le jeton n'y figure pas — vérifié
+    // en direct (Mailpit recevait « Vous pouvez télécharger vos fichiers
+    // ici : » suivi de rien). Un `.replaceAll("{shareUrl}", shareUrl)`
+    // arrivant après coup ne trouve donc plus rien à remplacer : le jeton a
+    // déjà été effacé par `i18n.t` lui-même, avant que ce code ne s'exécute.
+    const args = {
+      name: shareName ?? shareId,
+      amount,
+      date: moment(paidAt).locale(locale as string).format("LL"),
+      reference,
+      shareUrl,
+    };
+
+    await this.sendMail(
+      recipientEmail,
+      this.i18n.t("email.paymentReceiptSubject", { lang, args }),
+      this.i18n
+        .t("email.paymentReceiptMessage", { lang, args })
+        .replaceAll("\\n", "\n"),
+      { ctaUrl: shareUrl },
+    );
+  }
+
+  // Même moule que sendPaymentReceipt, pour le vendeur : montant identique,
+  // formaté de la même façon, mais ni date ni référence — le gabarit
+  // `paymentSellerMessage` n'en a pas besoin, le vendeur ayant sa propre
+  // vue sur ses paiements.
+  async sendPaymentNotificationToSeller(
+    sellerEmail: string,
+    shareId: string,
+    shareName: string | undefined,
+    amountCents: number,
+    currency: string,
+    buyerEmail: string,
+  ) {
+    const appUrl = this.config.get("general.appUrl");
+    const shareUrl = `${appUrl}/s/${shareId}`;
+    const lang = this.config.get("general.defaultLanguage");
+    const locale = this.i18n.translate("email.locale", { lang });
+
+    // Même conversion, même frontière d'affichage — voir le commentaire de
+    // sendPaymentReceipt.
+    const amount = new Intl.NumberFormat(locale as string, {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format(amountCents / 100);
+
+    // `shareUrl` dans `args`, pas dans un `.replaceAll` après coup — voir le
+    // commentaire de sendPaymentReceipt : passé `args`, le formateur par
+    // défaut de nestjs-i18n vide tout `{jeton}` du gabarit absent d'`args`.
+    const args = {
+      name: shareName ?? shareId,
+      amount,
+      email: buyerEmail,
+      shareUrl,
+    };
+
+    await this.sendMail(
+      sellerEmail,
+      this.i18n.t("email.paymentSellerSubject", { lang, args }),
+      this.i18n
+        .t("email.paymentSellerMessage", { lang, args })
+        .replaceAll("\\n", "\n"),
+      { ctaUrl: shareUrl },
+    );
+  }
+
   async sendTestMail(recipientEmail: string) {
     const isHtml = this.config.get("email.sendHtmlEmails");
     const lang = this.config.get("general.defaultLanguage");
