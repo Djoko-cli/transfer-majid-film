@@ -2,7 +2,14 @@ import { ActionIcon, Box, Group, Skeleton, Table, Text } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
 import moment from "moment";
-import { Dispatch, Fragment, ReactNode, SetStateAction, useEffect, useState } from "react";
+import {
+  Dispatch,
+  Fragment,
+  ReactNode,
+  SetStateAction,
+  useEffect,
+  useState,
+} from "react";
 import { TbDownload, TbEye, TbClipboard } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -78,8 +85,9 @@ const buildGroups = (
         <FormattedMessage
           id="share.collection.contributed-by"
           values={{
-            count: files.filter((file) => file.contributionId === contribution.id)
-              .length,
+            count: files.filter(
+              (file) => file.contributionId === contribution.id,
+            ).length,
             name: contribution.name || anonymousLabel,
             date: moment(contribution.createdAt).format("LL"),
           }}
@@ -227,67 +235,80 @@ const FileList = ({
         <tbody>
           {isLoading
             ? skeletonRows
-            : buildGroups(files!, contributions, t("share.collection.anonymous")).map(
-                (group) => (
-                  <Fragment key={group.key}>
-                    {group.header && (
-                      <tr>
-                        <td
-                          colSpan={3}
-                          style={{ paddingTop: 16, paddingBottom: 4 }}
-                        >
-                          <Text size="sm" weight={600} color="dimmed">
-                            {group.header}
-                          </Text>
-                        </td>
-                      </tr>
-                    )}
-                    {group.files.map((file) => (
-                      <tr key={file.id}>
-                        <td
-                          style={{
-                            whiteSpace: "normal",
-                            overflowWrap: "break-word",
-                            verticalAlign: "top",
-                          }}
-                        >
-                          {file.thumbnailStatus === "ready" ? (
-                            <Group spacing="xs" noWrap>
-                              <img
-                                src={shareService.getThumbnailUrl(
-                                  share.id,
-                                  file.id,
-                                  recipientId,
-                                )}
-                                alt=""
-                                loading="lazy"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
-                                }}
-                                style={{
-                                  width: 48,
-                                  height: 32,
-                                  objectFit: "cover",
-                                  borderRadius: 6,
-                                  flexShrink: 0,
-                                }}
-                              />
-                              {renderFileName(file.name)}
-                            </Group>
-                          ) : (
-                            renderFileName(file.name)
-                          )}
-                        </td>
-                        <td
-                          style={{ whiteSpace: "nowrap", verticalAlign: "top" }}
-                        >
-                          {byteToHumanSizeString(parseInt(file.size))}
-                        </td>
-                        <td
-                          style={{ whiteSpace: "nowrap", verticalAlign: "top" }}
-                        >
-                          <Group position="right" noWrap>
-                            {shareService.isShareTextFile(file.name) && (
+            : buildGroups(
+                files!,
+                contributions,
+                t("share.collection.anonymous"),
+              ).map((group) => (
+                <Fragment key={group.key}>
+                  {group.header && (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        style={{ paddingTop: 16, paddingBottom: 4 }}
+                      >
+                        <Text size="sm" weight={600} color="dimmed">
+                          {group.header}
+                        </Text>
+                      </td>
+                    </tr>
+                  )}
+                  {group.files.map((file) => (
+                    <tr key={file.id}>
+                      <td
+                        style={{
+                          whiteSpace: "normal",
+                          overflowWrap: "break-word",
+                          verticalAlign: "top",
+                        }}
+                      >
+                        {file.thumbnailStatus === "ready" ? (
+                          <Group spacing="xs" noWrap>
+                            <img
+                              src={shareService.getThumbnailUrl(
+                                share.id,
+                                file.id,
+                                recipientId,
+                              )}
+                              alt=""
+                              loading="lazy"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                              style={{
+                                width: 48,
+                                height: 32,
+                                objectFit: "cover",
+                                borderRadius: 6,
+                                flexShrink: 0,
+                              }}
+                            />
+                            {renderFileName(file.name)}
+                          </Group>
+                        ) : (
+                          renderFileName(file.name)
+                        )}
+                      </td>
+                      <td
+                        style={{ whiteSpace: "nowrap", verticalAlign: "top" }}
+                      >
+                        {byteToHumanSizeString(parseInt(file.size))}
+                      </td>
+                      <td
+                        style={{ whiteSpace: "nowrap", verticalAlign: "top" }}
+                      >
+                        <Group position="right" noWrap>
+                          {/* Masqué avec les téléchargements, et non avec
+                                les prévisualisations : ce bouton lit la route
+                                d'octets, celle que le garde ferme derrière le
+                                paiement. Laissé visible, il rendrait 403 sans
+                                rien dire — le `.then` plus bas n'a pas de
+                                `.catch` — et pour un fichier texte, il
+                                livrerait le contenu entier s'il marchait.
+                                On voit ce qu'on achète, on ne l'emporte
+                                pas. */}
+                          {!isLocked &&
+                            shareService.isShareTextFile(file.name) && (
                               <HoverTip label={t("share.copy-text-contents")}>
                                 <ActionIcon
                                   color="blue"
@@ -319,47 +340,46 @@ const FileList = ({
                                 </ActionIcon>
                               </HoverTip>
                             )}
-                            {shareService.doesFileSupportPreview(file.name) && (
-                              <HoverTip label={t("common.button.preview")}>
-                                <ActionIcon
-                                  color="green"
-                                  variant="light"
-                                  size={ACTION_ICON_SIZE}
-                                  aria-label={t("common.button.preview")}
-                                  onClick={() =>
-                                    showFilePreviewModal(share.id, file, modals)
-                                  }
-                                >
-                                  <TbEye />
-                                </ActionIcon>
-                              </HoverTip>
-                            )}
-                            {!isLocked && (
-                              <HoverTip label={t("common.button.download")}>
-                                <ActionIcon
-                                  color="cyan"
-                                  variant="light"
-                                  size={ACTION_ICON_SIZE}
-                                  aria-label={t("common.button.download")}
-                                  onClick={async () => {
-                                    await shareService.downloadFile(
-                                      share.id,
-                                      file.id,
-                                      recipientId,
-                                    );
-                                  }}
-                                >
-                                  <TbDownload />
-                                </ActionIcon>
-                              </HoverTip>
-                            )}
-                          </Group>
-                        </td>
-                      </tr>
-                    ))}
-                  </Fragment>
-                ),
-              )}
+                          {shareService.doesFileSupportPreview(file.name) && (
+                            <HoverTip label={t("common.button.preview")}>
+                              <ActionIcon
+                                color="green"
+                                variant="light"
+                                size={ACTION_ICON_SIZE}
+                                aria-label={t("common.button.preview")}
+                                onClick={() =>
+                                  showFilePreviewModal(share.id, file, modals)
+                                }
+                              >
+                                <TbEye />
+                              </ActionIcon>
+                            </HoverTip>
+                          )}
+                          {!isLocked && (
+                            <HoverTip label={t("common.button.download")}>
+                              <ActionIcon
+                                color="cyan"
+                                variant="light"
+                                size={ACTION_ICON_SIZE}
+                                aria-label={t("common.button.download")}
+                                onClick={async () => {
+                                  await shareService.downloadFile(
+                                    share.id,
+                                    file.id,
+                                    recipientId,
+                                  );
+                                }}
+                              >
+                                <TbDownload />
+                              </ActionIcon>
+                            </HoverTip>
+                          )}
+                        </Group>
+                      </td>
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
         </tbody>
       </Table>
     </Box>

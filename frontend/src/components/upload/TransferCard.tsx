@@ -874,6 +874,13 @@ const TransferCard = ({
                   hideControls
                   min={0}
                   precision={2}
+                  // Sans ça, Mantine déduit le clavier mobile du `step`, qui
+                  // vaut 1 par défaut, et affiche donc `numeric` — un pavé
+                  // sans virgule. C'est sans conséquence pour le champ
+                  // « nombre de vues » dont ce champ copie la forme, mais un
+                  // prix a structurellement besoin de décimales : au
+                  // téléphone, le vendeur ne pourrait pas saisir 3,30 €.
+                  inputMode="decimal"
                   // No type="number" here (unlike maxViews below): that
                   // forces a native number input, whose default step="1"
                   // rejects a decimal like "3.30" as invalid before this
