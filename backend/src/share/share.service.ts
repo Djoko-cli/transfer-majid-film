@@ -488,6 +488,10 @@ export class ShareService {
         // `collection`, not this method, which stays about the Share row
         // itself.
         collectionOf: true,
+        // Read by ShareController.get() to resolve isPaidForViewer via the
+        // same isPaidFor() the guard uses — nothing here decides access,
+        // it only needs the same rows the guard already trusts.
+        payments: { select: { email: true, revokedAt: true } },
       },
     });
 

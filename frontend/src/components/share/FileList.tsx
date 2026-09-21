@@ -24,10 +24,11 @@ const ACTION_ICON_GAP = 16; // <Group>'s default "md" spacing
 const CELL_PADDING = 10; // Mantine's Table cell padding, per side
 
 // How many action buttons a given file's row will render — mirrors the
-// conditionals in the actions cell exactly (download is unconditional,
-// the clipboard and preview ones depend on the file type).
-const countActionIcons = (file: FileMetaData) =>
-  1 +
+// conditionals in the actions cell exactly (download is unconditional
+// unless the share is a locked paywall, the clipboard and preview ones
+// depend on the file type).
+const countActionIcons = (file: FileMetaData, isLocked: boolean) =>
+  (isLocked ? 0 : 1) +
   (shareService.isShareTextFile(file.name) ? 1 : 0) +
   (shareService.doesFileSupportPreview(file.name) ? 1 : 0);
 
@@ -163,9 +164,21 @@ const FileList = ({
   // text also qualifies for) reserves room for 3 — no dead space either
   // way, and whatever isn't reserved goes to the name column, since that's
   // the one with `width: auto` under table-layout: fixed.
+  // The per-file download icon follows the same condition as index.tsx's
+  // own download buttons — priced and not yet paid for. Preview stays: the
+  // thumbnail it's built on isn't behind the paywall either (no
+  // @RequiresPayment() on GET .../thumbnail), and seeing what's on offer is
+  // the point.
+  //
+  // `share?.` rather than `share.`: the page passes `share!` while it's
+  // still loading (isLoading true, share genuinely undefined — that `!` is
+  // only a compile-time promise, not a runtime one), and this line runs on
+  // every render regardless of isLoading.
+  const isLocked = !!share?.priceCents && !share?.isPaidForViewer;
+
   const maxActionIcons =
     files && files.length > 0
-      ? Math.max(...files.map((file) => countActionIcons(file)))
+      ? Math.max(...files.map((file) => countActionIcons(file, isLocked)))
       : 3;
 
   return (
@@ -321,23 +334,25 @@ const FileList = ({
                                 </ActionIcon>
                               </HoverTip>
                             )}
-                            <HoverTip label={t("common.button.download")}>
-                              <ActionIcon
-                                color="cyan"
-                                variant="light"
-                                size={ACTION_ICON_SIZE}
-                                aria-label={t("common.button.download")}
-                                onClick={async () => {
-                                  await shareService.downloadFile(
-                                    share.id,
-                                    file.id,
-                                    recipientId,
-                                  );
-                                }}
-                              >
-                                <TbDownload />
-                              </ActionIcon>
-                            </HoverTip>
+                            {!isLocked && (
+                              <HoverTip label={t("common.button.download")}>
+                                <ActionIcon
+                                  color="cyan"
+                                  variant="light"
+                                  size={ACTION_ICON_SIZE}
+                                  aria-label={t("common.button.download")}
+                                  onClick={async () => {
+                                    await shareService.downloadFile(
+                                      share.id,
+                                      file.id,
+                                      recipientId,
+                                    );
+                                  }}
+                                >
+                                  <TbDownload />
+                                </ActionIcon>
+                              </HoverTip>
+                            )}
                           </Group>
                         </td>
                       </tr>

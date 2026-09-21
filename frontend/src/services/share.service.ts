@@ -50,6 +50,26 @@ const getMetaData = async (id: string): Promise<ShareMetaData> => {
   return (await api.get(`shares/${id}/metaData`)).data;
 };
 
+// Opens a Stripe Checkout session for this transfer's price (task 7). The
+// caller is expected to do `window.location.href = url` itself, not open a
+// new tab — Stripe's own redirect back to `success_url`/`cancel_url` must
+// land in the same page the visitor started from.
+const createPaymentSession = async (id: string): Promise<{ url: string }> => {
+  if (!isValidId(id)) throw new Error("Invalid ID");
+  return (await api.post(`shares/${id}/payment/session`)).data;
+};
+
+// Task 8's confirmation route: deliberately no share token required (a
+// return from a different browser has none), and it hands back a verdict
+// rather than a 201 — `paid` false means "not yet", not "failed".
+const confirmPayment = async (
+  id: string,
+  sessionId: string,
+): Promise<{ paid: boolean }> => {
+  if (!isValidId(id)) throw new Error("Invalid ID");
+  return (await api.post(`shares/${id}/payment/confirm`, { sessionId })).data;
+};
+
 const getDownloads = async (id: string): Promise<ShareDownload[]> => {
   if (!isValidId(id)) throw new Error("Invalid ID");
   return (await api.get(`shares/${id}/downloads`)).data;
@@ -485,6 +505,8 @@ export default {
   expire,
   getMetaData,
   getDownloads,
+  createPaymentSession,
+  confirmPayment,
   doesFileSupportPreview,
   isShareTextFile,
   getMyShares,

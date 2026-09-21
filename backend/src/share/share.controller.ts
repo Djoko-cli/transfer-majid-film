@@ -40,6 +40,7 @@ import { ShareService } from "./share.service";
 import { ContributionService } from "./contribution.service";
 import { VerificationService } from "src/verification/verification.service";
 import { CompletedShareDTO } from "./dto/shareComplete.dto";
+import { isPaidFor } from "./paidAccess.util";
 @Controller("shares")
 export class ShareController {
   constructor(
@@ -74,8 +75,9 @@ export class ShareController {
 
   @Get(":id")
   @UseGuards(IdValidation, ShareSecurityGuard)
-  async get(@Param("id") id: string) {
+  async get(@Param("id") id: string, @Req() request: Request) {
     const share = await this.shareService.get(id);
+    const isPaidForViewer = this.resolveIsPaidForViewer(share, request);
     // Keyed off isCollection alone, deliberately not off collectionOf: a
     // container whose link row has been deleted is still a collection,
     // still full of contributions, and used to fall through to a raw
@@ -85,11 +87,46 @@ export class ShareController {
     // rule is that they are never published, and it must not rest on a
     // second check elsewhere happening to agree.
     if (!share.isCollection) {
-      return new ShareDTO().from(share);
+      return new ShareDTO().from({ ...share, isPaidForViewer });
     }
 
     const { files, collection } = await this.buildCollectionState(id, share);
-    return new ShareDTO().from({ ...share, files, collection });
+    return new ShareDTO().from({
+      ...share,
+      files,
+      collection,
+      isPaidForViewer,
+    });
+  }
+
+  // Le même calcul que ShareSecurityGuard.checkPayment (isPaidFor), plus
+  // les deux mêmes dérogations que ShareSecurityGuard.canActivate :
+  // créateur et administrateur avec allowAdminAccessAllShares. Sans elles,
+  // le vendeur verrait "Débloquer pour 300 €" sur son propre transfert —
+  // isPaidFor seul répond "as-tu payé", pas "la porte s'ouvrira-t-elle
+  // pour toi". C'est shareSecurity.guard.ts qui reste l'autorité : ce
+  // booléen n'est qu'un affichage, jamais une décision d'accès — s'il se
+  // trompe, au pire l'écran ment, jamais un fichier ne part à qui ne l'a
+  // pas payé.
+  private resolveIsPaidForViewer(
+    share: {
+      priceCents: number | null;
+      creatorId: string | null;
+      payments: { email: string; revokedAt: Date | null }[];
+    },
+    request: Request,
+  ): boolean {
+    const user = request.user as User | undefined;
+
+    if (user && share.creatorId === user.id) return true;
+    if (user?.isAdmin && this.config.get("share.allowAdminAccessAllShares"))
+      return true;
+
+    return isPaidFor({
+      priceCents: share.priceCents,
+      verifiedEmail: this.verificationService.getVerifiedEmail(request),
+      payments: share.payments,
+    });
   }
 
   // Assembled here, not in ShareService.get(), which stays about the Share

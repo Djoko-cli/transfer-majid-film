@@ -32,6 +32,22 @@ export class ShareDTO {
   @Expose()
   isCollection: boolean;
 
+  // Null = gratuit — see Share.priceCents in schema.prisma. Without
+  // @Expose(), excludeExtraneousValues silently drops it and the frontend
+  // would never see a price to show a paywall for at all.
+  @Expose()
+  priceCents?: number | null;
+
+  // Calculé côté serveur par ShareController.get() (jamais côté client :
+  // un booléen calculé dans le navigateur n'est pas une autorisation), et
+  // sans @Expose() il ne sortirait jamais du serveur, comme priceCents
+  // ci-dessus. Dit à la page si le bouton "Débloquer" doit remplacer les
+  // téléchargements — mais l'autorité reste entièrement dans
+  // shareSecurity.guard.ts : ce booléen ne fait qu'un affichage, au pire
+  // il se trompe d'écran, jamais il n'ouvre un fichier.
+  @Expose()
+  isPaidForViewer?: boolean;
+
   // Only ever populated for a collection (see ShareController.get(), which
   // is the only place this is assembled — ShareService.get() itself stays
   // ignorant of contributions). A plain transfer's response simply omits

@@ -16,7 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import moment from "moment";
 import { useEffect, useState } from "react";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { TbDownload, TbEdit, TbFiles, TbLink } from "react-icons/tb";
 import Meta from "../../../components/Meta";
 import showShareLinkModal from "../../../components/account/showShareLinkModal";
@@ -28,6 +28,7 @@ import showErrorModal from "../../../components/share/showErrorModal";
 import showShareInformationsModal from "../../../components/share/showShareInformationsModal";
 import glassFormTheme from "../../../components/upload/glassFormTheme";
 import SplitTransferLayout from "../../../components/upload/SplitTransferLayout";
+import showEmailVerificationModal from "../../../components/upload/modals/showEmailVerificationModal";
 import useConfig from "../../../hooks/config.hook";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import useUser from "../../../hooks/user.hook";
@@ -53,14 +54,19 @@ const Share = ({ shareId }: { shareId: string }) => {
   const clipboard = useClipboard();
   const modals = useModals();
   const router = useRouter();
+  const intl = useIntl();
   const [share, setShare] = useState<ShareType>();
   const [isRestricted, setIsRestricted] = useState(false);
+  const [isStartingCheckout, setIsStartingCheckout] = useState(false);
   const { user } = useUser();
   const config = useConfig();
   const t = useTranslate();
 
   const isOwner = !!user && !!share && share.creator?.id === user.id;
   const recipientId = getQueryString(router.query.recipient);
+  // Step 2 of task 11: the true gate is shareSecurity.guard.ts, this is only
+  // what decides which buttons this page shows.
+  const isLocked = !!share?.priceCents && !share?.isPaidForViewer;
 
   const handleEditClick = async () => {
     try {
@@ -179,6 +185,60 @@ const Share = ({ shareId }: { shareId: string }) => {
   useEffect(() => {
     getFiles();
   }, []);
+
+  // Step 4: the return trip from Stripe Checkout. success_url carries
+  // ?payment=<session id> (payment.service.ts's createSession) — task 8's
+  // /confirm route turns that into a verdict without needing a share
+  // token, which is exactly what makes step 5 (a return from a different
+  // browser, with no token at all) work too.
+  useEffect(() => {
+    const sessionId = getQueryString(router.query.payment);
+    if (!sessionId) return;
+
+    // Stripped right away, before the response comes back: a reload while
+    // confirmation is in flight must not resubmit the same session id, and
+    // Stripe won't hand it back a second time once we've left this URL.
+    const query = { ...router.query };
+    delete query.payment;
+    router.replace({ pathname: router.pathname, query }, undefined, {
+      shallow: true,
+    });
+
+    shareService
+      .confirmPayment(shareId, sessionId)
+      .then(({ paid }) => {
+        if (paid) getFiles();
+        // Not a hard error: the money already left, and "not confirmed
+        // yet" (the webhook hasn't landed) isn't a failure on a page
+        // where someone just paid.
+        else toast.success(t("share.payment.pending"));
+      })
+      .catch(() => toast.success(t("share.payment.pending")));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.query.payment]);
+
+  const handleUnlock = async () => {
+    setIsStartingCheckout(true);
+    try {
+      const { url } = await shareService.createPaymentSession(shareId);
+      // No new tab: Stripe's own redirect back has to land in this same
+      // page (the ?payment= handling above), not a tab the visitor may
+      // have already closed.
+      window.location.href = url;
+    } catch (e) {
+      setIsStartingCheckout(false);
+      toast.axiosError(e);
+    }
+  };
+
+  // Step 5: paid, but from a browser with no proven address yet (a
+  // different device, or this one after the cookie was cleared).
+  // showEmailVerificationModal does the OTP round trip; once it resolves,
+  // re-fetching the share is what actually finds the payment, since
+  // GET /shares/:id now carries the freshly-proven email as a cookie.
+  const handleAlreadyPaid = () => {
+    showEmailVerificationModal(modals, () => getFiles());
+  };
 
   if (isRestricted) {
     return (
@@ -339,6 +399,41 @@ const Share = ({ shareId }: { shareId: string }) => {
           </Group>
 
           {
+            // Step 2 of task 11: sells the way in instead of offering the
+            // download buttons at all. share.priceCents/isPaidForViewer
+            // come from the server (ShareController.get()) — never
+            // computed here, see isLocked's own comment above.
+          }
+          {isLocked && (
+            <Stack spacing="xs" mb="lg">
+              <Button
+                fullWidth
+                size="md"
+                loading={isStartingCheckout}
+                onClick={handleUnlock}
+              >
+                <FormattedMessage
+                  id="share.payment.unlock"
+                  values={{
+                    price: intl.formatNumber(
+                      (share?.priceCents ?? 0) / 100,
+                      { style: "currency", currency: "EUR" },
+                    ),
+                  }}
+                />
+              </Button>
+              <Button
+                fullWidth
+                variant="subtle"
+                size="sm"
+                onClick={handleAlreadyPaid}
+              >
+                <FormattedMessage id="share.payment.already-paid" />
+              </Button>
+            </Stack>
+          )}
+
+          {
             // A primary, unconditional download action — previously this
             // only appeared (as DownloadAllButton) for shares with more
             // than one file, so the common single-file case left the
@@ -346,7 +441,7 @@ const Share = ({ shareId }: { shareId: string }) => {
             // file downloads directly rather than through the zip
             // pipeline, so it doesn't wait on isZipReady either.
           }
-          {share?.files?.length === 1 && (
+          {!isLocked && share?.files?.length === 1 && (
             <Button
               fullWidth
               size="md"
@@ -363,7 +458,7 @@ const Share = ({ shareId }: { shareId: string }) => {
               <FormattedMessage id="common.button.download" />
             </Button>
           )}
-          {share?.files?.length > 1 && (
+          {!isLocked && share?.files?.length > 1 && (
             <Box mb="lg">
               <DownloadAllButton
                 shareId={shareId}

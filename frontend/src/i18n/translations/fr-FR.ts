@@ -705,6 +705,13 @@ export default {
   "share.collection.identity.email-description":
     "Un code de confirmation y sera envoyé avant l’envoi de vos fichiers.",
   "share.collection.identity.signed-in-as": "Vous déposez en tant que {name}.",
+
+  // Le paywall (tâche 11) : ce que le destinataire d'un transfert payant
+  // voit à la place des boutons de téléchargement tant qu'il n'a pas payé.
+  "share.payment.unlock": "Débloquer pour {price}",
+  "share.payment.already-paid": "J'ai déjà payé",
+  "share.payment.pending":
+    "Votre paiement est bien parti. L'accès s'ouvrira dans un instant — rechargez cette page si rien ne change.",
   // END /share/[id]
 
   // /share/[id]/edit

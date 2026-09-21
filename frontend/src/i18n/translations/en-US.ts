@@ -722,6 +722,13 @@ export default {
     "A confirmation code will be sent there before your files are sent.",
   "share.collection.identity.signed-in-as": "You're depositing as {name}.",
 
+  // The paywall (task 11): what a paid transfer's recipient sees instead
+  // of the download buttons until they've paid.
+  "share.payment.unlock": "Unlock for {price}",
+  "share.payment.already-paid": "I've already paid",
+  "share.payment.pending":
+    "Your payment went through. Access will open in a moment — reload this page if nothing changes.",
+
   // END /share/[id]
 
   // /share/[id]/edit
