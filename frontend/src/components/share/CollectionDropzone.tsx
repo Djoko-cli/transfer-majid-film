@@ -423,20 +423,21 @@ const CollectionDropzone = ({
             onCancel={cancelUpload}
             onRetry={retryFile}
           />
-          <Group position="right">
-            <Button
-              onClick={handleSubmit}
-              loading={isUploading}
-              disabled={!canSubmit}
-              // Même scintillement et même condition que le bouton d'envoi
-              // d'un transfert : c'est le geste que le contributeur est venu
-              // faire, et il ne s'allume qu'une fois qu'il a de quoi
-              // l'accomplir.
-              className={canSubmit && !isUploading ? shimmer.ready : undefined}
-            >
-              <FormattedMessage id="common.button.submit" />
-            </Button>
-          </Group>
+          {/* Directement dans le Stack, qui étire ses enfants : ce bouton
+              était né dans un `<Group position="right">` alors qu'il y est
+              seul — la forme qu'on écrit quand on attend une paire
+              « Annuler / Envoyer ». Il n'y en a jamais eu qu'un, et déposer
+              dans une collecte est le même geste qu'envoyer un transfert :
+              même taille, même largeur, même scintillement. */}
+          <Button
+            size="md"
+            onClick={handleSubmit}
+            loading={isUploading}
+            disabled={!canSubmit}
+            className={canSubmit && !isUploading ? shimmer.ready : undefined}
+          >
+            <FormattedMessage id="common.button.submit" />
+          </Button>
         </>
       )}
     </Stack>
