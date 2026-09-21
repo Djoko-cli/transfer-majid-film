@@ -21,6 +21,7 @@ import { FileModule } from "./file/file.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { NasImportModule } from "./nasImport/nasImport.module";
 import { OAuthModule } from "./oauth/oauth.module";
+import { PaymentModule } from "./payment/payment.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ReverseShareModule } from "./reverseShare/reverseShare.module";
 import { ShareModule } from "./share/share.module";
@@ -62,6 +63,7 @@ const i18nPath = existsSync(join(__dirname, "../i18n"))
     NasImportModule,
     BrandSlidesModule,
     OAuthModule,
+    PaymentModule,
     AppCacheModule,
     I18nModule.forRoot({
       fallbackLanguage: "en-US",

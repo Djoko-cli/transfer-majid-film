@@ -806,6 +806,7 @@ export default {
   "admin.config.category.email": "Courriel",
   "admin.config.category.smtp": "SMTP",
   "admin.config.category.oauth": "Identifiant social",
+  "admin.config.category.stripe": "Stripe",
   "admin.config.general.default-language": "Langue par défaut",
   "admin.config.general.default-language.description":
     "Ceci s'applique à tous les utilisateurs, chaque utilisateur peut toujours personnaliser sa langue dans son profil.",
@@ -1006,6 +1007,15 @@ export default {
     "Faire confiance aux certificats de serveurs SMTP non autorisés",
   "admin.config.smtp.allow-unauthorized-certificates.description":
     "Ne permettez ceci que si vous avez besoin de faire confiance aux certificats autosignés.",
+  "admin.config.stripe.enabled": "Activer",
+  "admin.config.stripe.enabled.description":
+    "Active les paiements Stripe. N'activez ceci qu'une fois la clé secrète ci-dessous renseignée.",
+  "admin.config.stripe.secret-key": "Clé secrète",
+  "admin.config.stripe.secret-key.description":
+    "Clé secrète de l'API Stripe, utilisée pour créer les paiements côté serveur. Disponible dans le tableau de bord Stripe, sous Développeurs > Clés API.",
+  "admin.config.stripe.webhook-signing-secret": "Secret de signature du webhook",
+  "admin.config.stripe.webhook-signing-secret.description":
+    "Secret utilisé pour vérifier que les événements reçus proviennent bien de Stripe. Disponible dans le tableau de bord Stripe, sous Développeurs > Webhooks, une fois le point de terminaison créé.",
   "admin.config.oauth.allow-registration": "Autoriser l’inscription",
   "admin.config.oauth.allow-registration.description":
     "Permettre aux utilisateurs de s’inscrire via leur identifiant social",

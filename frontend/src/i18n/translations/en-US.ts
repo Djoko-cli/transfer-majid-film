@@ -811,6 +811,7 @@ export default {
   "admin.config.category.email": "Email",
   "admin.config.category.smtp": "SMTP",
   "admin.config.category.oauth": "Social Login",
+  "admin.config.category.stripe": "Stripe",
   "admin.config.general.default-language": "Default Language",
   "admin.config.general.default-language.description":
     "This applies to all users, each user can still personalise their language in their profile.",
@@ -1004,6 +1005,15 @@ export default {
     "Trust unauthorized SMTP server certificates",
   "admin.config.smtp.allow-unauthorized-certificates.description":
     "Only set this to true if you need to trust self signed certificates.",
+  "admin.config.stripe.enabled": "Enable",
+  "admin.config.stripe.enabled.description":
+    "Whether Stripe payments are enabled. Only set this to true once the secret key below has been entered.",
+  "admin.config.stripe.secret-key": "Secret key",
+  "admin.config.stripe.secret-key.description":
+    "Stripe API secret key, used to create payments server-side. Found in the Stripe dashboard, under Developers > API keys.",
+  "admin.config.stripe.webhook-signing-secret": "Webhook signing secret",
+  "admin.config.stripe.webhook-signing-secret.description":
+    "Used to verify that received events genuinely come from Stripe. Found in the Stripe dashboard, under Developers > Webhooks, once the endpoint has been created.",
   "admin.config.oauth.allow-registration": "Allow registration",
   "admin.config.oauth.allow-registration.description":
     "Allow users to register via social login",
