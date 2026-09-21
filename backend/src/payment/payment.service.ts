@@ -76,6 +76,13 @@ export class PaymentService {
       // Lu par le webhook comme par la page de retour : c'est ce qui rattache
       // le paiement au transfert sans faire confiance à l'URL de retour.
       metadata: { shareId },
+      // La MÊME marque, mais sur le PaymentIntent. Un `charge.refunded` ne
+      // porte pas les métadonnées de la session — seulement son
+      // `payment_intent`. Sans cette estampille, un remboursement qui ne
+      // correspond à aucun paiement connu serait indiscernable d'un
+      // remboursement étranger à cette application sur le même compte Stripe,
+      // et revokePayment ne pourrait pas décider s'il faut insister.
+      payment_intent_data: { metadata: { shareId } },
       success_url: `${appUrl}/s/${shareId}?payment={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/s/${shareId}`,
     });
@@ -191,16 +198,24 @@ export class PaymentService {
         };
       });
 
-    if (transfertInconnu)
-      this.logger.error(
-        `Recorded payment ${paiement.id} with no transfer attached: share ${outcome.shareId} no longer exists. ` +
-          `${paiement.email} paid ${paiement.amountCents} ${paiement.currency} for something that cannot be delivered.`,
-      );
-
     // Un rejeu ne renvoie pas un second reçu : un acheteur qui en reçoit deux
     // se demande s'il a payé deux fois, et c'est nous qui aurions à le
-    // rassurer.
+    // rassurer. Le journal non plus ne se répète pas — `/confirm` est une
+    // route ouverte, et une erreur réémise à chaque appel inonderait le
+    // journal depuis l'extérieur.
     if (!cree) return paiement;
+
+    if (transfertInconnu) {
+      this.logger.error(
+        `Recorded payment ${paiement.id} with no transfer attached: share ${outcome.shareId} no longer exists. ` +
+          `${paiement.email} paid ${paiement.amountCents} ${paiement.currency} for something that cannot be delivered — refund them.`,
+      );
+      // Pas de reçu. Il dirait « vous pouvez télécharger vos fichiers ici »
+      // en pointant un lien mort, à la seule personne qu'il faut prévenir du
+      // contraire. L'erreur ci-dessus est l'alerte ; le remboursement se fait
+      // à la main.
+      return paiement;
+    }
 
     // Après la transaction, jamais dedans : un serveur de messagerie lent
     // ou en panne ne doit pas annuler un paiement correctement enregistré.
@@ -250,18 +265,30 @@ export class PaymentService {
     return paiement;
   }
 
+  // Au-delà de ce délai, un remboursement qui n'a toujours pas trouvé son
+  // paiement ne le trouvera plus : on cesse d'insister. Six heures laissent
+  // très largement le temps à un `checkout.session.completed` retardé
+  // d'arriver, et restent loin des jours d'échecs continus après lesquels
+  // Stripe désactive un point de terminaison.
+  private static readonly DELAI_REMBOURSEMENT_ORPHELIN_MS = 6 * 60 * 60 * 1000;
+
   // Stripe ne garantit pas l'ordre de livraison de ses événements. Un
   // remboursement peut donc arriver AVANT le paiement qu'il annule : point de
   // terminaison indisponible au moment du paiement, Stripe qui réessaie
   // pendant trois jours, et un remboursement émis entre-temps. Ne rien
   // trouver ne veut alors pas dire « rien à faire » mais « pas encore » — et
   // répondre 200 perdrait le remboursement pour de bon, laissant l'accès
-  // ouvert à quelqu'un qu'on vient de rembourser. On lève : Stripe rapporte
-  // l'événement jusqu'à ce qu'il trouve son paiement. Le prix de ce choix est
-  // qu'un remboursement SANS rapport avec cette application, sur le même
-  // compte Stripe, est réessayé puis marqué en échec dans le tableau de bord ;
-  // c'est du bruit visible, là où l'inverse était une perte silencieuse.
-  async revokePayment(paymentIntentId: string) {
+  // ouvert à quelqu'un qu'on vient de rembourser. On refuse la livraison :
+  // Stripe rapporte l'événement jusqu'à ce qu'il trouve son paiement.
+  //
+  // Mais on ne s'obstine pas indéfiniment. Rien ne distingue ici un
+  // remboursement à nous d'une vente étrangère à cette application sur le
+  // même compte Stripe, et insister sur celui-là coûterait bien plus cher que
+  // l'événement perdu : après des échecs continus, Stripe prévient puis
+  // DÉSACTIVE le point de terminaison — et ce sont alors TOUS les paiements
+  // suivants qui disparaissent. L'âge de l'événement, qui ne change pas d'un
+  // réessai à l'autre, borne l'entêtement.
+  async revokePayment(paymentIntentId: string, eventCreatedAt: Date) {
     const { count } = await this.prisma.sharePayment.updateMany({
       where: { stripePaymentIntentId: paymentIntentId, revokedAt: null },
       data: { revokedAt: new Date() },
@@ -276,6 +303,15 @@ export class PaymentService {
       select: { id: true },
     });
     if (connu) return;
+
+    const age = Date.now() - eventCreatedAt.getTime();
+
+    if (age > PaymentService.DELAI_REMBOURSEMENT_ORPHELIN_MS) {
+      this.logger.log(
+        `Giving up on a refund for ${paymentIntentId}: no payment of ours matched it in ${Math.round(age / 3600000)}h.`,
+      );
+      return;
+    }
 
     this.logger.warn(
       `Refund for ${paymentIntentId} matched no payment yet; asking Stripe to deliver it again.`,
@@ -329,7 +365,8 @@ export class PaymentService {
     if (!outcome) return false;
 
     if (outcome.kind === "paid") await this.recordPayment(outcome);
-    else await this.revokePayment(outcome.paymentIntentId);
+    else
+      await this.revokePayment(outcome.paymentIntentId, outcome.eventCreatedAt);
 
     return true;
   }
@@ -338,6 +375,21 @@ export class PaymentService {
   // qui revient avant que Stripe ait appelé regarde un écran verrouillé alors
   // que son argent est parti. L'upsert fait que le second arrivé ne casse rien.
   async confirmSession(shareId: string, sessionId: string) {
+    // Deux refus qui ne coûtent rien, AVANT de toucher au réseau. Cette route
+    // n'a pas de garde de transfert — c'est voulu, voir le contrôleur — donc
+    // elle accepte un identifiant de session de n'importe qui : sans ces deux
+    // lignes, un inconnu déclencherait un appel sortant vers Stripe par
+    // requête, et mangerait le quota d'API qui sert à ouvrir les vraies
+    // sessions de paiement.
+    if (!this.stripe.isConfigured())
+      throw new BadRequestException(this.i18n.t("payment.notConfigured"));
+
+    const transfert = await this.prisma.share.findUnique({
+      where: { id: shareId },
+      select: { id: true },
+    });
+    if (!transfert) throw new NotFoundException(this.i18n.t("share.notFound"));
+
     const session = await this.stripe
       .client()
       .checkout.sessions.retrieve(sessionId);

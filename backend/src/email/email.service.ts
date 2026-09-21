@@ -900,6 +900,26 @@ export class EmailService {
     );
   }
 
+  // La conversion depuis l'unité mineure n'a lieu qu'ici, à la frontière
+  // d'affichage : `amountCents` reste un entier de bout en bout partout
+  // ailleurs dans ce chantier.
+  //
+  // Diviser par 100 serait faux dès qu'on quitte l'euro. Stripe exprime ses
+  // montants dans l'unité MINEURE de la devise, et toutes n'en ont pas deux
+  // décimales : le yen n'en a aucune (un `amount_total` de 1500 vaut 1500 ¥,
+  // pas 15), le dinar koweïtien en a trois. L'exposant est donc demandé à
+  // `Intl`, qui porte la table des unités mineures, plutôt que supposé.
+  private formatAmount(amountCents: number, currency: string, locale: string) {
+    const formatter = new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    });
+
+    const decimales = formatter.resolvedOptions().maximumFractionDigits;
+
+    return formatter.format(amountCents / 10 ** decimales);
+  }
+
   /**
    * Un reçu, et il le dit. La facture numérotée est un chantier futur
    * (spec §9) : promettre ici un document qui n'en est pas un mettrait le
@@ -924,18 +944,7 @@ export class EmailService {
     const lang = this.config.get("general.defaultLanguage");
     const locale = this.i18n.translate("email.locale", { lang });
 
-    // La conversion centimes → unité affichée n'a lieu qu'ici, à la
-    // frontière d'affichage — jamais sur un montant stocké ou transmis
-    // ailleurs (`amountCents` reste l'entier de bout en bout partout
-    // ailleurs dans ce chantier). `Intl.NumberFormat` est le seul moyen
-    // d'être juste pour une devise que Stripe pourrait renvoyer avec 0 ou 3
-    // décimales mineures (JPY, KWD) plutôt que 2 : il arrondit lui-même aux
-    // unités mineures de la devise donnée, ce qu'une division par 100 fixe
-    // ne fait pas.
-    const amount = new Intl.NumberFormat(locale as string, {
-      style: "currency",
-      currency: currency.toUpperCase(),
-    }).format(amountCents / 100);
+    const amount = this.formatAmount(amountCents, currency, locale as string);
 
     // `shareUrl` a sa place ici, pas seulement dans un `.replaceAll` après
     // coup : le formateur par défaut de nestjs-i18n (le paquet
@@ -948,7 +957,9 @@ export class EmailService {
     const args = {
       name: shareName ?? shareId,
       amount,
-      date: moment(paidAt).locale(locale as string).format("LL"),
+      date: moment(paidAt)
+        .locale(locale as string)
+        .format("LL"),
       reference,
       shareUrl,
     };
@@ -980,12 +991,7 @@ export class EmailService {
     const lang = this.config.get("general.defaultLanguage");
     const locale = this.i18n.translate("email.locale", { lang });
 
-    // Même conversion, même frontière d'affichage — voir le commentaire de
-    // sendPaymentReceipt.
-    const amount = new Intl.NumberFormat(locale as string, {
-      style: "currency",
-      currency: currency.toUpperCase(),
-    }).format(amountCents / 100);
+    const amount = this.formatAmount(amountCents, currency, locale as string);
 
     // `shareUrl` dans `args`, pas dans un `.replaceAll` après coup — voir le
     // commentaire de sendPaymentReceipt : passé `args`, le formateur par

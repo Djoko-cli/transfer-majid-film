@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from "@nestjs/common";
 import * as StripeNamespace from "stripe";
 import { ConfigService } from "src/config/config.service";
 
@@ -16,6 +20,8 @@ const Stripe: StripeConstructor =
 
 @Injectable()
 export class StripeService {
+  private readonly logger = new Logger(StripeService.name);
+
   constructor(private config: ConfigService) {}
 
   isConfigured(): boolean {
@@ -29,8 +35,18 @@ export class StripeService {
   // l'ancienne jusqu'au redémarrage.
   client(): import("stripe").Stripe {
     const key = this.config.get("stripe.secretKey");
-    if (!key)
-      throw new InternalServerErrorException("stripe.secretKey is not set");
+    if (!key) {
+      // Le message d'une HttpException arrive TEL QUEL dans le corps de la
+      // réponse — le filtre par défaut de Nest le recopie. Nommer le réglage
+      // manquant tendait donc « stripe.secretKey is not set » à n'importe qui
+      // appelait le webhook ou /confirm sur une instance sans Stripe, deux
+      // routes sans authentification. Le nom va au journal, où il sert
+      // l'exploitant ; l'appelant n'apprend rien de notre configuration.
+      this.logger.error(
+        "stripe.secretKey is not set: refusing to build a Stripe client",
+      );
+      throw new InternalServerErrorException("payment is not available");
+    }
     return new Stripe(key);
   }
 }

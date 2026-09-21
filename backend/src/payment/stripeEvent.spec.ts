@@ -63,9 +63,28 @@ test("une session sans shareId ne donne rien", () => {
 test("un remboursement devient une révocation", () => {
   const out = interpretStripeEvent({
     type: "charge.refunded",
+    created: 1790000000,
     data: { object: { payment_intent: "pi_1" } },
   } as never);
-  assert.deepEqual(out, { kind: "refunded", paymentIntentId: "pi_1" });
+  assert.deepEqual(out, {
+    kind: "refunded",
+    paymentIntentId: "pi_1",
+    eventCreatedAt: new Date(1790000000 * 1000),
+  });
+});
+
+test("un remboursement sans date est traité comme frais", () => {
+  // Stripe met toujours `created`, mais une charge utile forgée à la main
+  // n'en a pas. Le prudent, c'est de le croire récent : on insistera pour le
+  // rattacher à son paiement plutôt que de l'abandonner tout de suite.
+  const avant = Date.now();
+  const out = interpretStripeEvent({
+    type: "charge.refunded",
+    data: { object: { payment_intent: "pi_2" } },
+  } as never);
+  assert.equal(out?.kind, "refunded");
+  const date = (out as { eventCreatedAt: Date }).eventCreatedAt.getTime();
+  assert.ok(date >= avant && date <= Date.now());
 });
 
 test("une session payée sans montant ne donne rien", () => {
