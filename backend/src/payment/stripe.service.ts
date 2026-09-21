@@ -24,10 +24,23 @@ export class StripeService {
 
   constructor(private config: ConfigService) {}
 
+  // `config.get()` LÈVE quand la variable n'existe pas — c'est voulu, ça
+  // attrape les fautes de frappe. Mais ces trois réglages-là n'existent
+  // qu'une fois le seed passé, et le seed tourne au déploiement, après que
+  // l'image a démarré : entre les deux, chaque clic sur « Débloquer »
+  // remontait une erreur 500 et une trace brute dans le journal, au lieu de
+  // dire simplement que le paiement n'est pas configuré. Observé pour de
+  // vrai sur cette instance. Une variable absente, c'est une instance qui
+  // ne vend pas — la même réponse qu'un interrupteur éteint.
   isConfigured(): boolean {
-    return (
-      this.config.get("stripe.enabled") && !!this.config.get("stripe.secretKey")
-    );
+    try {
+      return (
+        this.config.get("stripe.enabled") &&
+        !!this.config.get("stripe.secretKey")
+      );
+    } catch {
+      return false;
+    }
   }
 
   // Construit à la demande plutôt que mis en cache : la clé peut changer
