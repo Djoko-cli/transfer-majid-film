@@ -45,11 +45,11 @@ export const categories = [
   { name: "OAuth", icon: <TbSocial /> },
   { name: "LDAP", icon: <TbBinaryTree /> },
   { name: "S3", icon: <TbBucket /> },
+  { name: "Stripe", icon: <TbCreditCard /> },
   { name: "Legal", icon: <TbScale /> },
   { name: "Cache", icon: <TbServerBolt /> },
   { name: "Clamav", icon: <TbVirusSearch /> },
   { name: "Performance", icon: <TbGauge /> },
-  { name: "Stripe", icon: <TbCreditCard /> },
 ];
 
 const adminItems = [

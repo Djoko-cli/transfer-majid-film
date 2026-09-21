@@ -44,11 +44,11 @@ const categories = [
   "OAuth",
   "LDAP",
   "S3",
+  "Stripe",
   "Legal",
   "Cache",
   "Clamav",
   "Performance",
-  "Stripe",
 ];
 
 // Every OAuth provider this app supports (see oauth.util.tsx's own

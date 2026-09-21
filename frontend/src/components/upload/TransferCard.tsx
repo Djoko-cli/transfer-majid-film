@@ -818,8 +818,16 @@ const TransferCard = ({
                         // (backend's ShareService.create() rejects a price from
                         // anyone else), so an ordinary or anonymous sender never
                         // sees a field they couldn't actually use.
+                        //
+                        // Et seulement si le moteur de paiement tourne :
+                        // sans clé Stripe, poser un prix produirait un
+                        // transfert que personne ne peut débloquer — le
+                        // bouton du destinataire répondrait « le paiement
+                        // n'est pas configuré » et il resterait devant une
+                        // porte sans serrure. `stripe.enabled` porte
+                        // `secret: false`, il est donc lisible ici.
                       }
-                      {user?.isAdmin && (
+                      {user?.isAdmin && config.get("stripe.enabled") && (
                         <NumberInput
                           hideControls
                           min={0}
