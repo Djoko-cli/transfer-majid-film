@@ -5,6 +5,7 @@ import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
+import { useSubmitButtonStyles } from "../core/submitButtonStyles";
 
 const DownloadAllButton = ({
   shareId,
@@ -35,6 +36,7 @@ const DownloadAllButton = ({
   // for the render below, since the fallback path never touches it.
   const [bytesDownloaded, setBytesDownloaded] = useState<number | null>(null);
   const t = useTranslate();
+  const { classes: shimmer } = useSubmitButtonStyles();
 
   // downloadFile() triggers a plain browser navigation (window.location.href
   // against a Content-Disposition: attachment response) rather than a
@@ -166,6 +168,12 @@ const DownloadAllButton = ({
         fullWidth={fullWidth}
         size={size}
         loading={isLoading}
+        // Le même scintillement que le bouton d'envoi, et à la même
+        // condition : seulement quand l'action est vraiment disponible.
+        // Tant que l'archive se construit, un clic ne rend qu'un message
+        // « préparation en cours » — la faire scintiller inviterait à un
+        // geste qui n'aboutit pas.
+        className={isZipReady && !isLoading ? shimmer.ready : undefined}
         onClick={() => {
           if (!isZipReady) {
             toast.error(t("share.notify.download-all-preparing"));

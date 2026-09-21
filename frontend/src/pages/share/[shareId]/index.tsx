@@ -33,6 +33,7 @@ import useConfig from "../../../hooks/config.hook";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import useUser from "../../../hooks/user.hook";
 import shareService from "../../../services/share.service";
+import { useSubmitButtonStyles } from "../../../components/core/submitButtonStyles";
 import { MyShare, Share as ShareType } from "../../../types/share.type";
 import toast from "../../../utils/toast.util";
 import { byteToHumanSizeString } from "../../../utils/fileSize.util";
@@ -55,6 +56,7 @@ const Share = ({ shareId }: { shareId: string }) => {
   const modals = useModals();
   const router = useRouter();
   const intl = useIntl();
+  const { classes: shimmer } = useSubmitButtonStyles();
   const [share, setShare] = useState<ShareType>();
   const [isRestricted, setIsRestricted] = useState(false);
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
@@ -450,6 +452,12 @@ const Share = ({ shareId }: { shareId: string }) => {
                 size="md"
                 loading={isStartingCheckout}
                 onClick={handleUnlock}
+                // Le même scintillement que « Obtenir un lien » côté envoi :
+                // c'est l'action principale de cet écran, et la seule qui
+                // demande une décision. Retiré pendant l'aller chez Stripe —
+                // un bouton qui scintille en chargeant dit deux choses
+                // contradictoires.
+                className={isStartingCheckout ? undefined : shimmer.ready}
               >
                 <FormattedMessage
                   id="share.payment.unlock"
