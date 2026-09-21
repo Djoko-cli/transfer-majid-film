@@ -158,14 +158,24 @@ export class PaymentService {
   // doit répondre 400, jamais 200. Répondre 200 à un événement non vérifié,
   // c'est accepter qu'un inconnu déclare des paiements.
   verifyWebhook(rawBody: Buffer | undefined, signature: string | string[]) {
-    if (!rawBody)
-      throw new BadRequestException("missing raw body for webhook");
+    if (!rawBody) throw new BadRequestException("missing raw body for webhook");
 
-    return this.stripe.client().webhooks.constructEvent(
-      rawBody,
-      Array.isArray(signature) ? signature[0] : signature,
-      this.config.get("stripe.webhookSigningSecret"),
-    );
+    try {
+      return this.stripe
+        .client()
+        .webhooks.constructEvent(
+          rawBody,
+          Array.isArray(signature) ? signature[0] : signature,
+          this.config.get("stripe.webhookSigningSecret"),
+        );
+    } catch (e) {
+      // Traduit en 400 plutôt que laissé remonter en 500. Stripe réessaie dans
+      // les deux cas, donc rien ne change pour lui — mais un secret de
+      // signature mal recopié produirait sinon une avalanche d'erreurs serveur
+      // indistinguables d'une vraie panne. Le message de Stripe ne contient
+      // ni la charge utile ni le secret, seulement la raison du rejet.
+      throw new BadRequestException(e.message);
+    }
   }
 
   async applyEvent(event: { type: string; data: { object: object } }) {
