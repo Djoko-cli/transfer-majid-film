@@ -15,6 +15,7 @@ const categories = [
   "cache",
   "clamav",
   "performance",
+  "stripe",
 ];
 
 const list = async (): Promise<Config[]> => {

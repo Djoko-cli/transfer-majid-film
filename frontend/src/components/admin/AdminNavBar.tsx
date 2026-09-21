@@ -17,6 +17,7 @@ import {
   TbAt,
   TbBinaryTree,
   TbBucket,
+  TbCreditCard,
   TbGauge,
   TbLink,
   TbMail,
@@ -48,6 +49,7 @@ export const categories = [
   { name: "Cache", icon: <TbServerBolt /> },
   { name: "Clamav", icon: <TbVirusSearch /> },
   { name: "Performance", icon: <TbGauge /> },
+  { name: "Stripe", icon: <TbCreditCard /> },
 ];
 
 const adminItems = [
