@@ -41,7 +41,7 @@ const SOURCE_PAR_DEFAUT = "scripts/brand/logo-source.png";
 // orange, un disque orange disparaît — le cercle cesse d'être un cercle et
 // le point s'évanouit avec lui. Sur la crème, la marque se lit exactement
 // comme elle a été dessinée.
-const FOND_OPAQUE = "#faf0e4";
+const FOND_OPAQUE = "#f9f0e6";
 
 // `purpose: "any"` — le logo occupe tout le cadre.
 const TAILLES_PWA = [48, 72, 96, 128, 144, 152, 192, 384, 512];
