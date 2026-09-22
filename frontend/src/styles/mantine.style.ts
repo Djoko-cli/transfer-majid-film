@@ -7,7 +7,11 @@ import rubik from "../fonts/rubik.font";
 // that the whole visual identity is code-driven, changing the accent is a
 // one-line edit here instead of a database row, shipped through the normal
 // build/deploy path like everything else.
-const ACCENT_HEX = "#ff7a00";
+// Relevé dans le logo lui-même : la moyenne des 132 000 points du disque
+// (scripts/brand/logo-source.png), dont le dégradé va de #ec5f2f à #f67c37.
+// L'ancienne valeur, #ff7a00, était plus saturée et plus jaune — elle datait
+// d'avant ce logo, et les boutons ne portaient plus la couleur de la marque.
+const ACCENT_HEX = "#ef6b35";
 
 const hexToRgb = (hex: string): { r: number; g: number; b: number } => ({
   r: parseInt(hex.slice(1, 3), 16),
@@ -87,6 +91,13 @@ export default <MantineThemeOverride>{
     ],
   },
   primaryColor: "accent",
+  // Mantine prend par défaut la nuance 6 en clair et la 8 en sombre — soit
+  // un accent assombri de 10 % et de 34 %. Un bouton sombre ne portait donc
+  // pas l'orange de la marque mais une version brunie : #a85100 pour un
+  // accent à #ff7a00. En pointant les deux modes sur la nuance 6, le bouton
+  // se rapproche du disque du logo tout en gardant du contraste sous son
+  // texte blanc (3,75:1, contre 3,08:1 pour l'accent pur).
+  primaryShade: { light: 6, dark: 6 },
   defaultRadius: "md",
   components: {
     Modal: {

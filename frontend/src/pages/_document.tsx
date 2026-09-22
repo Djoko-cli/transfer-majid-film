@@ -23,7 +23,7 @@ export default class _Document extends Document {
           />
 
           <meta name="robots" content="noindex" />
-          <meta name="theme-color" content="#ff7a00" />
+          <meta name="theme-color" content="#ef6b35" />
         </Head>
         <body>
           <Main />

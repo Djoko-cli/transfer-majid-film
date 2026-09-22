@@ -15,7 +15,7 @@
 // a button, a plain file list) rather than a generic "Bonjour, here's a
 // link" paragraph.
 
-const ACCENT_HEX = "#ff7a00";
+const ACCENT_HEX = "#ef6b35";
 const TEXT_HEX = "#141414";
 const DIMMED_HEX = "#6b6b6b";
 const BORDER_HEX = "#e5e5e5";
