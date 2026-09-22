@@ -1,0 +1,160 @@
+<!doctype html>
+<!--
+  La source de frontend/public/img/og-image.png — la vignette que montrent
+  les messageries et les réseaux quand on colle un lien Transfer.
+
+  Elle existe parce que l'image précédente avait été fabriquée hors du dépôt :
+  personne ne pouvait la refaire sans repartir de zéro, et changer le logo
+  voulait dire la redessiner à la main. Ici, elle se régénère.
+
+    node scripts/brand/generate-og.mjs
+
+  Le gabarit est en HTML plutôt qu'en composition d'images parce qu'il porte
+  du texte : une police, des graisses, un interlignage. Rubik est celle du
+  produit, chargée depuis public/fonts pour que la vignette et le site
+  s'écrivent de la même main.
+-->
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: "Rubik";
+        src: url("/fonts/rubik/rubik-400-latin.woff2") format("woff2");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "Rubik";
+        src: url("/fonts/rubik/rubik-500-latin.woff2") format("woff2");
+        font-weight: 500;
+      }
+      @font-face {
+        font-family: "Rubik";
+        src: url("/fonts/rubik/rubik-600-latin.woff2") format("woff2");
+        font-weight: 600;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        width: 1200px;
+        height: 630px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 26px;
+        font-family: "Rubik", system-ui, sans-serif;
+        /* Deux lueurs chaudes sur un fond presque noir : celle de gauche
+           donne son assise à la carte, celle de droite l'empêche d'être
+           posée sur un rectangle mort. */
+        background:
+          radial-gradient(
+            520px 420px at 8% 42%,
+            rgba(255, 122, 0, 0.28),
+            transparent 70%
+          ),
+          radial-gradient(
+            620px 520px at 96% 88%,
+            rgba(255, 122, 0, 0.16),
+            transparent 72%
+          ),
+          #0b0b0b;
+      }
+
+      .carte {
+        width: 648px;
+        height: 472px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 34px;
+        border-radius: 26px;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        background: linear-gradient(
+          160deg,
+          rgba(32, 30, 28, 0.92),
+          rgba(18, 17, 16, 0.92)
+        );
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+      }
+
+      .titre {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+      .titre img {
+        width: 78px;
+        height: 78px;
+      }
+      .titre span {
+        font-size: 63px;
+        font-weight: 600;
+        color: #fff;
+        letter-spacing: -0.5px;
+      }
+
+      .accroche {
+        font-size: 27px;
+        font-weight: 400;
+        line-height: 1.42;
+        text-align: center;
+        color: #b9b4ae;
+        max-width: 470px;
+      }
+
+      .pilule {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        padding: 17px 30px;
+        border-radius: 999px;
+        border: 1px dashed rgba(255, 255, 255, 0.24);
+        font-size: 21px;
+        font-weight: 500;
+        color: #fff;
+      }
+      .pilule svg {
+        width: 26px;
+        height: 26px;
+        stroke: #ff7a00;
+        fill: none;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .domaine {
+        font-size: 21px;
+        font-weight: 600;
+        color: #ff7a00;
+        letter-spacing: 0.2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="carte">
+      <div class="titre">
+        <img src="/img/logo.png" alt="" />
+        <span>Transfer</span>
+      </div>
+      <p class="accroche">Envoyez de gros fichiers avec un lien,<br />sans compte.</p>
+      <div class="pilule">
+        <!-- Le même nuage-vers-le-haut que la zone de dépôt du produit. -->
+        <svg viewBox="0 0 24 24">
+          <path d="M7 18a4.6 4.6 0 0 1-.4-9.2 6 6 0 0 1 11.6 1.4A3.9 3.9 0 0 1 17.5 18" />
+          <path d="M12 21v-9" />
+          <path d="m8.8 15.2 3.2-3.2 3.2 3.2" />
+        </svg>
+        Glissez-déposez vos fichiers
+      </div>
+    </div>
+    <div class="domaine">transfer.majid.film</div>
+  </body>
+</html>
