@@ -3,6 +3,10 @@
 // logo change — et pour que quinze tailles ne divergent pas en silence.
 //
 //   node scripts/brand/generate-icons.mjs [source] [--dry-run <dossier>]
+//                                         [--teinte <#rrggbb | aucune>]
+//
+// `--teinte` remplace TEINTE_CIBLE le temps d'un essai ; avec `--dry-run`,
+// c'est ainsi qu'on compare plusieurs teintes sans toucher au dépôt.
 //
 // Sans argument, la source est scripts/brand/logo-source.png. Un SVG ferait
 // aussi bien, et mieux : il resterait net à toutes les tailles.
@@ -261,15 +265,32 @@ async function rendre(entree, taille, { fond = null, marge = 0 } = {}) {
 }
 
 async function main() {
+  const options = {};
+  const positionnels = [];
   const args = process.argv.slice(2);
-  const iSec = args.indexOf("--dry-run");
-  const cible = iSec === -1 ? null : args[iSec + 1];
-  const source = (iSec === 0 ? null : args[0]) ?? SOURCE_PAR_DEFAUT;
+  for (let i = 0; i < args.length; i++)
+    if (args[i].startsWith("--")) options[args[i]] = args[++i];
+    else positionnels.push(args[i]);
+
+  const source = positionnels[0] ?? SOURCE_PAR_DEFAUT;
+  const cible = options["--dry-run"];
   const racine = cible ?? "frontend/public/img";
 
-  if (iSec !== -1 && !cible) {
+  if ("--dry-run" in options && !cible) {
     console.error("--dry-run attend un dossier de sortie");
     process.exit(1);
+  }
+
+  let teinte = TEINTE_CIBLE;
+  if ("--teinte" in options) {
+    const valeur = options["--teinte"];
+    if (valeur === "aucune") teinte = null;
+    else if (/^#[0-9a-f]{6}$/i.test(valeur ?? ""))
+      teinte = valeur.toLowerCase();
+    else {
+      console.error("--teinte attend une couleur #rrggbb, ou « aucune »");
+      process.exit(1);
+    }
   }
 
   const meta = await sharp(source).metadata();
@@ -287,10 +308,12 @@ async function main() {
     );
 
   const brut = { source, options: { density: 600 } };
-  const complet = TEINTE_CIBLE
-    ? (await reteinter(brut, TEINTE_CIBLE)).entree
-    : brut;
-  if (TEINTE_CIBLE) console.log(`teinte : disque porte a ${TEINTE_CIBLE}`);
+  const complet = teinte ? (await reteinter(brut, teinte)).entree : brut;
+  console.log(
+    teinte
+      ? `teinte : disque porte a ${teinte}`
+      : "teinte : aucune, le logo garde les couleurs de sa source",
+  );
 
   const sansPoint = await retirerLePoint(complet);
   const petit = sansPoint
