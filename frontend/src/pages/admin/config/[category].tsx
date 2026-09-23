@@ -37,6 +37,7 @@ import toast from "../../../utils/toast.util";
 
 const categories = [
   "General",
+  "Appearance",
   "Email",
   "Share",
   "Verification",

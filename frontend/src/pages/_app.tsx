@@ -18,6 +18,7 @@ import type { AppProps } from "next/app";
 import Head from "next/head";
 import { ReactNode, useEffect, useState } from "react";
 import { IntlProvider } from "react-intl";
+import BrandHead from "../components/BrandHead";
 import Header, { HEADER_HEIGHT } from "../components/header/Header";
 import { ConfigContext } from "../hooks/config.hook";
 import { LanguageContext } from "../hooks/language.hook";
@@ -29,9 +30,7 @@ import configService from "../services/config.service";
 import userService from "../services/user.service";
 import GlobalStyle from "../styles/global.style";
 import RunwayStyle from "../styles/runway.style";
-import FullBleedShell, {
-  PageEndSlot,
-} from "../components/core/FullBleedShell";
+import FullBleedShell, { PageEndSlot } from "../components/core/FullBleedShell";
 import {
   BAND_SETTLE_EASING,
   BAND_SETTLE_MS,
@@ -277,6 +276,7 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
                     },
                   }}
                 >
+                  <BrandHead />
                   <UserContext.Provider
                     value={{
                       user,

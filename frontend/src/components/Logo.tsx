@@ -1,13 +1,13 @@
 import { useMantineColorScheme } from "@mantine/core";
 import { useEffect, useState } from "react";
-
-const defaultLogoSrc = "/img/logo.png";
-const darkLogoSrc = "/img/logo-dark.png";
+import useBrandAsset from "../hooks/brandAsset.hook";
 
 const Logo = ({ height, width }: { height: number; width: number }) => {
   const { colorScheme } = useMantineColorScheme();
+  const { asset } = useBrandAsset();
+  const defaultLogoSrc = asset("logo.png");
   const preferredLogoSrc =
-    colorScheme === "dark" ? darkLogoSrc : defaultLogoSrc;
+    colorScheme === "dark" ? asset("logo-dark.png") : defaultLogoSrc;
   const [logoSrc, setLogoSrc] = useState(preferredLogoSrc);
 
   useEffect(() => {

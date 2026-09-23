@@ -62,6 +62,20 @@ export class EmailService {
     });
   }
 
+  // The mark at the top of the envelope follows the admin's "flat logo"
+  // switch, like every other place the logo appears. Read defensively:
+  // config.get throws on a key the seed has not created yet, which is true
+  // of any instance between a deploy's code and its seed — and a missing
+  // key must not stop an email from going out over a logo.
+  private logoPath(): string {
+    try {
+      if (this.config.get("appearance.flatLogo")) return "/img/flat/logo.png";
+    } catch {
+      // not seeded yet: keep the original mark
+    }
+    return "/img/logo.png";
+  }
+
   // Shared by sendMail and sendTestMail so the admin's "Test SMTP" button
   // previews the exact same branded envelope real emails go out in, not a
   // simplified stand-in. When HTML is off, returns `text` byte-for-byte —
@@ -73,7 +87,7 @@ export class EmailService {
     return renderEmailEnvelope({
       appName: APP_NAME,
       appUrl,
-      logoUrl: `${appUrl}/img/logo.png`,
+      logoUrl: `${appUrl}${this.logoPath()}`,
       bodyText: text,
       code: options?.code,
       ctaUrl: options?.ctaUrl,

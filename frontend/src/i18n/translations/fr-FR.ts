@@ -815,6 +815,7 @@ export default {
     "Laissez vide pour conserver la valeur actuelle. Saisissez pour la remplacer, effacez pour la supprimer.",
   "admin.config.title": "Paramètres",
   "admin.config.category.general": "Général",
+  "admin.config.category.appearance": "Apparence",
   "admin.config.category.share": "Transfert",
   "admin.config.category.verification": "Vérification",
   "admin.config.category.cache": "Cache",
@@ -854,6 +855,11 @@ export default {
   "admin.config.clamav.infected-file-action.quarantine":
     "Mettre en quarantaine",
   "admin.config.clamav.infected-file-action.none": "Ne rien faire",
+
+  // Apparence
+  "admin.config.appearance.flat-logo": "Logo sans ombrage",
+  "admin.config.appearance.flat-logo.description":
+    "Affiche le T du logo à plat, sans l'ombre qu'il porte sur le disque. S'applique partout où le logo apparaît : en-tête, onglet du navigateur, icône d'application sur l'écran d'accueil, aperçu des liens partagés et en-tête des courriels. Les liens déjà partagés peuvent garder l'ancien aperçu tant que les messageries ne l'ont pas rafraîchi.",
 
   // Performance
   "admin.config.performance.pause-glint-on-card-resize":

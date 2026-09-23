@@ -22,9 +22,22 @@ import { join } from "node:path";
 const executer = promisify(execFile);
 
 const GABARIT = "scripts/brand/og-image.html";
-const SORTIE = "frontend/public/img/og-image.png";
-const LOGO = "frontend/public/img/logo.png";
 const FONTES = "frontend/public/fonts/rubik";
+
+// Une vignette par version du logo, chacune à côté de ses icônes : celle
+// que Meta.tsx annonce suit le réglage « Logo sans ombrage » de la console
+// d'admin. Les logos sont ceux que generate-icons.mjs vient d'écrire, déjà
+// à la bonne teinte — ce script est à lancer après lui.
+const VARIANTES = [
+  {
+    logo: "frontend/public/img/logo.png",
+    sortie: "frontend/public/img/og-image.png",
+  },
+  {
+    logo: "frontend/public/img/flat/logo.png",
+    sortie: "frontend/public/img/flat/og-image.png",
+  },
+];
 
 // Les dimensions qu'attendent Open Graph et Twitter, et que Meta.tsx
 // annonce en dur dans ses balises. Les changer ici sans les changer là-bas
@@ -50,7 +63,7 @@ async function trouverNavigateur() {
   }
   throw new Error(
     "aucun navigateur trouvé pour le rendu — installez Chrome, ou rendez\n" +
-      `${GABARIT} à la main en 1200×630 et écrivez le résultat dans ${SORTIE}`,
+      `${GABARIT} à la main en 1200×630 pour chaque logo de VARIANTES`,
   );
 }
 
@@ -60,14 +73,18 @@ async function enBase64(chemin) {
 
 async function main() {
   const navigateur = await trouverNavigateur();
+  const gabarit = await readFile(GABARIT, "utf8");
+  for (const variante of VARIANTES) await rendre(navigateur, gabarit, variante);
+}
 
-  let html = await readFile(GABARIT, "utf8");
+async function rendre(navigateur, gabarit, { logo, sortie }) {
+  let html = gabarit;
 
   // Le logo et les trois graisses de Rubik, incrustés : le fichier rendu ne
   // demande plus rien au réseau.
   html = html.replace(
     'src="/img/logo.png"',
-    `src="data:image/png;base64,${await enBase64(LOGO)}"`,
+    `src="data:image/png;base64,${await enBase64(logo)}"`,
   );
   for (const graisse of [400, 500, 600])
     html = html.replace(
@@ -88,7 +105,7 @@ async function main() {
       // Sans ça, un écran Retina rendrait une image de 2400 px de large.
       "--force-device-scale-factor=1",
       `--window-size=${LARGEUR},${HAUTEUR}`,
-      `--screenshot=${SORTIE}`,
+      `--screenshot=${sortie}`,
       // Laisse aux fontes le temps d'être décodées avant la capture.
       "--virtual-time-budget=4000",
       `file://${temporaire}`,
@@ -97,9 +114,9 @@ async function main() {
     await unlink(temporaire).catch(() => {});
   }
 
-  const poids = (await readFile(SORTIE)).length;
+  const poids = (await readFile(sortie)).length;
   console.log(
-    `${SORTIE} — ${LARGEUR}×${HAUTEUR}, ${(poids / 1024).toFixed(0)} Ko, rendu par ${navigateur.split("/").pop()}`,
+    `${sortie} — ${LARGEUR}×${HAUTEUR}, ${(poids / 1024).toFixed(0)} Ko, rendu par ${navigateur.split("/").pop()}`,
   );
 }
 

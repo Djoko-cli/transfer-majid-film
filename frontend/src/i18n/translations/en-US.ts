@@ -820,6 +820,7 @@ export default {
     "Leave empty to keep the current value. Type to replace it, clear it to remove it.",
   "admin.config.title": "Configuration",
   "admin.config.category.general": "General",
+  "admin.config.category.appearance": "Appearance",
   "admin.config.category.share": "Transfer",
   "admin.config.category.verification": "Verification",
   "admin.config.category.cache": "Cache",
@@ -857,6 +858,11 @@ export default {
   "admin.config.clamav.infected-file-action.delete": "Delete",
   "admin.config.clamav.infected-file-action.quarantine": "Quarantine",
   "admin.config.clamav.infected-file-action.none": "Do nothing",
+
+  // Appearance
+  "admin.config.appearance.flat-logo": "Flat logo",
+  "admin.config.appearance.flat-logo.description":
+    "Shows the logo's T flat, without the shadow it casts across the disc. Applies everywhere the logo appears: the header, the browser tab, the home-screen app icon, the preview of shared links and the top of emails. Links already shared may keep the old preview until messaging apps refresh it.",
 
   // Performance
   "admin.config.performance.pause-glint-on-card-resize":

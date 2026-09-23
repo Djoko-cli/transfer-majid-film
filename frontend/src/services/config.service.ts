@@ -4,6 +4,7 @@ import { stringToTimespan } from "../utils/date.util";
 
 const categories = [
   "general",
+  "appearance",
   "email",
   "share",
   "verification",

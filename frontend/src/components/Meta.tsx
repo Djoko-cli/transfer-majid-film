@@ -1,5 +1,6 @@
 import Head from "next/head";
 import { APP_NAME } from "../constants";
+import useBrandAsset from "../hooks/brandAsset.hook";
 import useConfig from "../hooks/config.hook";
 
 const DEFAULT_DESCRIPTION =
@@ -22,6 +23,7 @@ const Meta = ({
   ogTitle?: string;
 }) => {
   const config = useConfig();
+  const { asset } = useBrandAsset();
   const metaTitle = `${title} - ${APP_NAME}`;
   const metaDescription = description ?? DEFAULT_DESCRIPTION;
   const shareTitle = ogTitle ?? metaTitle;
@@ -32,7 +34,8 @@ const Meta = ({
   // truth for "the real, configured address of this instance" (every
   // email/share link already builds off it) - not the returnDefault
   // variant, this wants the actual configured value, same as those do.
-  const ogImageUrl = `${config.get("general.appUrl")}/img/og-image.png`;
+  // The preview carries the logo too, so it follows the same switch.
+  const ogImageUrl = `${config.get("general.appUrl")}${asset("og-image.png")}`;
 
   return (
     <Head>

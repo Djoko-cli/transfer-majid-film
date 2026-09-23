@@ -21,6 +21,7 @@ import {
   TbGauge,
   TbLink,
   TbMail,
+  TbPalette,
   TbPhoto,
   TbScale,
   TbServerBolt,
@@ -38,6 +39,7 @@ import versionService, { VersionInfo } from "../../services/version.service";
 
 export const categories = [
   { name: "General", icon: <TbSettings /> },
+  { name: "Appearance", icon: <TbPalette /> },
   { name: "Email", icon: <TbMail /> },
   { name: "Share", icon: <TbShare /> },
   { name: "Verification", icon: <TbShieldCheck /> },

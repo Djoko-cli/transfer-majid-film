@@ -98,6 +98,21 @@ export const configVariables = {
       obscured: true,
     },
   },
+  // How the instance presents itself. Public (secret: false) because the
+  // logo is drawn on every page, for signed-out visitors first.
+  appearance: {
+    // The mark exists in two versions: the original, where the T casts a
+    // shadow across the disc, and a flat one without it. Both are rendered
+    // from their own master by scripts/brand/generate-icons.mjs, at the
+    // same hue, and the flat set lives under img/flat/. This switches every
+    // place the mark appears: header, favicon, home-screen and PWA icons,
+    // the share preview and the logo at the top of every email.
+    flatLogo: {
+      type: "boolean",
+      defaultValue: "false",
+      secret: false,
+    },
+  },
   share: {
     allowRegistration: {
       type: "boolean",

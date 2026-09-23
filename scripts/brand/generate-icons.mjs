@@ -1,15 +1,16 @@
-// Fabrique toutes les déclinaisons de l'icône du produit depuis une seule
-// source, pour qu'il n'y ait jamais qu'un fichier à remplacer le jour où le
+// Fabrique toutes les déclinaisons de l'icône du produit depuis ses fichiers
+// maîtres, pour qu'il n'y ait jamais qu'un fichier à remplacer le jour où le
 // logo change — et pour que quinze tailles ne divergent pas en silence.
 //
-//   node scripts/brand/generate-icons.mjs [source] [--dry-run <dossier>]
+//   node scripts/brand/generate-icons.mjs [--dry-run <dossier>]
 //                                         [--teinte <#rrggbb | aucune>]
 //
 // `--teinte` remplace TEINTE_CIBLE le temps d'un essai ; avec `--dry-run`,
 // c'est ainsi qu'on compare plusieurs teintes sans toucher au dépôt.
 //
-// Sans argument, la source est scripts/brand/logo-source.png. Un SVG ferait
-// aussi bien, et mieux : il resterait net à toutes les tailles.
+// Le logo existe en deux versions, décrites dans VARIANTES plus bas, et
+// chacune produit son jeu complet. Un SVG ferait aussi bien qu'un PNG comme
+// maître, et mieux : il resterait net à toutes les tailles.
 //
 // Trois familles d'icônes, et elles ne se ressemblent pas :
 //
@@ -38,7 +39,29 @@ import { join, extname } from "node:path";
 
 const sharp = sharpNamespace.default ?? sharpNamespace;
 
-const SOURCE_PAR_DEFAUT = "scripts/brand/logo-source.png";
+// Les deux versions du logo. L'ombrée est la version d'origine ; la plate
+// est le même dessin sans l'ombre que le T porte sur le disque, et c'est
+// elle que l'instance sert quand « Logo sans ombrage » est activé dans la
+// console d'admin (réglage `appearance.flatLogo`). Les deux passent par
+// exactement le même traitement — même teinte, même point retiré, mêmes
+// tailles — pour que basculer de l'une à l'autre ne change que l'ombre.
+//
+// `dossier` est relatif à img/. Le frontend en garde le nom dans
+// hooks/brandAsset.hook.ts : le renommer ici sans le renommer là-bas
+// servirait des images introuvables.
+const VARIANTES = [
+  {
+    source: "scripts/brand/logo-source.png",
+    dossier: "",
+    // Le site de documentation n'a pas de réglage : il garde l'originale.
+    copieDocs: "docs/static/img/logo.png",
+  },
+  { source: "scripts/brand/logo-source-flat.png", dossier: "flat" },
+];
+
+// Le manifeste PWA de référence, écrit à la main. La version plate en
+// reçoit une copie dont seules les icônes changent.
+const MANIFESTE = "frontend/public/manifest.json";
 
 // La teinte réellement peinte sur les icônes. Le fichier maître est celui du
 // propriétaire, plus vif ; la marque a retenu l'orange des boutons de
@@ -275,16 +298,18 @@ async function rendre(entree, taille, { fond = null, marge = 0 } = {}) {
 
 async function main() {
   const options = {};
-  const positionnels = [];
   const args = process.argv.slice(2);
-  for (let i = 0; i < args.length; i++)
-    if (args[i].startsWith("--")) options[args[i]] = args[++i];
-    else positionnels.push(args[i]);
+  for (let i = 0; i < args.length; i++) {
+    if (!args[i].startsWith("--")) {
+      console.error(
+        `argument inattendu « ${args[i]} » : les fichiers maîtres sont fixés dans VARIANTES`,
+      );
+      process.exit(1);
+    }
+    options[args[i]] = args[++i];
+  }
 
-  const source = positionnels[0] ?? SOURCE_PAR_DEFAUT;
   const cible = options["--dry-run"];
-  const racine = cible ?? "frontend/public/img";
-
   if ("--dry-run" in options && !cible) {
     console.error("--dry-run attend un dossier de sortie");
     process.exit(1);
@@ -302,6 +327,28 @@ async function main() {
     }
   }
 
+  console.log(
+    teinte
+      ? `teinte : disque porte a ${teinte}`
+      : "teinte : aucune, le logo garde les couleurs de sa source",
+  );
+
+  const ecrits = [];
+  for (const variante of VARIANTES)
+    ecrits.push(
+      ...(await genererVariante(variante, {
+        racine: join(cible ?? "frontend/public/img", variante.dossier),
+        teinte,
+        horsDepot: Boolean(cible),
+      })),
+    );
+
+  for (const [chemin, poids] of ecrits)
+    console.log(`  ${chemin.padEnd(56)} ${(poids / 1024).toFixed(1)} Ko`);
+}
+
+async function genererVariante(variante, { racine, teinte, horsDepot }) {
+  const { source } = variante;
   const meta = await sharp(source).metadata();
   const vectorielle = extname(source).toLowerCase() === ".svg";
   console.log(
@@ -318,11 +365,6 @@ async function main() {
 
   const brut = { source, options: { density: 600 } };
   const complet = teinte ? (await reteinter(brut, teinte)).entree : brut;
-  console.log(
-    teinte
-      ? `teinte : disque porte a ${teinte}`
-      : "teinte : aucune, le logo garde les couleurs de sa source",
-  );
 
   const sansPoint = await retirerLePoint(complet);
   const petit = sansPoint
@@ -330,8 +372,8 @@ async function main() {
     : complet;
   console.log(
     sansPoint
-      ? `point  : ${sansPoint.n} pixels retires en dessous de ${SEUIL_DU_POINT} px`
-      : "point  : aucun detecte, toutes les tailles gardent la source telle quelle",
+      ? `  point : ${sansPoint.n} pixels retires en dessous de ${SEUIL_DU_POINT} px`
+      : "  point : aucun detecte, toutes les tailles gardent la source telle quelle",
   );
 
   // En dessous du seuil, le point n'est plus qu'une bavure : on rend le
@@ -383,11 +425,29 @@ async function main() {
   for (const t of TAILLES_FAVICON) couches.push(await rendre(pour(t), t));
   await ecrire(join(racine, "favicon.ico"), versIco(couches, TAILLES_FAVICON));
 
-  // Le site de documentation a sa propre copie, hors de public/.
-  if (!cible) await ecrire("docs/static/img/logo.png", logo512);
+  // Une variante rangee dans un sous-dossier a besoin de son propre
+  // manifeste : c'est lui qui dit a Android quelles icones installer. On le
+  // derive de celui ecrit a la main plutot que d'en tenir un second, qui
+  // finirait par diverger du premier.
+  if (variante.dossier) {
+    const manifeste = JSON.parse(await readFile(MANIFESTE, "utf8"));
+    for (const icone of manifeste.icons) {
+      if (!/^\/?img\//.test(icone.src))
+        throw new Error(
+          `${MANIFESTE} : l'icone ${icone.src} n'est pas sous img/, impossible de la deriver`,
+        );
+      icone.src = icone.src.replace(/^\/?img\//, `/img/${variante.dossier}/`);
+    }
+    await ecrire(
+      join(racine, "manifest.json"),
+      Buffer.from(JSON.stringify(manifeste, null, 2) + "\n"),
+    );
+  }
 
-  for (const [chemin, poids] of ecrits)
-    console.log(`  ${chemin.padEnd(50)} ${(poids / 1024).toFixed(1)} Ko`);
+  if (variante.copieDocs && !horsDepot)
+    await ecrire(variante.copieDocs, logo512);
+
+  return ecrits;
 }
 
 // Un .ico est un en-tête de 6 octets, puis une entrée de 16 octets par image,
