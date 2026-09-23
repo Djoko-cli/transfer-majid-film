@@ -14,13 +14,13 @@
 //
 // Trois familles d'icônes, et elles ne se ressemblent pas :
 //
-//  - les icônes « normales » (favicon, apple-touch, PWA `any`) montrent le
-//    logo bord à bord ;
-//  - les icônes « maskable » sont recadrées par Android en cercle ou en
-//    squircle, qui mord jusqu'à 10 % de chaque côté. Une icône déjà ronde et
-//    pleine cadre y perdrait sa bordure — et le point en bas à droite, qui
-//    est le premier à sortir du cadre. On les génère donc avec une marge,
-//    sur un fond de la couleur de la marque ;
+//  - les icônes « normales » (favicon, PWA `any`) montrent le logo bord à
+//    bord : rien ne les recadre ;
+//  - les icônes que le système recadre — « maskable » d'Android, en cercle
+//    ou en squircle, et l'apple-touch-icon, dont iOS arrondit les coins —
+//    perdraient ce qui dépasse de leur zone sûre, à commencer par le point
+//    en bas à droite, logé dans le coin. On les génère donc avec la marge
+//    que calcule `margesSures`, sur un fond opaque ;
 //  - les toutes petites (16 et 32 px du favicon) perdent le point en bas à
 //    droite, qui n'y ferait qu'un pixel et demi de bouillie. Voir
 //    `retirerLePoint` plus bas.
@@ -54,19 +54,11 @@ const sharp = sharpNamespace.default ?? sharpNamespace;
 // `graine` : où chercher le point, en fraction de la largeur et de la
 // hauteur de la source — ainsi plutôt qu'en pixels, pour survivre à un
 // changement de résolution.
-//
-// `marges` : la marge des icônes posées sur fond opaque, qu'un système
-// recadre. Le disque des versions à bulle est rond et plein cadre, il
-// supporte d'être recadré tel quel ; ses marges sont celles validées à la
-// livraison du logo. Sans bulle, le T touche les bords du cadre, et ses
-// coins partiraient sous les ciseaux : `null` fait calculer la marge par
-// `margesSures`, à partir du dessin lui-même.
 const VARIANTES = [
   {
     source: "scripts/brand/logo-source.png",
     dossier: "",
     graine: [0.925, 0.925],
-    marges: { maskable: 0.1, apple: 0 },
     // Le site de documentation n'a pas de réglage : il garde l'originale.
     copieDocs: "docs/static/img/logo.png",
   },
@@ -74,19 +66,16 @@ const VARIANTES = [
     source: "scripts/brand/logo-source-flat.png",
     dossier: "flat",
     graine: [0.925, 0.925],
-    marges: { maskable: 0.1, apple: 0 },
   },
   {
     source: "scripts/brand/logo-source-standalone.png",
     dossier: "standalone",
     graine: [0.748, 0.906],
-    marges: null,
   },
   {
     source: "scripts/brand/logo-source-standalone-flat.png",
     dossier: "standalone-flat",
     graine: [0.748, 0.906],
-    marges: null,
   },
 ];
 
@@ -473,11 +462,10 @@ async function genererVariante(variante, { racine, teinte, horsDepot }) {
       await rendre(pour(t), t),
     );
 
-  const marges = variante.marges ?? (await margesSures(complet));
-  if (!variante.marges)
-    console.log(
-      `  marges : ${marges.maskable} (maskable), ${marges.apple} (iOS), calculees sur le dessin`,
-    );
+  const marges = await margesSures(complet);
+  console.log(
+    `  marges : ${marges.maskable} (maskable), ${marges.apple} (iOS), calculees sur le dessin`,
+  );
 
   // Les maskable, avec leur marge de securite et leur fond opaque.
   for (const t of [192, 512])
