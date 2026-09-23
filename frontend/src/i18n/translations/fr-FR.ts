@@ -857,9 +857,13 @@ export default {
   "admin.config.clamav.infected-file-action.none": "Ne rien faire",
 
   // Apparence
-  "admin.config.appearance.flat-logo": "Logo sans ombrage",
-  "admin.config.appearance.flat-logo.description":
-    "Affiche le T du logo à plat, sans l'ombre qu'il porte sur le disque. S'applique partout où le logo apparaît : en-tête, onglet du navigateur, icône d'application sur l'écran d'accueil, aperçu des liens partagés et en-tête des courriels. Les liens déjà partagés peuvent garder l'ancien aperçu tant que les messageries ne l'ont pas rafraîchi.",
+  "admin.config.appearance.logo": "Version du logo",
+  "admin.config.appearance.logo.description":
+    "Le logo affiché partout où il apparaît : en-tête, onglet du navigateur, icône d'application sur l'écran d'accueil, aperçu des liens partagés et en-tête des courriels. Les liens déjà partagés peuvent garder l'ancien aperçu tant que les messageries ne l'ont pas rafraîchi.",
+  "admin.config.appearance.logo.original": "Avec bulle, avec ombrage (d'origine)",
+  "admin.config.appearance.logo.flat": "Avec bulle, sans ombrage",
+  "admin.config.appearance.logo.standalone": "Sans bulle, avec ombrage",
+  "admin.config.appearance.logo.standalone-flat": "Sans bulle, sans ombrage",
 
   // Performance
   "admin.config.performance.pause-glint-on-card-resize":

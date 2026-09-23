@@ -8,7 +8,7 @@
 // `--teinte` remplace TEINTE_CIBLE le temps d'un essai ; avec `--dry-run`,
 // c'est ainsi qu'on compare plusieurs teintes sans toucher au dépôt.
 //
-// Le logo existe en deux versions, décrites dans VARIANTES plus bas, et
+// Le logo existe en quatre versions, décrites dans VARIANTES plus bas, et
 // chacune produit son jeu complet. Un SVG ferait aussi bien qu'un PNG comme
 // maître, et mieux : il resterait net à toutes les tailles.
 //
@@ -39,27 +39,58 @@ import { join, extname } from "node:path";
 
 const sharp = sharpNamespace.default ?? sharpNamespace;
 
-// Les deux versions du logo. L'ombrée est la version d'origine ; la plate
-// est le même dessin sans l'ombre que le T porte sur le disque, et c'est
-// elle que l'instance sert quand « Logo sans ombrage » est activé dans la
-// console d'admin (réglage `appearance.flatLogo`). Les deux passent par
-// exactement le même traitement — même teinte, même point retiré, mêmes
-// tailles — pour que basculer de l'une à l'autre ne change que l'ombre.
+// Les quatre versions du logo : avec ou sans la bulle orange, avec ou sans
+// l'ombre que porte le T. L'originale est la première ; les trois autres se
+// choisissent dans la console d'admin, Apparence → Version du logo (réglage
+// `appearance.logo`, dont les valeurs sont les noms de dossier ci-dessous,
+// `original` désignant la première). Toutes passent par le même traitement
+// — même teinte, même point retiré sous le seuil, mêmes tailles — pour que
+// basculer de l'une à l'autre ne change que le dessin.
 //
-// `dossier` est relatif à img/. Le frontend en garde le nom dans
-// hooks/brandAsset.hook.ts : le renommer ici sans le renommer là-bas
-// servirait des images introuvables.
+// `dossier` est relatif à img/. Le frontend (hooks/brandAsset.hook.ts) et
+// le backend (email.service.ts) en gardent les noms : en renommer un ici
+// sans le renommer là-bas servirait des images introuvables.
+//
+// `graine` : où chercher le point, en fraction de la largeur et de la
+// hauteur de la source — ainsi plutôt qu'en pixels, pour survivre à un
+// changement de résolution.
+//
+// `marges` : la marge des icônes posées sur fond opaque, qu'un système
+// recadre. Le disque des versions à bulle est rond et plein cadre, il
+// supporte d'être recadré tel quel ; ses marges sont celles validées à la
+// livraison du logo. Sans bulle, le T touche les bords du cadre, et ses
+// coins partiraient sous les ciseaux : `null` fait calculer la marge par
+// `margesSures`, à partir du dessin lui-même.
 const VARIANTES = [
   {
     source: "scripts/brand/logo-source.png",
     dossier: "",
+    graine: [0.925, 0.925],
+    marges: { maskable: 0.1, apple: 0 },
     // Le site de documentation n'a pas de réglage : il garde l'originale.
     copieDocs: "docs/static/img/logo.png",
   },
-  { source: "scripts/brand/logo-source-flat.png", dossier: "flat" },
+  {
+    source: "scripts/brand/logo-source-flat.png",
+    dossier: "flat",
+    graine: [0.925, 0.925],
+    marges: { maskable: 0.1, apple: 0 },
+  },
+  {
+    source: "scripts/brand/logo-source-standalone.png",
+    dossier: "standalone",
+    graine: [0.748, 0.906],
+    marges: null,
+  },
+  {
+    source: "scripts/brand/logo-source-standalone-flat.png",
+    dossier: "standalone-flat",
+    graine: [0.748, 0.906],
+    marges: null,
+  },
 ];
 
-// Le manifeste PWA de référence, écrit à la main. La version plate en
+// Le manifeste PWA de référence, écrit à la main. Chaque autre version en
 // reçoit une copie dont seules les icônes changent.
 const MANIFESTE = "frontend/public/manifest.json";
 
@@ -101,9 +132,12 @@ const TAILLES_FAVICON = [16, 32, 48];
 // En dessous de ce seuil, le point disparaît — décision du propriétaire.
 const SEUIL_DU_POINT = 48;
 
-// Où chercher le point dans le cadre, en fraction de la largeur. Exprimé
-// ainsi plutôt qu'en pixels pour survivre à un changement de résolution.
-const GRAINE_DU_POINT = 0.925;
+// Le cercle dans lequel Android garantit de ne rien rogner d'une icône
+// maskable, en fraction du côté : un rayon de 40 %, soit la zone sûre de
+// la spécification. Celui d'iOS est le cercle inscrit : son masque arrondit
+// les coins, jamais le milieu des bords.
+const RAYON_SUR_MASKABLE = 0.4;
+const RAYON_SUR_APPLE = 0.5;
 
 const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 
@@ -146,9 +180,11 @@ const hsvRgb = (h, s, v) => {
   );
 };
 
-// Le disque, c'est ce qui est nettement saturé. Le T et son ombre portée
-// restent sous ce seuil et ne sont donc jamais touchés par la reteinte.
-const EST_DISQUE = (s, v) => s > 0.35 && v > 0.15;
+// La partie orange, c'est ce qui est nettement saturé. Avec la bulle, c'est
+// le disque : le T crème et son ombre portée restent sous ce seuil et ne
+// sont jamais touchés par la reteinte. Sans bulle, c'est le T lui-même, son
+// ombre comprise, qui est reteinté.
+const EST_ORANGE = (s, v) => s > 0.35 && v > 0.15;
 
 /**
  * Déplace la teinte du disque vers `cible`, en préservant son dégradé.
@@ -172,16 +208,14 @@ async function reteinter(entree, cible) {
   for (let i = 0; i < W * H; i++) {
     if (data[i * C + 3] < 250) continue;
     const [h, s, v] = rgbHsv(data[i * C], data[i * C + 1], data[i * C + 2]);
-    if (!EST_DISQUE(s, v)) continue;
+    if (!EST_ORANGE(s, v)) continue;
     hs += h;
     ss += s;
     vs += v;
     n++;
   }
   if (!n)
-    throw new Error(
-      "aucun pixel de disque trouvé : la source a changé de nature",
-    );
+    throw new Error("aucun pixel orange trouvé : la source a changé de nature");
 
   const [ch, cs, cv] = rgbHsv(...hexRgb(cible));
   const dh = ch - hs / n;
@@ -196,7 +230,7 @@ async function reteinter(entree, cible) {
       sortie[i * C + 1],
       sortie[i * C + 2],
     );
-    if (!EST_DISQUE(s, v)) continue;
+    if (!EST_ORANGE(s, v)) continue;
     const [r, g, b] = hsvRgb(h + dh, Math.min(1, s * fs), Math.min(1, v * fv));
     sortie[i * C] = r;
     sortie[i * C + 1] = g;
@@ -222,10 +256,10 @@ async function reteinter(entree, cible) {
  * on efface exactement sa composante connexe, et rien d'autre. Deux gardes
  * rendent l'opération sûre pour un futur logo — si la graine tombe sur du
  * transparent, il n'y a pas de point ; si la diffusion déborde sur plus d'un
- * vingtième de l'image, c'est qu'elle a atteint le cercle, et on refuse
- * plutôt que de rendre une icône mutilée.
+ * vingtième de l'image, c'est qu'elle a atteint le cercle ou le T, et on
+ * refuse plutôt que de rendre une icône mutilée.
  */
-async function retirerLePoint(entree) {
+async function retirerLePoint(entree, [gx, gy]) {
   const { data, info } = await sharp(entree.source, entree.options)
     .ensureAlpha()
     .raw()
@@ -233,8 +267,7 @@ async function retirerLePoint(entree) {
   const { width: W, height: H, channels: C } = info;
   const opaque = (i) => data[i * C + 3] > 16;
 
-  const graine =
-    Math.round(W * GRAINE_DU_POINT) + Math.round(H * GRAINE_DU_POINT) * W;
+  const graine = Math.round(W * gx) + Math.round(H * gy) * W;
   if (!opaque(graine)) return null;
 
   const vu = new Uint8Array(W * H);
@@ -272,6 +305,39 @@ async function retirerLePoint(entree) {
   for (let i = 0; i < W * H; i++) if (vu[i]) sortie[i * C + 3] = 0;
 
   return { buffer: sortie, raw: { width: W, height: H, channels: C }, n };
+}
+
+/**
+ * Les marges qui gardent tout le dessin dans la zone qu'un système ne
+ * rogne jamais. On mesure le pixel opaque le plus éloigné du centre, cadré
+ * comme `rendre` le cadrera, et on réduit juste assez pour qu'il tombe dans
+ * le cercle sûr. Mesuré plutôt que choisi à l'œil : si le dessin change, la
+ * marge suit.
+ */
+async function margesSures(entree) {
+  const cote = 1024;
+  const { data, info } = await sharp(entree.source, entree.options)
+    .resize(cote, cote, { fit: "contain", background: "#00000000" })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { channels: C } = info;
+
+  let loin = 0;
+  for (let y = 0; y < cote; y++)
+    for (let x = 0; x < cote; x++)
+      if (data[(x + y * cote) * C + 3] > 16)
+        loin = Math.max(
+          loin,
+          Math.hypot(x + 0.5 - cote / 2, y + 0.5 - cote / 2),
+        );
+  const d = loin / cote;
+
+  // `rendre` cadre le dessin dans (1 - 2 × marge) du côté : le pixel le
+  // plus lointain y tombe à d × (1 - 2 × marge) du centre.
+  const pour = (rayon) =>
+    Math.ceil(Math.max(0, (1 - rayon / d) / 2) * 100) / 100;
+  return { maskable: pour(RAYON_SUR_MASKABLE), apple: pour(RAYON_SUR_APPLE) };
 }
 
 async function rendre(entree, taille, { fond = null, marge = 0 } = {}) {
@@ -329,7 +395,7 @@ async function main() {
 
   console.log(
     teinte
-      ? `teinte : disque porte a ${teinte}`
+      ? `teinte : orange porte a ${teinte}`
       : "teinte : aucune, le logo garde les couleurs de sa source",
   );
 
@@ -366,7 +432,7 @@ async function genererVariante(variante, { racine, teinte, horsDepot }) {
   const brut = { source, options: { density: 600 } };
   const complet = teinte ? (await reteinter(brut, teinte)).entree : brut;
 
-  const sansPoint = await retirerLePoint(complet);
+  const sansPoint = await retirerLePoint(complet, variante.graine);
   const petit = sansPoint
     ? { source: sansPoint.buffer, options: { raw: sansPoint.raw } }
     : complet;
@@ -407,17 +473,23 @@ async function genererVariante(variante, { racine, teinte, horsDepot }) {
       await rendre(pour(t), t),
     );
 
+  const marges = variante.marges ?? (await margesSures(complet));
+  if (!variante.marges)
+    console.log(
+      `  marges : ${marges.maskable} (maskable), ${marges.apple} (iOS), calculees sur le dessin`,
+    );
+
   // Les maskable, avec leur marge de securite et leur fond opaque.
   for (const t of [192, 512])
     await ecrire(
       join(racine, "icons", `icon-maskable-${t}x${t}.png`),
-      await rendre(complet, t, { fond: FOND_OPAQUE, marge: 0.1 }),
+      await rendre(complet, t, { fond: FOND_OPAQUE, marge: marges.maskable }),
     );
 
   // iOS, fond opaque : la transparence y deviendrait du noir.
   await ecrire(
     join(racine, "icons", "apple-touch-icon.png"),
-    await rendre(complet, 180, { fond: FOND_OPAQUE }),
+    await rendre(complet, 180, { fond: FOND_OPAQUE, marge: marges.apple }),
   );
 
   // Le favicon, trois resolutions dans un seul .ico.

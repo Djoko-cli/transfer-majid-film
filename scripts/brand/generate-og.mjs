@@ -25,19 +25,15 @@ const GABARIT = "scripts/brand/og-image.html";
 const FONTES = "frontend/public/fonts/rubik";
 
 // Une vignette par version du logo, chacune à côté de ses icônes : celle
-// que Meta.tsx annonce suit le réglage « Logo sans ombrage » de la console
-// d'admin. Les logos sont ceux que generate-icons.mjs vient d'écrire, déjà
-// à la bonne teinte — ce script est à lancer après lui.
-const VARIANTES = [
-  {
-    logo: "frontend/public/img/logo.png",
-    sortie: "frontend/public/img/og-image.png",
-  },
-  {
-    logo: "frontend/public/img/flat/logo.png",
-    sortie: "frontend/public/img/flat/og-image.png",
-  },
-];
+// que Meta.tsx annonce suit le réglage « Version du logo » de la console
+// d'admin. Les dossiers sont ceux de VARIANTES dans generate-icons.mjs, et
+// les logos ceux qu'il vient d'écrire, déjà à la bonne teinte — ce script
+// est à lancer après lui.
+const DOSSIERS = ["", "flat", "standalone", "standalone-flat"];
+const VARIANTES = DOSSIERS.map((dossier) => ({
+  logo: join("frontend/public/img", dossier, "logo.png"),
+  sortie: join("frontend/public/img", dossier, "og-image.png"),
+}));
 
 // Les dimensions qu'attendent Open Graph et Twitter, et que Meta.tsx
 // annonce en dur dans ses balises. Les changer ici sans les changer là-bas

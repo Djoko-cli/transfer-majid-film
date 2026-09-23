@@ -33,6 +33,16 @@ interface SendMailOptions {
   recipients?: string[];
 }
 
+// Where each version of the mark lives under img/, keyed by the values of
+// appearance.logo. scripts/brand/generate-icons.mjs renders them there (its
+// VARIANTES), and the frontend keeps the same map in hooks/brandAsset.hook.ts.
+const LOGO_FOLDERS: Record<string, string> = {
+  original: "",
+  flat: "flat/",
+  standalone: "standalone/",
+  "standalone-flat": "standalone-flat/",
+};
+
 @Injectable()
 export class EmailService {
   constructor(
@@ -62,18 +72,19 @@ export class EmailService {
     });
   }
 
-  // The mark at the top of the envelope follows the admin's "flat logo"
-  // switch, like every other place the logo appears. Read defensively:
+  // The mark at the top of the envelope follows the admin's choice of logo
+  // version, like every other place the logo appears. Read defensively:
   // config.get throws on a key the seed has not created yet, which is true
   // of any instance between a deploy's code and its seed — and a missing
   // key must not stop an email from going out over a logo.
   private logoPath(): string {
+    let version = "original";
     try {
-      if (this.config.get("appearance.flatLogo")) return "/img/flat/logo.png";
+      version = this.config.get("appearance.logo");
     } catch {
       // not seeded yet: keep the original mark
     }
-    return "/img/logo.png";
+    return `/img/${LOGO_FOLDERS[version] ?? ""}logo.png`;
   }
 
   // Shared by sendMail and sendTestMail so the admin's "Test SMTP" button

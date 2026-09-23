@@ -860,9 +860,13 @@ export default {
   "admin.config.clamav.infected-file-action.none": "Do nothing",
 
   // Appearance
-  "admin.config.appearance.flat-logo": "Flat logo",
-  "admin.config.appearance.flat-logo.description":
-    "Shows the logo's T flat, without the shadow it casts across the disc. Applies everywhere the logo appears: the header, the browser tab, the home-screen app icon, the preview of shared links and the top of emails. Links already shared may keep the old preview until messaging apps refresh it.",
+  "admin.config.appearance.logo": "Logo version",
+  "admin.config.appearance.logo.description":
+    "The logo shown everywhere it appears: the header, the browser tab, the home-screen app icon, the preview of shared links and the top of emails. Links already shared may keep the old preview until messaging apps refresh it.",
+  "admin.config.appearance.logo.original": "With bubble, with shadow (original)",
+  "admin.config.appearance.logo.flat": "With bubble, no shadow",
+  "admin.config.appearance.logo.standalone": "No bubble, with shadow",
+  "admin.config.appearance.logo.standalone-flat": "No bubble, no shadow",
 
   // Performance
   "admin.config.performance.pause-glint-on-card-resize":

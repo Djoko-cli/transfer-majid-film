@@ -101,15 +101,18 @@ export const configVariables = {
   // How the instance presents itself. Public (secret: false) because the
   // logo is drawn on every page, for signed-out visitors first.
   appearance: {
-    // The mark exists in two versions: the original, where the T casts a
-    // shadow across the disc, and a flat one without it. Both are rendered
-    // from their own master by scripts/brand/generate-icons.mjs, at the
-    // same hue, and the flat set lives under img/flat/. This switches every
-    // place the mark appears: header, favicon, home-screen and PWA icons,
-    // the share preview and the logo at the top of every email.
-    flatLogo: {
-      type: "boolean",
-      defaultValue: "false",
+    // The mark exists in four versions: with or without the orange bubble,
+    // with or without the shadow the T casts. Each is rendered from its own
+    // master by scripts/brand/generate-icons.mjs, at the same hue, into its
+    // own folder under img/ — named after the values below, "original"
+    // being the root. This picks one for every place the mark appears:
+    // header, favicon, home-screen and PWA icons, the share preview and the
+    // logo at the top of every email. A string rather than a list type
+    // because the admin form special-cases its select, as it already does
+    // for clamav.infectedFileAction.
+    logo: {
+      type: "string",
+      defaultValue: "original",
       secret: false,
     },
   },
