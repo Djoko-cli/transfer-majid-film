@@ -41,16 +41,25 @@ const sharp = sharpNamespace.default ?? sharpNamespace;
 const SOURCE_PAR_DEFAUT = "scripts/brand/logo-source.png";
 
 // La teinte réellement peinte sur les icônes. Le fichier maître est celui du
-// propriétaire, plus vif ; c'est l'orange des boutons de l'interface qui a
-// été retenu pour la marque, de sorte que le logo de l'en-tête et le bouton
-// juste en dessous soient enfin la même couleur. Mettre `null` ici rendrait
-// le logo tel qu'il a été dessiné.
+// propriétaire, plus vif ; la marque a retenu l'orange des boutons de
+// l'interface, pour que le logo de l'en-tête et le bouton juste en dessous
+// se lisent comme une seule couleur. Mettre `null` ici rendrait le logo tel
+// qu'il a été dessiné.
+//
+// Ce n'est pas la valeur exacte du bouton au repos (#a85100, la nuance 8 de
+// l'échelle de mantine.style.ts), mais la nuance 7, un cran plus claire. À
+// valeur égale, le disque paraissait plus sombre que le bouton : il entoure
+// un grand T crème, et une couleur posée contre une grande plage claire se
+// lit plus foncée qu'elle n'est. Le bouton, avec son texte fin, n'a pas cet
+// effet. La teinte a été choisie à l'œil, parmi quatre posées côte à côte
+// avec le vrai bouton (voir `--teinte`) ; si l'accent change, c'est donc la
+// nuance 7 de la nouvelle échelle qu'il faut reporter ici.
 //
 // Le décalage se fait en HSV, pas par un remplacement de couleur : le disque
 // est un dégradé et le T porte une ombre. On déplace la teinte moyenne et on
 // met saturation et valeur à l'échelle, chaque pixel gardant son écart à
 // cette moyenne — le dégradé et l'ombre conservent donc leur forme.
-const TEINTE_CIBLE = "#a85100";
+const TEINTE_CIBLE = "#c75f00";
 
 // Le fond des icônes qui ne peuvent pas être transparentes. La crème du T,
 // relevée dans le logo lui-même, et non l'orange de la marque : sur un fond
