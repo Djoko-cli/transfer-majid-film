@@ -19,6 +19,11 @@ const FOLDERS: Record<string, string> = {
   "standalone-flat": "standalone-flat/",
 };
 
+// One brand image, in one version of the mark. An unknown version is the
+// original: better the default mark than a broken image.
+export const brandAssetPath = (version: string | undefined, path: string) =>
+  `/img/${FOLDERS[version ?? ""] ?? ""}${path}`;
+
 // Resolves the brand's images (logo, favicon, icons, share preview,
 // manifest) to the version picked under Admin → Appearance. Every place the
 // mark appears goes through here, so the choice cannot leave one behind.
@@ -31,19 +36,22 @@ const useBrandAsset = () => {
   // of any instance between a deploy's code and its seed. The header is on
   // every page: the original mark is the right answer until then, a crash
   // is not. An unknown value falls back the same way.
-  let folder = "";
+  let version = "original";
   try {
-    folder = FOLDERS[config.get("appearance.logo")] ?? "";
+    version = config.get("appearance.logo");
   } catch {
     // key not seeded yet — keep the original mark
   }
+  const original = !FOLDERS[version];
 
   return {
     // `path` is relative to /img/, e.g. "logo.png" or "icons/icon-192x192.png".
-    asset: (path: string) => `/img/${folder}${path}`,
+    asset: (path: string) => brandAssetPath(version, path),
     // The original manifest is hand-written at the root; the others are
     // derived from it by the generator, next to their own icons.
-    manifest: folder ? `/img/${folder}manifest.json` : "/manifest.json",
+    manifest: original
+      ? "/manifest.json"
+      : brandAssetPath(version, "manifest.json"),
   };
 };
 

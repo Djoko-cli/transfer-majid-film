@@ -22,6 +22,7 @@ import Meta from "../../../components/Meta";
 import AdminConfigInput from "../../../components/admin/configuration/AdminConfigInput";
 import ClamavPanel from "../../../components/admin/clamav/ClamavPanel";
 import LegalContentEditor from "../../../components/admin/legal/LegalContentEditor";
+import LogoVersionPicker from "../../../components/admin/configuration/LogoVersionPicker";
 import TestEmailButton from "../../../components/admin/configuration/TestEmailButton";
 import TestRedisButton from "../../../components/admin/configuration/TestRedisButton";
 import AdminLayout from "../../../components/admin/AdminLayout";
@@ -488,7 +489,23 @@ const AdminConfigPage: NextPageWithLayout = () => {
                             );
                           })()
                         : configVariables.map((configVariable) =>
-                            renderConfigRow(configVariable, configVariables),
+                            // Full width, like the legal editors above: four
+                            // picture cards do not fit the right-hand half
+                            // of a row.
+                            configVariable.key === "appearance.logo" ? (
+                              <LogoVersionPicker
+                                key={configVariable.key}
+                                configVariable={configVariable}
+                                onChange={(value) =>
+                                  updateConfigVariable({
+                                    key: configVariable.key,
+                                    value,
+                                  })
+                                }
+                              />
+                            ) : (
+                              renderConfigRow(configVariable, configVariables)
+                            ),
                           )}
                     {categoryId == "clamav" && <ClamavPanel />}
                   </Stack>

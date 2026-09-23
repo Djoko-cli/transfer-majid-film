@@ -859,11 +859,19 @@ export default {
   // Apparence
   "admin.config.appearance.logo": "Version du logo",
   "admin.config.appearance.logo.description":
-    "Le logo affiché partout où il apparaît : en-tête, onglet du navigateur, icône d'application sur l'écran d'accueil, aperçu des liens partagés et en-tête des courriels. Les liens déjà partagés peuvent garder l'ancien aperçu tant que les messageries ne l'ont pas rafraîchi.",
-  "admin.config.appearance.logo.original": "Avec bulle, avec ombrage (d'origine)",
+    "Le même logo, quatre façons de le montrer. Il change partout où il apparaît : en-tête, onglet du navigateur, icône de l'écran d'accueil, aperçu des liens partagés et courriels.",
+  "admin.config.appearance.logo.original": "Avec bulle, avec ombrage",
+  "admin.config.appearance.logo.original.hint":
+    "Le T crème sur la bulle orange, avec l'ombre qu'il y porte. La version d'origine.",
   "admin.config.appearance.logo.flat": "Avec bulle, sans ombrage",
+  "admin.config.appearance.logo.flat.hint":
+    "La même bulle, le T posé à plat, sans ombre.",
   "admin.config.appearance.logo.standalone": "Sans bulle, avec ombrage",
+  "admin.config.appearance.logo.standalone.hint":
+    "Le T orange seul, sans bulle, avec son ombre.",
   "admin.config.appearance.logo.standalone-flat": "Sans bulle, sans ombrage",
+  "admin.config.appearance.logo.standalone-flat.hint":
+    "Le T orange seul, à plat. Le plus sobre des quatre.",
 
   // Performance
   "admin.config.performance.pause-glint-on-card-resize":

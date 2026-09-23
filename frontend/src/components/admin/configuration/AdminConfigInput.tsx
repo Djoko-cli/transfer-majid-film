@@ -18,7 +18,6 @@ import FileSizeInput from "../../core/FileSizeInput";
 import TimespanInput from "../../core/TimespanInput";
 import { LOCALES } from "../../../i18n/locales";
 import useTranslate from "../../../hooks/useTranslate.hook";
-import { LOGO_VERSIONS } from "../../../hooks/brandAsset.hook";
 
 const AdminConfigInput = ({
   configVariable,
@@ -38,7 +37,6 @@ const AdminConfigInput = ({
     configVariable.key === "general.defaultLanguage";
   const isInfectedFileActionConfig =
     configVariable.key === "clamav.infectedFileAction";
-  const isLogoVersionConfig = configVariable.key === "appearance.logo";
   const isEmailShareConfig =
     configVariable.key === "email.enableShareEmailRecipients";
   const isEmailVerificationConfig =
@@ -110,23 +108,6 @@ const AdminConfigInput = ({
             placeholder={configVariable.defaultValue}
             onChange={(value) => onValueChange(configVariable, value ?? "")}
             searchable
-            allowDeselect={false}
-          />
-        ) : isLogoVersionConfig ? (
-          <Select
-            style={{
-              width: "100%",
-            }}
-            disabled={!configVariable.allowEdit}
-            data={LOGO_VERSIONS.map((version) => ({
-              value: version,
-              label: t(`admin.config.appearance.logo.${version}`),
-            }))}
-            value={form.values.stringValue}
-            placeholder={t(
-              `admin.config.appearance.logo.${configVariable.defaultValue}`,
-            )}
-            onChange={(value) => onValueChange(configVariable, value ?? "")}
             allowDeselect={false}
           />
         ) : isInfectedFileActionConfig ? (

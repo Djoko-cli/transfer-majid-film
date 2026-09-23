@@ -862,11 +862,19 @@ export default {
   // Appearance
   "admin.config.appearance.logo": "Logo version",
   "admin.config.appearance.logo.description":
-    "The logo shown everywhere it appears: the header, the browser tab, the home-screen app icon, the preview of shared links and the top of emails. Links already shared may keep the old preview until messaging apps refresh it.",
-  "admin.config.appearance.logo.original": "With bubble, with shadow (original)",
+    "The same logo, four ways to show it. It changes everywhere it appears: the header, the browser tab, the home-screen icon, the preview of shared links and emails.",
+  "admin.config.appearance.logo.original": "With bubble, with shadow",
+  "admin.config.appearance.logo.original.hint":
+    "The cream T on the orange bubble, with the shadow it casts. The original.",
   "admin.config.appearance.logo.flat": "With bubble, no shadow",
+  "admin.config.appearance.logo.flat.hint":
+    "The same bubble, with the T laid flat, no shadow.",
   "admin.config.appearance.logo.standalone": "No bubble, with shadow",
+  "admin.config.appearance.logo.standalone.hint":
+    "The orange T on its own, no bubble, with its shadow.",
   "admin.config.appearance.logo.standalone-flat": "No bubble, no shadow",
+  "admin.config.appearance.logo.standalone-flat.hint":
+    "The orange T on its own, flat. The plainest of the four.",
 
   // Performance
   "admin.config.performance.pause-glint-on-card-resize":
