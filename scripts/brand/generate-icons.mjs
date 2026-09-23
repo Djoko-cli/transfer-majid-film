@@ -36,6 +36,18 @@ const sharp = sharpNamespace.default ?? sharpNamespace;
 
 const SOURCE_PAR_DEFAUT = "scripts/brand/logo-source.png";
 
+// La teinte réellement peinte sur les icônes. Le fichier maître est celui du
+// propriétaire, plus vif ; c'est l'orange des boutons de l'interface qui a
+// été retenu pour la marque, de sorte que le logo de l'en-tête et le bouton
+// juste en dessous soient enfin la même couleur. Mettre `null` ici rendrait
+// le logo tel qu'il a été dessiné.
+//
+// Le décalage se fait en HSV, pas par un remplacement de couleur : le disque
+// est un dégradé et le T porte une ombre. On déplace la teinte moyenne et on
+// met saturation et valeur à l'échelle, chaque pixel gardant son écart à
+// cette moyenne — le dégradé et l'ombre conservent donc leur forme.
+const TEINTE_CIBLE = "#a85100";
+
 // Le fond des icônes qui ne peuvent pas être transparentes. La crème du T,
 // relevée dans le logo lui-même, et non l'orange de la marque : sur un fond
 // orange, un disque orange disparaît — le cercle cesse d'être un cercle et
@@ -57,6 +69,116 @@ const SEUIL_DU_POINT = 48;
 // ainsi plutôt qu'en pixels pour survivre à un changement de résolution.
 const GRAINE_DU_POINT = 0.925;
 
+const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+
+const rgbHsv = (r, g, b) => {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const mx = Math.max(r, g, b);
+  const d = mx - Math.min(r, g, b);
+  let h = 0;
+  if (d)
+    h =
+      mx === r
+        ? (g - b) / d + (g < b ? 6 : 0)
+        : mx === g
+          ? (b - r) / d + 2
+          : (r - g) / d + 4;
+  return [h * 60, mx ? d / mx : 0, mx];
+};
+
+const hsvRgb = (h, s, v) => {
+  h = ((h % 360) + 360) % 360;
+  const c = v * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = v - c;
+  const [r, g, b] =
+    h < 60
+      ? [c, x, 0]
+      : h < 120
+        ? [x, c, 0]
+        : h < 180
+          ? [0, c, x]
+          : h < 240
+            ? [0, x, c]
+            : h < 300
+              ? [x, 0, c]
+              : [c, 0, x];
+  return [r, g, b].map((k) =>
+    Math.round(Math.min(255, Math.max(0, (k + m) * 255))),
+  );
+};
+
+// Le disque, c'est ce qui est nettement saturé. Le T et son ombre portée
+// restent sous ce seuil et ne sont donc jamais touchés par la reteinte.
+const EST_DISQUE = (s, v) => s > 0.35 && v > 0.15;
+
+/**
+ * Déplace la teinte du disque vers `cible`, en préservant son dégradé.
+ *
+ * On calcule la moyenne HSV du disque, puis on applique à chaque pixel le
+ * même décalage de teinte et les mêmes facteurs de saturation et de valeur.
+ * Un remplacement plat écraserait le dégradé et le relief du point ; ici ils
+ * survivent, seule la couleur autour de laquelle ils oscillent change.
+ */
+async function reteinter(entree, cible) {
+  const { data, info } = await sharp(entree.source, entree.options)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { width: W, height: H, channels: C } = info;
+
+  let hs = 0;
+  let ss = 0;
+  let vs = 0;
+  let n = 0;
+  for (let i = 0; i < W * H; i++) {
+    if (data[i * C + 3] < 250) continue;
+    const [h, s, v] = rgbHsv(data[i * C], data[i * C + 1], data[i * C + 2]);
+    if (!EST_DISQUE(s, v)) continue;
+    hs += h;
+    ss += s;
+    vs += v;
+    n++;
+  }
+  if (!n)
+    throw new Error(
+      "aucun pixel de disque trouvé : la source a changé de nature",
+    );
+
+  const [ch, cs, cv] = rgbHsv(...hexRgb(cible));
+  const dh = ch - hs / n;
+  const fs = cs / (ss / n);
+  const fv = cv / (vs / n);
+
+  const sortie = Buffer.from(data);
+  for (let i = 0; i < W * H; i++) {
+    if (sortie[i * C + 3] < 250) continue;
+    const [h, s, v] = rgbHsv(
+      sortie[i * C],
+      sortie[i * C + 1],
+      sortie[i * C + 2],
+    );
+    if (!EST_DISQUE(s, v)) continue;
+    const [r, g, b] = hsvRgb(h + dh, Math.min(1, s * fs), Math.min(1, v * fv));
+    sortie[i * C] = r;
+    sortie[i * C + 1] = g;
+    sortie[i * C + 2] = b;
+  }
+
+  return {
+    entree: {
+      source: sortie,
+      options: { raw: { width: W, height: H, channels: C } },
+    },
+    n,
+    dh,
+    fs,
+    fv,
+  };
+}
+
 /**
  * Rend une copie de la source sans son point, ou `null` s'il n'y en a pas.
  *
@@ -67,8 +189,8 @@ const GRAINE_DU_POINT = 0.925;
  * vingtième de l'image, c'est qu'elle a atteint le cercle, et on refuse
  * plutôt que de rendre une icône mutilée.
  */
-async function retirerLePoint(source) {
-  const { data, info } = await sharp(source)
+async function retirerLePoint(entree) {
+  const { data, info } = await sharp(entree.source, entree.options)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -132,7 +254,10 @@ async function rendre(entree, taille, { fond = null, marge = 0 } = {}) {
     },
   });
 
-  return base.composite([{ input: logo, gravity: "center" }]).png().toBuffer();
+  return base
+    .composite([{ input: logo, gravity: "center" }])
+    .png()
+    .toBuffer();
 }
 
 async function main() {
@@ -153,12 +278,21 @@ async function main() {
     `source : ${source} (${meta.width}x${meta.height}${vectorielle ? ", vectorielle" : ""})`,
   );
   if (!vectorielle && Math.min(meta.width, meta.height) < 1024)
-    console.warn("  attention : moins de 1024 px, les grandes tailles seront molles");
+    console.warn(
+      "  attention : moins de 1024 px, les grandes tailles seront molles",
+    );
   if (meta.width !== meta.height)
-    console.warn("  attention : source non carree, elle sera centree et non deformee");
+    console.warn(
+      "  attention : source non carree, elle sera centree et non deformee",
+    );
 
-  const complet = { source, options: { density: 600 } };
-  const sansPoint = await retirerLePoint(source);
+  const brut = { source, options: { density: 600 } };
+  const complet = TEINTE_CIBLE
+    ? (await reteinter(brut, TEINTE_CIBLE)).entree
+    : brut;
+  if (TEINTE_CIBLE) console.log(`teinte : disque porte a ${TEINTE_CIBLE}`);
+
+  const sansPoint = await retirerLePoint(complet);
   const petit = sansPoint
     ? { source: sansPoint.buffer, options: { raw: sansPoint.raw } }
     : complet;
