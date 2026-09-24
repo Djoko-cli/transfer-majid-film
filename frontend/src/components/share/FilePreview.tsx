@@ -7,9 +7,7 @@ import {
   Title,
   useMantineTheme,
 } from "@mantine/core";
-import { modals } from "@mantine/modals";
 import Markdown, { MarkdownToJSX } from "markdown-to-jsx";
-import Link from "next/link";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import api from "../../services/api.service";
@@ -45,11 +43,14 @@ const FilePreview = ({
       >
         <FileDecider />
       </FilePreviewContext.Provider>
+      {/* A plain link, not Next's: this is an API route, not a page, and
+          Next's Link would try to route or prefetch it as one. The preview
+          stays open behind the new tab. */}
       <Button
         variant="subtle"
-        component={Link}
-        onClick={() => modals.closeAll()}
+        component="a"
         target="_blank"
+        rel="noreferrer"
         href={`/api/shares/${shareId}/files/${fileId}?download=false`}
       >
         <FormattedMessage id="share.modal.file-preview.view-original" />

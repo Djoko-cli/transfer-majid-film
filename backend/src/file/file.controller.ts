@@ -190,7 +190,14 @@ export class FileController {
     const headers: Record<string, string> = {
       "Content-Type":
         mime?.lookup?.(file.metaData.name) || "application/octet-stream",
+      // Sandboxed whatever the type, not only for the types that can carry
+      // a script as upstream now does: nothing here needs the looser rule —
+      // media plays through <video>/<audio> elements, which ignore this
+      // header, and the PDF preview goes through a blob (see FilePreview).
       "Content-Security-Policy": "sandbox",
+      // And the browser takes the declared type at its word instead of
+      // guessing one from the bytes, so an upload cannot pass for HTML.
+      "X-Content-Type-Options": "nosniff",
       "Content-Disposition": contentDisposition(
         file.metaData.name,
         isDownload ? undefined : { type: "inline" },
