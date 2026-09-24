@@ -15,7 +15,9 @@
 #  - `git cherry` trouve ici un changement identique, quel que soit son SHA ;
 #  - un commit d'ici porte la mention « cherry picked from commit <sha> »
 #    qu'ajoute `git cherry-pick -x` — ce qui couvre aussi un commit repris
-#    avec des retouches, dont le contenu n'est plus identique.
+#    avec des retouches, dont le contenu n'est plus identique — ou
+#    « ported from commit <sha> », à écrire soi-même dans le message quand
+#    le code a trop divergé et qu'on l'a réécrit à la main.
 # Et il en sort aussi quand on l'écarte exprès, dans ignored.txt.
 
 set -euo pipefail
@@ -41,7 +43,7 @@ git fetch --quiet upstream "$BRANCHE_AMONT"
 amont="upstream/$BRANCHE_AMONT"
 
 repris=$(git log HEAD --format=%B |
-  grep -oE 'cherry picked from commit [0-9a-f]{40}' | awk '{print $5}' | sort -u || true)
+  grep -oE '(cherry picked|ported) from commit [0-9a-f]{40}' | grep -oE '[0-9a-f]{40}' | sort -u || true)
 ecartes=$(grep -oE '^[0-9a-f]{7,40}' "$ECARTES" 2>/dev/null || true)
 
 # Du plus récent au plus ancien, pour que le haut du ticket soit ce qui vient
@@ -69,7 +71,7 @@ corps=$(
   echo "<!-- suivi-amont -->"
   echo "**$nombre commit(s)** de [pingvin-share-x]($AMONT_WEB) arrivés depuis la séparation et pas encore repris ici. Ce ticket est tenu à jour chaque lundi par \`.github/workflows/upstream-watch.yml\`."
   echo
-  echo "- Pour en reprendre un : \`git cherry-pick -x <sha>\`. Le \`-x\` laisse la mention qui le retire d'ici, même si on le retouche."
+  echo "- Pour en reprendre un : \`git cherry-pick -x <sha>\`. Le \`-x\` laisse la mention qui le retire d'ici, même si on le retouche. Réécrit à la main, écrire soi-même \`(ported from commit <sha complet>)\` dans le message."
   echo "- Pour en écarter un : ajouter son SHA, avec la raison, à \`$ECARTES\`."
   echo
   echo "| Commit | Date | Sujet |"
