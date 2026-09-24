@@ -79,7 +79,7 @@ export class ShareOwnerGuard extends JwtGuard {
     // all fronted by the same guard. The three writes the base guard
     // fronts already refuse anonymous shares further in
     // (ShareService.update, remove and expire).
-    if (!share.creatorId) return !share.uploadLocked;
+    if (!share.creatorId) return this.allowAnonymous && !share.uploadLocked;
 
     // If not signed in, deny access
     if (!user) return false;
@@ -88,6 +88,13 @@ export class ShareOwnerGuard extends JwtGuard {
   }
 
   protected get allowAdmin(): boolean {
+    return true;
+  }
+
+  // Whether an anonymous share still being uploaded to passes (see above).
+  // The upload routes need it; a route that only an account's owner has
+  // any use for turns it off — RegisteredShareOwnerGuard.
+  protected get allowAnonymous(): boolean {
     return true;
   }
 }

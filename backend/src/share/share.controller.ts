@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   HttpCode,
   Param,
@@ -33,6 +32,9 @@ import { GetShare } from "./decorator/getShare.decorator";
 import { CreateShareGuard } from "./guard/createShare.guard";
 import { ShareOwnerGuard } from "./guard/shareOwner.guard";
 import { StrictShareOwnerGuard } from "./guard/strictShareOwner.guard";
+import { RegisteredShareOwnerGuard } from "./guard/registeredShareOwner.guard";
+import { ReceivedSharesGuard } from "./guard/receivedShares.guard";
+import { ReceivedShareDTO } from "./dto/receivedShare.dto";
 import { ShareSecurityGuard } from "./guard/shareSecurity.guard";
 import { ShareTokenSecurity } from "./guard/shareTokenSecurity.guard";
 import { IdValidation } from "./guard/shareIdValidation.guard";
@@ -65,12 +67,16 @@ export class ShareController {
     );
   }
 
+  // Through a DTO: this returned the raw rows, with the sender's whole
+  // user record inside — password hash and TOTP secret included — and the
+  // share's own password hash, to every recipient. Now only what the
+  // "received" page shows: id, name, expiry and the sender's username.
   @Get("received")
-  @UseGuards(JwtGuard)
+  @UseGuards(ReceivedSharesGuard)
   async getReceivedShares(@GetUser() user: User) {
-    if (!this.config.get("share.enableUserRecipients"))
-      throw new ForbiddenException("User recipients are not enabled");
-    return this.shareService.getReceivedShares(user.id);
+    return new ReceivedShareDTO().fromList(
+      await this.shareService.getReceivedShares(user.id),
+    );
   }
 
   @Get(":id")
@@ -220,8 +226,10 @@ export class ShareController {
     };
   }
 
+  // Registered owners only: an anonymous share has no owner to show it to,
+  // and while it was being uploaded to, this answered anyone holding its id.
   @Get(":id/from-owner")
-  @UseGuards(IdValidation, StrictShareOwnerGuard)
+  @UseGuards(IdValidation, RegisteredShareOwnerGuard)
   async getFromOwner(@Param("id") id: string) {
     return new ShareDTO().from(await this.shareService.get(id));
   }

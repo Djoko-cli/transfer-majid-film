@@ -401,8 +401,10 @@ export class AuthService {
     if (this.config.get("oauth.disablePassword"))
       throw new ForbiddenException(this.i18n.t("auth.passwordSignInDisabled"));
 
+    // The expiry was written (an hour, see requestResetPassword) and never
+    // read: a token stayed good until the next request replaced it.
     const user = await this.prisma.user.findFirst({
-      where: { resetPasswordToken: { token } },
+      where: { resetPasswordToken: { token, expiresAt: { gt: new Date() } } },
     });
 
     if (!user)
