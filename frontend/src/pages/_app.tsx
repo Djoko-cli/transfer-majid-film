@@ -16,7 +16,7 @@ import "moment/min/locales";
 import { GetServerSidePropsContext } from "next";
 import type { AppProps } from "next/app";
 import Head from "next/head";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { IntlProvider } from "react-intl";
 import BrandHead from "../components/BrandHead";
 import Header, { HEADER_HEIGHT } from "../components/header/Header";
@@ -124,11 +124,35 @@ function App({ Component, pageProps }: AppPropsWithLayout) {
   // mantine.style.ts.
   const adminDefaultColorScheme = "system";
 
+  // The user as of now, for the timer below: its callback is created once
+  // and would otherwise keep reading the first render's value forever.
+  const userRef = useRef(user);
+  userRef.current = user;
+
+  // A page can be rendered for a visitor while that visitor is signed in.
+  // The server render asks /api/users/me with the access-token cookie as it
+  // stands, and the token inside lives 15 minutes while the cookie lives
+  // three months: after a pause, the server answers "nobody". Only the
+  // browser can renew the token — the refresh cookie is scoped to
+  // /api/auth/token and never reaches the page request — so it does, on
+  // arrival and every two minutes after, and whenever a renewal succeeds
+  // while this page still believes nobody is here, it asks who is.
+  //
+  // It used to renew only from the timer, two minutes in, and never ask:
+  // every request after that went out signed in while the page went on
+  // showing a visitor's form, and a collection deposit made under a typed
+  // first name landed on the account instead.
   useEffect(() => {
-    const interval = setInterval(
-      async () => await authService.refreshAccessToken(),
-      2 * 60 * 1000, // 2 minutes
-    );
+    const syncSession = async () => {
+      const renewed = await authService.refreshAccessToken();
+      if (renewed && !userRef.current) {
+        const current = await userService.getCurrentUser();
+        if (current) setUser(current);
+      }
+    };
+
+    syncSession();
+    const interval = setInterval(syncSession, 2 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);

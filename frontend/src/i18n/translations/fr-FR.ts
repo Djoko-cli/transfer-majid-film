@@ -705,7 +705,7 @@ export default {
   "share.collection.identity.email-description":
     "Un code de confirmation y sera envoyé avant l’envoi de vos fichiers.",
   "share.collection.identity.signed-in-as": "Vous déposez en tant que {name}.",
-  "share.collection.identity.sign-out": "Se déconnecter",
+  "share.collection.identity.not-you": "Ce n'est pas vous ?",
   // Ce qui remplace la zone de dépôt une fois le dépôt arrivé.
   "share.collection.done.title": "C'est déposé !",
   "share.collection.done.creator-notified":

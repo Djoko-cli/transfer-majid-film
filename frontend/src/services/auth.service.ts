@@ -126,7 +126,9 @@ const wasRecentlySignedOut = (): boolean => {
   }
 };
 
-const refreshAccessToken = async () => {
+// Resolves to whether a fresh access token was actually issued — _app
+// uses it to notice a session its server render could not see.
+const refreshAccessToken = async (): Promise<boolean> => {
   try {
     const accessToken = getCookie("access_token") as string;
 
@@ -136,10 +138,12 @@ const refreshAccessToken = async () => {
       (jose.decodeJwt(accessToken).exp ?? 0) * 1000 < Date.now() + 2 * 60 * 1000
     ) {
       await api.post("/auth/token");
+      return true;
     }
   } catch (e) {
     console.info("Refresh token invalid or expired");
   }
+  return false;
 };
 
 const requestResetPassword = async (email: string) => {

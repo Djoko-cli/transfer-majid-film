@@ -408,11 +408,12 @@ const CollectionDropzone = ({
             values={{ name: user.username }}
           />
           {
-            // For whoever is not, or would rather not deposit as, the
-            // account this browser is signed into. The app's own sign-out:
-            // it reloads this same page, which comes back asking for a
-            // name and an address. Offered only while nothing is queued —
-            // the reload would silently drop a selection.
+            // "Ce n'est pas vous ?" rather than "Se déconnecter": what this
+            // page shows is who the deposit will be signed as, and the
+            // question is whether that is right. Answering no runs the
+            // app's own sign-out, which reloads this same page into the
+            // visitor's form. Offered only while nothing is queued — the
+            // reload would silently drop a selection.
           }
           {files.length === 0 && !isUploading && (
             <>
@@ -432,7 +433,7 @@ const CollectionDropzone = ({
                 })}
                 onClick={() => authService.signOut()}
               >
-                <FormattedMessage id="share.collection.identity.sign-out" />
+                <FormattedMessage id="share.collection.identity.not-you" />
               </Anchor>
             </>
           )}
