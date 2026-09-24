@@ -1,3 +1,21 @@
 # Commits de pingvin-share-x qu'on a décidé de ne pas reprendre.
 # Un par ligne : le SHA (7 caractères suffisent), puis la raison.
 # scripts/upstream/watch.sh les retire du ticket de suivi.
+
+# Tri du 25 septembre 2026.
+131cb45 #216 bouton de connexion sur les pages de transfert inversé : pages entièrement refaites ici, ce bouton n'y existe pas
+7f39fff #210 textes de la zone de dépôt : les nôtres sont réécrits, en français
+ac8c6d8 #211 textes sources anglais : les nôtres sont réécrits
+e9d2261 #194 réorganisation du menu de configuration : notre menu d'administration est le nôtre
+a618051 #196 requêtes HTTP par plages : déjà fait ici, autrement (utils/range.util.ts, share.enableVideoRangeRequests)
+f901171 #205 permissions par utilisateur : on a la nôtre (canCreatePermanentShares) ; leur système général demanderait une refonte
+214a482 #200 traductions complétées par IA : on ne livre que le français et l'anglais
+069cd58 #198 traductions Crowdin : on ne livre que le français et l'anglais
+5eb7fec #184 traductions Crowdin : on ne livre que le français et l'anglais
+0112d00 version 2.0.0-beta.2 : leur numérotation, pas la nôtre
+f0d58a7 version 2.0.0-beta.1 : leur numérotation, pas la nôtre
+7ef194f version 2.0.0-beta.0 : leur numérotation, pas la nôtre
+e0fcc89 commande de version majeure : leur outillage de publication
+44f37ab npm audit des dépendances : leurs fichiers de verrouillage ; on fait notre propre audit
+19f40e8 npm audit des dépendances : leurs fichiers de verrouillage ; on fait notre propre audit
+e4f4993 npm audit de la documentation : leurs fichiers de verrouillage ; on fait notre propre audit
