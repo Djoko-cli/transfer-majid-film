@@ -721,6 +721,15 @@ export default {
   "share.collection.identity.email-description":
     "A confirmation code will be sent there before your files are sent.",
   "share.collection.identity.signed-in-as": "You're depositing as {name}.",
+  // What stands in place of the drop zone once a deposit has landed.
+  "share.collection.done.title": "Your files are in!",
+  "share.collection.done.creator-notified":
+    "We've let the person who created this transfer know. You can close this page.",
+  "share.collection.done.can-close":
+    "Your files have joined the transfer. You can close this page.",
+  "share.collection.done.deposit-more": "Drop more files",
+  "share.collection.done.create-account":
+    "Create an account to drop files without a code next time",
 
   // The paywall (task 11): what a paid transfer's recipient sees instead
   // of the download buttons until they've paid.

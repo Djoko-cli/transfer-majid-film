@@ -705,6 +705,15 @@ export default {
   "share.collection.identity.email-description":
     "Un code de confirmation y sera envoyé avant l’envoi de vos fichiers.",
   "share.collection.identity.signed-in-as": "Vous déposez en tant que {name}.",
+  // Ce qui remplace la zone de dépôt une fois le dépôt arrivé.
+  "share.collection.done.title": "C'est déposé !",
+  "share.collection.done.creator-notified":
+    "Nous avons prévenu la personne qui a créé ce transfert. Vous pouvez fermer cette page.",
+  "share.collection.done.can-close":
+    "Vos fichiers ont rejoint le transfert. Vous pouvez fermer cette page.",
+  "share.collection.done.deposit-more": "Déposer d'autres fichiers",
+  "share.collection.done.create-account":
+    "Créez un compte pour déposer sans code la prochaine fois",
 
   // Le paywall (tâche 11) : ce que le destinataire d'un transfert payant
   // voit à la place des boutons de téléchargement tant qu'il n'a pas payé.

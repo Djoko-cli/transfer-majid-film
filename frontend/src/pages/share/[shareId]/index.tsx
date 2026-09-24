@@ -554,6 +554,7 @@ const Share = ({ shareId }: { shareId: string }) => {
                 shareId={shareId}
                 isOpen={share.collection.isOpen}
                 endsAt={share.collection.endsAt}
+                notifiesCreator={share.collection.notifiesCreator === true}
                 maxShareSize={parseInt(config.get("share.maxSize"))}
                 onDeposited={getFiles}
               />

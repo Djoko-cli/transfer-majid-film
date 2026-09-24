@@ -6,6 +6,7 @@ import moment from "moment";
 import pLimit from "p-limit";
 import { useEffect, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
+import CollectionDepositDone from "./CollectionDepositDone";
 import Dropzone from "../upload/Dropzone";
 import PageDropOverlay from "../upload/PageDropOverlay";
 import FileList from "../upload/FileList";
@@ -44,6 +45,7 @@ const CollectionDropzone = ({
   shareId,
   isOpen,
   endsAt,
+  notifiesCreator,
   maxShareSize,
   onDeposited,
 }: {
@@ -52,6 +54,9 @@ const CollectionDropzone = ({
   // Only meaningful (and only ever passed) once the collection is closed —
   // the date the "closed since" message reads.
   endsAt?: Date;
+  // Whether completing a deposit emails the collection's creator — what
+  // the confirmation may truthfully say about it.
+  notifiesCreator: boolean;
   maxShareSize: number;
   // Reloads the transfer (the page's own getFiles) once a contribution has
   // completed, so the visitor sees their own files land among everyone
@@ -82,6 +87,13 @@ const CollectionDropzone = ({
   // name (the brief's own live-check step) doesn't re-send a code for an
   // address that hasn't changed.
   const [isIdentityVerified, setIsIdentityVerified] = useState(false);
+  // The last deposit, once it has landed: while set, the confirmation
+  // stands where the drop zone was. Cleared by "déposer d'autres
+  // fichiers", or by simply dropping more files on the page.
+  const [deposited, setDeposited] = useState<{
+    fileCount: number;
+    totalSize: number;
+  } | null>(null);
 
   const chunkSize = useRef(parseInt(config.get("share.chunkSize")));
   const contributionIdRef = useRef<string | null>(null);
@@ -250,6 +262,10 @@ const CollectionDropzone = ({
         .completeContribution(shareId, contributionIdRef.current!)
         .then(() => {
           setIsUploading(false);
+          setDeposited({
+            fileCount: files.length,
+            totalSize: files.reduce((acc, file) => acc + file.size, 0),
+          });
           setFiles([]);
           setName("");
           contributionIdRef.current = null;
@@ -267,6 +283,7 @@ const CollectionDropzone = ({
       ),
     );
     if (filtered.length === 0) return;
+    setDeposited(null);
     setFiles((oldArr) => [...oldArr, ...filtered]);
   };
 
@@ -334,6 +351,25 @@ const CollectionDropzone = ({
 
     depositFiles(user ? undefined : trimmedName, filesToUpload);
   };
+
+  // Before the closed check, not after: the reload that follows a deposit
+  // can close the collection — when this deposit took its last use — and
+  // the person who just filled it must still read that it worked, not
+  // "this transfer accepts no more deposits" in its place. They only lose
+  // the button to drop more.
+  if (deposited)
+    return (
+      <>
+        <PageDropOverlay visible={isDraggingFileOverPage} />
+        <CollectionDepositDone
+          fileCount={deposited.fileCount}
+          totalSize={deposited.totalSize}
+          notifiesCreator={notifiesCreator}
+          verifiedEmail={!user && isIdentityVerified ? trimmedEmail : undefined}
+          onDepositMore={isOpen ? () => setDeposited(null) : undefined}
+        />
+      </>
+    );
 
   if (!isOpen) {
     // isOpen folds two different closures together (the window, and the

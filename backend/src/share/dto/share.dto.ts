@@ -59,6 +59,7 @@ export class ShareDTO {
     isOpen: boolean;
     endsAt: Date;
     description?: string;
+    notifiesCreator: boolean;
     contributions: {
       // Never the real ShareContribution id — see
       // ShareController.buildCollectionState()'s own comment for why: that

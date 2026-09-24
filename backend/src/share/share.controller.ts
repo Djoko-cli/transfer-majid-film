@@ -173,7 +173,10 @@ export class ShareController {
     const reverseShare = share.collectionOf;
 
     const keyByContributionId = new Map(
-      contributions.map((contribution, index) => [contribution.id, String(index)]),
+      contributions.map((contribution, index) => [
+        contribution.id,
+        String(index),
+      ]),
     );
 
     const files = share.files.map((file) => ({
@@ -197,6 +200,12 @@ export class ShareController {
           reverseShare.remainingUses > 0,
         endsAt: reverseShare.collectionEndsAt,
         description: reverseShare.description ?? undefined,
+        // Whether completing a deposit emails the collection's creator —
+        // the same two conditions ContributionService.complete() checks
+        // before sending, so the "we let them know" a contributor reads
+        // after depositing is never a promise nobody kept.
+        notifiesCreator:
+          reverseShare.sendEmailNotification && this.config.get("smtp.enabled"),
         contributions: contributions.map((contribution) => ({
           id: keyByContributionId.get(contribution.id)!,
           // A signed-in contributor's open() never stores a name — their
@@ -234,7 +243,9 @@ export class ShareController {
   async getDownloads(@Param("id") id: string, @GetUser() user: User) {
     const downloads = await this.shareService.getDownloads(id);
     return new ShareDownloadDTO().fromList(
-      user?.isAdmin ? downloads : downloads.map((d) => ({ ...d, ipAddress: null })),
+      user?.isAdmin
+        ? downloads
+        : downloads.map((d) => ({ ...d, ipAddress: null })),
     );
   }
 

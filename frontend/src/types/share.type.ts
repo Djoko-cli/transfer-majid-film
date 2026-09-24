@@ -17,6 +17,9 @@ export type ShareCollection = {
   isOpen: boolean;
   endsAt: Date;
   description?: string;
+  // Whether a completed deposit emails the collection's creator. Optional
+  // because a backend older than this field simply omits it.
+  notifiesCreator?: boolean;
   contributions: ShareCollectionContribution[];
 };
 
