@@ -27,6 +27,12 @@ ETIQUETTE="amont"
 TITRE="Amont : commits de pingvin-share-x à examiner"
 ECARTES="scripts/upstream/ignored.txt"
 
+# Le dépôt où tenir le ticket, passé à CHAQUE appel de gh. Sans -R, gh vise
+# le remote nommé `upstream` quand il en existe un — ce que ce script ajoute
+# lui-même — et écrirait chez pingvin-share-x. Le premier essai l'a fait :
+# refusé en 403, le jeton du workflow n'ayant aucun droit là-bas.
+DEPOT="${GITHUB_REPOSITORY:-Djoko-cli/transfer-majid-film}"
+
 essai=false
 [ "${1:-}" = "--dry-run" ] && essai=true
 
@@ -76,26 +82,26 @@ if $essai; then
   exit 0
 fi
 
-ticket=$(gh issue list --label "$ETIQUETTE" --state open --limit 1 --json number --jq '.[0].number // empty')
+ticket=$(gh issue list -R "$DEPOT" --label "$ETIQUETTE" --state open --limit 1 --json number --jq '.[0].number // empty')
 
 if [ "$nombre" -eq 0 ]; then
   if [ -n "$ticket" ]; then
-    gh issue comment "$ticket" --body "Plus rien à examiner : tout ce que pingvin-share-x a publié est repris ou écarté."
-    gh issue close "$ticket"
+    gh issue comment -R "$DEPOT" "$ticket" --body "Plus rien à examiner : tout ce que pingvin-share-x a publié est repris ou écarté."
+    gh issue close -R "$DEPOT" "$ticket"
   fi
   exit 0
 fi
 
 if [ -z "$ticket" ]; then
-  gh label create "$ETIQUETTE" --color "c75f00" \
+  gh label create -R "$DEPOT" "$ETIQUETTE" --color "c75f00" \
     --description "Commits de pingvin-share-x à examiner" --force >/dev/null
-  gh issue create --title "$TITRE" --label "$ETIQUETTE" --body "$corps"
+  gh issue create -R "$DEPOT" --title "$TITRE" --label "$ETIQUETTE" --body "$corps"
   exit 0
 fi
 
 # Modifier un ticket ne notifie personne ; un commentaire, si. On n'en laisse
 # un que lorsque de nouveaux commits sont apparus depuis la dernière fois.
-deja=$(gh issue view "$ticket" --json body --jq .body | grep -oE 'commit/[0-9a-f]{40}' | cut -d/ -f2 || true)
+deja=$(gh issue view -R "$DEPOT" "$ticket" --json body --jq .body | grep -oE 'commit/[0-9a-f]{40}' | cut -d/ -f2 || true)
 nouveaux=""
 while read -r sha; do
   if [ -n "$sha" ] && ! grep -qx "$sha" <<<"$deja"; then
@@ -104,9 +110,9 @@ while read -r sha; do
 done <<<"$a_examiner"
 nombre_nouveaux=$(grep -c . <<<"$nouveaux" || true)
 
-gh issue edit "$ticket" --body "$corps" >/dev/null
+gh issue edit -R "$DEPOT" "$ticket" --body "$corps" >/dev/null
 if [ "$nombre_nouveaux" -gt 0 ]; then
-  gh issue comment "$ticket" --body "$(
+  gh issue comment -R "$DEPOT" "$ticket" --body "$(
     echo "**$nombre_nouveaux nouveau(x)** depuis la dernière fois :"
     echo
     echo "| Commit | Date | Sujet |"
