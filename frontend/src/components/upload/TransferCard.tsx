@@ -274,6 +274,12 @@ const TransferCard = ({
       .transform((value) => value || undefined)
       .min(3, t("common.error.too-short", { length: 3 }))
       .max(30, t("common.error.too-long", { length: 30 })),
+    // The server refuses more (createShare.dto.ts, @MaxLength(512)): said
+    // here under the field, before sending, rather than as a failed send.
+    // The collection form already checks the same limit.
+    description: yup
+      .string()
+      .max(512, t("common.error.too-long", { length: 512 })),
     // Only load-bearing in "E-mail" mode: leaving it empty there made the
     // Lien/E-mail toggle silently inert (both branches sent an identical
     // link-only share), even though populating it does trigger real
