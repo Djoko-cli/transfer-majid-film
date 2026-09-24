@@ -1,0 +1,29 @@
+name: Suivi de pingvin-share-x
+
+# Chaque lundi, compare avec pingvin-share-x et tient à jour un ticket qui
+# liste ses commits pas encore repris ici — voir scripts/upstream/watch.sh.
+# Lançable à la main depuis l'onglet Actions pour ne pas attendre lundi.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  suivi:
+    runs-on: ubuntu-latest
+    steps:
+      # Tout l'historique : `git cherry` a besoin de remonter jusqu'à
+      # l'ancêtre commun, et les mentions « cherry picked from » sont dans
+      # les messages de commits anciens.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Mettre à jour le ticket de suivi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/upstream/watch.sh

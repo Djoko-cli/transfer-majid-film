@@ -1,0 +1,3 @@
+# Commits de pingvin-share-x qu'on a décidé de ne pas reprendre.
+# Un par ligne : le SHA (7 caractères suffisent), puis la raison.
+# scripts/upstream/watch.sh les retire du ticket de suivi.
