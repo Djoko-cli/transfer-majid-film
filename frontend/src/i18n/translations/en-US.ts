@@ -721,6 +721,7 @@ export default {
   "share.collection.identity.email-description":
     "A confirmation code will be sent there before your files are sent.",
   "share.collection.identity.signed-in-as": "You're depositing as {name}.",
+  "share.collection.identity.sign-out": "Sign out",
   // What stands in place of the drop zone once a deposit has landed.
   "share.collection.done.title": "Your files are in!",
   "share.collection.done.creator-notified":

@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Text, TextInput } from "@mantine/core";
+import { Anchor, Button, Group, Stack, Text, TextInput } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { cleanNotifications } from "@mantine/notifications";
 import { AxiosError } from "axios";
@@ -15,6 +15,7 @@ import useConfig from "../../hooks/config.hook";
 import { usePageFileDrop } from "../../hooks/pageFileDrop.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import useUser from "../../hooks/user.hook";
+import authService from "../../services/auth.service";
 import { useSubmitButtonStyles } from "../core/submitButtonStyles";
 import shareService from "../../services/share.service";
 import { FileUpload } from "../../types/File.type";
@@ -267,7 +268,10 @@ const CollectionDropzone = ({
             totalSize: files.reduce((acc, file) => acc + file.size, 0),
           });
           setFiles([]);
-          setName("");
+          // The name stays, like the verified address beside it: the next
+          // batch is almost always from the same person, and asking again
+          // was the one question "déposer d'autres fichiers" still put to
+          // them. Someone else can still type their own over it.
           contributionIdRef.current = null;
           onDeposited();
         })
@@ -403,6 +407,35 @@ const CollectionDropzone = ({
             id="share.collection.identity.signed-in-as"
             values={{ name: user.username }}
           />
+          {
+            // For whoever is not, or would rather not deposit as, the
+            // account this browser is signed into. The app's own sign-out:
+            // it reloads this same page, which comes back asking for a
+            // name and an address. Offered only while nothing is queued —
+            // the reload would silently drop a selection.
+          }
+          {files.length === 0 && !isUploading && (
+            <>
+              {" "}
+              <Anchor
+                component="button"
+                type="button"
+                size="sm"
+                color="dimmed"
+                // Underlined at rest, not only on hover (Mantine's own
+                // `underline`): in the sentence's colour and size, nothing
+                // else would say it can be clicked.
+                sx={(theme) => ({
+                  textDecoration: "underline",
+                  textUnderlineOffset: 2,
+                  "&:hover": { color: theme.white },
+                })}
+                onClick={() => authService.signOut()}
+              >
+                <FormattedMessage id="share.collection.identity.sign-out" />
+              </Anchor>
+            </>
+          )}
         </Text>
       ) : (
         <Stack spacing={4}>
