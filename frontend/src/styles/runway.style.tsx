@@ -84,6 +84,16 @@ const RunwayStyle = () => {
           left: 0,
           right: 0,
           height: "100lvh",
+          // A picture, never a control — and off the runway, an EMPTY one:
+          // its slot is only handed out while the runway is active. But a
+          // fixed box paints, and takes clicks, above every block that is
+          // not positioned, so left to itself it laid a transparent pane
+          // over whole pages. The admin section, which is mostly plain
+          // blocks, lost every click that was not on a Mantine input or
+          // button: the slideshow's project list could not be changed from
+          // its first project, and text could not be selected. Nothing is
+          // lost on the runway either, where the scroller sits above it.
+          pointerEvents: "none",
         },
         ".runway-app, .runway-page": { display: "contents" },
         ".runway-bar-slot, .runway-foot-slot": { display: "contents" },

@@ -24,12 +24,6 @@ const useStyles = createStyles((theme) => {
       flexDirection: "column",
       alignItems: "flex-start",
       justifyContent: "flex-start",
-      // Positioned on purpose. The runway's backdrop is a fixed, full-screen
-      // layer, and a fixed layer paints over every block that is not
-      // positioned: without this, it sits on top of the cards and swallows
-      // their clicks. Mantine's own inputs and buttons are relative, which is
-      // why they never met it.
-      position: "relative",
       width: "100%",
       padding: theme.spacing.md,
       borderRadius: theme.radius.md,
